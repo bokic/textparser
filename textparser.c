@@ -35,7 +35,6 @@ enum textparser_bom {
 };
 
 struct textparser_handle {
-    int mmap_fd;
     void *mmap_addr;
     size_t mmap_size;
     enum textparser_bom bom;
@@ -58,13 +57,13 @@ int textparse_openfile(const char *pathname, int text_format, void **handle)
 
     memset(&local_hnd, 0, sizeof(local_hnd));
 
-    local_hnd.mmap_fd = open(pathname, O_RDONLY);
-    if (local_hnd.mmap_fd <= 0) {
+    int fd = open(pathname, O_RDONLY);
+    if (fd <= 0) {
         err = 1;
         goto err;
     }
 
-    if (fstat(local_hnd.mmap_fd, &fd_stat)) {
+    if (fstat(fd, &fd_stat)) {
         err = 2;
         goto err;
     }
@@ -76,11 +75,13 @@ int textparse_openfile(const char *pathname, int text_format, void **handle)
 
     local_hnd.mmap_size = fd_stat.st_size;
 
-    local_hnd.mmap_addr = mmap(NULL, local_hnd.mmap_size, PROT_READ, MAP_PRIVATE, local_hnd.mmap_fd, 0);
+    local_hnd.mmap_addr = mmap(NULL, local_hnd.mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (local_hnd.mmap_addr == NULL) {
         err = 4;
         goto err;
     }
+
+    close(fd);
 
     local_hnd.text_addr = local_hnd.mmap_addr;
     local_hnd.text_size = local_hnd.mmap_size;
@@ -215,9 +216,6 @@ err:
     if (local_hnd.mmap_addr)
         munmap(local_hnd.mmap_addr, local_hnd.mmap_size);
 
-    if (local_hnd.mmap_fd)
-        close(local_hnd.mmap_fd);
-
     return err;
 }
 
@@ -230,7 +228,6 @@ void textparse_close(void *handle)
     if (handle == NULL)
         return;
 
-    mmap_fd = ((struct textparser_handle *)handle)->mmap_fd;
     mmap_addr = ((struct textparser_handle *)handle)->mmap_addr;
     mmap_size = ((struct textparser_handle *)handle)->mmap_size;
 
