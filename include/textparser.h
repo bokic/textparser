@@ -37,7 +37,7 @@ typedef struct textparse_token {
     char *end_string;
     bool only_start_tag;
     bool multi_line;
-    bool has_stuff_inside;
+    bool can_have_other_text_inside;
     bool end_tag_is_optional;
     int *nested_tokens;
 } textparse_token_t;
@@ -50,7 +50,7 @@ typedef struct language_definition {
     char **default_file_extensions;
     int default_text_encoding;
     int *starts_with;
-    bool has_stuff_inside;
+    bool can_have_other_text_inside;
     textparse_token_t *tokens;
 } language_definition_t;
 
@@ -63,6 +63,10 @@ EXPORT_CFRDS int textparse_openfile(const char *pathname, int text_format, void 
 EXPORT_CFRDS void textparse_close(void *handle);
 
 EXPORT_CFRDS int textparse_parse(void *handle, const language_definition_t *definition);
+
+EXPORT_CFRDS textparse_token_item_t *textparse_get_first_token(void *handle);
+EXPORT_CFRDS const char *textparse_get_token_id_name(void *handle, int token_id);
+EXPORT_CFRDS char *textparse_get_token_text(void *handle, textparse_token_item_t *item);
 
 #ifdef __cplusplus
 }

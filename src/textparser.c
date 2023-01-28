@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <textparser.h>
 #include <adv_regex.h>
 
@@ -34,6 +35,7 @@ enum textparser_bom {
 };
 
 struct textparser_handle {
+    const language_definition_t *language;
     void *mmap_addr;
     size_t mmap_size;
     enum textparser_bom bom;
@@ -220,20 +222,50 @@ err:
     return err;
 }
 
+void free_item_tree(textparse_token_item_t *item)
+{
+    textparse_token_item_t *next = NULL;
+
+    if (item->child)
+    {
+        free_item_tree(item->child);
+        item->child = NULL;
+    }
+
+    next = item->next;
+    while (next)
+    {
+        textparse_token_item_t *tmp = next->next;
+        free_item_tree(next);
+
+        next = tmp;
+    }
+
+    printf("free(item);\n");
+    free(item);
+}
+
 void textparse_close(void *handle)
 {
-    int mmap_fd = 0;
+    struct textparser_handle *int_handle = (struct textparser_handle *)handle;
+    textparse_token_item_t *item = NULL;
     void *mmap_addr = NULL;
     size_t mmap_size = 0;
 
-    if (handle == NULL)
+    if (int_handle == NULL)
         return;
 
-    mmap_addr = ((struct textparser_handle *)handle)->mmap_addr;
-    mmap_size = ((struct textparser_handle *)handle)->mmap_size;
+    mmap_addr = int_handle->mmap_addr;
+    mmap_size = int_handle->mmap_size;
 
     munmap(mmap_addr, mmap_size);
-    close(mmap_fd);
+
+    item = int_handle->first_item;
+    if (item)
+    {
+        free_item_tree(item);
+        item = NULL;
+    }
 
     free(handle);
 }
@@ -330,6 +362,8 @@ int textparse_parse(void *handle, const language_definition_t *definition)
     size_t size = int_handle->text_size;
     size_t pos = 0;
 
+    int_handle->language = definition;
+
     while(1) {
         int closesed_token = -1;
         int closesed_offset = size - pos;
@@ -366,4 +400,49 @@ int textparse_parse(void *handle, const language_definition_t *definition)
     }
 
     return 0;
+}
+
+textparse_token_item_t *textparse_get_first_token(void *handle)
+{
+    struct textparser_handle *int_handle = (struct textparser_handle *)handle;
+
+    if (int_handle == NULL)
+        return NULL;
+
+    return int_handle->first_item;
+}
+
+const char *textparse_get_token_id_name(void *handle, int token_id)
+{
+    struct textparser_handle *int_handle = (struct textparser_handle *)handle;
+
+    if ((int_handle == NULL)||(token_id < 0))
+        return NULL;
+
+    for (int c = 0; c <= token_id; c++)
+    {
+        if (int_handle->language->tokens[c].name == NULL)
+            return NULL;
+
+        if (c == token_id)
+            return int_handle->language->tokens[c].name;
+    }
+
+    return NULL;
+}
+
+char *textparse_get_token_text(void *handle, textparse_token_item_t *item)
+{    
+    char *ret = NULL;
+
+    struct textparser_handle *int_handle = (struct textparser_handle *)handle;
+
+    if ((int_handle == NULL)||(item == NULL)||(item->len <= 0))
+        return NULL;
+
+    ret = malloc(item->len + 1);
+    strncpy(ret, int_handle->text_addr + item->position, item->len);
+    ret[item->len] = '\0';
+
+    return ret;
 }

@@ -9,8 +9,29 @@
 
 _Static_assert(__STDC_VERSION__ == 202000, "Wrong C standard");
 
+static void print_textparse_token_item(void *handle, textparse_token_item_t *item, int level)
+{
+    const char *token_name;
+    char *token_text;
+
+    for(int c = 0; c < level; c++)
+        putc(' ', stdout);
+
+    token_name = textparse_get_token_id_name(handle, item->token_id);
+    token_text = textparse_get_token_text(handle, item);
+
+    printf("type: %s, text:%s:text\n", token_name, token_text);
+
+    if (item->child)
+        print_textparse_token_item(handle, item->child, level + 1);
+
+    free(token_text);
+}
+
 int main(int argc, char *argv[])
 {
+    int ret = EXIT_SUCCESS;
+
     void *handle = NULL;
     int err = 0;
 
@@ -18,7 +39,8 @@ int main(int argc, char *argv[])
     {
         printf("Usage: textparser <file.json>\n");
 
-        return EXIT_FAILURE;
+        ret = EXIT_FAILURE;
+        goto cleanup;
     }
 
     err = textparse_openfile(argv[1], TEXTPARSE_LATIN_1, &handle);
@@ -26,7 +48,8 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "textparse_openfile returned with error code: %d\n", err);
 
-        return EXIT_FAILURE;
+        ret = EXIT_FAILURE;
+        goto cleanup;
     }
 
     err = textparse_parse(handle, &json_definition);
@@ -34,16 +57,26 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "textparse_parse returned with error code: %d\n", err);
 
-        return EXIT_FAILURE;
+        ret = EXIT_FAILURE;
+        goto cleanup;
     }
 
     printf("File parsed ok!\n");
 
+    textparse_token_item_t *item = textparse_get_first_token(handle);
+    while (item)
+    {
+        print_textparse_token_item(handle, item, 0);
+
+        item = item->next;
+    }
+
+cleanup:
     if(handle)
     {
         textparse_close(handle);
         handle = NULL;
     }
 
-    return EXIT_SUCCESS;
+    return ret;
 }
