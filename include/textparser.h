@@ -3,6 +3,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+
+#ifdef libtextparser_EXPORTS
+ #if defined(_MSC_VER)
+  #define EXPORT_CFRDS __declspec(dllexport)
+ #else
+  #define EXPORT_CFRDS __attribute__((visibility("default")))
+ #endif
+#else
+ #define EXPORT_CFRDS
+#endif
+
 #define TextParser_END -1
 
 enum textparse_text_format {
@@ -43,7 +54,16 @@ typedef struct language_definition {
     textparse_token_t *tokens;
 } language_definition_t;
 
-int textparse_openfile(const char *pathname, int text_format, void **handle);
-void textparse_close(void *handle);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-int textparse_parse(void *handle, const language_definition_t *definition);
+EXPORT_CFRDS int textparse_openfile(const char *pathname, int text_format, void **handle);
+EXPORT_CFRDS void textparse_close(void *handle);
+
+EXPORT_CFRDS int textparse_parse(void *handle, const language_definition_t *definition);
+
+#ifdef __cplusplus
+}
+#endif

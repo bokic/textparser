@@ -39,6 +39,7 @@ struct textparser_handle {
     enum textparser_bom bom;
     enum textparse_text_format text_format;
     textparse_token_item_t *first_item;
+    bool fatal_error;
     char *text_addr;
     size_t text_size;
     ulong no_lines;
@@ -267,45 +268,54 @@ static void textparse_skipwhitespace(const struct textparser_handle *int_handle,
 
 static int textparse_find_token(const struct textparser_handle *int_handle, const language_definition_t *definition, int token, int offset)
 {
-    return adv_regex_find_pattern(definition->tokens[token].start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr, int_handle->text_size, NULL);
+    return adv_regex_find_pattern(definition->tokens[token].start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + offset, int_handle->text_size - offset, NULL);
 }
 
-static textparse_token_item_t *textparse_parse_token(const struct textparser_handle *int_handle, const language_definition_t *definition, int token, int offset)
+static textparse_token_item_t *textparse_parse_token(struct textparser_handle *int_handle, const language_definition_t *definition, int token_id, int offset)
 {
     textparse_token_item_t *ret = NULL;
 
     int len = 0;
     int token_start = 0;
+    int token_end = 0;
     int current_offset = offset;
 
     ret = malloc(sizeof(textparse_token_item_t));
     memset(ret, 0, sizeof(textparse_token_item_t));
 
-    const textparse_token_t *token_def = &definition->tokens[token];
+    const textparse_token_t *token_def = &definition->tokens[token_id];
 
-    ret->token_id = token;
+    ret->token_id = token_id;
 
-    token_start = adv_regex_find_pattern(token_def->start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr, current_offset, &len);
+    token_start = adv_regex_find_pattern(token_def->start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + offset, int_handle->text_size - offset, &len);
     if (token_start < 0)
     {
         ret->error = "Can't find start of the token!";
-        ret->position = current_offset;
+        ret->position = offset;
+        int_handle->fatal_error = true;
         return ret;
     }
 
-    ret->position = current_offset + token_start;
-    current_offset += token_start + len;
+    ret->position = offset + token_start;
+    current_offset = ret->position + len;
 
-    textparse_skipwhitespace(int_handle, &current_offset);
-
-    if (token_def->nested_tokens)
+    /*if (token_def->nested_tokens)
     {
+        textparse_skipwhitespace(int_handle, &current_offset);
         // TODO: Resume from here!
 
         token_start = adv_regex_find_pattern(token_def->end_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr, current_offset, &len);
-    }
+    }*/
 
-    ret->len = current_offset - offset;
+    if (!token_def->only_start_tag)
+    {
+        token_end = adv_regex_find_pattern(token_def->end_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &len);
+        if (token_end >= 0)
+        {
+            current_offset += len;
+            ret->len = current_offset - ret->position;
+        }
+    }
 
     return ret;
 }
@@ -329,22 +339,28 @@ int textparse_parse(void *handle, const language_definition_t *definition)
             int offset = textparse_find_token(handle, definition, token_id, pos);
             if ((offset >= 0)&&(offset < closesed_offset)) {
                 closesed_token = token_id;
-                closesed_offset = offset;
+                closesed_offset = pos + offset;
             }
 
             if (closesed_offset == 0)
                 break;
         }
 
-        if (closesed_offset == -1)
+        if ((closesed_offset < 0)||(closesed_token < 0))
             break;
 
         textparse_token_item_t *token_item = textparse_parse_token(handle, definition, closesed_token, closesed_offset);
 
-        if (prev_item == NULL)
+        if (int_handle->first_item == NULL)
             int_handle->first_item = token_item;
-        else
+
+        if (prev_item)
             prev_item->next = token_item;
+
+        if ((int_handle->fatal_error)||(token_item->token_id == -1)||(token_item->len <= 0))
+            return -1;
+
+        pos = token_item->position + token_item->len;
 
         prev_item = token_item;
     }
