@@ -225,6 +225,10 @@ err:
 void free_item_tree(textparse_token_item_t *item)
 {
     textparse_token_item_t *next = NULL;
+    textparse_token_item_t *tmp = NULL;
+
+    if (item == NULL)
+        return;
 
     if (item->child)
     {
@@ -233,15 +237,14 @@ void free_item_tree(textparse_token_item_t *item)
     }
 
     next = item->next;
-    while (next)
+    if (next)
     {
-        textparse_token_item_t *tmp = next->next;
         free_item_tree(next);
 
-        next = tmp;
+        item->next = NULL;
     }
 
-    printf("free(item);\n");
+    printf("free_item_tree - free\n");
     free(item);
 }
 
