@@ -313,6 +313,7 @@ static textparse_token_item_t *textparse_parse_token(struct textparser_handle *i
     int len = 0;
     int token_start = 0;
     int token_end = 0;
+    int *nested_tokens = NULL;
     int current_offset = offset;
 
     ret = malloc(sizeof(textparse_token_item_t));
@@ -328,28 +329,63 @@ static textparse_token_item_t *textparse_parse_token(struct textparser_handle *i
         ret->error = "Can't find start of the token!";
         ret->position = offset;
         int_handle->fatal_error = true;
+
         return ret;
     }
 
     ret->position = offset + token_start;
     current_offset = ret->position + len;
 
-    /*if (token_def->nested_tokens)
+    if (token_def->nested_tokens)
     {
-        textparse_skipwhitespace(int_handle, &current_offset);
-        // TODO: Resume from here!
+        textparse_token_item_t *last_child = NULL;
+        int child_token_id = 0;
 
-        token_start = adv_regex_find_pattern(token_def->end_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr, current_offset, &len);
-    }*/
+        nested_tokens = definition->tokens[token_id].nested_tokens;
+
+        do {
+            child_token_id = -1;
+
+            textparse_skipwhitespace(int_handle, &current_offset);
+
+            for(int c = 0; nested_tokens[c] != -1; c++)
+            {
+                if (textparse_find_token(int_handle, definition, nested_tokens[c], current_offset) == 0)
+                {
+                    child_token_id = nested_tokens[c];
+                    break;
+                }
+            }
+
+            if (child_token_id >= 0)
+            {
+                textparse_token_item_t *child = textparse_parse_token(int_handle, definition, child_token_id, current_offset);
+
+                if (ret->child == NULL)
+                    ret->child = child;
+
+                if (last_child)
+                    last_child->next = child;
+                last_child = child;
+
+                current_offset += child->len;
+            }
+        } while (child_token_id >= 0);
+    }
 
     if (!token_def->only_start_tag)
     {
+        textparse_skipwhitespace(int_handle, &current_offset);
         token_end = adv_regex_find_pattern(token_def->end_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &len);
         if (token_end >= 0)
         {
             current_offset += len;
             ret->len = current_offset - ret->position;
         }
+    }
+    else
+    {
+        ret->len = len;
     }
 
     return ret;
@@ -444,7 +480,7 @@ char *textparse_get_token_text(void *handle, textparse_token_item_t *item)
         return NULL;
 
     ret = malloc(item->len + 1);
-    strncpy(ret, int_handle->text_addr + item->position, item->len);
+    memcpy(ret, int_handle->text_addr + item->position, item->len);
     ret[item->len] = '\0';
 
     return ret;
