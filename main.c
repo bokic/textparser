@@ -1,5 +1,6 @@
 #include <textparser.h>
 #include <cfml_definition.h>
+#include <json_definition.h>
 #include <php_definition.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -36,7 +37,7 @@ int main(int argc, char *argv[])
 
     //memset_explicit(0,0);
 
-    err = textparse_parse(handle, &php_definition);
+    err = textparse_parse(handle, &json_definition);
     if (err)
     {
         fprintf(stderr, "textparse_parse returned with error code: %d\n", err);

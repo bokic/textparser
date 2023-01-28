@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define TextParser_END -1
+
 enum textparse_text_format {
     TEXTPARSE_LATIN_1,
     TEXTPARSE_UTF_8,

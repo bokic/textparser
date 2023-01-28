@@ -1,6 +1,5 @@
 #include <textparser.h>
 #include <adv_regex.h>
-#include <re.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -39,6 +38,7 @@ struct textparser_handle {
     size_t mmap_size;
     enum textparser_bom bom;
     enum textparse_text_format text_format;
+    textparse_token_item_t *first_item;
     char *text_addr;
     size_t text_size;
     ulong no_lines;
@@ -267,12 +267,7 @@ static void textparse_skipwhitespace(const struct textparser_handle *int_handle,
 
 static int textparse_find_token(const struct textparser_handle *int_handle, const language_definition_t *definition, int token, int offset)
 {
-    void *found  = NULL;
-    found = adv_regex_find_pattern(definition->tokens[token].start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr, int_handle->text_addr + int_handle->text_size, NULL);
-    if (!found)
-        return -1;
-
-    return (char *)found - int_handle->text_addr;
+    return adv_regex_find_pattern(definition->tokens[token].start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr, int_handle->text_size, NULL);
 }
 
 static textparse_token_item_t *textparse_parse_token(const struct textparser_handle *int_handle, const language_definition_t *definition, int token, int offset)
@@ -319,6 +314,8 @@ int textparse_parse(void *handle, const language_definition_t *definition)
 {
     struct textparser_handle *int_handle = (struct textparser_handle *)handle;
 
+    textparse_token_item_t *prev_item = NULL;
+
     const char *text = int_handle->text_addr;
     size_t size = int_handle->text_size;
     size_t pos = 0;
@@ -330,7 +327,6 @@ int textparse_parse(void *handle, const language_definition_t *definition)
         for (int c = 0; definition->starts_with[c] != -1; c++) {
             int token_id = definition->starts_with[c];
             int offset = textparse_find_token(handle, definition, token_id, pos);
-return 0;
             if ((offset >= 0)&&(offset < closesed_offset)) {
                 closesed_token = token_id;
                 closesed_offset = offset;
@@ -344,6 +340,13 @@ return 0;
             break;
 
         textparse_token_item_t *token_item = textparse_parse_token(handle, definition, closesed_token, closesed_offset);
+
+        if (prev_item == NULL)
+            int_handle->first_item = token_item;
+        else
+            prev_item->next = token_item;
+
+        prev_item = token_item;
     }
 
     return 0;
