@@ -20,7 +20,7 @@ static void print_textparse_token_item(void *handle, textparse_token_item_t *ite
     token_name = textparse_get_token_id_name(handle, item->token_id);
     token_text = textparse_get_token_text(handle, item);
 
-    printf("type: %s, text:%s:text\n", token_name, token_text);
+    printf("type: \e[48;5;4m%s\e[0m, text: \e[48;5;5m%s\e[0m\n", token_name, token_text);
 
     if (item->child)
         print_textparse_token_item(handle, item->child, level + 1);
