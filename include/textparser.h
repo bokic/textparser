@@ -60,6 +60,7 @@ extern "C"
 #endif
 
 EXPORT_CFRDS int textparse_openfile(const char *pathname, int text_format, void **handle);
+EXPORT_CFRDS int textparse_openmem(const char *text, int len, int text_format, void **handle);
 EXPORT_CFRDS void textparse_close(void *handle);
 
 EXPORT_CFRDS int textparse_parse(void *handle, const language_definition_t *definition);

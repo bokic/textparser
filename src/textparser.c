@@ -42,7 +42,7 @@ struct textparser_handle {
     enum textparse_text_format text_format;
     textparse_token_item_t *first_item;
     bool fatal_error;
-    char *text_addr;
+    const char *text_addr;
     size_t text_size;
     ulong no_lines;
     ulong lines[];
@@ -222,6 +222,26 @@ err:
     return err;
 }
 
+EXPORT_CFRDS int textparse_openmem(const char *text, int len, int text_format, void **handle)
+{
+    struct textparser_handle *ret = NULL;
+
+    ret = malloc(sizeof(struct textparser_handle));
+    if (ret == NULL) {
+        return 6;
+    }
+
+    memset(ret, 0, sizeof(struct textparser_handle));
+
+    ret->text_format = text_format;
+    ret->text_addr = text;
+    ret->text_size = len;
+
+    *handle = ret;
+
+    return 0;
+}
+
 void free_item_tree(textparse_token_item_t *item)
 {
     textparse_token_item_t *next = NULL;
@@ -244,7 +264,6 @@ void free_item_tree(textparse_token_item_t *item)
         item->next = NULL;
     }
 
-    printf("free_item_tree - free\n");
     free(item);
 }
 
@@ -261,7 +280,8 @@ void textparse_close(void *handle)
     mmap_addr = int_handle->mmap_addr;
     mmap_size = int_handle->mmap_size;
 
-    munmap(mmap_addr, mmap_size);
+    if (mmap_addr)
+        munmap(mmap_addr, mmap_size);
 
     item = int_handle->first_item;
     if (item)
@@ -368,6 +388,9 @@ static textparse_token_item_t *textparse_parse_token(struct textparser_handle *i
                     last_child->next = child;
                 last_child = child;
 
+                if (int_handle->fatal_error)
+                    return ret;
+
                 current_offset += child->len;
             }
         } while (child_token_id >= 0);
@@ -386,6 +409,13 @@ static textparse_token_item_t *textparse_parse_token(struct textparser_handle *i
     else
     {
         ret->len = len;
+    }
+
+    if ((token_def->only_start_tag == false)&&(token_def->end_tag_is_optional == false)&&(token_end < 0))
+    {
+        ret->error = "Can't find end of the token!";
+        ret->position = offset;
+        int_handle->fatal_error = true;
     }
 
     return ret;
