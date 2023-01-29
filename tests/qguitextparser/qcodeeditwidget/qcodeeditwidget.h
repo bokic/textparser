@@ -56,7 +56,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void key_press(QKeyEvent *event);
-    void text_change();
+    void textChanged();
     void breakpoint_change(int line);
 
 protected:

@@ -15,6 +15,9 @@ public:
     Dialog(QWidget *parent = nullptr);
     ~Dialog();
 
+private slots:
+    void on_parserDefinitionWidget_textchanged();
+
 private:
     Ui::Dialog *ui;
 };

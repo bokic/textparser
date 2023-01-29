@@ -487,7 +487,7 @@ void QCodeEditWidget::keyPressEvent(QKeyEvent *event)
 
         updatePanelWidth();
 
-        emit text_change();
+        emit textChanged();
     }
     else
     {

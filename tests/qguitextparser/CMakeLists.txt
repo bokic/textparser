@@ -12,7 +12,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-include_directories(.)
+include_directories(
+    .
+    ../../include
+    ../../definitions
+)
 
 set(PROJECT_SOURCES
         main.cpp
