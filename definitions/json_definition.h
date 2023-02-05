@@ -19,7 +19,7 @@ enum text_parser_json_tags {
 static const language_definition_t json_definition = {
     .name = "json",
     .case_sensitivity = false,
-    .default_file_extensions = (char *[]) {"json", NULL},
+    .default_file_extensions = (const char *[]){"json", NULL},
     .default_text_encoding = TEXTPARSE_LATIN_1,
     .starts_with = (int []) {TextParser_json_Object, TextParser_json_Array, -1},
     .can_have_other_text_inside = false,

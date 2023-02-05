@@ -32,26 +32,26 @@ typedef struct textparse_token_item {
 } textparse_token_item_t;
 
 typedef struct textparse_token {
-    char *name;
-    char *start_string;
-    char *end_string;
-    bool only_start_tag;
-    bool multi_line;
-    bool can_have_other_text_inside;
-    bool end_tag_is_optional;
-    int *nested_tokens;
+    const char * name;
+    const char *start_string;
+    const char *end_string;
+    const bool only_start_tag;
+    const bool multi_line;
+    const bool can_have_other_text_inside;
+    const bool end_tag_is_optional;
+    const int *nested_tokens;
 } textparse_token_t;
 
 typedef struct language_definition {
-    char *name;
-    float version;
-    char *empty_segment_language;
-    bool case_sensitivity;
-    char **default_file_extensions;
-    int default_text_encoding;
-    int *starts_with;
-    bool can_have_other_text_inside;
-    textparse_token_t *tokens;
+    const char *name;
+    const float version;
+    const char *empty_segment_language;
+    const bool case_sensitivity;
+    const char **default_file_extensions;
+    const int default_text_encoding;
+    const int *starts_with;
+    const bool can_have_other_text_inside;
+    const textparse_token_t *tokens;
 } language_definition_t;
 
 #ifdef __cplusplus

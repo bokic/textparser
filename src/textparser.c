@@ -333,7 +333,7 @@ static textparse_token_item_t *textparse_parse_token(struct textparser_handle *i
     int len = 0;
     int token_start = 0;
     int token_end = 0;
-    int *nested_tokens = NULL;
+    const int *nested_tokens = NULL;
     int current_offset = offset;
 
     ret = malloc(sizeof(textparse_token_item_t));
