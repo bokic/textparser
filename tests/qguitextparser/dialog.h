@@ -1,5 +1,4 @@
-#ifndef DIALOG_H
-#define DIALOG_H
+#pragma once
 
 #include "qjsonhighlighter.h"
 #include <QDialog>
@@ -20,4 +19,3 @@ private:
     Ui::Dialog *ui;
     QJsonHighlighter jsonHighlighter;
 };
-#endif // DIALOG_H
