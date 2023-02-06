@@ -61,7 +61,7 @@ QJsonHighlighter::QJsonHighlighter(QTextDocument *parent)
 void QJsonHighlighter::highlightBlock(const QString &text)
 {
     QByteArray textBA;
-    void *handle = NULL;
+    void *handle = nullptr;
     int res = 0;
 
     textBA = text.toLatin1();

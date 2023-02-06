@@ -16,6 +16,6 @@ public:
     ~Dialog();
 
 private:
-    Ui::Dialog *ui;
+    Ui::Dialog *ui = nullptr;
     QJsonHighlighter jsonHighlighter;
 };
