@@ -25,8 +25,8 @@ set(PROJECT_SOURCES
         dialog.h
         dialog.ui
 
-        qcodeeditwidget/qcodeeditwidget.cpp
-        qcodeeditwidget/qcodeeditwidget.h
+        qjsonhighlighter.cpp
+        qjsonhighlighter.h
 )
 
 qt_add_executable(qguitextparser

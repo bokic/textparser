@@ -20,12 +20,6 @@
       <enum>Qt::Vertical</enum>
      </property>
      <widget class="QSplitter" name="verticalSplitter">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -51,41 +45,27 @@
         </property>
        </column>
       </widget>
-      <widget class="QCodeEditWidget" name="codeWidget" native="true">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>1</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
+      <widget class="QTextEdit" name="textEdit">
+       <property name="font">
+        <font>
+         <family>Monospace</family>
+         <pointsize>12</pointsize>
+        </font>
        </property>
       </widget>
      </widget>
-     <widget class="QCodeEditWidget" name="parserDefinitionWidget" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>100</height>
-       </size>
+     <widget class="QPlainTextEdit" name="parserDefinitionWidget">
+      <property name="font">
+       <font>
+        <family>Noto Sans Mono</family>
+        <pointsize>18</pointsize>
+       </font>
       </property>
      </widget>
     </widget>
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QCodeEditWidget</class>
-   <extends>QWidget</extends>
-   <header>qcodeeditwidget/qcodeeditwidget.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

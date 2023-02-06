@@ -1,6 +1,7 @@
 #ifndef DIALOG_H
 #define DIALOG_H
 
+#include "qjsonhighlighter.h"
 #include <QDialog>
 
 QT_BEGIN_NAMESPACE
@@ -15,10 +16,8 @@ public:
     Dialog(QWidget *parent = nullptr);
     ~Dialog();
 
-private slots:
-    void on_parserDefinitionWidget_textchanged();
-
 private:
     Ui::Dialog *ui;
+    QJsonHighlighter jsonHighlighter;
 };
 #endif // DIALOG_H
