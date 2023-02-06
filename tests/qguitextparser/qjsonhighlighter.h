@@ -16,9 +16,10 @@ public:
     QJsonHighlighter(QTextDocument *parent);
 
 protected:
-    virtual void highlightBlock(const QString &text);
+    virtual void highlightBlock(const QString &text) override;
 
 private:
+    void init();
     void updateToken(textparse_token_item_t *token);
 
     QList<QTextCharFormat> m_formats;
