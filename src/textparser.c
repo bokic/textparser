@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stddef.h>
 #include <fcntl.h>
 
 //#include <utf8proc.h>
@@ -44,8 +45,8 @@ struct textparser_handle {
     bool fatal_error;
     const char *text_addr;
     size_t text_size;
-    ulong no_lines;
-    ulong lines[];
+    size_t no_lines;
+    size_t lines[];
 } __attribute__((aligned(1)));
 
 int textparse_openfile(const char *pathname, int text_format, void **handle)
@@ -171,7 +172,7 @@ int textparse_openfile(const char *pathname, int text_format, void **handle)
                 local_hnd.no_lines++;
         }
 
-        *handle = malloc(sizeof(struct textparser_handle) + (sizeof(ulong) * (local_hnd.no_lines)));
+        *handle = malloc(sizeof(struct textparser_handle) + (sizeof(size_t) * (local_hnd.no_lines)));
         if (*handle == NULL) {
             err = 6;
             goto err;
@@ -193,7 +194,7 @@ int textparse_openfile(const char *pathname, int text_format, void **handle)
                 local_hnd.no_lines++;
         }
 
-        *handle = malloc(sizeof(struct textparser_handle) + (sizeof(ulong) * (local_hnd.no_lines)));
+        *handle = malloc(sizeof(struct textparser_handle) + (sizeof(size_t) * (local_hnd.no_lines)));
         if (*handle == NULL) {
             err = 6;
             goto err;
