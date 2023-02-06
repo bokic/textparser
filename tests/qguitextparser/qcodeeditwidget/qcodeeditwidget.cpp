@@ -39,6 +39,15 @@
 #define KBD_DOWN      116
 #define KBD_LEFT      113
 #define KBD_RIGHT     114
+#elif defined Q_OS_OSX
+#define KBD_LCTRL      37
+#define KBD_RCTRL     105
+#define KBD_HOME      110
+#define KBD_END       115
+#define KBD_UP        111
+#define KBD_DOWN      116
+#define KBD_LEFT      113
+#define KBD_RIGHT     114
 #else
 #error Unsupported OS.
 #endif
@@ -232,6 +241,8 @@ QCodeEditWidget::QCodeEditWidget(QWidget *parent)
     , m_TextFont(QFont("Courier", 10, 0, false))
 #elif defined Q_OS_LINUX
     , m_TextFont(QFont("DejaVu Sans Mono", 9, 0, false))
+#elif defined Q_OS_OSX
+    , m_TextFont(QFont("Andale Mono", 28, 0, false))
 #else
 #error Unsupported OS.
 #endif
@@ -241,7 +252,7 @@ QCodeEditWidget::QCodeEditWidget(QWidget *parent)
     m_LineNumbersBackground = QBrush(l_Palette.color(QPalette::Window), Qt::SolidPattern);
     setAutoFillBackground(false);
 
-    m_TextFont.setStyleHint(QFont::Courier, QFont::PreferAntialias);
+    //m_TextFont.setStyleHint(QFont::Monospace, QFont::PreferAntialias);
 
     m_FontHeight = l_fm.height();
     m_LineHeight = m_FontHeight + 1;
