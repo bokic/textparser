@@ -1,7 +1,9 @@
 #pragma once
 
 #include "qjsonhighlighter.h"
+
 #include <QDialog>
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Dialog; }
@@ -17,5 +19,6 @@ public:
 
 private:
     Ui::Dialog *ui = nullptr;
+
     QJsonHighlighter jsonHighlighter;
 };
