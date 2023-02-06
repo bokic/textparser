@@ -516,3 +516,40 @@ char *textparse_get_token_text(void *handle, textparse_token_item_t *item)
 
     return ret;
 }
+
+textparse_parser_state_t *textparse_parse_state_new(void *state, int size)
+{
+    textparse_parser_state_t *ret = NULL;
+    int to_allocate = 0;
+    int allocated = 0;
+
+    allocated = ((size / 16) + 2) * 16;
+    to_allocate = offsetof(textparse_parser_state_t, state) + allocated;
+
+    ret = malloc(to_allocate);
+    if (ret)
+    {
+        ret->allocated = allocated;
+        ret->len = size;
+        if (size)
+        {
+            memcpy(ret->state, state, size);
+        }
+        memset(&ret->state[size], 0, allocated - size);
+    }
+
+    return ret;
+}
+
+textparse_token_item_t *textparse_parse_line(const char *line, enum textparse_text_format text_format, textparse_parser_state_t *state, const language_definition_t *definition)
+{
+    return NULL;
+}
+
+void textparse_parse_state_free(textparse_parser_state_t *state)
+{
+    if (state)
+    {
+        free(state);
+    }
+}

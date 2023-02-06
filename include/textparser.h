@@ -22,6 +22,12 @@ enum textparse_text_format {
     TEXTPARSE_UNICODE
 };
 
+typedef struct textparse_parser_state {
+    int allocated;
+    int len;
+    int state[];
+} textparse_parser_state_t;
+
 typedef struct textparse_token_item {
     struct textparse_token_item *next;
     struct textparse_token_item *child;
@@ -68,6 +74,10 @@ EXPORT_CFRDS int textparse_parse(void *handle, const language_definition_t *defi
 EXPORT_CFRDS textparse_token_item_t *textparse_get_first_token(void *handle);
 EXPORT_CFRDS const char *textparse_get_token_id_name(void *handle, int token_id);
 EXPORT_CFRDS char *textparse_get_token_text(void *handle, textparse_token_item_t *item);
+
+EXPORT_CFRDS textparse_parser_state_t *textparse_parse_state_new(void *state, int size);
+EXPORT_CFRDS void textparse_parse_state_free(textparse_parser_state_t *state);
+EXPORT_CFRDS textparse_token_item_t *textparse_parse_line(const char *line, enum textparse_text_format text_format, textparse_parser_state_t *state, const language_definition_t *definition);
 
 #ifdef __cplusplus
 }
