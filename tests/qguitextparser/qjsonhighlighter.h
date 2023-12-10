@@ -12,15 +12,15 @@
 class QJsonHighlighter final: public QSyntaxHighlighter
 {
 public:
-    QJsonHighlighter(QObject *parent = nullptr);
-    QJsonHighlighter(QTextDocument *parent);
+    explicit QJsonHighlighter(QObject *parent = nullptr);
+    explicit QJsonHighlighter(QTextDocument *parent);
 
 protected:
     virtual void highlightBlock(const QString &text) override;
 
 private:
     void init();
-    void updateToken(textparse_token_item_t *token);
+    void updateToken(textparse_token_item *token);
 
     QList<QTextCharFormat> m_formats;
 };

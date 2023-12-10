@@ -9,7 +9,7 @@
 
 _Static_assert(__STDC_VERSION__ == 202000, "Wrong C standard");
 
-static void print_textparse_token_item(void *handle, textparse_token_item_t *item, int level)
+static void print_textparse_token_item(void *handle, textparse_token_item *item, int level)
 {
     const char *token_name;
     char *token_text;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
     printf("File parsed ok!\n");
 
-    textparse_token_item_t *item = textparse_get_first_token(handle);
+    textparse_token_item *item = textparse_get_first_token(handle);
     while (item)
     {
         print_textparse_token_item(handle, item, 0);

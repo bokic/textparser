@@ -3,11 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(textparser LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
-
-include_directories(BEFORE
-   ../include
-   ../definitions
-)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_executable(textparser
     main.c

@@ -115,13 +115,12 @@ re_t re_compile(const char* pattern)
   static unsigned char ccl_buf[MAX_CHAR_CLASS_LEN];
   int ccl_bufidx = 1;
 
-  char c;     /* current char in pattern   */
   int i = 0;  /* index into pattern        */
   int j = 0;  /* index into re_compiled    */
 
   while (pattern[i] != '\0' && (j+1 < MAX_REGEXP_OBJECTS))
   {
-    c = pattern[i];
+    char c = pattern[i];
 
     switch (c)
     {

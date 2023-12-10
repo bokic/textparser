@@ -1,0 +1,41 @@
+{
+   "name":"json",
+   "version": 0.1,
+   "case_sensitivity": false,
+   "file_extensions": ["json"],
+   "encoding": "latin1",
+   "starts_with": ["Object", "Array"],
+   "other_text_inside": false,
+   "tokens": [
+      {"name": "Object", "start_string": "\\[", "end_string": "\\]",
+         "nested_tokens": [
+            "Object",
+            "Array",
+            "String",
+            "Number",
+            "Operator",
+            "Boolean",
+            "ValueSeparator",
+            "KeySeparator"
+         ]
+      },
+      {"name": "Array", "start_string": "\\[", "end_string": "\\]",
+         "nested_tokens": [
+            "Object",
+            "Array",
+            "String",
+            "Number",
+            "Operator",
+            "Boolean",
+            "ValueSeparator"
+         ]
+      },
+      {"name": "String", "start_string": "\\\"", "end_string": "\\\"", "can_have_text_inside": true},
+      {"name": "Number", "start_string": "[-+]?[0-9]+\\.?[0-9]*"},
+      {"name": "Operator", "start_string": "="},
+      {"name": "Boolean", "start_string": "true|false"},
+      {"name": "KeySeparator", "start_string": ":"},
+      {"name": "ValueSeparator", "start_string": ","}
+   ]
+}
+

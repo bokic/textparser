@@ -4,10 +4,6 @@ project(libtextparser LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 
-include_directories(BEFORE PUBLIC
-    ../include
-)
-
 add_library(libtextparser SHARED
     textparser.c
     adv_regex.c
@@ -19,8 +15,18 @@ add_library(libtextparser SHARED
     ../definitions/php_definition.h
 )
 
-target_link_libraries(libtextparser
+target_include_directories(libtextparser PUBLIC
+    ../include
+    ../definitions
+)
+
+target_include_directories(libtextparser PUBLIC
+    ../definitions
+)
+
+target_link_libraries(libtextparser PRIVATE
     utf8proc
+    json-c
     pcre2-8
 )
 

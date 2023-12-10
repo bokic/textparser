@@ -33,7 +33,7 @@ void QJsonHighlighter::highlightBlock(const QString &text)
         if (res != 0)
             goto cleanup;
 
-        textparse_token_item_t *token = textparse_get_first_token(handle);
+        textparse_token_item *token = textparse_get_first_token(handle);
         if (token)
             updateToken(token);
     }
@@ -89,7 +89,7 @@ void QJsonHighlighter::init()
     m_formats << fmt;
 }
 
-void QJsonHighlighter::updateToken(textparse_token_item_t *token)
+void QJsonHighlighter::updateToken(textparse_token_item *token)
 {
     if ((token->token_id >= 0)&&(token->token_id < m_formats.length()))
     {
