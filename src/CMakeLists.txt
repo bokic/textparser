@@ -20,9 +20,6 @@ target_include_directories(libtextparser PUBLIC
     ../definitions
 )
 
-target_include_directories(libtextparser PUBLIC
-    ../definitions
-)
 
 target_link_libraries(libtextparser PRIVATE
     utf8proc
