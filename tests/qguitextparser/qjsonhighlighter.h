@@ -13,7 +13,6 @@ class QJsonHighlighter final: public QSyntaxHighlighter
 {
 public:
     explicit QJsonHighlighter(QObject *parent = nullptr);
-    explicit QJsonHighlighter(QTextDocument *parent);
 
 protected:
     virtual void highlightBlock(const QString &text) override;

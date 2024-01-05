@@ -10,12 +10,6 @@ QJsonHighlighter::QJsonHighlighter(QObject *parent)
     init();
 }
 
-QJsonHighlighter::QJsonHighlighter(QTextDocument *parent)
-    : QSyntaxHighlighter(parent)
-{
-    init();
-}
-
 void QJsonHighlighter::highlightBlock(const QString &text)
 {
     QByteArray textBA;
@@ -30,12 +24,22 @@ void QJsonHighlighter::highlightBlock(const QString &text)
     if ((res == 0)&&(handle))
     {
         res = textparse_parse(handle, &json_definition);
-        if (res != 0)
+        if (res != 0) {
+            qDebug() << "Parser error!";
             goto cleanup;
+        }
+
+        textparse_dump(handle);
 
         textparse_token_item *token = textparse_get_first_token(handle);
         if (token)
             updateToken(token);
+
+        qDebug() << "Parser ok";
+    }
+    else
+    {
+        qDebug() << "textparse_openmem FAILED";
     }
 
 cleanup:
@@ -86,6 +90,11 @@ void QJsonHighlighter::init()
 
     //TextParser_json_ValueSeparator,
     fmt = QTextCharFormat();
+    m_formats << fmt;
+
+    // TextParser_json_EscapeCharacters
+    fmt = QTextCharFormat();
+    fmt.setForeground(QColor(255, 32, 32, 255));
     m_formats << fmt;
 }
 

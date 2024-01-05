@@ -73,11 +73,14 @@ extern "C"
 #endif
 
 EXPORT_CFRDS int textparse_load_language_definition_from_json_file(const char *pathname, language_definition **definition);
+EXPORT_CFRDS int textparse_load_language_definition_from_string(const char *text, language_definition **definition);
 EXPORT_CFRDS void textparse_free_language_definition(language_definition *definition);
 
 EXPORT_CFRDS int textparse_openfile(const char *pathname, int text_format, void **handle);
 EXPORT_CFRDS int textparse_openmem(const char *text, int len, int text_format, void **handle);
 EXPORT_CFRDS void textparse_close(void *handle);
+
+EXPORT_CFRDS void textparse_dump(void *handle);
 
 EXPORT_CFRDS int textparse_parse(void *handle, const language_definition *definition);
 

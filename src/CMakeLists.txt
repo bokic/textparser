@@ -4,6 +4,12 @@ project(libtextparser LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 
+find_package(PkgConfig)
+
+#pkg_search_module(libutf8proc REQUIRED libutf8proc>=2.9)
+pkg_search_module(json-c REQUIRED json-c>=0.17)
+pkg_search_module(libpcre2-8 REQUIRED libpcre2-8>=10.42)
+
 add_library(libtextparser SHARED
     textparser.c
     adv_regex.c
@@ -20,11 +26,19 @@ target_include_directories(libtextparser PUBLIC
     ../definitions
 )
 
+target_include_directories(libtextparser PRIVATE
+    ${json-c_INCLUDE_DIRS}
+    ${libpcre2-8_INCLUDE_DIRS}
+)
+
+target_link_directories(libtextparser PRIVATE
+    ${json-c_LIBRARY_DIRS}
+    ${libpcre2-8_LIBRARY_DIRS}
+)
 
 target_link_libraries(libtextparser PRIVATE
-    utf8proc
-    json-c
-    pcre2-8
+    ${json-c_LIBRARIES}
+    ${libpcre2-8_LIBRARIES}
 )
 
 set_target_properties(libtextparser PROPERTIES
