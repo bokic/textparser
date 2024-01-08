@@ -150,12 +150,35 @@ static textparse_token_item *textparse_parse_token(textparser_handle *int_handle
 
             textparse_skipwhitespace(int_handle, &current_offset);
 
+            int max_end_token = int_handle->mmap_size - current_offset;
+            if (!token_def->only_start_tag)
+            {
+                int max_end_token_len = -1;
+                max_end_token = adv_regex_find_pattern(token_def->end_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &max_end_token_len);
+                if (max_end_token < 0) {
+                    max_end_token = int_handle->mmap_size - current_offset;
+                }
+            }
+
             for(int c = 0; nested_tokens[c] != -1; c++)
             {
-                if (textparse_find_token(int_handle, definition, nested_tokens[c], current_offset) == 0)
+                int pos = textparse_find_token(int_handle, definition, nested_tokens[c], current_offset);
+                if (pos < 0)
+                    continue;
+
+                if (pos == 0)
                 {
                     child_token_id = nested_tokens[c];
                     break;
+                }
+
+                if (token_def->can_have_other_text_inside)
+                {
+                    if (pos < max_end_token)
+                    {
+                        max_end_token = pos;
+                        child_token_id = nested_tokens[c];
+                    }
                 }
             }
 
@@ -785,7 +808,7 @@ EXPORT_CFRDS int textparse_parse(void *handle, const language_definition *defini
 
     int_handle->language = definition;
 
-    while(1) {
+    while(pos < size) {
         int closesed_token = -1;
         int closesed_offset = size - pos;
 
