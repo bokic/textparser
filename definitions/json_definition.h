@@ -14,7 +14,7 @@ enum text_parser_json_tags {
     TextParser_json_KeySeparator,
     TextParser_json_ValueSeparator,
     TextParser_json_EscapeCharacters,
-    TextParser_json_Error = -1,
+    TextParser_json_End = -1,
 };
 
 static const language_definition json_definition = {
@@ -22,7 +22,7 @@ static const language_definition json_definition = {
     .case_sensitivity = false,
     .default_file_extensions = (const char *[]){"json", NULL},
     .default_text_encoding = TEXTPARSE_LATIN_1,
-    .starts_with = (int []) {TextParser_json_Object, TextParser_json_Array, -1},
+    .starts_with = (int []) {TextParser_json_Object, TextParser_json_Array, TextParser_json_End},
     .other_text_inside = false,
     .tokens = (textparse_token[]) {
         {.name = "jsonObject",      .start_string = "\\{",                                         .end_string = "\\}",     .only_start_tag = false, .multi_line = true,  .can_have_other_text_inside = false, .end_tag_is_optional = false,
@@ -39,7 +39,7 @@ static const language_definition json_definition = {
         {.name = "Boolean",         .start_string = "true|false",                                  .end_string = NULL,      .only_start_tag = true,  .multi_line = false, .can_have_other_text_inside = false, .end_tag_is_optional = false },
         {.name = "KeySeparator",    .start_string = ":",                                           .end_string = NULL,      .only_start_tag = true,  .multi_line = false, .can_have_other_text_inside = false, .end_tag_is_optional = false },
         {.name = "ValueSeparator",  .start_string = ",",                                           .end_string = NULL,      .only_start_tag = true,  .multi_line = false, .can_have_other_text_inside = false, .end_tag_is_optional = false },
-        {.name = "EscapeCharacters",.start_string = "\\\\|\\\"",                                   .end_string = NULL,      .only_start_tag = true,  .multi_line = false, .can_have_other_text_inside = false, .end_tag_is_optional = false },
+        {.name = "EscapeCharacters",.start_string = "\\\\\\\\|\\\\\"",                             .end_string = NULL,      .only_start_tag = true,  .multi_line = false, .can_have_other_text_inside = false, .end_tag_is_optional = false },
         {.name = NULL,              .start_string = NULL,                                          .end_string = NULL,      .only_start_tag = false, .multi_line = false, .can_have_other_text_inside = false, .end_tag_is_optional = false },
     },
 };

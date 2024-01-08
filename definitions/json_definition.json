@@ -40,7 +40,6 @@
       {"name": "Boolean", "start_string": "true|false"},
       {"name": "KeySeparator", "start_string": ":"},
       {"name": "ValueSeparator", "start_string": ","},
-      {"name": "EscapeCharacters", "start_string": "\\\\|\\\""}
+      {"name": "EscapeCharacters", "start_string": "\\|\""}
    ]
 }
-

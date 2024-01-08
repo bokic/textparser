@@ -16,7 +16,8 @@ enum text_parser_php_tags {
     TextParser_PHP_SingleString,
     TextParser_PHP_DoubleString,
     TextParser_PHP_Number,
-    TextParser_PHP_Boolean
+    TextParser_PHP_Boolean,
+    TextParser_PHP_End = -1
 };
 
 static const language_definition php_definition = {
@@ -26,7 +27,7 @@ static const language_definition php_definition = {
     .case_sensitivity = false,
     .default_file_extensions = (const char *[]) {"php", "php5", NULL},
     .default_text_encoding = TEXTPARSE_LATIN_1,
-    .starts_with = (int []) {TextParser_PHP_Tag, -1},
+    .starts_with = (int []) {TextParser_PHP_Tag, TextParser_PHP_End},
     .other_text_inside = true,
     .tokens = (textparse_token[]) {
         {.name = "PHPTag",        .start_string = "<\\?php|<\\?",                                .end_string = "\\?>",    .only_start_tag = false, .multi_line = true,  .can_have_other_text_inside = false,  .end_tag_is_optional = true,

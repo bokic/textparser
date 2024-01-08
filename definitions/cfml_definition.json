@@ -1,0 +1,12 @@
+{
+   "name": "cfml",
+   "version": 0.1,
+   "case_sensitivity": false,
+   "file_extensions": ["cfm", "cfc"],
+   "encoding": "latin1",
+   "starts_with": ["cftag"],
+   "other_text_inside": false,
+   "tokens": [
+      {"name": "cftag", "start_string": "<cf", "end_string": ">", "can_have_text_inside": true}
+   ]
+}
