@@ -6,12 +6,12 @@
 
 #ifdef libtextparser_EXPORTS
  #if defined(_MSC_VER)
-  #define EXPORT_CFRDS __declspec(dllexport)
+  #define EXPORT_TEXT_PARSER __declspec(dllexport)
  #else
-  #define EXPORT_CFRDS __attribute__((visibility("default")))
+  #define EXPORT_TEXT_PARSER __attribute__((visibility("default")))
  #endif
 #else
- #define EXPORT_CFRDS
+ #define EXPORT_TEXT_PARSER
 #endif
 
 #define TextParser_END -1
@@ -72,25 +72,25 @@ extern "C"
 {
 #endif
 
-EXPORT_CFRDS int textparse_load_language_definition_from_json_file(const char *pathname, language_definition **definition);
-EXPORT_CFRDS int textparse_load_language_definition_from_string(const char *text, language_definition **definition);
-EXPORT_CFRDS void textparse_free_language_definition(language_definition *definition);
+EXPORT_TEXT_PARSER int textparse_load_language_definition_from_json_file(const char *pathname, language_definition **definition);
+EXPORT_TEXT_PARSER int textparse_load_language_definition_from_string(const char *text, language_definition **definition);
+EXPORT_TEXT_PARSER void textparse_free_language_definition(language_definition *definition);
 
-EXPORT_CFRDS int textparse_openfile(const char *pathname, int text_format, void **handle);
-EXPORT_CFRDS int textparse_openmem(const char *text, int len, int text_format, void **handle);
-EXPORT_CFRDS void textparse_close(void *handle);
+EXPORT_TEXT_PARSER int textparse_openfile(const char *pathname, int text_format, void **handle);
+EXPORT_TEXT_PARSER int textparse_openmem(const char *text, int len, int text_format, void **handle);
+EXPORT_TEXT_PARSER void textparse_close(void *handle);
 
-EXPORT_CFRDS void textparse_dump(void *handle);
+EXPORT_TEXT_PARSER void textparse_dump(void *handle);
 
-EXPORT_CFRDS int textparse_parse(void *handle, const language_definition *definition);
+EXPORT_TEXT_PARSER int textparse_parse(void *handle, const language_definition *definition);
 
-EXPORT_CFRDS textparse_token_item *textparse_get_first_token(void *handle);
-EXPORT_CFRDS const char *textparse_get_token_id_name(void *handle, int token_id);
-EXPORT_CFRDS char *textparse_get_token_text(void *handle, textparse_token_item *item);
+EXPORT_TEXT_PARSER textparse_token_item *textparse_get_first_token(void *handle);
+EXPORT_TEXT_PARSER const char *textparse_get_token_id_name(void *handle, int token_id);
+EXPORT_TEXT_PARSER char *textparse_get_token_text(void *handle, textparse_token_item *item);
 
-EXPORT_CFRDS textparse_parser_state *textparse_parse_state_new(void *state, int size);
-EXPORT_CFRDS void textparse_parse_state_free(textparse_parser_state *state);
-EXPORT_CFRDS textparse_line_parser_item *textparse_parse_line(const char *line, enum textparse_text_format text_format, textparse_parser_state *state, const language_definition *definition);
+EXPORT_TEXT_PARSER textparse_parser_state *textparse_parse_state_new(void *state, int size);
+EXPORT_TEXT_PARSER void textparse_parse_state_free(textparse_parser_state *state);
+EXPORT_TEXT_PARSER textparse_line_parser_item *textparse_parse_line(const char *line, enum textparse_text_format text_format, textparse_parser_state *state, const language_definition *definition);
 
 #ifdef __cplusplus
 }

@@ -525,17 +525,17 @@ static void textparse_dump_item(void *handle, textparse_token_item *item, int le
     }
 }
 
-EXPORT_CFRDS int textparse_load_language_definition_from_json_file(const char *pathname, language_definition **definition)
+EXPORT_TEXT_PARSER int textparse_load_language_definition_from_json_file(const char *pathname, language_definition **definition)
 {
     return textparse_load_language_definition_internal(json_object_from_file(pathname), definition);
 }
 
-EXPORT_CFRDS int textparse_load_language_definition_from_string(const char *text, language_definition **definition)
+EXPORT_TEXT_PARSER int textparse_load_language_definition_from_string(const char *text, language_definition **definition)
 {
     return textparse_load_language_definition_internal(json_tokener_parse(text), definition);
 }
 
-EXPORT_CFRDS void textparse_free_language_definition(language_definition *definition)
+EXPORT_TEXT_PARSER void textparse_free_language_definition(language_definition *definition)
 {
     if (definition == NULL)
         return;
@@ -559,7 +559,7 @@ EXPORT_CFRDS void textparse_free_language_definition(language_definition *defini
     free(definition);
 }
 
-EXPORT_CFRDS int textparse_openfile(const char *pathname, int text_format, void **handle)
+EXPORT_TEXT_PARSER int textparse_openfile(const char *pathname, int text_format, void **handle)
 {
     textparser_handle local_hnd;
     struct stat fd_stat;
@@ -733,7 +733,7 @@ err:
     return err;
 }
 
-EXPORT_CFRDS int textparse_openmem(const char *text, int len, int text_format, void **handle)
+EXPORT_TEXT_PARSER int textparse_openmem(const char *text, int len, int text_format, void **handle)
 {
     textparser_handle *ret = NULL;
 
@@ -753,7 +753,7 @@ EXPORT_CFRDS int textparse_openmem(const char *text, int len, int text_format, v
     return 0;
 }
 
-EXPORT_CFRDS void textparse_close(void *handle)
+EXPORT_TEXT_PARSER void textparse_close(void *handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
     textparse_token_item *item = NULL;
@@ -779,7 +779,7 @@ EXPORT_CFRDS void textparse_close(void *handle)
     free(handle);
 }
 
-EXPORT_CFRDS void textparse_dump(void *handle)
+EXPORT_TEXT_PARSER void textparse_dump(void *handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -796,7 +796,7 @@ EXPORT_CFRDS void textparse_dump(void *handle)
     }
 }
 
-EXPORT_CFRDS int textparse_parse(void *handle, const language_definition *definition)
+EXPORT_TEXT_PARSER int textparse_parse(void *handle, const language_definition *definition)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -846,7 +846,7 @@ EXPORT_CFRDS int textparse_parse(void *handle, const language_definition *defini
     return 0;
 }
 
-EXPORT_CFRDS textparse_token_item *textparse_get_first_token(void *handle)
+EXPORT_TEXT_PARSER textparse_token_item *textparse_get_first_token(void *handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -856,7 +856,7 @@ EXPORT_CFRDS textparse_token_item *textparse_get_first_token(void *handle)
     return int_handle->first_item;
 }
 
-EXPORT_CFRDS const char *textparse_get_token_id_name(void *handle, int token_id)
+EXPORT_TEXT_PARSER const char *textparse_get_token_id_name(void *handle, int token_id)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -875,7 +875,7 @@ EXPORT_CFRDS const char *textparse_get_token_id_name(void *handle, int token_id)
     return NULL;
 }
 
-EXPORT_CFRDS char *textparse_get_token_text(void *handle, textparse_token_item *item)
+EXPORT_TEXT_PARSER char *textparse_get_token_text(void *handle, textparse_token_item *item)
 {    
     char *ret = NULL;
 
@@ -891,7 +891,7 @@ EXPORT_CFRDS char *textparse_get_token_text(void *handle, textparse_token_item *
     return ret;
 }
 
-EXPORT_CFRDS textparse_parser_state *textparse_parse_state_new(void *state, int size)
+EXPORT_TEXT_PARSER textparse_parser_state *textparse_parse_state_new(void *state, int size)
 {
     textparse_parser_state *ret = NULL;
     int to_allocate = 0;
@@ -915,7 +915,7 @@ EXPORT_CFRDS textparse_parser_state *textparse_parse_state_new(void *state, int 
     return ret;
 }
 
-EXPORT_CFRDS void textparse_parse_state_free(textparse_parser_state *state)
+EXPORT_TEXT_PARSER void textparse_parse_state_free(textparse_parser_state *state)
 {
     if (state)
     {
@@ -923,7 +923,7 @@ EXPORT_CFRDS void textparse_parse_state_free(textparse_parser_state *state)
     }
 }
 
-EXPORT_CFRDS textparse_line_parser_item *textparse_parse_line(const char *line, enum textparse_text_format text_format, textparse_parser_state *state, const language_definition *definition)
+EXPORT_TEXT_PARSER textparse_line_parser_item *textparse_parse_line(const char *line, enum textparse_text_format text_format, textparse_parser_state *state, const language_definition *definition)
 {
     return NULL;
 }
