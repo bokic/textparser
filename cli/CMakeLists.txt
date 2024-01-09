@@ -16,6 +16,6 @@ set_target_properties(textparser PROPERTIES
     C_VISIBILITY_PRESET hidden
 )
 
-target_link_libraries(textparser
+target_link_libraries(textparser PRIVATE
     libtextparser
 )

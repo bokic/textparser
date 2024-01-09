@@ -20,12 +20,20 @@ static void print_textparse_token_item(void *handle, textparse_token_item *item,
     token_name = textparse_get_token_id_name(handle, item->token_id);
     token_text = textparse_get_token_text(handle, item);
 
-    printf("type: \e[48;5;4m%s\e[0m, text: \e[48;5;5m%s\e[0m\n", token_name, token_text);
-
-    if (item->child)
-        print_textparse_token_item(handle, item->child, level + 1);
+    if ((token_text)&&((item->child == NULL)||(strlen(token_text) < 50))) {
+        printf("type: \e[48;5;4m%s\e[0m, text: \e[48;5;5m%s\e[0m\n", token_name, token_text);
+    } else {
+        printf("type: \e[48;5;4m%s\e[0m\n", token_name);
+    }
 
     free(token_text);
+
+    struct textparse_token_item *child = item->child;
+    while(child)
+    {
+        print_textparse_token_item(handle, child, level + 1);
+        child = child->next;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -58,7 +66,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "textparse_parse returned with error code: %d\n", err);
 
         ret = EXIT_FAILURE;
-        goto cleanup;
     }
 
     printf("File parsed ok!\n");
