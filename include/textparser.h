@@ -51,6 +51,8 @@ typedef struct textparse_token_item {
     bool multi_line;
     bool can_have_other_text_inside;
     bool end_tag_is_optional;
+    bool ignore_if_only_one_child;
+    bool search_end_tag_first;
     int *nested_tokens;
 } textparse_token;
 

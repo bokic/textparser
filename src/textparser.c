@@ -125,6 +125,8 @@ static textparse_token_item *textparse_parse_token(textparser_handle *int_handle
 
     ret->token_id = token_id;
 
+    printf("%s\n", token_def->start_string); fflush(stdout); usleep(100000);
+
     token_start = adv_regex_find_pattern(token_def->start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &len);
     if (token_start < 0)
     {
@@ -166,18 +168,21 @@ static textparse_token_item *textparse_parse_token(textparser_handle *int_handle
                 if (pos < 0)
                     continue;
 
-                if (pos == 0)
+                if ((token_def->search_end_tag_first == false)||(pos < max_end_token))
                 {
-                    child_token_id = nested_tokens[c];
-                    break;
-                }
-
-                if (token_def->can_have_other_text_inside)
-                {
-                    if (pos < max_end_token)
+                    if (pos == 0)
                     {
-                        max_end_token = pos;
                         child_token_id = nested_tokens[c];
+                        break;
+                    }
+
+                    if (token_def->can_have_other_text_inside)
+                    {
+                        if (pos < max_end_token)
+                        {
+                            max_end_token = pos;
+                            child_token_id = nested_tokens[c];
+                        }
                     }
                 }
             }
