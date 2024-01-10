@@ -9,6 +9,8 @@ find_package(PkgConfig)
 #pkg_search_module(libutf8proc REQUIRED libutf8proc>=2.9)
 pkg_search_module(json-c REQUIRED json-c>=0.17)
 pkg_search_module(libpcre2-8 REQUIRED libpcre2-8>=10.42)
+pkg_search_module(libpcre2-16 REQUIRED libpcre2-16>=10.42)
+pkg_search_module(libpcre2-32 REQUIRED libpcre2-32>=10.42)
 
 add_library(libtextparser SHARED
     textparser.c
@@ -29,16 +31,22 @@ target_include_directories(libtextparser PUBLIC
 target_include_directories(libtextparser PRIVATE
     ${json-c_INCLUDE_DIRS}
     ${libpcre2-8_INCLUDE_DIRS}
+    ${libpcre2-16_INCLUDE_DIRS}
+    ${libpcre2-32_INCLUDE_DIRS}
 )
 
 target_link_directories(libtextparser PRIVATE
     ${json-c_LIBRARY_DIRS}
     ${libpcre2-8_LIBRARY_DIRS}
+    ${libpcre2-16_LIBRARY_DIRS}
+    ${libpcre2-32_LIBRARY_DIRS}
 )
 
 target_link_libraries(libtextparser PRIVATE
     ${json-c_LIBRARIES}
     ${libpcre2-8_LIBRARIES}
+    ${libpcre2-16_LIBRARIES}
+    ${libpcre2-32_LIBRARIES}
 )
 
 set_target_properties(libtextparser PROPERTIES
