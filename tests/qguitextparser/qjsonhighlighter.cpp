@@ -20,18 +20,18 @@ void QJsonHighlighter::highlightBlock(const QString &text)
 
     qDebug() << "previousBlockState(): " << previousBlockState() << ", currentBlockState(): " << currentBlockState() << ", Text: " << text;
 
-    res = textparse_openmem(textBA.constData(), textBA.length(), TEXTPARSE_LATIN_1, &handle);
+    res = textparser_openmem(textBA.constData(), textBA.length(), TEXTPARSER_LATIN_1, &handle);
     if ((res == 0)&&(handle))
     {
-        res = textparse_parse(handle, &json_definition);
+        res = textparser_parse(handle, &json_definition);
         if (res != 0) {
             qDebug() << "Parser error!";
             goto cleanup;
         }
 
-        textparse_dump(handle);
+        textparser_dump(handle);
 
-        textparse_token_item *token = textparse_get_first_token(handle);
+        textparser_token_item *token = textparser_get_first_token(handle);
         if (token)
             updateToken(token);
 
@@ -39,11 +39,11 @@ void QJsonHighlighter::highlightBlock(const QString &text)
     }
     else
     {
-        qDebug() << "textparse_openmem FAILED";
+        qDebug() << "textparser_openmem FAILED";
     }
 
 cleanup:
-    textparse_close(handle);
+    textparser_close(handle);
 }
 
 void QJsonHighlighter::init()
@@ -98,7 +98,7 @@ void QJsonHighlighter::init()
     m_formats << fmt;
 }
 
-void QJsonHighlighter::updateToken(textparse_token_item *token)
+void QJsonHighlighter::updateToken(textparser_token_item *token)
 {
     if ((token->token_id >= 0)&&(token->token_id < m_formats.length()))
     {

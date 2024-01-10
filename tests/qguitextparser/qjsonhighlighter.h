@@ -19,7 +19,7 @@ protected:
 
 private:
     void init();
-    void updateToken(textparse_token_item *token);
+    void updateToken(textparser_token_item *token);
 
     QList<QTextCharFormat> m_formats;
 };

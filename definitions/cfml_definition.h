@@ -44,14 +44,14 @@ static const language_definition cfml_definition = {
     .empty_segment_language = "html",
     .case_sensitivity = false,
     .default_file_extensions = (const char *[]) {"cfm", "cfc", NULL},
-    .default_text_encoding = TEXTPARSE_LATIN_1,
+    .default_text_encoding = TEXTPARSER_LATIN_1,
     .starts_with = (int []) {TextParser_cfml_ScriptTag,
                              TextParser_cfml_OutputTag,
                              TextParser_cfml_StartTag,
                              TextParser_cfml_EndTag,
                              TextParser_cfml_Comment,
                              TextParser_END},
-    .tokens = (textparse_token[]) {
+    .tokens = (textparser_token[]) {
         {.name = "ScriptTag", .start_string = "<cfscript>", .end_string = "</cfscript>", .multi_line = true, .search_end_tag_first = true,
             .nested_tokens = (int []) {TextParser_cfml_ScriptExpression,
                                        TextParser_END}

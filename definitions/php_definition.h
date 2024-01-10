@@ -26,10 +26,10 @@ static const language_definition php_definition = {
     .empty_segment_language = "html",
     .case_sensitivity = false,
     .default_file_extensions = (const char *[]) {"php", "php5", NULL},
-    .default_text_encoding = TEXTPARSE_LATIN_1,
+    .default_text_encoding = TEXTPARSER_LATIN_1,
     .starts_with = (int []) {TextParser_PHP_Tag, TextParser_PHP_End},
     .other_text_inside = true,
-    .tokens = (textparse_token[]) {
+    .tokens = (textparser_token[]) {
         {.name = "PHPTag",        .start_string = "<\\?php|<\\?",                                .end_string = "\\?>",    .only_start_tag = false, .multi_line = true,  .can_have_other_text_inside = false,  .end_tag_is_optional = true,
             .nested_tokens = (int []) {TextParser_PHP_LineComment, TextParser_PHP_BlockComment, TextParser_PHP_Operator, TextParser_PHP_SingleString, TextParser_PHP_DoubleString, TextParser_PHP_Number, TextParser_PHP_Boolean, 0}
         },
