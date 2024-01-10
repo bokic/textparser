@@ -12,10 +12,8 @@
 #include <stddef.h>
 #include <fcntl.h>
 
-//#include <utf8proc.h>
 
-
-#define MAX_PARSE_SIZE (16 * 1024 * 1024) /* 16MB */
+#define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
 enum textparser_bom {
     NO_BOM,
@@ -105,14 +103,20 @@ static void textparse_skipwhitespace(const textparser_handle *int_handle, int *i
 
 static int textparse_find_token(const textparser_handle *int_handle, const language_definition *definition, int token, int offset)
 {
-    return adv_regex_find_pattern(definition->tokens[token].start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + offset, int_handle->text_size - offset, NULL);
+    size_t ret = 0;
+
+    bool res = adv_regex_find_pattern(definition->tokens[token].start_string, ADV_REGEX_TEXT_LATIN1, int_handle->text_addr + offset, int_handle->text_size - offset, &ret, NULL);
+    if (!res)
+        return -1;
+
+    return ret;
 }
 
 static textparse_token_item *textparse_parse_token(textparser_handle *int_handle, const language_definition *definition, int token_id, int offset)
 {
     textparse_token_item *ret = NULL;
 
-    int len = 0;
+    /*int len = 0;
     int token_start = 0;
     int token_end = 0;
     const int *nested_tokens = NULL;
@@ -226,7 +230,7 @@ static textparse_token_item *textparse_parse_token(textparser_handle *int_handle
         ret->error = "Can't find end of the token!";
         ret->position = current_offset;
         int_handle->fatal_error = true;
-    }
+    }*/
 
     return ret;
 }

@@ -2,6 +2,7 @@
 #include <cfml_definition.h>
 #include <json_definition.h>
 #include <php_definition.h>
+#include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -21,9 +22,9 @@ static void print_textparse_token_item(void *handle, textparse_token_item *item,
     token_text = textparse_get_token_text(handle, item);
 
     if ((token_text)&&((item->child == NULL)||(strlen(token_text) < 50))) {
-        printf("type: \e[48;5;4m%s\e[0m, text: \e[48;5;5m%s\e[0m\n", token_name, token_text);
+        printf("type: \\e[48;5;4m%s\\e[0m, text: \\e[48;5;5m%s\\e[0m\n", token_name, token_text);
     } else {
-        printf("type: \e[48;5;4m%s\e[0m\n", token_name);
+        printf("type: \\e[48;5;4m%s\\e[0m\n", token_name);
     }
 
     free(token_text);
@@ -41,7 +42,6 @@ int main(int argc, char *argv[])
     int ret = EXIT_SUCCESS;
 
     void *handle = NULL;
-    int err = 0;
 
     if (argc != 2)
     {
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    err = textparse_openfile(argv[1], TEXTPARSE_LATIN_1, &handle);
+    int err = textparse_openfile(argv[1], TEXTPARSE_LATIN_1, &handle);
     if (err)
     {
         fprintf(stderr, "textparse_openfile returned with error code: %d\n", err);

@@ -14,7 +14,7 @@
  #define EXPORT_TEXT_PARSER
 #endif
 
-#define TextParser_END -1
+#define TextParser_END (-1)
 
 enum textparse_text_format {
     TEXTPARSE_LATIN_1,
