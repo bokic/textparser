@@ -6,7 +6,6 @@ set(CMAKE_C_STANDARD 23)
 
 find_package(PkgConfig)
 
-#pkg_search_module(libutf8proc REQUIRED libutf8proc>=2.9)
 pkg_search_module(json-c REQUIRED json-c>=0.17)
 pkg_search_module(libpcre2-8 REQUIRED libpcre2-8>=10.42)
 pkg_search_module(libpcre2-16 REQUIRED libpcre2-16>=10.42)
