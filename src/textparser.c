@@ -725,10 +725,22 @@ EXPORT_TEXT_PARSER int textparser_openfile(const char *pathname, int text_format
         local_hnd.bom = NO_BOM;
     }
 
-    // TODO: Currently don't support BOM
-    if (local_hnd.bom != NO_BOM) {
-        err = 5;
-        goto err;
+    switch(local_hnd.bom)
+    {
+        case NO_BOM:
+            break;
+        case BOM_UTF_8:
+            text_format = ADV_REGEX_TEXT_UTF_8;
+            break;
+        case BOM_UTF_16_LE:
+            text_format = ADV_REGEX_TEXT_UTF_16;
+            break;
+        case BOM_UTF_32_LE:
+            text_format = ADV_REGEX_TEXT_UTF_32;
+            break;
+        default:
+            err = 5;
+            goto err;
     }
 
     local_hnd.no_lines = 0;
