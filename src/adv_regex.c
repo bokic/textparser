@@ -11,18 +11,18 @@ static bool adv_regex_find_pattern8(const char *regex, const char *start, size_t
 {
     bool ret = false;
 
-    PCRE2_SIZE erroroffset = 0;
-    int errornumber = 0;
+    PCRE2_SIZE error_offset = 0;
+    int error_number = 0;
     pcre2_match_data_8 *match_data = NULL;
     pcre2_code_8 *re = NULL;
     PCRE2_SIZE *ovector = NULL;
 
-    re = pcre2_compile_8((PCRE2_SPTR8)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF:0, &errornumber, &erroroffset, NULL);                 /* use default compile context */
+    re = pcre2_compile_8((PCRE2_SPTR8)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF:0, &error_number, &error_offset, NULL);                 /* use default compile context */
     if (re == NULL)
     {
         PCRE2_UCHAR8 buffer[256];
-        pcre2_get_error_message_8(errornumber, buffer, sizeof(buffer));
-        printf("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
+        pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
+        printf("PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
         return -1;
     }
 
@@ -63,18 +63,18 @@ static bool adv_regex_find_pattern16(const char *regex, const char *start, size_
 {
     bool ret = false;
 
-    PCRE2_SIZE erroroffset = 0;
-    int errornumber = 0;
+    PCRE2_SIZE error_offset = 0;
+    int error_number = 0;
     pcre2_match_data_16 *match_data = NULL;
     pcre2_code_16 *re = NULL;
     PCRE2_SIZE *ovector = NULL;
 
-    re = pcre2_compile_16((PCRE2_SPTR16)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF:0, &errornumber, &erroroffset, NULL);
+    re = pcre2_compile_16((PCRE2_SPTR16)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF:0, &error_number, &error_offset, NULL);
     if (re == NULL)
     {
         PCRE2_UCHAR8 buffer[256];
-        pcre2_get_error_message_8(errornumber, buffer, sizeof(buffer));
-        printf("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
+        pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
+        printf("PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
         return -1;
     }
 
@@ -115,18 +115,18 @@ static bool adv_regex_find_pattern32(const char *regex, const char *start, size_
 {
     bool ret = false;
 
-    PCRE2_SIZE erroroffset = 0;
-    int errornumber = 0;
+    PCRE2_SIZE error_offset = 0;
+    int error_number = 0;
     pcre2_match_data_32 *match_data = NULL;
     pcre2_code_32 *re = NULL;
     PCRE2_SIZE *ovector = NULL;
 
-    re = pcre2_compile_32((PCRE2_SPTR32)regex, PCRE2_ZERO_TERMINATED, 0, &errornumber, &erroroffset, NULL);
+    re = pcre2_compile_32((PCRE2_SPTR32)regex, PCRE2_ZERO_TERMINATED, 0, &error_number, &error_offset, NULL);
     if (re == NULL)
     {
         PCRE2_UCHAR8 buffer[256];
-        pcre2_get_error_message_8(errornumber, buffer, sizeof(buffer));
-        printf("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
+        pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
+        printf("PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
         return -1;
     }
 
@@ -163,7 +163,7 @@ static bool adv_regex_find_pattern32(const char *regex, const char *start, size_
     return ret;
 }
 
-bool adv_regex_find_pattern(const char *regex, int encoding, const char *start, size_t max_len, size_t *offset, size_t *length)
+bool adv_regex_find_pattern(const char *regex, enum adv_regex_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length)
 {
     switch(encoding)
     {

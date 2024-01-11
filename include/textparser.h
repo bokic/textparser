@@ -1,7 +1,9 @@
 #pragma once
 
+#include <adv_regex.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 
 #ifdef libtextparser_EXPORTS
@@ -16,10 +18,14 @@
 
 #define TextParser_END (-1)
 
-enum textparser_text_format {
-    TEXTPARSER_LATIN_1,
-    TEXTPARSER_UTF_8,
-    TEXTPARSER_UNICODE
+enum textparser_token_type {
+    TEXTPARSER_TOKEN_TYPE_GROUP,
+    TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER,
+    TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY,
+    TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
+    TEXTPARSER_TOKEN_TYPE_START_STOP,
+    TEXTPARSER_TOKEN_TYPE_START_OPT_STOP,
+    TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
 };
 
 typedef struct {
@@ -29,8 +35,8 @@ typedef struct {
 } textparser_parser_state;
 
 typedef struct {
-    char *text;
-    int len;
+    const char *text;
+    size_t len;
     int type;
 } textparser_line_parser_item;
 
@@ -38,21 +44,20 @@ typedef struct textparser_token_item {
     struct textparser_token_item *next;
     struct textparser_token_item *child;
     int token_id;
-    int position;
-    int len;
+    size_t position;
+    size_t len;
     const char *error;
 } textparser_token_item;
 
  typedef struct {
     const char *name;
+    enum textparser_token_type type;
     const char *start_string;
     const char *end_string;
-    bool only_start_tag;
+    bool immediate_start;
+    bool delete_if_only_one_child;
+    bool must_have_one_child;
     bool multi_line;
-    bool can_have_other_text_inside;
-    bool end_tag_is_optional;
-    bool ignore_if_only_one_child;
-    bool search_end_tag_first;
     int *nested_tokens;
 } textparser_token;
 
@@ -92,7 +97,7 @@ EXPORT_TEXT_PARSER char *textparser_get_token_text(void *handle, textparser_toke
 
 EXPORT_TEXT_PARSER textparser_parser_state *textparser_parse_state_new(void *state, int size);
 EXPORT_TEXT_PARSER void textparser_parse_state_free(textparser_parser_state *state);
-EXPORT_TEXT_PARSER textparser_line_parser_item *textparser_parse_line(const char *line, enum textparser_text_format text_format, textparser_parser_state *state, const language_definition *definition);
+EXPORT_TEXT_PARSER textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition);
 
 #ifdef __cplusplus
 }

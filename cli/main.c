@@ -1,7 +1,7 @@
 #include <textparser.h>
-#include <cfml_definition.h>
+//#include <cfml_definition.h>
 #include <json_definition.h>
-#include <php_definition.h>
+//#include <php_definition.h>
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -12,8 +12,8 @@ _Static_assert(__STDC_VERSION__ == 202000, "Wrong C standard");
 
 static void print_textparser_token_item(void *handle, textparser_token_item *item, int level)
 {
-    const char *token_name;
-    char *token_text;
+    const char *token_name = NULL;
+    char *token_text = NULL;
 
     for(int c = 0; c < level; c++)
         putc(' ', stdout);
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    int err = textparser_openfile(argv[1], TEXTPARSER_LATIN_1, &handle);
+    int err = textparser_openfile(argv[1], ADV_REGEX_TEXT_LATIN1, &handle);
     if (err)
     {
         fprintf(stderr, "textparser_openfile returned with error code: %d\n", err);
