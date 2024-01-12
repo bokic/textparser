@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "textparser_parse returned with error code: %d\n", err);
 
         ret = EXIT_FAILURE;
+        goto cleanup;
     }
 
     printf("File parsed ok!\n");
