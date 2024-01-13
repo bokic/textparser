@@ -22,9 +22,9 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
     token_text = textparser_get_token_text(handle, item);
 
     if ((token_text)&&((item->child == NULL)||(strlen(token_text) < 50))) {
-        printf("type: \\e[48;5;4m%s\\e[0m, text: \\e[48;5;5m%s\\e[0m\n", token_name, token_text);
+        printf("type: \033[48;5;4m%s\033[0m, text: \033[48;5;5m%s\033[0m\n", token_name, token_text);
     } else {
-        printf("type: \\e[48;5;4m%s\\e[0m\n", token_name);
+        printf("type: \033[48;5;4m%s\033[0m\n", token_name);
     }
 
     free(token_text);
