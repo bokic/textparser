@@ -40,7 +40,7 @@ enum text_parser_cfml_tags {
 };
 
 static const language_definition cfml_definition = {
-    .name = "ColdFusion",
+    .name = "CFML",
     .empty_segment_language = "html",
     .case_sensitivity = false,
     .default_file_extensions = (const char *[]) {"cfm", "cfc", NULL},
@@ -56,7 +56,7 @@ static const language_definition cfml_definition = {
             .name = "ScriptTag",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "<cfscript>",
-            .end_string = "</cfscript>",
+            .end_string = "<\\/cfscript>",
             .multi_line = true,
             .nested_tokens = (int []) {TextParser_cfml_ScriptExpression,
                                        TextParser_END}
@@ -65,7 +65,7 @@ static const language_definition cfml_definition = {
             .name = "OutputTag",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "<cfoutput>",
-            .end_string = "</cfoutput>",
+            .end_string = "<\\/cfoutput>",
             .multi_line = true,
             .nested_tokens = (int []) {TextParser_cfml_OutputExpression,
                                        TextParser_END}
@@ -82,7 +82,7 @@ static const language_definition cfml_definition = {
         {
             .name = "EndTag",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
-            .start_string = "</cf",
+            .start_string = "<\\/cf",
             .end_string = ">",
             .multi_line = true
         },
@@ -139,8 +139,8 @@ static const language_definition cfml_definition = {
             .start_string = "#",
             .end_string = "#",
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_Expression,
-                                       TextParser_END}
+            //.nested_tokens = (int []) {TextParser_cfml_Expression,
+            //                           TextParser_END}
         },
         {
             .name = "Expression",
@@ -159,6 +159,7 @@ static const language_definition cfml_definition = {
                                        TextParser_cfml_Keyword,
                                        TextParser_cfml_Function,
                                        TextParser_cfml_Object,
+                                       TextParser_cfml_Assigment,
                                        TextParser_cfml_Variable,
                                        TextParser_cfml_SubExpression,
                                        TextParser_cfml_VariableIndex,
@@ -182,6 +183,7 @@ static const language_definition cfml_definition = {
                                        TextParser_cfml_Keyword,
                                        TextParser_cfml_Function,
                                        TextParser_cfml_Object,
+                                       TextParser_cfml_Assigment,
                                        TextParser_cfml_Variable,
                                        TextParser_cfml_SubExpression,
                                        TextParser_cfml_VariableIndex,
@@ -200,14 +202,14 @@ static const language_definition cfml_definition = {
         {
             .name = "ScriptBlockComment",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
-            .start_string = "/\\*",
-            .end_string = "\\*/",
+            .start_string = "\\/\\*",
+            .end_string = "\\*\\/",
             .multi_line = true
         },
         {
             .name = "ScriptLineComment",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "//.*"
+            .start_string = "\\/\\/.*"
         },
         {
             .name = "ExpressionEnd",
