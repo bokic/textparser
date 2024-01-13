@@ -20,7 +20,7 @@ void QJsonHighlighter::highlightBlock(const QString &text)
 
     qDebug() << "previousBlockState(): " << previousBlockState() << ", currentBlockState(): " << currentBlockState() << ", Text: " << text;
 
-    res = textparser_openmem(textBA.constData(), textBA.length(), TEXTPARSER_LATIN_1, &handle);
+    res = textparser_openmem(textBA.constData(), textBA.length(), ADV_REGEX_TEXT_LATIN1, &handle);
     if ((res == 0)&&(handle))
     {
         res = textparser_parse(handle, &json_definition);
