@@ -18,6 +18,8 @@
 
 #define TextParser_END (-1)
 
+#define textparser_t void *
+
 enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_GROUP,
     TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER,
@@ -27,6 +29,7 @@ enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_START_OPT_STOP,
     TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
 };
+
 
 typedef struct {
     int allocated;
@@ -83,19 +86,19 @@ EXPORT_TEXT_PARSER int textparser_load_language_definition_from_json_file(const 
 EXPORT_TEXT_PARSER int textparser_load_language_definition_from_string(const char *text, language_definition **definition);
 EXPORT_TEXT_PARSER void textparser_free_language_definition(language_definition *definition);
 
-EXPORT_TEXT_PARSER int textparser_openfile(const char *pathname, int text_format, void **handle);
-EXPORT_TEXT_PARSER int textparser_openmem(const char *text, int len, int text_format, void **handle);
-EXPORT_TEXT_PARSER void textparser_close(void *handle);
+EXPORT_TEXT_PARSER int textparser_openfile(const char *pathname, int text_format, textparser_t *handle);
+EXPORT_TEXT_PARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);
+EXPORT_TEXT_PARSER void textparser_close(textparser_t handle);
 
-EXPORT_TEXT_PARSER void textparser_dump(void *handle);
+EXPORT_TEXT_PARSER void textparser_dump(textparser_t handle);
 
-EXPORT_TEXT_PARSER int textparser_parse(void *handle, const language_definition *definition);
+EXPORT_TEXT_PARSER int textparser_parse(textparser_t handle, const language_definition *definition);
 
-EXPORT_TEXT_PARSER textparser_token_item *textparser_get_first_token(void *handle);
-EXPORT_TEXT_PARSER const char *textparser_get_token_id_name(void *handle, int token_id);
-EXPORT_TEXT_PARSER char *textparser_get_token_text(void *handle, textparser_token_item *item);
+EXPORT_TEXT_PARSER textparser_token_item *textparser_get_first_token(textparser_t handle);
+EXPORT_TEXT_PARSER const char *textparser_get_token_id_name(textparser_t handle, int token_id);
+EXPORT_TEXT_PARSER char *textparser_get_token_text(textparser_t handle, textparser_token_item *item);
 
-EXPORT_TEXT_PARSER textparser_parser_state *textparser_parse_state_new(void *state, int size);
+EXPORT_TEXT_PARSER textparser_parser_state *textparser_parse_state_new(textparser_t state, int size);
 EXPORT_TEXT_PARSER void textparser_parse_state_free(textparser_parser_state *state);
 EXPORT_TEXT_PARSER textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition);
 
