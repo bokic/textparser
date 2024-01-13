@@ -115,6 +115,36 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
     switch(token_def->type)
     {
         case TEXTPARSER_TOKEN_TYPE_GROUP:
+            if (token_def->nested_tokens)
+            {
+                size_t lowest = 0;
+                size_t tmp = 0;
+                bool found = false;
+                for(int c = 0; token_def->nested_tokens[c] != -1; c++)
+                {
+                    if(textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, &tmp))
+                    {
+                        if (!found)
+                        {
+                            lowest = tmp;
+                            found = true;
+                        }
+                        else
+                        {
+                            if (tmp <  lowest)
+                                lowest = tmp;
+                        }
+                        if (lowest == 0)
+                            break;
+                    }
+                }
+
+                if (found)
+                    *out = lowest;
+
+                return found;
+            }
+            break;
         case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:
             if (token_def->nested_tokens)
             {
@@ -188,6 +218,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             }
 
             // TODO: Implement TEXTPARSER_TOKEN_TYPE_GROUP
+            printf("Unimplemented! EXITING!!!\n");
             exit(1);
 
             break;
@@ -245,8 +276,12 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                 return ret;
             }
+
+            textparser_skip_whitespace(int_handle, &offset);
+
             for (int c = 0; token_def->nested_tokens[c] != -1; c++)
             {
+                // TODO: Search for closest one!
                 if (textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, NULL))
                 {
                     textparser_token_item *child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], offset);
