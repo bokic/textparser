@@ -140,7 +140,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
-            return adv_regex_find_pattern(definition->tokens[token_id].start_string, ADV_REGEX_TEXT_LATIN1, text, len, out, NULL);
+            return adv_regex_find_pattern(definition->tokens[token_id].start_string, int_handle->text_format, text, len, out, NULL);
         default:
             break;
     };
@@ -251,9 +251,11 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 {
                     textparser_token_item *child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], offset);
 
-                    ret->position = offset;
-                    ret->len = child->position + child->len - ret->position;
+                    ret->position = child->position;
+                    ret->len = child->len;
                     ret->child = child;
+
+                    break;
                 }
             }
             break;
@@ -311,11 +313,8 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                     textparser_skip_whitespace(int_handle, &current_offset);
 
-                    size_t max_end_token = int_handle->mmap_size - current_offset;
-                    size_t max_end_token_len = -1;
-
-                    bool found_end = adv_regex_find_pattern(token_def->end_string, int_handle->text_format, int_handle->text_addr + current_offset, max_end_token_len, &max_end_token, NULL);
-                    if ((found_end)&&(max_end_token == 0))
+                    bool found_end = adv_regex_find_pattern(token_def->end_string, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_end, NULL);
+                    if ((found_end)&&(token_end == 0))
                         break;
 
                     for(int c = 0; nested_tokens[c] != -1; c++)
@@ -325,7 +324,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                         if (!textparser_find_token(int_handle, definition, nested_tokens[c], current_offset, &pos))
                             continue;
 
-                        if (pos < max_end_token)
+                        if (pos < token_end)
                         {
                             if (pos == 0)
                             {
@@ -335,9 +334,9 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                             if (!token_def->immediate_start)
                             {
-                                if (pos < max_end_token)
+                                if (pos < token_end)
                                 {
-                                    max_end_token = pos;
+                                    token_end = pos;
                                     child_token_id = nested_tokens[c];
                                 }
                             }
@@ -376,7 +375,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 return ret;
             }
 
-            ret->len = token_end + len;
+            ret->len = current_offset + token_end + len - ret->position;
             current_offset += len;
             break;
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
