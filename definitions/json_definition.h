@@ -17,7 +17,6 @@ enum text_parser_json_tags {
     TextParser_json_KeySeparator,
     TextParser_json_ValueSeparator,
     TextParser_json_EscapeCharacters,
-    TextParser_json_End = -1,
 };
 
 static const language_definition json_definition = {
@@ -25,7 +24,9 @@ static const language_definition json_definition = {
     .case_sensitivity = false,
     .default_file_extensions = (const char *[]){"json", NULL},
     .default_text_encoding = ADV_REGEX_TEXT_UTF_8,
-    .starts_with = (int []) {TextParser_json_Object, TextParser_json_Array, TextParser_json_End},
+    .starts_with = (int []) {TextParser_json_Object,
+                             TextParser_json_Array,
+                             TextParser_END},
     .other_text_inside = false,
     .tokens = (textparser_token[]) {
         {
