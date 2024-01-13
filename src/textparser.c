@@ -168,11 +168,11 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     ret->token_id = token_id;
     ret->position = offset;
 
-    if (token_def->start_string)
+    /*if (token_def->start_string)
         printf("offset: %zu - token name: %s - start string: %s\n", offset, token_def->name, token_def->start_string);
     else
         printf("offset: %zu - token name: %s\n", offset, token_def->name);
-    fflush(stdout); //usleep(1000);
+    fflush(stdout); //usleep(1000);*/
 
     switch(token_def->type)
     {
@@ -254,7 +254,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     ret->position = child->position;
                     ret->len = child->len;
                     ret->child = child;
-
                     break;
                 }
             }
@@ -267,7 +266,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 int_handle->fatal_error = true;
 
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset);
-
                 return ret;
             }
 
@@ -283,7 +281,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 int_handle->fatal_error = true;
 
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset);
-
                 return ret;
             }
 
@@ -294,7 +291,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 int_handle->fatal_error = true;
 
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset);
-
                 return ret;
             }
 
@@ -375,7 +371,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 return ret;
             }
 
-            ret->len = current_offset + token_end + len - ret->position;
+            ret->len = current_offset + len - ret->position;
             current_offset += len;
             break;
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
