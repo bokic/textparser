@@ -104,6 +104,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
 {
     const textparser_token *token_def = NULL;
     const char *text = NULL;
+    size_t found_at = 0;
     size_t len = 0;
     int c = 0;
 
@@ -170,7 +171,13 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
-            return adv_regex_find_pattern(definition->tokens[token_id].start_string, int_handle->text_format, text, len, out, NULL);
+            if (adv_regex_find_pattern(definition->tokens[token_id].start_string, int_handle->text_format, text, len, &found_at, NULL))
+            {
+                if ((!token_def->immediate_start)||(found_at == 0))
+                {
+                    return true;
+                }
+            }
         default:
             break;
     };
