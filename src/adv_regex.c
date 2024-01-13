@@ -17,7 +17,7 @@ static bool adv_regex_find_pattern8(const char *regex, const char *start, size_t
     pcre2_code_8 *re = NULL;
     PCRE2_SIZE *ovector = NULL;
 
-    re = pcre2_compile_8((PCRE2_SPTR8)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF:0, &error_number, &error_offset, NULL);                 /* use default compile context */
+    re = pcre2_compile_8((PCRE2_SPTR8)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF|PCRE2_CASELESS:PCRE2_CASELESS, &error_number, &error_offset, NULL);                 /* use default compile context */
     if (re == NULL)
     {
         PCRE2_UCHAR8 buffer[256];
@@ -69,7 +69,7 @@ static bool adv_regex_find_pattern16(const char *regex, const char *start, size_
     pcre2_code_16 *re = NULL;
     PCRE2_SIZE *ovector = NULL;
 
-    re = pcre2_compile_16((PCRE2_SPTR16)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF:0, &error_number, &error_offset, NULL);
+    re = pcre2_compile_16((PCRE2_SPTR16)regex, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF|PCRE2_CASELESS:PCRE2_CASELESS, &error_number, &error_offset, NULL);
     if (re == NULL)
     {
         PCRE2_UCHAR8 buffer[256];
@@ -121,7 +121,7 @@ static bool adv_regex_find_pattern32(const char *regex, const char *start, size_
     pcre2_code_32 *re = NULL;
     PCRE2_SIZE *ovector = NULL;
 
-    re = pcre2_compile_32((PCRE2_SPTR32)regex, PCRE2_ZERO_TERMINATED, 0, &error_number, &error_offset, NULL);
+    re = pcre2_compile_32((PCRE2_SPTR32)regex, PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &error_number, &error_offset, NULL);
     if (re == NULL)
     {
         PCRE2_UCHAR8 buffer[256];
