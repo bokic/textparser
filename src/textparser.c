@@ -47,7 +47,6 @@ typedef struct {
     size_t lines[];
 } textparser_handle;
 
-
 static void free_item_tree(textparser_token_item *item)
 {
     textparser_token_item *next = NULL;
@@ -106,7 +105,6 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
     const char *text = NULL;
     size_t found_at = 0;
     size_t len = 0;
-    int c = 0;
 
     token_def = &definition->tokens[token_id];
 
