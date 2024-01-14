@@ -1,5 +1,5 @@
 #include <textparser.h>
-//#include <cfml_definition.h>
+#include <cfml_definition.h>
 #include <json_definition.h>
 //#include <php_definition.h>
 #include <string.h>
