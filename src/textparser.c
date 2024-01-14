@@ -181,8 +181,10 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     size_t token_start = 0;
     size_t token_end = 0;
     size_t len = 0;
+    textparser_token_item *child = NULL;
     const int *nested_tokens = NULL;
     size_t current_offset = offset;
+    bool found_child = false;
 
     const textparser_token *token_def = &definition->tokens[token_id];
 
@@ -207,10 +209,35 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 return ret;
             }
 
-            // TODO: Implement TEXTPARSER_TOKEN_TYPE_GROUP
-            printf("Unimplemented! EXITING!!!\n"); fflush(stdout);
-            exit(1);
+            do {
+                found_child = false;
 
+                textparser_skip_whitespace(int_handle, &offset);
+
+                for (int c = 0; token_def->nested_tokens[c] != -1; c++)
+                {
+                    if (textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, NULL))
+                    {
+                        if (ret->child == NULL) {
+                            child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], offset);
+                            ret->child = child;
+                        } else {
+                            child->next = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], offset);
+                            child = child->next;
+                        }
+
+                        if (int_handle->fatal_error)
+                        {
+                            printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                            return ret;
+                        }
+
+                        offset = child->position + child->len;
+                        found_child = true;
+                        break;
+                    }
+                }
+            } while (!found_child);
             break;
         case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER:
             if (!token_def->nested_tokens) {
@@ -222,8 +249,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                 return ret;
             }
-
-            textparser_token_item *child = NULL;
 
             for (int c = 0; token_def->nested_tokens[c] != -1; c++)
             {
