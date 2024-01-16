@@ -460,7 +460,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->position = current_offset;
                 int_handle->fatal_error = true;
 
-                printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                printf("Error [%s] for token: [%s] at position: %zu\n", ret->error, token_def->name, current_offset); fflush(stdout);
 
                 return ret;
             }
@@ -473,7 +473,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             ret->position = current_offset;
             int_handle->fatal_error = true;
 
-            printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+            printf("Error [%s] for token [%s] at position: %zu\n", ret->error, token_def->name, current_offset); fflush(stdout);
 
             return ret;
         default:
@@ -1095,7 +1095,7 @@ EXPORT_TEXT_PARSER int textparser_parse(textparser_t handle, const language_defi
 
         if (int_handle->fatal_error)
         {
-            printf("Error [%s] at position: %zu\n", token_item->error, closest_offset); fflush(stdout);
+            printf("Error [%s] at root tokens at position: %zu\n", token_item->error, closest_offset); fflush(stdout);
             return -1;
         }
 
