@@ -200,6 +200,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
     size_t token_start = 0;
     size_t token_end = 0;
+    size_t closest_parent_end = 0;
     size_t closest = 0;
     size_t len = 0;
     textparser_token_item *child = NULL;
@@ -236,9 +237,15 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
             do {
                 closest = SIZE_MAX;
+                closest_parent_end = SIZE_MAX;
                 int current_token_id = -1;
 
                 textparser_skip_whitespace(int_handle, &offset);
+
+                if (parent_end_token_id >= 0)
+                {
+                    adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_string, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, NULL);
+                }
 
                 for (int c = 0; token_def->nested_tokens[c] != -1; c++)
                 {
@@ -246,7 +253,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                     if (textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, &current_closest))
                     {
-                        if (current_closest < closest)
+                        if ((current_closest < closest)&&(current_closest < closest_parent_end))
                         {
                             closest = current_closest;
                             current_token_id = token_def->nested_tokens[c];
@@ -254,7 +261,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     }
                 }
 
-                if(closest < SIZE_MAX)
+                if ((closest < SIZE_MAX)&&(closest < closest_parent_end))
                 {
                     if (child == NULL) {
                         child = textparser_parse_token(int_handle, definition, current_token_id, parent_end_token_id, offset);
@@ -270,14 +277,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
             if (child) {
                 ret->len = child->position + child->len - ret->position;
-            } else {
-                ret->error = "no children found!";
-                ret->position = current_offset;
-                int_handle->fatal_error = true;
-
-                printf("Error [%s] for token name: [%s] at position: %zu\n", ret->error, definition->tokens[ret->token_id].name , current_offset); fflush(stdout);
-
-                return ret;
             }
             break;
         case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER:
