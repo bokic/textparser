@@ -115,7 +115,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
     text = int_handle->text_addr + offset;
     len = int_handle->text_size - offset;
 
-    switch(token_def->type) // TODO: Last parent token_id needs to be added!
+    switch(token_def->type)
     {
         case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:
         case TEXTPARSER_TOKEN_TYPE_GROUP:
