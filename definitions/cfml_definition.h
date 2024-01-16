@@ -100,6 +100,7 @@ static const language_definition cfml_definition = {
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "'",
             .end_string = "'",
+            .immediate_start = true,
             .multi_line = false,
             .nested_tokens = (int []) {TextParser_cfml_SharpChar,
                                        TextParser_cfml_SharpExpression,
@@ -111,6 +112,7 @@ static const language_definition cfml_definition = {
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "\"",
             .end_string = "\"",
+            .immediate_start = true,
             .multi_line = false,
             .nested_tokens = (int []) {TextParser_cfml_SharpChar,
                                        TextParser_cfml_SharpExpression,
@@ -139,12 +141,14 @@ static const language_definition cfml_definition = {
             .start_string = "#",
             .end_string = "#",
             .multi_line = true,
-            //.nested_tokens = (int []) {TextParser_cfml_Expression,
-            //                           TextParser_END}
+            .nested_tokens = (int []) {TextParser_cfml_Expression,
+                                       TextParser_cfml_ExpressionEnd,
+                                       TextParser_END}
         },
         {
             .name = "Expression",
             .type = TEXTPARSER_TOKEN_TYPE_GROUP,
+            .immediate_start = true,
             .multi_line = true,
             .nested_tokens = (int []) {TextParser_cfml_SingleString,
                                        TextParser_cfml_DoubleString,
@@ -168,6 +172,7 @@ static const language_definition cfml_definition = {
         {
             .name = "ScriptExpression",
             .type = TEXTPARSER_TOKEN_TYPE_GROUP,
+            .immediate_start = true,
             .multi_line = true,
             .nested_tokens = (int []) {TextParser_cfml_SingleString,
                                        TextParser_cfml_DoubleString,
@@ -192,6 +197,7 @@ static const language_definition cfml_definition = {
         {
             .name = "OutputExpression",
             .type = TEXTPARSER_TOKEN_TYPE_GROUP,
+            .immediate_start = false,
             .multi_line = true,
             .nested_tokens = (int []) {TextParser_cfml_StartTag,
                                        TextParser_cfml_EndTag,
@@ -204,32 +210,38 @@ static const language_definition cfml_definition = {
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "\\/\\*",
             .end_string = "\\*\\/",
+            .immediate_start = true,
             .multi_line = true
         },
         {
             .name = "ScriptLineComment",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "\\/\\/.*"
+            .start_string = "\\/\\/.*",
+            .immediate_start = true,
         },
         {
             .name = "ExpressionEnd",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = ";"
+            .start_string = ";",
+            .immediate_start = true,
         },
         {
             .name = "Number",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "[-+]?\\b[0-9]*\\.?[0-9]+\\b"
+            .start_string = "[-+]?\\b[0-9]*\\.?[0-9]+\\b",
+            .immediate_start = true,
         },
         {
             .name = "Boolean",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "(\\btrue\\b|\\bfalse\\b|\\byes\\b|\\bno\\b)"
+            .start_string = "(\\btrue\\b|\\bfalse\\b|\\byes\\b|\\bno\\b)",
+            .immediate_start = true,
         },
         {
             .name = "ObjectMember",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "\\."
+            .start_string = "\\.",
+            .immediate_start = true,
         },
         ////////////////////////////////
         {
@@ -237,39 +249,46 @@ static const language_definition cfml_definition = {
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "[a-z_]+[a-z0-9_]*[ \\t]*\\(",
             .end_string = "\\)",
+            .immediate_start = true,
             .nested_tokens = (int []) {TextParser_cfml_Expression,
                                        TextParser_END}
         },
         {
             .name = "Separator",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = ","
+            .start_string = ",",
+            .immediate_start = true,
         },
         {
             .name = "Variable",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "[a-z_]+[a-z0-9_]*"
+            .start_string = "[a-z_]+[a-z0-9_]*",
+            .immediate_start = true,
         },
         {
             .name = "Object",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "[a-z_]+[a-z0-9_]*\\."
+            .start_string = "[a-z_]+[a-z0-9_]*\\.",
+            .immediate_start = true,
         },
         {
             .name = "Assigment",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "(=|\\+=|\\-=|\\*=|/=|%=|&=)"
+            .start_string = "(=|\\+=|\\-=|\\*=|/=|%=|&=)",
+            .immediate_start = false,
         },
         {
             .name = "Operator",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "(\\bgreater\\s+than\\s+or\\s+equal\\s+to\\b|\\bless\\s+than\\s+or\\s+equal\\s+to\\b|\\bdoes\\s+not\\s+contain\\b|\\bgreater\\s+than\\b|\\bnot\\s+equal\\b|\\bless\\s+than\\b|\\bcontains\\b|\\bis\\s+not\\b|\\bequal\\b|\\+\\+|\\bmod\\b|\\bnot\\b|\\band\\b|\\bxor\\b|\\beqv\\b|\\bgte\\b|\\blte\\b|\\bimp\\b|\\bneq\\b|\\bis\\b|\\bor\\b|\\bgt\\b|\\bge\\b|\\blt\\b|\\ble\\b|--|\\+|\\*|\\|\\^|&&|\\|\\|\\beq\\b|\\?|-|/|&|%|:|!|=)"
+            .start_string = "(\\bgreater\\s+than\\s+or\\s+equal\\s+to\\b|\\bless\\s+than\\s+or\\s+equal\\s+to\\b|\\bdoes\\s+not\\s+contain\\b|\\bgreater\\s+than\\b|\\bnot\\s+equal\\b|\\bless\\s+than\\b|\\bcontains\\b|\\bis\\s+not\\b|\\bequal\\b|\\+\\+|\\bmod\\b|\\bnot\\b|\\band\\b|\\bxor\\b|\\beqv\\b|\\bgte\\b|\\blte\\b|\\bimp\\b|\\bneq\\b|\\bis\\b|\\bor\\b|\\bgt\\b|\\bge\\b|\\blt\\b|\\ble\\b|--|\\+|\\*|\\|\\^|&&|\\|\\|\\beq\\b|\\?|-|/|&|%|:|!|=)",
+            .immediate_start = true,
         },
         {
             .name = "SubExpression",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "\\(",
             .end_string = "\\)",
+            .immediate_start = true,
             .nested_tokens = (int []) {TextParser_cfml_Expression,
                                        TextParser_END}
         },
@@ -278,6 +297,7 @@ static const language_definition cfml_definition = {
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "\\[",
             .end_string = "\\]",
+            .immediate_start = true,
             .nested_tokens = (int []) {TextParser_cfml_Expression,
                                        TextParser_END}
         },
@@ -286,12 +306,14 @@ static const language_definition cfml_definition = {
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "\\{",
             .end_string = "\\}",
+            .immediate_start = true,
             .nested_tokens = (int []) {TextParser_cfml_ScriptExpression,
                                        TextParser_END}
         },
         {
             .name = "Keyword",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
+            .immediate_start = true,
             .start_string = "(\\bvar\\b|\\bfunction\\b|\\bthis\\b|try\\b|\\bcatch\\b|\\bif\\b|\\bthen\\b|\\belse\\b)"
         },
         ////////////////////////////////
