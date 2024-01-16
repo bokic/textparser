@@ -109,7 +109,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
     token_def = &definition->tokens[token_id];
 
 #ifdef DEBUG_PARSER
-    printf("Searching for token %s from pos: %d\n", token_def->name, offset); fflush(stdout);
+    printf("Searching for token %s from pos: %zu\n", token_def->name, offset); fflush(stdout);
 #endif
 
     text = int_handle->text_addr + offset;
@@ -147,7 +147,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                     *out = lowest;
 
 #ifdef DEBUG_PARSER
-                if (found_some) { printf("\033[48;5;2mFound\033[0m token %s at pos: %d\n", token_def->name, offset + tmp); fflush(stdout);}
+                if (found_some) { printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + tmp); fflush(stdout);}
 #endif
 
                 return found_some;
@@ -159,7 +159,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                 if(textparser_find_token(int_handle, definition, token_def->nested_tokens[0], offset, out))
                 {
 #ifdef DEBUG_PARSER
-                    printf("\033[48;5;2mFound\033[0m token %s at pos: %d\n", token_def->name, offset + out); fflush(stdout);
+                    printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out); fflush(stdout);
 #endif
 
                     return true;
@@ -176,7 +176,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                 {
                     return true;
 #ifdef DEBUG_PARSER
-                    printf("\033[48;5;2mFound\033[0m token %s at pos: %d\n", token_def->name, offset + out); fflush(stdout);
+                    printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out); fflush(stdout);
 #endif
                 }
             }
@@ -185,7 +185,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
     };
 
 #ifdef DEBUG_PARSER
-        printf("\033[48;5;1mNOT Found\033[0m token %s from pos: %d\n", token_def->name, offset); fflush(stdout);
+        printf("\033[48;5;1mNOT Found\033[0m token %s from pos: %zu\n", token_def->name, offset); fflush(stdout);
 #endif
 
     return false;
