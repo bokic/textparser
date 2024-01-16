@@ -401,11 +401,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     if ((found_end)&&(token_end == 0))
                         break;
 
-                    if (offset == 27)
-                    {
-                        int t = 12;
-                    }
-
                     for(int c = 0; nested_tokens[c] != -1; c++)
                     {
                         size_t pos = 0;
@@ -697,7 +692,6 @@ static int textparser_load_language_definition_internal(struct json_object *root
             if (key_value) {
                 if (!json_object_is_type(key_value, json_type_array)) {
                     (*definition)->error_string = "`nested_tokens` is not array!";
-                    ret = 12;
                     goto cleanup;
                 }
 
