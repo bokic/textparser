@@ -159,7 +159,11 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                 if(textparser_find_token(int_handle, definition, token_def->nested_tokens[0], offset, out))
                 {
 #ifdef DEBUG_PARSER
-                    printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out); fflush(stdout);
+                    if (out) {
+                        printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out); fflush(stdout);
+                    } else {
+                        printf("\033[48;5;2mFound\033[0m token %s\n", token_def->name); fflush(stdout);
+                    }
 #endif
 
                     return true;
@@ -185,7 +189,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
             }
         default:
             break;
-    };
+    }
 
 #ifdef DEBUG_PARSER
         printf("\033[48;5;1mNOT Found\033[0m token %s from pos: %zu\n", token_def->name, offset); fflush(stdout);
@@ -344,7 +348,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             {
                 if (textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, NULL))
                 {
-                    textparser_token_item *child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, offset);
+                    child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, offset);
 
                     if (int_handle->fatal_error)
                     {
@@ -452,7 +456,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                     if (child_token_id >= 0)
                     {
-                        textparser_token_item *child = textparser_parse_token(int_handle, definition, child_token_id, parent_end_token_id, current_offset);
+                        child = textparser_parse_token(int_handle, definition, child_token_id, parent_end_token_id, current_offset);
 
                         if (int_handle->fatal_error)
                         {
@@ -1128,7 +1132,7 @@ EXPORT_TEXT_PARSER int textparser_parse(textparser_t handle, const language_defi
         if (prev_item)
             prev_item->next = token_item;
 
-        if ((int_handle->fatal_error)||(token_item->len <= 0))
+        if (token_item->len <= 0)
             return -1;
 
         pos = token_item->position + token_item->len;
