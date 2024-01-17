@@ -35,6 +35,8 @@ enum textparser_bom {
 
 typedef struct {
     const language_definition *language;
+    void *start_regex;
+    void *end_regex;
     void *mmap_addr;
     size_t mmap_size;
     enum textparser_bom bom;
@@ -174,7 +176,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
-            if (adv_regex_find_pattern(definition->tokens[token_id].start_string, int_handle->text_format, text, len, &found_at, NULL))
+            if (adv_regex_find_pattern(definition->tokens[token_id].start_string, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, NULL))
             {
                 if ((!token_def->immediate_start)||(found_at == 0))
                 {
@@ -248,7 +250,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                 if (parent_end_token_id >= 0)
                 {
-                    adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_string, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, NULL);
+                    adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, NULL);
                 }
 
                 for (int c = 0; token_def->nested_tokens[c] != -1; c++)
@@ -364,7 +366,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             }
             break;
         case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:
-            if (!adv_regex_find_pattern(token_def->start_string, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_start, &len))
+            if (!adv_regex_find_pattern(token_def->start_string, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_start, &len))
             {
                 ret->error = "Can't find start of the token!";
                 ret->position = current_offset;
@@ -389,7 +391,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             break;
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
-            if (!adv_regex_find_pattern(token_def->start_string, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_start, &len))
+            if (!adv_regex_find_pattern(token_def->start_string, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_start, &len))
             {
                 ret->error = "Can't find start of the token!";
                 ret->position = current_offset;
@@ -424,7 +426,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                     textparser_skip_whitespace(int_handle, &current_offset);
 
-                    bool found_end = adv_regex_find_pattern(token_def->end_string, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_end, NULL);
+                    bool found_end = adv_regex_find_pattern(token_def->end_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_end, NULL);
                     if ((found_end)&&(token_end == 0))
                         break;
 
@@ -481,7 +483,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
             textparser_skip_whitespace(int_handle, &current_offset);
 
-            if ((!adv_regex_find_pattern(token_def->end_string, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_end, &len))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP))
+            if ((!adv_regex_find_pattern(token_def->end_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_end, &len))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP))
             {
                 ret->error = "Can't find end of the token!";
                 ret->position = current_offset;
@@ -807,6 +809,67 @@ static void textparser_dump_item(void *handle, textparser_token_item *item, int 
     }
 }
 
+static void textparser_init_regex(textparser_handle *int_handle)
+{
+    int token_cnt = 0;
+
+    if (int_handle == NULL)
+        return;
+
+    for(; int_handle->language->tokens[token_cnt].name != NULL; token_cnt++);
+
+    if (token_cnt > 0)
+    {
+        int_handle->start_regex = malloc(token_cnt * sizeof(void *));
+        memset(int_handle->start_regex, 0, token_cnt * sizeof(void *));
+        int_handle->end_regex = malloc(token_cnt * sizeof(void *));
+        memset(int_handle->end_regex, 0, token_cnt * sizeof(void *));
+    }
+}
+
+static void textparser_free_regex(textparser_handle *int_handle)
+{
+    enum adv_regex_encoding text_format = ADV_REGEX_TEXT_ERROR;
+    int token_cnt = 0;
+
+    if ((int_handle == NULL)||((int_handle->start_regex == NULL)&&(int_handle->end_regex == NULL)))
+        return;
+
+    text_format = int_handle->text_format;
+
+    while(int_handle->language->tokens[token_cnt].name != NULL) token_cnt++;
+
+    if (int_handle->start_regex)
+    {
+        if (token_cnt > 0)
+        {
+            void **regex = (void **)int_handle->start_regex;
+
+            for(int c = 0; c < token_cnt; c++)
+            {
+                adv_regex_free(&regex[c], text_format);
+            }
+        }
+        free(int_handle->start_regex);
+        int_handle->start_regex = NULL;
+    }
+
+    if (int_handle->end_regex)
+    {
+        if (token_cnt > 0)
+        {
+            void **regex = (void **)int_handle->end_regex;
+
+            for(int c = 0; c < token_cnt; c++)
+            {
+                adv_regex_free(&regex[c], text_format);
+            }
+        }
+        free(int_handle->end_regex);
+        int_handle->end_regex = NULL;
+    }
+}
+
 EXPORT_TEXT_PARSER int textparser_load_language_definition_from_json_file(const char *pathname, language_definition **definition)
 {
     return textparser_load_language_definition_internal(json_object_from_file(pathname), definition);
@@ -977,7 +1040,6 @@ EXPORT_TEXT_PARSER int textparser_openfile(const char *pathname, int text_format
             err = 6;
             goto err;
         }
-
         memcpy(*handle, &local_hnd, sizeof(textparser_handle));
 
         for(int ch = 0; ch < local_hnd.text_size; ch++) {
@@ -1052,6 +1114,8 @@ EXPORT_TEXT_PARSER void textparser_close(textparser_t handle)
     if (int_handle == NULL)
         return;
 
+    textparser_free_regex(int_handle);
+
     mmap_addr = int_handle->mmap_addr;
     mmap_size = int_handle->mmap_size;
 
@@ -1094,7 +1158,12 @@ EXPORT_TEXT_PARSER int textparser_parse(textparser_t handle, const language_defi
     size_t size = int_handle->text_size;
     size_t pos = 0;
 
-    int_handle->language = definition;
+    if (int_handle->language != definition)
+    {
+        textparser_free_regex(int_handle);
+        int_handle->language = definition;
+        textparser_init_regex(int_handle);
+    }
 
     while(pos < size) {
         int closest_token_id = -1;
