@@ -38,7 +38,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
         0,                    /* default options */
         match_data,           /* block for storing the result */
         NULL);                /* use default match context */
-    if (rc == 1)
+    if (rc > 0)
     {
         ovector = pcre2_get_ovector_pointer_8(match_data);
         if (ovector)
