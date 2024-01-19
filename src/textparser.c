@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stddef.h>
+#include <assert.h>
 #include <stdio.h>
 #include <fcntl.h>
 
@@ -254,6 +255,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                 if (parent_end_token_id >= 0)
                 {
+                    assert(int_handle->text_size > offset);
                     adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, NULL);
                 }
 
@@ -329,6 +331,11 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     return ret;
                 }
 
+#ifdef DEBUG_PARSER
+                printf("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
+                fflush(stdout);
+#endif
+
                 offset = child->position + child->len;
             }
 
@@ -362,6 +369,11 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                         return ret;
                     }
 
+#ifdef DEBUG_PARSER
+                    printf("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
+                    fflush(stdout);
+#endif
+
                     ret->position = child->position;
                     ret->len = child->len;
                     ret->child = child;
@@ -370,6 +382,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             }
             break;
         case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:
+            assert(int_handle->text_size > current_offset);
             if (!adv_regex_find_pattern(token_def->start_string, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_start, &len))
             {
                 ret->error = "Can't find start of the token!";
@@ -392,9 +405,15 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
             ret->position = current_offset + token_start;
             ret->len = len;
+
+#ifdef DEBUG_PARSER
+            printf("\033[48;5;2mFound\033[0m token %s at pos: %zu, len: %zu\n", definition->tokens[ret->token_id].name, ret->position, ret->len);
+            fflush(stdout);
+#endif
             break;
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
+            assert(int_handle->text_size > current_offset);
             if (!adv_regex_find_pattern(token_def->start_string, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_start, &len))
             {
                 ret->error = "Can't find start of the token!";
@@ -430,6 +449,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                     textparser_skip_whitespace(int_handle, &current_offset);
 
+                    assert(int_handle->text_size > current_offset);
                     bool found_end = adv_regex_find_pattern(token_def->end_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_end, NULL);
                     if ((found_end)&&(token_end == 0))
                         break;
@@ -487,6 +507,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
             textparser_skip_whitespace(int_handle, &current_offset);
 
+            assert(int_handle->text_size > current_offset);
             if ((!adv_regex_find_pattern(token_def->end_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + current_offset, int_handle->text_size - current_offset, &token_end, &len))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP))
             {
                 ret->error = "Can't find end of the token!";
@@ -502,6 +523,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             current_offset += len;
             break;
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
+            // TODO: Implement TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
             ret->error = "Not implemented(TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP)!";
             ret->position = current_offset;
             int_handle->fatal_error = true;
