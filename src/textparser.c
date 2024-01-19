@@ -184,7 +184,11 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                         *out = found_at;
 
 #ifdef DEBUG_PARSER
-                    printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out); fflush(stdout);
+                    if (out)
+                        printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out);
+                    else
+                        printf("\033[48;5;2mFound\033[0m token %s at offset: %zu\n", token_def->name, offset);
+                    fflush(stdout);
 #endif
                     return true;
                 }
