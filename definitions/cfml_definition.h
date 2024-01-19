@@ -119,7 +119,7 @@ static const language_definition cfml_definition = {
         {
             .name = "EndTag",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
-            .start_string = "<\\/cf",
+            .start_string = "<\\/cf(?!output|!script)",
             .end_string = ">",
             .multi_line = true
         },
