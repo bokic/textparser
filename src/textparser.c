@@ -1195,9 +1195,11 @@ EXPORT_TEXT_PARSER int textparser_parse(textparser_t handle, const language_defi
         int closest_token_id = -1;
         size_t closest_offset = size - pos;
 
+        textparser_skip_whitespace(handle, &pos);
+
         for (int c = 0; definition->starts_with[c] != -1; c++) {
             int token_id = definition->starts_with[c];
-            size_t offset = 0;
+            size_t offset = SIZE_MAX;
             if (textparser_find_token(handle, definition, token_id, pos, &offset))
             {
                 if (offset < closest_offset) {
@@ -1206,7 +1208,7 @@ EXPORT_TEXT_PARSER int textparser_parse(textparser_t handle, const language_defi
                 }
             }
 
-            if (closest_offset == 0)
+            if (offset == 0)
                 break;
         }
 
