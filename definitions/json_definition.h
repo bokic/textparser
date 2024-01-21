@@ -46,8 +46,6 @@ static const language_definition json_definition = {
             .name = "ObjectMember",
             .type = TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER,
             .immediate_start = true,
-            .delete_if_only_one_child = false,
-            .must_have_one_child = false,
             .multi_line = true,
             .nested_tokens = (int []) {
                 TextParser_json_Key,
@@ -62,9 +60,6 @@ static const language_definition json_definition = {
             .start_string = "\\\"",
             .end_string = "\\\"",
             .immediate_start = true,
-            .delete_if_only_one_child = false,
-            .must_have_one_child = false,
-            .multi_line = false,
             .nested_tokens = (int []) {
                 TextParser_END
             }
@@ -73,9 +68,7 @@ static const language_definition json_definition = {
             .name = "Value",
             .type = TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY,
             .immediate_start = true,
-            .delete_if_only_one_child = false,
             .must_have_one_child = true,
-            .multi_line = false,
             .nested_tokens = (int []) {
                 TextParser_json_Object,
                 TextParser_json_Array,
