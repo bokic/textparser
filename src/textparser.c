@@ -538,8 +538,8 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 return ret;
             }
 
-            ret->len = current_offset + len - ret->position;
-            current_offset += len;
+            ret->len = current_offset + token_end + len - ret->position;
+            current_offset += token_end + len;
             break;
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
             // TODO: Implement TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
