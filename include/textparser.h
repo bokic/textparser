@@ -61,6 +61,7 @@ typedef struct textparser_token_item {
     bool delete_if_only_one_child;
     bool must_have_one_child;
     bool multi_line;
+    bool search_parent_end_token_last;
     int *nested_tokens;
 } textparser_token;
 
