@@ -60,9 +60,6 @@ static const language_definition json_definition = {
             .start_string = "\\\"",
             .end_string = "\\\"",
             .immediate_start = true,
-            .nested_tokens = (int []) {
-                TextParser_END
-            }
         },
         {
             .name = "Value",
