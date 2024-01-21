@@ -205,13 +205,14 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
     return false;
 }
 
-static textparser_token_item *textparser_parse_token(textparser_handle *int_handle, const language_definition *definition, int token_id, int parent_end_token_id, size_t offset)
+static textparser_token_item *textparser_parse_token(textparser_handle *int_handle, const language_definition *definition, int token_id, int parent_end_token_id,int next_token_id, size_t offset)
 {
     textparser_token_item *ret = NULL;
 
     size_t token_start = 0;
     size_t token_end = 0;
     size_t closest_parent_end = 0;
+    size_t closest_next_end = 0;
     size_t closest = 0;
     size_t len = 0;
     textparser_token_item *child = NULL;
@@ -249,6 +250,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             do {
                 closest = SIZE_MAX;
                 closest_parent_end = SIZE_MAX;
+                closest_next_end = SIZE_MAX;
                 int current_token_id = -1;
 
                 textparser_skip_whitespace(int_handle, &offset);
@@ -257,6 +259,12 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 {
                     assert(int_handle->text_size > offset);
                     adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, NULL);
+                }
+
+                if (next_token_id >= 0)
+                {
+                    assert(int_handle->text_size > offset);
+                    adv_regex_find_pattern(definition->tokens[next_token_id].start_string, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_next_end, NULL);
                 }
 
                 for (int c = 0; token_def->nested_tokens[c] != -1; c++)
@@ -273,13 +281,18 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     }
                 }
 
+                if ((closest_next_end <= closest)&&(closest_next_end <= closest_parent_end))
+                {
+                    break;
+                }
+
                 if ((closest < SIZE_MAX)&&(closest < closest_parent_end))
                 {
                     if (child == NULL) {
-                        child = textparser_parse_token(int_handle, definition, current_token_id, parent_end_token_id, offset);
+                        child = textparser_parse_token(int_handle, definition, current_token_id, parent_end_token_id, next_token_id, offset);
                         ret->child = child;
                     } else {
-                        child->next = textparser_parse_token(int_handle, definition, current_token_id, parent_end_token_id, offset);
+                        child->next = textparser_parse_token(int_handle, definition, current_token_id, parent_end_token_id, next_token_id, offset);
                         child = child->next;
                     }
 
@@ -317,11 +330,17 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     return ret;
                 }
 
+                int current_next_token_id = 0;
+                if (token_def->nested_tokens[c + 1] != -1)
+                    current_next_token_id = token_def->nested_tokens[c + 1];
+                else
+                    current_next_token_id = next_token_id;
+
                 if (c == 0) {
-                    child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, offset);
+                    child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, current_next_token_id, offset);
                     ret->child = child;
                 } else {
-                    child->next = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, offset);
+                    child->next = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, current_next_token_id, offset);
                     child = child->next;
                 }
 
@@ -361,7 +380,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             {
                 if (textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, NULL))
                 {
-                    child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, offset);
+                    child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, next_token_id, offset);
 
                     if (int_handle->fatal_error)
                     {
@@ -482,7 +501,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                     if (child_token_id >= 0)
                     {
-                        child = textparser_parse_token(int_handle, definition, child_token_id, parent_end_token_id, current_offset);
+                        child = textparser_parse_token(int_handle, definition, child_token_id, parent_end_token_id, next_token_id, current_offset);
 
                         if (int_handle->fatal_error)
                         {
@@ -1215,7 +1234,7 @@ EXPORT_TEXT_PARSER int textparser_parse(textparser_t handle, const language_defi
         if (closest_token_id < 0)
             break;
 
-        textparser_token_item *token_item = textparser_parse_token(handle, definition, closest_token_id, -1, closest_offset);
+        textparser_token_item *token_item = textparser_parse_token(handle, definition, closest_token_id, -1, -1, closest_offset);
 
         if (int_handle->fatal_error)
         {
