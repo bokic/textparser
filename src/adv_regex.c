@@ -47,7 +47,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
                 *offset = ovector[0];
 
             if (length)
-                *length = ovector[1];
+                *length = ovector[1] - ovector[0];
 
             ret = true;
         }
@@ -99,7 +99,7 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
                 *offset = ovector[0];
 
             if (length)
-                *length = ovector[1];
+                *length = ovector[1] - ovector[0];
 
             ret = true;
         }
@@ -151,7 +151,7 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
                 *offset = ovector[0];
 
             if (length)
-                *length = ovector[1];
+                *length = ovector[1] - ovector[0];
 
             ret = true;
         }
