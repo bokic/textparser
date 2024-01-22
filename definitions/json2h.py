@@ -45,6 +45,12 @@ def main(args):
     if "name" in root:
         text += "    .name = \"" + root["name"] + "\"," + os.linesep
 
+    if "version" in root:
+        text += "    .version = " + str(root["version"]) + "," + os.linesep
+
+    if "empty_segment_language" in root:
+        text += "    .empty_segment_language = \"" + root["empty_segment_language"] + "\"," + os.linesep
+
     if "case_sensitivity" in root:
         text += "    .case_sensitivity = " + python_bool_to_c_string(root["case_sensitivity"]) + "," + os.linesep
 
@@ -78,6 +84,9 @@ def main(args):
     for token_name in root["starts_with"]:
         text += "TextParser_" + name_lowercase + "_" + token_name + "," + os.linesep + "                             "
     text += "TextParser_END}," + os.linesep
+
+    if "other_text_inside" in root:
+        text += "    .other_text_inside = " + python_bool_to_c_string(root["other_text_inside"]) + "," + os.linesep
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:
@@ -149,7 +158,6 @@ def main(args):
 
         text += "        }," + os.linesep
 
-    text += "        {}" + os.linesep
     text += "    }" + os.linesep
     text += "};" + os.linesep
 
