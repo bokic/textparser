@@ -2,16 +2,29 @@
     "name": "CFML",
     "version": 1,
     "case_sensitivity": false,
-    "file_extensions": ["cfm", "cfc"],
+    "file_extensions": [
+        "cfm",
+        "cfc"
+    ],
     "default_text_encoding": "latin1",
-    "starts_with": ["ScriptTagPair", "OutputTagPair", "StartTag", "EndTag", "Comment"],
+    "starts_with": [
+        "ScriptTagPair",
+        "OutputTagPair",
+        "StartTag",
+        "EndTag",
+        "Comment"
+    ],
     "other_text_inside": false,
     "tokens": [
         {
             "name": "ScriptTagPair",
             "type": "group_all_children_in_same_order",
             "multi_line": true,
-            "nested_tokens": ["ScriptStartTag", "ScriptExpression", "ScriptEndTag"]
+            "nested_tokens": [
+                "ScriptStartTag",
+                "ScriptExpression",
+                "ScriptEndTag"
+            ]
         },
         {
             "name": "ScriptStartTag",
@@ -19,18 +32,24 @@
             "start_regex": "<cfscript",
             "end_regex": ">",
             "multi_line": true,
-            "nested_tokens": ["Expression"]
+            "nested_tokens": [
+                "Expression"
+            ]
         },
         {
             "name": "ScriptEndTag",
             "type": "simple",
-            "start_regex": "<\\/cfscript>"
+            "start_regex": "<\/cfscript>"
         },
         {
             "name": "OutputTagPair",
             "type": "group_all_children_in_same_order",
             "multi_line": true,
-            "nested_tokens": ["OutputStartTag", "OutputExpression", "OutputEndTag"]
+            "nested_tokens": [
+                "OutputStartTag",
+                "OutputExpression",
+                "OutputEndTag"
+            ]
         },
         {
             "name": "OutputStartTag",
@@ -38,25 +57,33 @@
             "start_regex": "<cfoutput",
             "end_regex": ">",
             "multi_line": true,
-            "nested_tokens": ["ScriptTagPair", "OutputTagPair", "StartTag", "EndTag", "Comment"]
+            "nested_tokens": [
+                "ScriptTagPair",
+                "OutputTagPair",
+                "StartTag",
+                "EndTag",
+                "Comment"
+            ]
         },
         {
             "name": "OutputEndTag",
             "type": "simple",
-            "start_regex": "<\\/cfoutput>"
+            "start_regex": "<\/cfoutput>"
         },
         {
             "name": "StartTag",
             "type": "start_stop",
             "start_regex": "<cf[a-z0-9_]+",
-            "end_regex": "\\/?>",
+            "end_regex": "\/?>",
             "multi_line": true,
-            "nested_tokens": ["Expression"]
+            "nested_tokens": [
+                "Expression"
+            ]
         },
         {
             "name": "EndTag",
             "type": "start_stop",
-            "start_regex": "<\\/cf(?!output|!script)",
+            "start_regex": "<\/cf(?!output|!script)",
             "end_regex": ">",
             "multi_line": true
         },
@@ -66,7 +93,9 @@
             "start_regex": "<!---",
             "end_regex": "--->",
             "multi_line": true,
-            "nested_tokens": ["Comment"]
+            "nested_tokens": [
+                "Comment"
+            ]
         },
         {
             "name": "SingleString",
@@ -75,7 +104,11 @@
             "end_regex": "'",
             "immediate_start": true,
             "search_parent_end_token_last": true,
-            "nested_tokens": ["SharpChar", "SharpExpression", "SingleChar"]
+            "nested_tokens": [
+                "SharpChar",
+                "SharpExpression",
+                "SingleChar"
+            ]
         },
         {
             "name": "DoubleString",
@@ -84,7 +117,11 @@
             "end_regex": "\"",
             "immediate_start": true,
             "search_parent_end_token_last": true,
-            "nested_tokens": ["SharpChar", "SharpExpression", "DoubleChar"]
+            "nested_tokens": [
+                "SharpChar",
+                "SharpExpression",
+                "DoubleChar"
+            ]
         },
         {
             "name": "SingleChar",
@@ -107,7 +144,10 @@
             "start_regex": "#",
             "end_regex": "#",
             "multi_line": true,
-            "nested_tokens": ["Expression", "ExpressionEnd"]
+            "nested_tokens": [
+                "Expression",
+                "ExpressionEnd"
+            ]
         },
         {
             "name": "Expression",
@@ -131,7 +171,8 @@
                 "Assigment",
                 "Variable",
                 "SubExpression",
-                "VariableIndex"]
+                "VariableIndex"
+            ]
         },
         {
             "name": "ScriptExpression",
@@ -156,7 +197,8 @@
                 "Assigment",
                 "Variable",
                 "SubExpression",
-                "VariableIndex"]
+                "VariableIndex"
+            ]
         },
         {
             "name": "OutputExpression",
@@ -166,20 +208,21 @@
                 "StartTag",
                 "EndTag",
                 "Comment",
-                "SharpExpression"]
+                "SharpExpression"
+            ]
         },
         {
             "name": "ScriptBlockComment",
             "type": "start_stop",
-            "start_regex": "\\/\\*",
-            "end_regex": "\\*\\/",
+            "start_regex": "\/\\*",
+            "end_regex": "\\*\/",
             "immediate_start": true,
             "multi_line": true
         },
         {
             "name": "ScriptLineComment",
             "type": "simple",
-            "start_regex": "\\/\\/.*",
+            "start_regex": "\/\/.*",
             "immediate_start": true
         },
         {
@@ -191,13 +234,13 @@
         {
             "name": "Number",
             "type": "simple",
-            "start_regex": "[-+]?\\b[0-9]*\\.?[0-9]+\\b",
+            "start_regex": "[-+]?\b[0-9]*\\.?[0-9]+\b",
             "immediate_start": true
         },
         {
             "name": "Boolean",
             "type": "simple",
-            "start_regex": "(\\btrue\\b|\\bfalse\\b|\\byes\\b|\\bno\\b)",
+            "start_regex": "(\btrue\b|\bfalse\b|\byes\b|\bno\b)",
             "immediate_start": true
         },
         {
@@ -209,10 +252,12 @@
         {
             "name": "Function",
             "type": "start_stop",
-            "start_regex": "[a-z_]+[a-z0-9_]*[ \\t]*\\(",
+            "start_regex": "[a-z_]+[a-z0-9_]*[ \t]*\\(",
             "end_regex": "\\)",
             "immediate_start": true,
-            "nested_tokens": ["Expression"]
+            "nested_tokens": [
+                "Expression"
+            ]
         },
         {
             "name": "Separator",
@@ -241,7 +286,7 @@
         {
             "name": "Operator",
             "type": "simple",
-            "start_regex": "(\\bgreater\\s+than\\s+or\\s+equal\\s+to\\b|\\bless\\s+than\\s+or\\s+equal\\s+to\\b|\\bdoes\\s+not\\s+contain\\b|\\bgreater\\s+than\\b|\\bnot\\s+equal\\b|\\bless\\s+than\\b|\\bcontains\\b|\\bis\\s+not\\b|\\bequal\\b|\\+\\+|\\bmod\\b|\\bnot\\b|\\band\\b|\\bxor\\b|\\beqv\\b|\\bgte\\b|\\blte\\b|\\bimp\\b|\\bneq\\b|\\bis\\b|\\bor\\b|\\bgt\\b|\\bge\\b|\\blt\\b|\\ble\\b|--|\\+|\\*|\\|\\^|&&|\\|\\|\\beq\\b|\\?|-|/|&|%|:|!|=)",
+            "start_regex": "(\bgreater\\s+than\\s+or\\s+equal\\s+to\b|\bless\\s+than\\s+or\\s+equal\\s+to\b|\bdoes\\s+not\\s+contain\b|\bgreater\\s+than\b|\bnot\\s+equal\b|\bless\\s+than\b|\bcontains\b|\bis\\s+not\b|\bequal\b|\\+\\+|\bmod\b|\bnot\b|\band\b|\bxor\b|\beqv\b|\bgte\b|\blte\b|\bimp\b|\bneq\b|\bis\b|\bor\b|\bgt\b|\bge\b|\blt\b|\ble\b|--|\\+|\\*|\\|\\^|&&|\\|\\|\beq\b|\\?|-|/|&|%|:|!|=)",
             "immediate_start": true
         },
         {
@@ -250,7 +295,9 @@
             "start_regex": "\\(",
             "end_regex": "\\)",
             "immediate_start": true,
-            "nested_tokens": ["Expression"]
+            "nested_tokens": [
+                "Expression"
+            ]
         },
         {
             "name": "VariableIndex",
@@ -258,7 +305,9 @@
             "start_regex": "\\[",
             "end_regex": "\\]",
             "immediate_start": true,
-            "nested_tokens": ["Expression"]
+            "nested_tokens": [
+                "Expression"
+            ]
         },
         {
             "name": "CodeBlock",
@@ -266,12 +315,14 @@
             "start_regex": "\\{",
             "end_regex": "\\}",
             "immediate_start": true,
-            "nested_tokens": ["ScriptExpression"]
+            "nested_tokens": [
+                "ScriptExpression"
+            ]
         },
         {
             "name": "Keyword",
             "type": "simple",
-            "start_regex": "(\\bvar\\b|\\bfunction\\b|\\bthis\\b|try\\b|\\bcatch\\b|\\bif\\b|\\bthen\\b|\\belse\\b)",
+            "start_regex": "(\bvar\b|\bfunction\b|\bthis\b|try\b|\bcatch\b|\bif\b|\bthen\b|\belse\b)",
             "immediate_start": true
         }
     ]
