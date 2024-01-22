@@ -49,10 +49,10 @@ def main(args):
         text += "    .case_sensitivity = " + python_bool_to_c_string(root["case_sensitivity"]) + "," + os.linesep
 
     if "file_extensions" in root:
-        text += "    .default_file_extensions = (const char *[]){"
+        text += "    .default_file_extensions = (const char *[]) {"
         for ext in root["file_extensions"]:
-            text += "\"" + ext + "\""
-        text += ", NULL}," + os.linesep
+            text += "\"" + ext + "\", "
+        text += "NULL}," + os.linesep
 
     if "default_text_encoding" in root:
         match root["default_text_encoding"].lower():
@@ -137,8 +137,7 @@ def main(args):
 
         # search_parent_end_token_last
         if "search_parent_end_token_last" in token:
-            print("search_parent_end_token_last is not implemented!")
-            exit(1)
+            text += "            .search_parent_end_token_last = " + python_bool_to_c_string(token["search_parent_end_token_last"]) + "," + os.linesep
 
         # nested_tokens
         if "nested_tokens" in token:
