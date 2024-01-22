@@ -1,7 +1,7 @@
 #include "qjsonhighlighter.h"
 #include <textparser.h>
 
-#include <json_definition.h>
+#include <json_definition.json.h>
 
 
 QJsonHighlighter::QJsonHighlighter(QObject *parent)

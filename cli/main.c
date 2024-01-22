@@ -1,6 +1,6 @@
 #include <textparser.h>
-#include <cfml_definition.h>
-#include <json_definition.h>
+#include <cfml_definition.json.h>
+#include <json_definition.json.h>
 //#include <php_definition.h>
 #include <string.h>
 #include <stddef.h>
