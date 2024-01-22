@@ -6,9 +6,9 @@ import sys
 
 
 def python_bool_to_c_string(val):
-    if val == False:
+    if val is False:
         return "false"
-    elif val == True:
+    elif val is True:
         return "true"
     else:
         print("Invalid boolean value")
