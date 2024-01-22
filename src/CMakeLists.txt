@@ -4,7 +4,7 @@ project(libtextparser LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 
-add_definitions(-DDEBUG_PARSER)
+#add_definitions(-DDEBUG_PARSER)
 
 find_package(PkgConfig)
 
@@ -19,9 +19,6 @@ add_library(libtextparser SHARED
 
     ../include/textparser.h
     ../include/adv_regex.h
-    ../definitions/cfml_definition.h
-    ../definitions/json_definition.h
-    ../definitions/php_definition.h
 )
 
 target_include_directories(libtextparser PUBLIC

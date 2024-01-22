@@ -1,7 +1,7 @@
 #include <textparser.h>
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
-//#include <php_definition.h>
+#include <php_definition.json.h>
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
     if (argc != 2)
     {
-        printf("Usage: textparser <file.json>\n");
+        printf("Usage: textparser <file.cfml>\n");
 
         ret = EXIT_FAILURE;
         goto cleanup;
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    err = textparser_parse(handle, &json_definition);
+    err = textparser_parse(handle, &cfml_definition);
     if (err)
     {
         fprintf(stderr, "textparser_parse returned with error code: %d\n", err);
