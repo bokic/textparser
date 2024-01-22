@@ -1,5 +1,6 @@
 {
-    "name": "JSON",
+    "name": "json",
+    "case_sensitivity": false,
     "version": 1,
     "file_extensions": [
         "json"
@@ -15,6 +16,7 @@
             "type": "start_stop",
             "start_regex": "\\{",
             "end_regex": "\\}",
+            "immediate_start": true,
             "multi_line": true,
             "nested_tokens": [
                 "ObjectMember",
@@ -24,6 +26,7 @@
         {
             "name": "ObjectMember",
             "type": "group_all_children_in_same_order",
+            "immediate_start": true,
             "multi_line": true,
             "nested_tokens": [
                 "Key",
@@ -34,12 +37,14 @@
         {
             "name": "Key",
             "type": "start_stop",
+            "immediate_start": true,
             "start_regex": "\\\"",
             "end_regex": "\\\""
         },
         {
             "name": "Value",
             "type": "group_one_child_only",
+            "immediate_start": true,
             "must_have_one_child": true,
             "nested_tokens": [
                 "Object",
@@ -51,18 +56,20 @@
         },
         {
             "name": "Array",
-            "type": "start_Stop",
+            "type": "start_stop",
             "start_regex": "\\[",
             "end_regex": "\\]",
+            "immediate_start": true,
             "multi_line": true,
             "nested_tokens": [
                 "ArrayItem",
-                "Separator"
+                "ValueSeparator"
             ]
         },
         {
             "name": "ArrayItem",
             "type": "group_one_child_only",
+            "immediate_start": true,
             "multi_line": true,
             "nested_tokens": [
                 "Object",
@@ -77,6 +84,7 @@
             "type": "start_stop",
             "start_regex": "\\\"",
             "end_regex": "\\\"",
+            "immediate_start": true,
             "nested_tokens": [
                 "EscapeCharacters"
             ]
@@ -84,22 +92,26 @@
         {
             "name": "Number",
             "type": "simple",
-            "regex": "[-+]?[0-9]+\\.?[0-9]*"
+            "regex": "[-+]?[0-9]+\\.?[0-9]*",
+            "immediate_start": true
         },
         {
             "name": "Boolean",
             "type": "simple",
-            "regex": "true|false"
+            "regex": "true|false",
+            "immediate_start": true
         },
         {
             "name": "KeySeparator",
             "type": "simple",
-            "regex": ":"
+            "regex": ":",
+            "immediate_start": true
         },
         {
             "name": "ValueSeparator",
             "type": "simple",
-            "regex": ","
+            "regex": ",",
+            "immediate_start": true
         },
         {
             "name": "EscapeCharacters",

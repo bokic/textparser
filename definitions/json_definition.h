@@ -23,11 +23,10 @@ static const language_definition json_definition = {
     .name = "json",
     .case_sensitivity = false,
     .default_file_extensions = (const char *[]){"json", NULL},
-    .default_text_encoding = ADV_REGEX_TEXT_UTF_8,
+    .default_text_encoding = ADV_REGEX_TEXT_LATIN1,
     .starts_with = (int []) {TextParser_json_Object,
                              TextParser_json_Array,
                              TextParser_END},
-    .other_text_inside = false,
     .tokens = (textparser_token[]) {
         {
             .name = "Object",
@@ -142,6 +141,6 @@ static const language_definition json_definition = {
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
             .start_string = "\\\\\\\\|\\\\\"",
         },
-        {},
-    },
+        {}
+    }
 };
