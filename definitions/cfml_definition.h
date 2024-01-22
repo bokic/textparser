@@ -61,10 +61,12 @@ static const language_definition cfml_definition = {
             .name = "ScriptTagPair",
             .type = TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER,
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_ScriptStartTag,
-                                       TextParser_cfml_ScriptExpression,
-                                       TextParser_cfml_ScriptEndTag,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_ScriptStartTag,
+                TextParser_cfml_ScriptExpression,
+                TextParser_cfml_ScriptEndTag,
+                TextParser_END
+            }
         },
         {
             .name = "ScriptStartTag",
@@ -72,22 +74,26 @@ static const language_definition cfml_definition = {
             .start_string = "<cfscript",
             .end_string = ">",
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_Expression,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_Expression,
+                TextParser_END
+            }
         },
         {
             .name = "ScriptEndTag",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "<\\/cfscript>"
+            .start_string = "<\\/cfscript>",
         },
         {
             .name = "OutputTagPair",
             .type = TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER,
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_OutputStartTag,
-                                       TextParser_cfml_OutputExpression,
-                                       TextParser_cfml_OutputEndTag,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_OutputStartTag,
+                TextParser_cfml_OutputExpression,
+                TextParser_cfml_OutputEndTag,
+                TextParser_END
+            }
         },
         {
             .name = "OutputStartTag",
@@ -95,17 +101,19 @@ static const language_definition cfml_definition = {
             .start_string = "<cfoutput",
             .end_string = ">",
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_ScriptTagPair,
-                                       TextParser_cfml_OutputTagPair,
-                                       TextParser_cfml_StartTag,
-                                       TextParser_cfml_EndTag,
-                                       TextParser_cfml_Comment,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_ScriptTagPair,
+                TextParser_cfml_OutputTagPair,
+                TextParser_cfml_StartTag,
+                TextParser_cfml_EndTag,
+                TextParser_cfml_Comment,
+                TextParser_END
+            }
         },
         {
             .name = "OutputEndTag",
             .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN,
-            .start_string = "<\\/cfoutput>"
+            .start_string = "<\\/cfoutput>",
         },
         {
             .name = "StartTag",
@@ -113,15 +121,17 @@ static const language_definition cfml_definition = {
             .start_string = "<cf[a-z0-9_]+",
             .end_string = "\\/?>",
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_Expression,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_Expression,
+                TextParser_END
+            }
         },
         {
             .name = "EndTag",
             .type = TEXTPARSER_TOKEN_TYPE_START_STOP,
             .start_string = "<\\/cf(?!output|!script)",
             .end_string = ">",
-            .multi_line = true
+            .multi_line = true,
         },
         {
             .name = "Comment",
@@ -129,8 +139,10 @@ static const language_definition cfml_definition = {
             .start_string = "<!---",
             .end_string = "--->",
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_Comment,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_Comment,
+                TextParser_END
+            }
         },
         {
             .name = "SingleString",
@@ -139,10 +151,12 @@ static const language_definition cfml_definition = {
             .end_string = "'",
             .immediate_start = true,
             .search_parent_end_token_last = true,
-            .nested_tokens = (int []) {TextParser_cfml_SharpChar,
-                                       TextParser_cfml_SharpExpression,
-                                       TextParser_cfml_SingleChar,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_SharpChar,
+                TextParser_cfml_SharpExpression,
+                TextParser_cfml_SingleChar,
+                TextParser_END
+            }
         },
         ////////////////////////////////
         {
@@ -152,10 +166,12 @@ static const language_definition cfml_definition = {
             .end_string = "\"",
             .immediate_start = true,
             .search_parent_end_token_last = true,
-            .nested_tokens = (int []) {TextParser_cfml_SharpChar,
-                                       TextParser_cfml_SharpExpression,
-                                       TextParser_cfml_DoubleChar,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_SharpChar,
+                TextParser_cfml_SharpExpression,
+                TextParser_cfml_DoubleChar,
+                TextParser_END
+            }
         },
         {
             .name = "SingleChar",
@@ -178,9 +194,11 @@ static const language_definition cfml_definition = {
             .start_string = "#",
             .end_string = "#",
             .multi_line = true,
-            .nested_tokens = (int []) {TextParser_cfml_Expression,
-                                       TextParser_cfml_ExpressionEnd,
-                                       TextParser_END}
+            .nested_tokens = (int []) {
+                TextParser_cfml_Expression,
+                TextParser_cfml_ExpressionEnd,
+                TextParser_END
+            }
         },
         {
             .name = "Expression",

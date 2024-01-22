@@ -1,12 +1,113 @@
 {
-   "name": "cfml",
-   "version": 0.1,
-   "case_sensitivity": false,
-   "file_extensions": ["cfm", "cfc"],
-   "encoding": "latin1",
-   "starts_with": ["cftag"],
-   "other_text_inside": false,
-   "tokens": [
-      {"name": "cftag", "start_string": "<cf", "end_string": ">", "can_have_text_inside": true}
-   ]
+    "name": "CFML",
+    "version": 1,
+    "case_sensitivity": false,
+    "file_extensions": ["cfm", "cfc"],
+    "default_text_encoding": "latin1",
+    "starts_with": ["ScriptTagPair", "OutputTagPair", "StartTag", "EndTag", "Comment"],
+    "other_text_inside": false,
+    "tokens": [
+        {
+            "name": "ScriptTagPair",
+            "type": "group_all_children_in_same_order",
+            "multi_line": true,
+            "nested_tokens": ["ScriptStartTag", "ScriptExpression", "ScriptEndTag"]
+        },
+        {
+            "name": "ScriptStartTag",
+            "type": "start_stop",
+            "start_regex": "<cfscript",
+            "end_regex": ">",
+            "multi_line": true,
+            "nested_tokens": ["Expression"]
+        },
+        {
+            "name": "ScriptEndTag",
+            "type": "simple",
+            "start_regex": "<\\/cfscript>"
+        },
+        {
+            "name": "OutputTagPair",
+            "type": "group_all_children_in_same_order",
+            "multi_line": true,
+            "nested_tokens": ["OutputStartTag", "OutputExpression", "OutputEndTag"]
+        },
+        {
+            "name": "OutputStartTag",
+            "type": "start_stop",
+            "start_regex": "<cfoutput",
+            "end_regex": ">",
+            "multi_line": true,
+            "nested_tokens": ["ScriptTagPair", "OutputTagPair", "StartTag", "EndTag", "Comment"]
+        },
+        {
+            "name": "OutputEndTag",
+            "type": "simple",
+            "start_regex": "<\\/cfoutput>"
+        },
+        {
+            "name": "StartTag",
+            "type": "start_stop",
+            "start_regex": "<cf[a-z0-9_]+",
+            "end_regex": "\\/?>",
+            "multi_line": true,
+            "nested_tokens": ["Expression"]
+        },
+        {
+            "name": "EndTag",
+            "type": "start_stop",
+            "start_regex": "<\\/cf(?!output|!script)",
+            "end_regex": ">",
+            "multi_line": true
+        },
+        {
+            "name": "Comment",
+            "type": "start_stop",
+            "start_regex": "<!---",
+            "end_regex": "--->",
+            "multi_line": true,
+            "nested_tokens": ["Comment"]
+        },
+        {
+            "name": "SingleString",
+            "type": "start_stop",
+            "start_regex": "'",
+            "end_regex": "'",
+            "immediate_start": true,
+            "search_parent_end_token_last": true,
+            "nested_tokens": ["SharpChar", "SharpExpression", "SingleChar"]
+        },
+        {
+            "name": "DoubleString",
+            "type": "start_stop",
+            "start_regex": "\"",
+            "end_regex": "\"",
+            "immediate_start": true,
+            "search_parent_end_token_last": true,
+            "nested_tokens": ["SharpChar", "SharpExpression", "DoubleChar"]
+        },
+        {
+            "name": "SingleChar",
+            "type": "simple",
+            "start_regex": "''"
+        },
+        {
+            "name": "DoubleChar",
+            "type": "simple",
+            "start_regex": "\"\""
+        },
+        {
+            "name": "SharpChar",
+            "type": "simple",
+            "start_regex": "##"
+        },
+        {
+            "name": "SharpExpression",
+            "type": "start_stop",
+            "start_regex": "#",
+            "end_regex": "#",
+            "multi_line": true,
+            "nested_tokens": ["Expression", "ExpressionEnd"]
+        }
+    ]
 }
