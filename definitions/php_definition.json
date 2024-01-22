@@ -1,0 +1,118 @@
+{
+    "name": "PHP",
+    "version": 1,
+    "empty_segment_language": "html",
+    "case_sensitivity": true,
+    "file_extensions": [
+        "php",
+        "php5"
+    ],
+    "default_text_encoding": "latin1",
+    "starts_with": [
+        "Tag"
+    ],
+    "other_text_inside": true,
+    "tokens": [
+        {
+            "name": "Tag",
+            "type": "start_opt_stop",
+            "start_regex": "<\\?php|<\\?",
+            "end_regex": "\\?>",
+            "multi_line": true,
+            "nested_tokens": [
+                "LineComment",
+                "BlockComment",
+                "Operator",
+                "SingleString",
+                "DoubleString",
+                "Number",
+                "Boolean"
+            ]
+        },
+        {
+            "name": "LineComment",
+            "type": "simple",
+            "start_regex": "\/\/.*",
+            "immediate_start": true
+        },
+        {
+            "name": "BlockComment",
+            "type": "start_stop",
+            "start_regex": "\/*",
+            "end_regex": "*\/",
+            "multi_line": true,
+            "immediate_start": true
+        },
+        {
+            "name": "ArrayKeyValue",
+            "type": "simple",
+            "start_regex": "=>",
+            "immediate_start": true
+        },
+        {
+            "name": "MemberAccess",
+            "type": "simple",
+            "start_regex": "->",
+            "immediate_start": true
+        },
+        {
+            "name": "Variable",
+            "type": "simple",
+            "start_regex": "[$][a-z_][a-z0-9_]*",
+            "immediate_start": true
+        },
+        {
+            "name": "CodeBlock",
+            "type": "start_stop",
+            "start_regex": "{",
+            "end_regex": "}",
+            "multi_line": true,
+            "immediate_start": true,
+            "nested_tokens": [
+                "LineComment",
+                "BlockComment",
+                "Operator",
+                "SingleString",
+                "DoubleString",
+                "Number",
+                "Boolean"
+            ]
+        },
+        {
+            "name": "Operator",
+            "type": "simple",
+            "start_regex": "=",
+            "immediate_start": true
+        },
+        {
+            "name": "SingleString",
+            "type": "start_stop",
+            "start_regex": "'",
+            "end_regex": "'",
+            "immediate_start": true
+        },
+        {
+            "name": "DoubleString",
+            "type": "start_stop",
+            "start_regex": "\"",
+            "end_regex": "\"",
+            "immediate_start": true,
+            "nested_tokens": [
+                "Variable",
+                "CodeBlock"
+            ]
+        },
+        {
+            "name": "Number",
+            "type": "simple",
+            "start_regex": "[-+]?[0-9]+\\.?[0-9]*",
+            "immediate_start": true
+        },
+        {
+            "name": "Boolean",
+            "type": "simple",
+            "start_regex": "true|false",
+            "immediate_start": true
+        }
+    ]
+}
