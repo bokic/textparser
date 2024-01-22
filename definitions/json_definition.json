@@ -1,45 +1,110 @@
 {
-   "name":"json",
-   "version": 0.1,
-   "case_sensitivity": false,
-   "file_extensions": ["json"],
-   "encoding": "latin1",
-   "starts_with": ["Object", "Array"],
-   "other_text_inside": false,
-   "tokens": [
-      {"name": "Object", "start_string": "\\[", "end_string": "\\]",
-         "nested_tokens": [
-            "Object",
-            "Array",
-            "String",
-            "Number",
-            "Operator",
-            "Boolean",
-            "ValueSeparator",
-            "KeySeparator"
-         ]
-      },
-      {"name": "Array", "start_string": "\\[", "end_string": "\\]",
-         "nested_tokens": [
-            "Object",
-            "Array",
-            "String",
-            "Number",
-            "Operator",
-            "Boolean",
-            "ValueSeparator"
-         ]
-      },
-      {"name": "String", "start_string": "\\\"", "end_string": "\\\"", "can_have_text_inside": true,
-         "nested_tokens": [
-            "EscapeCharacters"
-         ]
-      },
-      {"name": "Number", "start_string": "[-+]?[0-9]+\\.?[0-9]*"},
-      {"name": "Operator", "start_string": "="},
-      {"name": "Boolean", "start_string": "true|false"},
-      {"name": "KeySeparator", "start_string": ":"},
-      {"name": "ValueSeparator", "start_string": ","},
-      {"name": "EscapeCharacters", "start_string": "\\|\""}
-   ]
+    "name": "JSON",
+    "version": 1,
+    "file_extensions": [
+        "json"
+    ],
+    "default_text_encoding": "latin1",
+    "starts_with": [
+        "Object",
+        "Array"
+    ],
+    "tokens": [
+        {
+            "name": "Object",
+            "type": "start_stop",
+            "start_regex": "\\{",
+            "end_regex": "\\}",
+            "multi_line": true,
+            "nested_tokens": [
+                "ObjectMember",
+                "ValueSeparator"
+            ]
+        },
+        {
+            "name": "ObjectMember",
+            "type": "group_all_children_in_same_order",
+            "multi_line": true,
+            "nested_tokens": [
+                "Key",
+                "KeySeparator",
+                "Value"
+            ]
+        },
+        {
+            "name": "Key",
+            "type": "start_stop",
+            "start_regex": "\\\"",
+            "end_regex": "\\\""
+        },
+        {
+            "name": "Value",
+            "type": "group_one_child_only",
+            "must_have_one_child": true,
+            "nested_tokens": [
+                "Object",
+                "Array",
+                "String",
+                "Number",
+                "Boolean"
+            ]
+        },
+        {
+            "name": "Array",
+            "type": "start_Stop",
+            "start_regex": "\\[",
+            "end_regex": "\\]",
+            "multi_line": true,
+            "nested_tokens": [
+                "ArrayItem",
+                "Separator"
+            ]
+        },
+        {
+            "name": "ArrayItem",
+            "type": "group_one_child_only",
+            "multi_line": true,
+            "nested_tokens": [
+                "Object",
+                "Array",
+                "String",
+                "Number",
+                "Boolean"
+            ]
+        },
+        {
+            "name": "String",
+            "type": "start_stop",
+            "start_regex": "\\\"",
+            "end_regex": "\\\"",
+            "nested_tokens": [
+                "EscapeCharacters"
+            ]
+        },
+        {
+            "name": "Number",
+            "type": "simple",
+            "regex": "[-+]?[0-9]+\\.?[0-9]*"
+        },
+        {
+            "name": "Boolean",
+            "type": "simple",
+            "regex": "true|false"
+        },
+        {
+            "name": "KeySeparator",
+            "type": "simple",
+            "regex": ":"
+        },
+        {
+            "name": "ValueSeparator",
+            "type": "simple",
+            "regex": ","
+        },
+        {
+            "name": "EscapeCharacters",
+            "type": "simple",
+            "regex": "\\\\\\\\|\\\\\""
+        }
+    ]
 }
