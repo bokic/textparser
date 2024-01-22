@@ -108,6 +108,171 @@
             "end_regex": "#",
             "multi_line": true,
             "nested_tokens": ["Expression", "ExpressionEnd"]
+        },
+        {
+            "name": "Expression",
+            "type": "group",
+            "immediate_start": true,
+            "multi_line": true,
+            "nested_tokens": [
+                "SingleString",
+                "DoubleString",
+                "Separator",
+                "ScriptLineComment",
+                "ScriptBlockComment",
+                "ExpressionEnd",
+                "Number",
+                "Boolean",
+                "Operator",
+                "ObjectMember",
+                "Keyword",
+                "Function",
+                "Object",
+                "Assigment",
+                "Variable",
+                "SubExpression",
+                "VariableIndex"]
+        },
+        {
+            "name": "ScriptExpression",
+            "type": "group",
+            "immediate_start": true,
+            "multi_line": true,
+            "nested_tokens": [
+                "SingleString",
+                "DoubleString",
+                "Separator",
+                "CodeBlock",
+                "ScriptLineComment",
+                "ScriptBlockComment",
+                "ExpressionEnd",
+                "Number",
+                "Boolean",
+                "Operator",
+                "ObjectMember",
+                "Keyword",
+                "Function",
+                "Object",
+                "Assigment",
+                "Variable",
+                "SubExpression",
+                "VariableIndex"]
+        },
+        {
+            "name": "OutputExpression",
+            "type": "group",
+            "multi_line": true,
+            "nested_tokens": [
+                "StartTag",
+                "EndTag",
+                "Comment",
+                "SharpExpression"]
+        },
+        {
+            "name": "ScriptBlockComment",
+            "type": "start_stop",
+            "start_regex": "\\/\\*",
+            "end_regex": "\\*\\/",
+            "immediate_start": true,
+            "multi_line": true
+        },
+        {
+            "name": "ScriptLineComment",
+            "type": "simple",
+            "start_regex": "\\/\\/.*",
+            "immediate_start": true
+        },
+        {
+            "name": "ExpressionEnd",
+            "type": "simple",
+            "start_regex": ";",
+            "immediate_start": true
+        },
+        {
+            "name": "Number",
+            "type": "simple",
+            "start_regex": "[-+]?\\b[0-9]*\\.?[0-9]+\\b",
+            "immediate_start": true
+        },
+        {
+            "name": "Boolean",
+            "type": "simple",
+            "start_regex": "(\\btrue\\b|\\bfalse\\b|\\byes\\b|\\bno\\b)",
+            "immediate_start": true
+        },
+        {
+            "name": "ObjectMember",
+            "type": "simple",
+            "start_regex": "\\.",
+            "immediate_start": true
+        },
+        {
+            "name": "Function",
+            "type": "start_stop",
+            "start_regex": "[a-z_]+[a-z0-9_]*[ \\t]*\\(",
+            "end_regex": "\\)",
+            "immediate_start": true,
+            "nested_tokens": ["Expression"]
+        },
+        {
+            "name": "Separator",
+            "type": "simple",
+            "start_regex": ",",
+            "immediate_start": true
+        },
+        {
+            "name": "Variable",
+            "type": "simple",
+            "start_regex": "[a-z_]+[a-z0-9_]*",
+            "immediate_start": true
+        },
+        {
+            "name": "Object",
+            "type": "simple",
+            "start_regex": "[a-z_]+[a-z0-9_]*\\.",
+            "immediate_start": true
+        },
+        {
+            "name": "Assigment",
+            "type": "simple",
+            "start_regex": "(=|\\+=|\\-=|\\*=|/=|%=|&=)",
+            "immediate_start": true
+        },
+        {
+            "name": "Operator",
+            "type": "simple",
+            "start_regex": "(\\bgreater\\s+than\\s+or\\s+equal\\s+to\\b|\\bless\\s+than\\s+or\\s+equal\\s+to\\b|\\bdoes\\s+not\\s+contain\\b|\\bgreater\\s+than\\b|\\bnot\\s+equal\\b|\\bless\\s+than\\b|\\bcontains\\b|\\bis\\s+not\\b|\\bequal\\b|\\+\\+|\\bmod\\b|\\bnot\\b|\\band\\b|\\bxor\\b|\\beqv\\b|\\bgte\\b|\\blte\\b|\\bimp\\b|\\bneq\\b|\\bis\\b|\\bor\\b|\\bgt\\b|\\bge\\b|\\blt\\b|\\ble\\b|--|\\+|\\*|\\|\\^|&&|\\|\\|\\beq\\b|\\?|-|/|&|%|:|!|=)",
+            "immediate_start": true
+        },
+        {
+            "name": "SubExpression",
+            "type": "start_stop",
+            "start_regex": "\\(",
+            "end_regex": "\\)",
+            "immediate_start": true,
+            "nested_tokens": ["Expression"]
+        },
+        {
+            "name": "VariableIndex",
+            "type": "start_stop",
+            "start_regex": "\\[",
+            "end_regex": "\\]",
+            "immediate_start": true,
+            "nested_tokens": ["Expression"]
+        },
+        {
+            "name": "CodeBlock",
+            "type": "start_stop",
+            "start_regex": "\\{",
+            "end_regex": "\\}",
+            "immediate_start": true,
+            "nested_tokens": ["ScriptExpression"]
+        },
+        {
+            "name": "Keyword",
+            "type": "simple",
+            "start_regex": "(\\bvar\\b|\\bfunction\\b|\\bthis\\b|try\\b|\\bcatch\\b|\\bif\\b|\\bthen\\b|\\belse\\b)",
+            "immediate_start": true
         }
     ]
 }
