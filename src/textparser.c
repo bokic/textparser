@@ -730,13 +730,13 @@ static int textparser_load_language_definition_internal(struct json_object *root
             other_name = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].name = strdup(other_name);
 
-            json_object_object_get_ex(token_item, "start_string", &key_value);
+            json_object_object_get_ex(token_item, "start_regex", &key_value);
             other_name = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].start_string = strdup(other_name);
+            (*definition)->tokens[token_idx].start_regex = strdup(other_name);
 
-            json_object_object_get_ex(token_item, "end_string", &key_value);
+            json_object_object_get_ex(token_item, "end_regex", &key_value);
             other_name = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].end_string = strdup(other_name);
+            (*definition)->tokens[token_idx].end_regex = strdup(other_name);
 
             json_object_object_get_ex(token_item, "only_start_tag", &key_value);
             if (key_value)
