@@ -55,8 +55,8 @@ typedef struct textparser_token_item {
  typedef struct {
     const char *name;
     enum textparser_token_type type;
-    const char *start_string;
-    const char *end_string;
+    const char *start_regex;
+    const char *end_regex;
     bool immediate_start;
     bool delete_if_only_one_child;
     bool must_have_one_child;

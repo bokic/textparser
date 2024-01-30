@@ -120,12 +120,12 @@ def main(args):
         text += "," + os.linesep
 
         if "start_regex" in token:
-            text += "            .start_string = " + json.dumps(token["start_regex"]) + "," + os.linesep
+            text += "            .start_regex = " + json.dumps(token["start_regex"]) + "," + os.linesep
         elif "regex" in token:
-            text += "            .start_string = " + json.dumps(token["regex"]) + "," + os.linesep
+            text += "            .start_regex = " + json.dumps(token["regex"]) + "," + os.linesep
 
         if "end_regex" in token:
-            text += "            .end_string = " + json.dumps(token["end_regex"]) + "," + os.linesep
+            text += "            .end_regex = " + json.dumps(token["end_regex"]) + "," + os.linesep
 
         # immediate_start
         if "immediate_start" in token:
