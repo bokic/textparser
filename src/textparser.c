@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
@@ -1289,7 +1290,7 @@ EXPORT_TEXTPARSER const char *textparser_get_token_id_name(textparser_t handle, 
 }
 
 EXPORT_TEXTPARSER char *textparser_get_token_text(textparser_t handle, textparser_token_item *item)
-{    
+{
     char *ret = NULL;
 
     textparser_handle *int_handle = (textparser_handle *)handle;
