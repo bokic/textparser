@@ -1,6 +1,6 @@
 #define PCRE2_CODE_UNIT_WIDTH 0
 
-#include "adv_regex.h"
+#include <adv_regex.h>
 #include <pcre2.h>
 
 #include <stdio.h>
