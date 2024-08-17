@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <errno.h>
+
 
 #define KB * 1024
 #define MB * 1024 KB
@@ -80,13 +80,13 @@ int main(int argc, char *argv[])
 
     fd = open(filename, O_RDONLY);
     if (fd <= 0) {
-        fprintf(stderr, "Can't open [%s] file. Error: %s\n", filename, strerror(errno));
+        fprintf(stderr, "Can't open [%s] file. Error: %m\n", filename);
         ret = EXIT_FAILURE;
         goto cleanup;
     }
 
     if (fstat(fd, &fd_stat)) {
-        fprintf(stderr, "Failed to stat file. Error: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to stat file. Error: %m\n");
         ret = EXIT_FAILURE;
         goto cleanup;
     }
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 
     f_content = mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (f_content == NULL) {
-        fprintf(stderr, "Failed to map file. Error: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to map file. Error: %m\n");
         ret = EXIT_FAILURE;
         goto cleanup;
     }
