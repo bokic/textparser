@@ -1,329 +1,366 @@
 {
-    "name": "CFML",
-    "version": 1,
-    "case_sensitivity": false,
-    "file_extensions": [
-        "cfm",
-        "cfc"
-    ],
-    "default_text_encoding": "latin1",
-    "starts_with": [
-        "ScriptTagPair",
-        "OutputTagPair",
-        "StartTag",
-        "EndTag",
-        "Comment"
-    ],
-    "other_text_inside": false,
-    "tokens": [
-        {
-            "name": "ScriptTagPair",
-            "type": "group_all_children_in_same_order",
-            "multi_line": true,
-            "nested_tokens": [
-                "ScriptStartTag",
-                "ScriptExpression",
-                "ScriptEndTag"
-            ]
-        },
-        {
-            "name": "ScriptStartTag",
-            "type": "start_stop",
-            "start_regex": "<cfscript",
-            "end_regex": ">",
-            "multi_line": true,
-            "nested_tokens": [
-                "Expression"
-            ]
-        },
-        {
-            "name": "ScriptEndTag",
-            "type": "simple",
-            "start_regex": "<\/cfscript>"
-        },
-        {
-            "name": "OutputTagPair",
-            "type": "group_all_children_in_same_order",
-            "multi_line": true,
-            "nested_tokens": [
-                "OutputStartTag",
-                "OutputExpression",
-                "OutputEndTag"
-            ]
-        },
-        {
-            "name": "OutputStartTag",
-            "type": "start_stop",
-            "start_regex": "<cfoutput",
-            "end_regex": ">",
-            "multi_line": true,
-            "nested_tokens": [
-                "ScriptTagPair",
-                "OutputTagPair",
-                "StartTag",
-                "EndTag",
-                "Comment"
-            ]
-        },
-        {
-            "name": "OutputEndTag",
-            "type": "simple",
-            "start_regex": "<\/cfoutput>"
-        },
-        {
-            "name": "StartTag",
-            "type": "start_stop",
-            "start_regex": "<cf[a-z0-9_]+",
-            "end_regex": "\/?>",
-            "multi_line": true,
-            "nested_tokens": [
-                "Expression"
-            ]
-        },
-        {
-            "name": "EndTag",
-            "type": "start_stop",
-            "start_regex": "<\/cf(?!output|!script)",
-            "end_regex": ">",
-            "multi_line": true
-        },
-        {
-            "name": "Comment",
-            "type": "start_stop",
-            "start_regex": "<!---",
-            "end_regex": "--->",
-            "multi_line": true,
-            "nested_tokens": [
-                "Comment"
-            ]
-        },
-        {
-            "name": "SingleString",
-            "type": "start_stop",
-            "start_regex": "'",
-            "end_regex": "'",
-            "immediate_start": true,
-            "search_parent_end_token_last": true,
-            "nested_tokens": [
-                "SharpChar",
-                "SharpExpression",
-                "SingleChar"
-            ]
-        },
-        {
-            "name": "DoubleString",
-            "type": "start_stop",
-            "start_regex": "\"",
-            "end_regex": "\"",
-            "immediate_start": true,
-            "search_parent_end_token_last": true,
-            "nested_tokens": [
-                "SharpChar",
-                "SharpExpression",
-                "DoubleChar"
-            ]
-        },
-        {
-            "name": "SingleChar",
-            "type": "simple",
-            "start_regex": "''"
-        },
-        {
-            "name": "DoubleChar",
-            "type": "simple",
-            "start_regex": "\"\""
-        },
-        {
-            "name": "SharpChar",
-            "type": "simple",
-            "start_regex": "##"
-        },
-        {
-            "name": "SharpExpression",
-            "type": "start_stop",
-            "start_regex": "#",
-            "end_regex": "#",
-            "multi_line": true,
-            "nested_tokens": [
-                "Expression",
-                "ExpressionEnd"
-            ]
-        },
-        {
-            "name": "Expression",
-            "type": "group",
-            "immediate_start": true,
-            "multi_line": true,
-            "nested_tokens": [
-                "SingleString",
-                "DoubleString",
-                "Separator",
-                "ScriptLineComment",
-                "ScriptBlockComment",
-                "ExpressionEnd",
-                "Number",
-                "Boolean",
-                "Operator",
-                "ObjectMember",
-                "Keyword",
-                "Function",
-                "Object",
-                "Assigment",
-                "Variable",
-                "SubExpression",
-                "VariableIndex"
-            ]
-        },
-        {
-            "name": "ScriptExpression",
-            "type": "group",
-            "immediate_start": true,
-            "multi_line": true,
-            "nested_tokens": [
-                "SingleString",
-                "DoubleString",
-                "Separator",
-                "CodeBlock",
-                "ScriptLineComment",
-                "ScriptBlockComment",
-                "ExpressionEnd",
-                "Number",
-                "Boolean",
-                "Operator",
-                "ObjectMember",
-                "Keyword",
-                "Function",
-                "Object",
-                "Assigment",
-                "Variable",
-                "SubExpression",
-                "VariableIndex"
-            ]
-        },
-        {
-            "name": "OutputExpression",
-            "type": "group",
-            "multi_line": true,
-            "nested_tokens": [
-                "StartTag",
-                "EndTag",
-                "Comment",
-                "SharpExpression"
-            ]
-        },
-        {
-            "name": "ScriptBlockComment",
-            "type": "start_stop",
-            "start_regex": "\/\\*",
-            "end_regex": "\\*\/",
-            "immediate_start": true,
-            "multi_line": true
-        },
-        {
-            "name": "ScriptLineComment",
-            "type": "simple",
-            "start_regex": "\/\/.*",
-            "immediate_start": true
-        },
-        {
-            "name": "ExpressionEnd",
-            "type": "simple",
-            "start_regex": ";",
-            "immediate_start": true
-        },
-        {
-            "name": "Number",
-            "type": "simple",
-            "start_regex": "[-+]?\b[0-9]*\\.?[0-9]+\b",
-            "immediate_start": true
-        },
-        {
-            "name": "Boolean",
-            "type": "simple",
-            "start_regex": "(\btrue\b|\bfalse\b|\byes\b|\bno\b)",
-            "immediate_start": true
-        },
-        {
-            "name": "ObjectMember",
-            "type": "simple",
-            "start_regex": "\\.",
-            "immediate_start": true
-        },
-        {
-            "name": "Function",
-            "type": "start_stop",
-            "start_regex": "[a-z_]+[a-z0-9_]*[ \t]*\\(",
-            "end_regex": "\\)",
-            "immediate_start": true,
-            "nested_tokens": [
-                "Expression"
-            ]
-        },
-        {
-            "name": "Separator",
-            "type": "simple",
-            "start_regex": ",",
-            "immediate_start": true
-        },
-        {
-            "name": "Variable",
-            "type": "simple",
-            "start_regex": "[a-z_]+[a-z0-9_]*",
-            "immediate_start": true
-        },
-        {
-            "name": "Object",
-            "type": "simple",
-            "start_regex": "[a-z_]+[a-z0-9_]*\\.",
-            "immediate_start": true
-        },
-        {
-            "name": "Assigment",
-            "type": "simple",
-            "start_regex": "(=|\\+=|\\-=|\\*=|/=|%=|&=)",
-            "immediate_start": true
-        },
-        {
-            "name": "Operator",
-            "type": "simple",
-            "start_regex": "(\bgreater\\s+than\\s+or\\s+equal\\s+to\b|\bless\\s+than\\s+or\\s+equal\\s+to\b|\bdoes\\s+not\\s+contain\b|\bgreater\\s+than\b|\bnot\\s+equal\b|\bless\\s+than\b|\bcontains\b|\bis\\s+not\b|\bequal\b|\\+\\+|\bmod\b|\bnot\b|\band\b|\bxor\b|\beqv\b|\bgte\b|\blte\b|\bimp\b|\bneq\b|\bis\b|\bor\b|\bgt\b|\bge\b|\blt\b|\ble\b|--|\\+|\\*|\\|\\^|&&|\\|\\|\beq\b|\\?|-|/|&|%|:|!|=)",
-            "immediate_start": true
-        },
-        {
-            "name": "SubExpression",
-            "type": "start_stop",
-            "start_regex": "\\(",
-            "end_regex": "\\)",
-            "immediate_start": true,
-            "nested_tokens": [
-                "Expression"
-            ]
-        },
-        {
-            "name": "VariableIndex",
-            "type": "start_stop",
-            "start_regex": "\\[",
-            "end_regex": "\\]",
-            "immediate_start": true,
-            "nested_tokens": [
-                "Expression"
-            ]
-        },
-        {
-            "name": "CodeBlock",
-            "type": "start_stop",
-            "start_regex": "\\{",
-            "end_regex": "\\}",
-            "immediate_start": true,
-            "nested_tokens": [
-                "ScriptExpression"
-            ]
-        },
-        {
-            "name": "Keyword",
-            "type": "simple",
-            "start_regex": "(\bvar\b|\bfunction\b|\bthis\b|try\b|\bcatch\b|\bif\b|\bthen\b|\belse\b)",
-            "immediate_start": true
-        }
-    ]
+   "name":"cfml",
+   "version":1.0,
+   "caseSensitivity":false,
+   "defaultFileExtensions":[
+      "cfm",
+      "cfc"
+   ],
+   "otherTextInside":true,
+   "defaultTextEncoding":"Latin1",
+   "startTokens":[
+      "ScriptTagPair",
+      "OutputTagPair",
+      "QueryTagPair",
+      "LoopTagPair",
+      "StartTag",
+      "EndTag",
+      "Comment"
+   ],
+   "tokens":{
+      "ScriptTagPair":{
+         "type":"GroupAllChildrenInSameOrder",
+         "multiLine":true,
+         "nestedTokens":[
+            "ScriptStartTag",
+            "ScriptExpression",
+            "ScriptEndTag"
+         ]
+      },
+      "ScriptStartTag":{
+         "type":"StartStop",
+         "startRegex":"<cfscript(?=[\\>\\s])",
+         "endRegex":"\\/?>",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "ScriptEndTag":{
+         "type":"SimpleToken",
+         "startRegex":"<\\/cfscript>"
+      },
+      "OutputTagPair":{
+         "type":"GroupAllChildrenInSameOrder",
+         "multiLine":true,
+         "nestedTokens":[
+            "OutputStartTag",
+            "OutputExpression",
+            "OutputEndTag"
+         ]
+      },
+      "OutputStartTag":{
+         "type":"StartStop",
+         "startRegex":"<cfoutput(?=[\\>\\s])",
+         "endRegex":"\\/?>",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "OutputEndTag":{
+         "type":"SimpleToken",
+         "startRegex":"<\\/cfoutput>"
+      },
+      "QueryTagPair":{
+         "type":"GroupAllChildrenInSameOrder",
+         "multiLine":true,
+         "nestedTokens":[
+            "QueryStartTag",
+            "QueryExpression",
+            "QueryEndTag"
+         ]
+      },
+      "QueryStartTag":{
+         "type":"StartStop",
+         "startRegex":"<cfquery(?=[\\>\\s])",
+         "endRegex":"\\/?>",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "QueryEndTag":{
+         "type":"SimpleToken",
+         "startRegex":"<\\/cfquery>"
+      },
+      "LoopTagPair":{
+         "type":"GroupAllChildrenInSameOrder",
+         "multiLine":true,
+         "nestedTokens":[
+            "LoopStartTag",
+            "LoopExpression",
+            "LoopEndTag"
+         ]
+      },
+      "LoopStartTag":{
+         "type":"StartStop",
+         "startRegex":"<cfloop(?=[\\>\\s])",
+         "endRegex":"\\/?>",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "LoopEndTag":{
+         "type":"SimpleToken",
+         "startRegex":"<\\/cfloop>"
+      },
+      "StartTag":{
+         "type":"StartStop",
+         "startRegex":"<cf[a-z0-9_]+",
+         "endRegex":"\\/?>",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "EndTag":{
+         "type":"StartStop",
+         "startRegex":"<\\/cf(?!output)(?!script)(?!query)(?!loop)[a-z0-9_]+",
+         "endRegex":"\\/?>",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "Comment":{
+         "type":"StartStop",
+         "startRegex":"<!---",
+         "endRegex":"--->",
+         "multiLine":true,
+         "nestedTokens":[
+            "Comment"
+         ]
+      },
+      "SingleString":{
+         "type":"StartStop",
+         "startRegex":"'",
+         "endRegex":"'",
+         "multiLine":true,
+         "nestedTokens":[
+            "SharpChar",
+            "SharpExpression",
+            "SingleChar"
+         ]
+      },
+      "DoubleString":{
+         "type":"StartStop",
+         "startRegex":"\"",
+         "endRegex":"\"",
+         "multiLine":true,
+         "nestedTokens":[
+            "SharpChar",
+            "SharpExpression",
+            "SingleChar"
+         ]
+      },
+      "SingleChar":{
+         "type":"SimpleToken",
+         "startRegex":"''"
+      },
+      "DoubleChar":{
+         "type":"SimpleToken",
+         "startRegex":"\"\""
+      },
+      "SharpChar":{
+         "type":"SimpleToken",
+         "startRegex":"##"
+      },
+      "SharpExpression":{
+         "type":"StartStop",
+         "startRegex":"#",
+         "endRegex":"#",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression",
+            "ExpressionEnd"
+         ]
+      },
+      "Expression":{
+         "type":"Group",
+         "multiLine":true,
+         "nestedTokens":[
+            "SingleString",
+            "DoubleString",
+            "SharpChar",
+            "SharpExpression",
+            "Separator",
+            "ScriptLineComment",
+            "ScriptBlockComment",
+            "ExpressionEnd",
+            "Number",
+            "Boolean",
+            "Function",
+            "Operator",
+            "ObjectMember",
+            "Keyword",
+            "Object",
+            "Assigment",
+            "Variable",
+            "SubExpression",
+            "VariableIndex",
+            "CodeBlock"
+         ]
+      },
+      "ScriptExpression":{
+         "type":"Group",
+         "multiLine":true,
+         "nestedTokens":[
+            "SingleString",
+            "DoubleString",
+            "SharpChar",
+            "SharpExpression",
+            "Separator",
+            "CodeBlock",
+            "ScriptLineComment",
+            "ScriptBlockComment",
+            "ExpressionEnd",
+            "Number",
+            "Boolean",
+            "Function",
+            "Operator",
+            "ObjectMember",
+            "Keyword",
+            "Object",
+            "Assigment",
+            "Variable",
+            "SubExpression",
+            "VariableIndex",
+            "CodeBlock"
+         ]
+      },
+      "OutputExpression":{
+         "type":"Group",
+         "otherTextInside":true,
+         "multiLine":true,
+         "nestedTokens":[
+            "ScriptTagPair",
+            "OutputTagPair",
+            "QueryTagPair",
+            "LoopTagPair",
+            "StartTag",
+            "EndTag",
+            "Comment",
+            "SharpChar",
+            "SharpExpression"
+         ]
+      },
+      "QueryExpression":{
+         "type":"Group",
+         "otherTextInside":true,
+         "multiLine":true,
+         "nestedTokens":[
+            "ScriptTagPair",
+            "OutputTagPair",
+            "QueryTagPair",
+            "LoopTagPair",
+            "StartTag",
+            "EndTag",
+            "Comment",
+            "SharpChar",
+            "SharpExpression"
+         ]
+      },
+      "LoopExpression":{
+         "type":"Group",
+         "otherTextInside":true,
+         "multiLine":true,
+         "nestedTokens":[
+            "ScriptTagPair",
+            "OutputTagPair",
+            "QueryTagPair",
+            "LoopTagPair",
+            "StartTag",
+            "EndTag",
+            "Comment",
+            "SharpChar",
+            "SharpExpression"
+         ]
+      },
+      "ScriptBlockComment":{
+         "type":"StartStop",
+         "startRegex":"\\/\\*",
+         "endRegex":"\\*\\/",
+         "otherTextInside":true,
+         "multiLine":true
+      },
+      "ScriptLineComment":{
+         "type":"SimpleToken",
+         "startRegex":"\\/\\/.*"
+      },
+      "ExpressionEnd":{
+         "type":"SimpleToken",
+         "startRegex":";"
+      },
+      "Number":{
+         "type":"SimpleToken",
+         "startRegex":"[-+]?[0-9]*\\.?[0-9]*"
+      },
+      "Boolean":{
+         "type":"SimpleToken",
+         "startRegex":"true\\b|false\\b|yes\\b|no\\b"
+      },
+      "ObjectMember":{
+         "type":"SimpleToken",
+         "startRegex":"\\."
+      },
+      "Function":{
+         "type":"StartStop",
+         "startRegex":"[a-z_]+[a-z0-9_]*[\\s]*\\(",
+         "endRegex":"\\)",
+         "multiLine":true,
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "Separator":{
+         "type":"SimpleToken",
+         "startRegex":","
+      },
+      "Variable":{
+         "type":"SimpleToken",
+         "startRegex":"[a-z_]+[a-z0-9_]*"
+      },
+      "Object":{
+         "type":"SimpleToken",
+         "startRegex":"[a-z_]+[a-z0-9_]*\\."
+      },
+      "Assigment":{
+         "type":"SimpleToken",
+         "startRegex":"=|\\+=|\\-=|\\*=|\\/=|%=|&="
+      },
+      "Operator":{
+         "type":"SimpleToken",
+         "startRegex":""
+      },
+      "SubExpression":{
+         "type":"StartStop",
+         "startRegex":"\\(",
+         "endRegex":"\\)",
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "VariableIndex":{
+         "type":"StartStop",
+         "startRegex":"\\[",
+         "endRegex":"\\]",
+         "nestedTokens":[
+            "Expression"
+         ]
+      },
+      "CodeBlock":{
+         "type":"StartStop",
+         "startRegex":"\\{",
+         "endRegex":"\\}",
+         "nestedTokens":[
+            "ScriptExpression"
+         ]
+      },
+      "Keyword":{
+         "type":"SimpleToken",
+         "startRegex":"var\\b|function\\b|this\\b|try\\b|catch\\b|if\\b|then\\b|else\\b"
+      }
+   }
 }

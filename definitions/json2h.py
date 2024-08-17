@@ -35,8 +35,8 @@ def main(args):
 
     text += "enum text_parser_" + name_lowercase + "_tags {" + os.linesep
 
-    for token in root["tokens"]:
-        text += "    TextParser_" + name_lowercase + "_" + token["name"] + "," + os.linesep
+    for token in list(root["tokens"].keys()):
+        text += "    TextParser_" + name_lowercase + "_" + token + "," + os.linesep
     text += "};" + os.linesep
     text += "" + os.linesep
 
@@ -48,20 +48,20 @@ def main(args):
     if "version" in root:
         text += "    .version = " + str(root["version"]) + "," + os.linesep
 
-    if "empty_segment_language" in root:
-        text += "    .empty_segment_language = \"" + root["empty_segment_language"] + "\"," + os.linesep
+    if "emptySegmentLanguage" in root:
+        text += "    .empty_segment_language = \"" + root["emptySegmentLanguage"] + "\"," + os.linesep
 
-    if "case_sensitivity" in root:
-        text += "    .case_sensitivity = " + python_bool_to_c_string(root["case_sensitivity"]) + "," + os.linesep
+    if "caseSensitivity" in root:
+        text += "    .case_sensitivity = " + python_bool_to_c_string(root["caseSensitivity"]) + "," + os.linesep
 
-    if "file_extensions" in root:
+    if "defaultFileExtensions" in root:
         text += "    .default_file_extensions = (const char *[]) {"
-        for ext in root["file_extensions"]:
+        for ext in root["defaultFileExtensions"]:
             text += "\"" + ext + "\", "
         text += "NULL}," + os.linesep
 
-    if "default_text_encoding" in root:
-        match root["default_text_encoding"].lower():
+    if "defaultTextEncoding" in root:
+        match root["defaultTextEncoding"].lower():
             case "latin1":
                 text += "    .default_text_encoding = ADV_REGEX_TEXT_LATIN1," + os.linesep
             case "utf-8":
@@ -76,42 +76,44 @@ def main(args):
                 print("Illegal default_text_encoding. Valid options are: latin1, utf-8, unicode, utf-16, utf-32")
                 exit(1)
 
-    if "starts_with" not in root:
+    if "startTokens" not in root:
         print("starts_with is missing ...")
         exit(1)
 
     text += "    .starts_with = (int []) {"
-    for token_name in root["starts_with"]:
+    for token_name in root["startTokens"]:
         text += "TextParser_" + name_lowercase + "_" + token_name + "," + os.linesep + "                             "
     text += "TextParser_END}," + os.linesep
 
-    if "other_text_inside" in root:
-        text += "    .other_text_inside = " + python_bool_to_c_string(root["other_text_inside"]) + "," + os.linesep
+    if "otherTextInside" in root:
+        text += "    .other_text_inside = " + python_bool_to_c_string(root["otherTextInside"]) + "," + os.linesep
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:
-        text += "        {" + os.linesep
-        text += "            .name = \"" + token["name"] + "\"," + os.linesep
+        current_token = root["tokens"][token]
 
-        if "type" not in token:
-            print("token type missing for token name [" + token["name"] + "].")
+        text += "        {" + os.linesep
+        text += "            .name = \"" + token + "\"," + os.linesep
+
+        if "type" not in current_token:
+            print("token type missing for token name [" + token + "].")
             exit(1)
 
         text += "            .type = "
-        match token["type"]:
-            case "group":
+        match current_token["type"]:
+            case "Group":
                 text += "TEXTPARSER_TOKEN_TYPE_GROUP"
-            case "group_all_children_in_same_order":
+            case "GroupAllChildrenInSameOrder":
                 text += "TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER"
-            case "group_one_child_only":
+            case "GroupOneChildOnly":
                 text += "TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY"
-            case "simple":
+            case "SimpleToken":
                 text += "TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN"
-            case "start_stop":
+            case "StartStop":
                 text += "TEXTPARSER_TOKEN_TYPE_START_STOP"
-            case "start_opt_stop":
+            case "StartOptStop":
                 text += "TEXTPARSER_TOKEN_TYPE_START_OPT_STOP"
-            case "dual_start_stop":
+            case "DualStartStop":
                 text += "TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP"
             case _:
                 print("Invalid token type!")
@@ -119,39 +121,31 @@ def main(args):
 
         text += "," + os.linesep
 
-        if "start_regex" in token:
-            text += "            .start_regex = " + json.dumps(token["start_regex"]) + "," + os.linesep
-        elif "regex" in token:
-            text += "            .start_regex = " + json.dumps(token["regex"]) + "," + os.linesep
+        if "startRegex" in current_token:
+            text += "            .start_regex = R\"regex(" + current_token["startRegex"] + ")regex\"," + os.linesep
+        elif "regex" in current_token:
+            text += "            .start_regex = R\"regex(" + current_token["regex"] + ")regex\"," + os.linesep
 
-        if "end_regex" in token:
-            text += "            .end_regex = " + json.dumps(token["end_regex"]) + "," + os.linesep
+        if "endRegex" in current_token:
+            text += "            .end_regex = R\"regex(" + current_token["endRegex"] + ")regex\"," + os.linesep
 
         # immediate_start
-        if "immediate_start" in token:
-            text += "            .immediate_start = " + python_bool_to_c_string(token["immediate_start"]) + "," + os.linesep
+        if "otherTextInside" in current_token:
+            text += "            .other_text_inside = " + python_bool_to_c_string(current_token["otherTextInside"]) + "," + os.linesep
 
         # delete_if_only_one_child
-        if "delete_if_only_one_child" in token:
-            print("delete_if_only_one_child is not implemented!")
+        if "deleteIfOnlyOneChild" in current_token:
+            print("deleteIfOnlyOneChild is not implemented!")
             exit(1)
 
-        # must_have_one_child
-        if "must_have_one_child" in token:
-            text += "            .must_have_one_child = " + python_bool_to_c_string(token["must_have_one_child"]) + "," + os.linesep
-
         # multi_line
-        if "multi_line" in token:
-            text += "            .multi_line = " + python_bool_to_c_string(token["multi_line"]) + "," + os.linesep
-
-        # search_parent_end_token_last
-        if "search_parent_end_token_last" in token:
-            text += "            .search_parent_end_token_last = " + python_bool_to_c_string(token["search_parent_end_token_last"]) + "," + os.linesep
+        if "multiLine" in current_token:
+            text += "            .multi_line = " + python_bool_to_c_string(current_token["multiLine"]) + "," + os.linesep
 
         # nested_tokens
-        if "nested_tokens" in token:
+        if "nestedTokens" in current_token:
             text += "            .nested_tokens = (int []) {" + os.linesep
-            for token_name in token["nested_tokens"]:
+            for token_name in current_token["nestedTokens"]:
                 text += "                TextParser_" + name_lowercase + "_" + token_name + "," + os.linesep
             text += "                TextParser_END" + os.linesep
             text += "            }" + os.linesep

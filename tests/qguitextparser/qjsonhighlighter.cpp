@@ -1,7 +1,7 @@
 #include "qjsonhighlighter.h"
 #include <textparser.h>
 
-#include <json_definition.json.h>
+//#include <json_definition.json.h>
 
 
 QJsonHighlighter::QJsonHighlighter(QObject *parent)
@@ -12,7 +12,7 @@ QJsonHighlighter::QJsonHighlighter(QObject *parent)
 
 void QJsonHighlighter::highlightBlock(const QString &text)
 {
-    QByteArray textBA;
+    /*QByteArray textBA;
     void *handle = nullptr;
     int res = 0;
 
@@ -43,7 +43,7 @@ void QJsonHighlighter::highlightBlock(const QString &text)
     }
 
 cleanup:
-    textparser_close(handle);
+    textparser_close(handle);*/
 }
 
 void QJsonHighlighter::init()

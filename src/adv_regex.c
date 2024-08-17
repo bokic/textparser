@@ -7,7 +7,7 @@
 #include <stddef.h>
 
 
-static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf)
+static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool only_first_character)
 {
     bool ret = false;
 
@@ -31,13 +31,13 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
     match_data = pcre2_match_data_create_from_pattern_8(*regex, NULL);
 
     int rc = pcre2_match_8(
-        *regex,               /* the compiled pattern */
-        (PCRE2_SPTR8)start,   /* the subject string */
-        max_len,              /* the length of the subject */
-        0,                    /* start at offset 0 in the subject */
-        0,                    /* default options */
-        match_data,           /* block for storing the result */
-        NULL);                /* use default match context */
+        *regex,                                // the compiled pattern
+        (PCRE2_SPTR8)start,                    // the subject string
+        max_len,                               // the length of the subject
+        0,                                     // start at offset 0 in the subject
+        only_first_character?PCRE2_ANCHORED:0, // default options
+        match_data,                            // block for storing the result
+        NULL);                                 // use default match context
     if (rc > 0)
     {
         ovector = pcre2_get_ovector_pointer_8(match_data);
@@ -59,7 +59,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
     return ret;
 }
 
-static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf)
+static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool only_first_character)
 {
     bool ret = false;
 
@@ -83,13 +83,13 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
     match_data = pcre2_match_data_create_from_pattern_16(*regex, NULL);
 
     int rc = pcre2_match_16(
-        *regex,               // the compiled pattern
-        (PCRE2_SPTR16)start,  // the subject string
-        max_len,              // the length of the subject
-        0,                    // start at offset 0 in the subject
-        0,                    // default options
-        match_data,           // block for storing the result
-        NULL);                // use default match context
+        *regex,                                // the compiled pattern
+        (PCRE2_SPTR16)start,                   // the subject string
+        max_len,                               // the length of the subject
+        0,                                     // start at offset 0 in the subject
+        only_first_character?PCRE2_ANCHORED:0, // default options
+        match_data,                            // block for storing the result
+        NULL);                                 // use default match context
     if (rc == 1)
     {
         ovector = pcre2_get_ovector_pointer_16(match_data);
@@ -111,7 +111,7 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
     return ret;
 }
 
-static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **regex, const char *start, size_t max_len, size_t *offset, size_t *length)
+static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool only_first_character)
 {
     bool ret = false;
 
@@ -135,13 +135,13 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
     match_data = pcre2_match_data_create_from_pattern_32(*regex, NULL);
 
     int rc = pcre2_match_32(
-        *regex,               // the compiled pattern
-        (PCRE2_SPTR32)start,  // the subject string
-        max_len,              // the length of the subject
-        0,                    // start at offset 0 in the subject
-        0,                    // default options
-        match_data,           // block for storing the result
-        NULL);                // use default match context
+        *regex,                                // the compiled pattern
+        (PCRE2_SPTR32)start,                   // the subject string
+        max_len,                               // the length of the subject
+        0,                                     // start at offset 0 in the subject
+        only_first_character?PCRE2_ANCHORED:0, // default options
+        match_data,                            // block for storing the result
+        NULL);                                 // use default match context
     if (rc == 1)
     {
         ovector = pcre2_get_ovector_pointer_32(match_data);
@@ -163,20 +163,20 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
     return ret;
 }
 
-bool adv_regex_find_pattern(const char *regex_str, void **regex, enum adv_regex_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length)
+bool adv_regex_find_pattern(const char *regex_str, void **regex, enum adv_regex_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool only_first_character)
 {
     switch(encoding)
     {
     case ADV_REGEX_TEXT_LATIN1:
-        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, false);
+        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, false, only_first_character);
     case ADV_REGEX_TEXT_UTF_8:
-        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, true);
+        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, true, only_first_character);
     case ADV_REGEX_TEXT_UNICODE:
-        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, false);
+        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, false, only_first_character);
     case ADV_REGEX_TEXT_UTF_16:
-        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, true);
+        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, true, only_first_character);
     case ADV_REGEX_TEXT_UTF_32:
-        return adv_regex_find_pattern32(regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length);
+        return adv_regex_find_pattern32(regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length, only_first_character);
     default:
     }
 
