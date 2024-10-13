@@ -16,6 +16,12 @@
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
+#ifdef DEBUG_PARSER
+#define DBG(str, ...) printf(str, __VA_ARGS__); fflush(stdout)
+#else
+#define DBG(str, ...)
+#endif
+
 enum textparser_bom {
     NO_BOM,
     BOM_UTF_8,
@@ -114,9 +120,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
 
     token_def = &definition->tokens[token_id];
 
-#ifdef DEBUG_PARSER
-    printf("Searching for token %s from pos: %zu\n", token_def->name, offset); fflush(stdout);
-#endif
+    DBG("Searching for token %s from pos: %zu\n", token_def->name, offset);
 
     text = int_handle->text_addr + offset;
     len = int_handle->text_size - offset;
@@ -152,9 +156,10 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                 if ((found_some)&&(out))
                     *out = lowest;
 
-#ifdef DEBUG_PARSER
-                if (found_some) { printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + tmp); fflush(stdout);}
-#endif
+                if (found_some)
+                {
+                    DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + tmp);
+                }
 
                 return found_some;
             }
@@ -164,13 +169,11 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
             {
                 if(textparser_find_token(int_handle, definition, token_def->nested_tokens[0], offset, out))
                 {
-#ifdef DEBUG_PARSER
                     if (out) {
-                        printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out); fflush(stdout);
+                        DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out);
                     } else {
-                        printf("\033[48;5;2mFound\033[0m token %s\n", token_def->name); fflush(stdout);
+                        DBG("\033[48;5;2mFound\033[0m token %s\n", token_def->name);
                     }
-#endif
 
                     return true;
                 }
@@ -187,13 +190,11 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                     if (out)
                         *out = found_at;
 
-#ifdef DEBUG_PARSER
                     if (out)
-                        printf("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out);
+                        DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out);
                     else
-                        printf("\033[48;5;2mFound\033[0m token %s at offset: %zu\n", token_def->name, offset);
-                    fflush(stdout);
-#endif
+                        DBG("\033[48;5;2mFound\033[0m token %s at offset: %zu\n", token_def->name, offset);
+
                     return true;
                 }
             }
@@ -201,9 +202,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
             break;
     }
 
-#ifdef DEBUG_PARSER
-        printf("\033[48;5;1mNOT Found\033[0m token %s from pos: %zu\n", token_def->name, offset); fflush(stdout);
-#endif
+    DBG("\033[48;5;1mNOT Found\033[0m token %s from pos: %zu\n", token_def->name, offset);
 
     return false;
 }
@@ -353,10 +352,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     return ret;
                 }
 
-#ifdef DEBUG_PARSER
-                printf("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
-                fflush(stdout);
-#endif
+                DBG("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
 
                 offset = child->position + child->len;
             }
@@ -391,10 +387,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                         return ret;
                     }
 
-#ifdef DEBUG_PARSER
-                    printf("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
-                    fflush(stdout);
-#endif
+                    DBG("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
 
                     ret->position = child->position;
                     ret->len = child->len;
@@ -427,11 +420,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
             ret->position = current_offset + token_start;
             ret->len = len;
-
-#ifdef DEBUG_PARSER
-            printf("\033[48;5;2mFound\033[0m token %s at pos: %zu, len: %zu\n", definition->tokens[ret->token_id].name, ret->position, ret->len);
-            fflush(stdout);
-#endif
+            DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu, len: %zu\n", definition->tokens[ret->token_id].name, ret->position, ret->len);
             break;
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
