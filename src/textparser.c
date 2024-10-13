@@ -83,32 +83,38 @@ static void free_item_tree(textparser_token_item *item)
 
 static size_t textparser_skip_whitespace(const textparser_handle *int_handle, size_t index)
 {
+    size_t maxPos = 0;
+
     if (int_handle->text_format == ADV_REGEX_TEXT_UNICODE)
     {
-        while(index < int_handle->mmap_size - 1)
+        maxPos = int_handle->mmap_size / 2;
+
+        const u_int16_t *text = (const u_int16_t *)int_handle->text_addr;
+
+        for (int c = index; c < maxPos; c++)
         {
-            u_int16_t ch = *(u_int16_t *)(int_handle->text_addr + index);
+            u_int8_t ch = text[c];
 
-            if ((ch != ' ')&&(ch != '\t')&&(ch != '\r')&&(ch != '\n'))
-                break;
-
-            index += 2;
+            if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
+                return c;
         }
     }
     else
     {
-        while(index < int_handle->mmap_size)
+        maxPos = int_handle->mmap_size;
+
+        const u_int8_t *text = int_handle->text_addr;
+
+        for (int c = index; c < maxPos; c++)
         {
-            char ch = int_handle->text_addr[index];
+            u_int8_t ch = text[c];
 
-            if ((ch != ' ')&&(ch != '\t')&&(ch != '\r')&&(ch != '\n'))
-                break;
-
-            index++;
+            if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
+                return c;
         }
     }
 
-    return index;
+    return maxPos;
 }
 
 static bool textparser_find_token(const textparser_handle *int_handle, const language_definition *definition, int token_id, size_t offset, size_t *out)
