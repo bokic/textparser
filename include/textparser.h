@@ -89,6 +89,8 @@ EXPORT_TEXTPARSER void textparser_dump(textparser_t handle);
 
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_definition *definition);
 
+EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
+EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(textparser_t handle);
 EXPORT_TEXTPARSER const char *textparser_get_token_id_name(textparser_t handle, int token_id);
 EXPORT_TEXTPARSER char *textparser_get_token_text(textparser_t handle, textparser_token_item *item);

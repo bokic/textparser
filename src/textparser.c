@@ -1002,6 +1002,26 @@ EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_defin
     return 0;
 }
 
+EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle)
+{
+    textparser_handle *int_handle = (textparser_handle *)handle;
+
+    if (int_handle == NULL)
+        return NULL;
+
+    return int_handle->text_addr;
+}
+
+EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle)
+{
+    textparser_handle *int_handle = (textparser_handle *)handle;
+
+    if (int_handle == NULL)
+        return 0;
+
+    return int_handle->text_size;
+}
+
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(textparser_t handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
