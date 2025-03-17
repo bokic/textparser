@@ -16,7 +16,7 @@
 #define KB * 1024
 #define MB * 1024 KB
 #define GB * 1024 MB
-#define MAX_PARSE_SIZE 4 MB
+#define MAX_PARSE_SIZE (4 MB)
 
 //const language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, NULL};
 //const language_definition *definitions[] = {&cfml_definition, &json_definition, NULL};
@@ -63,11 +63,15 @@ int main(int argc, char *argv[])
 
     const language_definition *language_def = NULL;
     textparser_parser_state *line_state = NULL;
+    textparser_token_item *token = NULL;
     const char *f_content = NULL;
     const char *filename = NULL;
     struct stat fd_stat;
     size_t f_size = 0;
     int fd = 0;
+
+    textparser_t handle = NULL;
+    int res = 0;
 
     if (argc != 2)
     {
@@ -78,7 +82,29 @@ int main(int argc, char *argv[])
 
     filename = argv[1];
 
-    fd = open(filename, O_RDONLY);
+    res = textparser_openfile(filename, ADV_REGEX_TEXT_LATIN1, &handle);
+    if (res) {
+        fprintf(stderr, "Error opening file.\n");
+        ret = EXIT_FAILURE;
+        goto cleanup;
+    }
+
+    res = textparser_parse(handle, &cfml_definition);
+    if (res) {
+        fprintf(stderr, "Parsing failed.\n");
+        ret = EXIT_FAILURE;
+        goto cleanup;
+    }
+
+    token = textparser_get_first_token(handle);
+
+cleanup:
+    if (handle) {
+        textparser_close(handle);
+    }
+
+#ifdef OLD_CODE
+    /*fd = open(filename, O_RDONLY);
     if (fd <= 0) {
         fprintf(stderr, "Can't open [%s] file. Error: %m\n", filename);
         ret = EXIT_FAILURE;
@@ -137,6 +163,7 @@ cleanup:
         munmap ((void *)f_content, f_size);
     if (fd)
         close(fd);
+#endif // OLD_CODE
 
     return ret;
 }

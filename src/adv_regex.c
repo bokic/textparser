@@ -41,7 +41,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
     if (rc > 0)
     {
         ovector = pcre2_get_ovector_pointer_8(match_data);
-        if (ovector)
+        if ((ovector)&&(ovector[1] > 0))
         {
             if (offset)
                 *offset = ovector[0];

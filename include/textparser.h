@@ -2,7 +2,6 @@
 
 #include <adv_regex.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stddef.h>
 
 
@@ -18,7 +17,7 @@
 
 #define TextParser_END (-1)
 
-#define textparser_t void *
+typedef void* textparser_t;
 
 enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_GROUP,
@@ -29,7 +28,6 @@ enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_START_OPT_STOP,
     TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
 };
-
 
 typedef struct {
     int allocated;
@@ -82,10 +80,6 @@ typedef struct {
 extern "C"
 {
 #endif
-
-EXPORT_TEXTPARSER int textparser_load_language_definition_from_json_file(const char *pathname, language_definition **definition);
-EXPORT_TEXTPARSER int textparser_load_language_definition_from_string(const char *text, language_definition **definition);
-EXPORT_TEXTPARSER void textparser_free_language_definition(language_definition *definition);
 
 EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int text_format, textparser_t *handle);
 EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);

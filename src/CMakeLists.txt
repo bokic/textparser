@@ -27,21 +27,18 @@ target_include_directories(libtextparser PUBLIC
 )
 
 target_include_directories(libtextparser PRIVATE
-    ${json-c_INCLUDE_DIRS}
     ${libpcre2-8_INCLUDE_DIRS}
     ${libpcre2-16_INCLUDE_DIRS}
     ${libpcre2-32_INCLUDE_DIRS}
 )
 
 target_link_directories(libtextparser PRIVATE
-    ${json-c_LIBRARY_DIRS}
     ${libpcre2-8_LIBRARY_DIRS}
     ${libpcre2-16_LIBRARY_DIRS}
     ${libpcre2-32_LIBRARY_DIRS}
 )
 
 target_link_libraries(libtextparser PRIVATE
-    ${json-c_LIBRARIES}
     ${libpcre2-8_LIBRARIES}
     ${libpcre2-16_LIBRARIES}
     ${libpcre2-32_LIBRARIES}
@@ -52,6 +49,36 @@ set_target_properties(libtextparser PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser"
+    VERSION "0.5.0"
+    SOVERSION "0.5"
+)
+
+add_library(libtextparser-json SHARED
+    textparser-json.c
+    ../include/textparser-json.h
+)
+
+target_include_directories(libtextparser-json PUBLIC
+    ../include
+)
+
+target_include_directories(libtextparser-json PRIVATE
+    ${json-c_INCLUDE_DIRS}
+)
+
+target_link_directories(libtextparser-json PRIVATE
+    ${json-c_LIBRARY_DIRS}
+)
+
+target_link_libraries(libtextparser-json PRIVATE
+    ${json-c_LIBRARIES}
+)
+
+set_target_properties(libtextparser-json PROPERTIES
+    PUBLIC_HEADER "../include/textparser-json.h"
+    INTERPROCEDURAL_OPTIMIZATION TRUE
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser-json"
     VERSION "0.5.0"
     SOVERSION "0.5"
 )
