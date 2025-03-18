@@ -57,6 +57,44 @@ static const language_definition *get_language_definition_by_filename(const char
     return NULL;
 }
 
+static void print_recursive_token(textparser_t handle, const char *text, textparser_token_item *token)
+{
+    // ESC[38;2;⟨r⟩;⟨g⟩;⟨b⟩m Select RGB foreground color
+    // ESC[48;2;⟨r⟩;⟨g⟩;⟨b⟩m Select RGB background color
+
+    const language_definition *language = NULL;
+    char ansi_format_str[64] = {0, };
+    bool have_format = false;
+    uint32_t text_background = 0;
+    uint32_t text_color = 0;
+    uint32_t text_flags = 0;
+    size_t pos = 0;
+
+    language = textparser_get_language(handle);
+    text_background = language->tokens[token->token_id].text_background;
+    text_color = language->tokens[token->token_id].text_color;
+    text_flags = language->tokens[token->token_id].text_flags;
+    pos = token->position;
+
+    if ((text_background)||(text_color)||(text_flags)) {
+
+        have_format = true;
+    }
+
+    char *str = "\33[38;2;255;102;102m";
+    const char *reset_ansi = "\33[0m";
+
+    if (have_format) {
+        write(STDOUT_FILENO, str, strlen(str));
+    }
+
+    write(STDOUT_FILENO, text + token->position, token->len);
+
+    if (have_format) {
+        write(STDOUT_FILENO, reset_ansi, strlen(reset_ansi));
+    }
+}
+
 int main(int argc, char *argv[])
 {
     int ret = EXIT_SUCCESS;
@@ -64,6 +102,7 @@ int main(int argc, char *argv[])
     const language_definition *language_def = NULL;
     textparser_parser_state *line_state = NULL;
     textparser_token_item *token = NULL;
+    bool should_end_with_newline = false;
     const char *f_content = NULL;
     const char *filename = NULL;
     struct stat fd_stat;
@@ -96,74 +135,45 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
+    const char *text = textparser_get_text(handle);
+    size_t text_size = textparser_get_text_size(handle);
+
+    if ((text_size > 0)&&(text[text_size - 1] != '\n')) {
+        should_end_with_newline = true;
+    }
+
     token = textparser_get_first_token(handle);
+
+    if (token) {
+        size_t pos = 0;
+
+        do {
+            if (token->position > pos) {
+                write(STDOUT_FILENO, text + pos, token->position - pos);
+            }
+
+            print_recursive_token(handle, text, token);
+
+            pos = token->position + token->len;
+
+            token = token->next;
+        } while(token);
+
+        if (text_size > pos) {
+            write(STDOUT_FILENO, text + pos, text_size - pos);
+        }
+    } else {
+        write(STDOUT_FILENO, text, text_size);
+    }
+
+    if (should_end_with_newline) {
+        write(STDOUT_FILENO, "\n", 1);
+    }
 
 cleanup:
     if (handle) {
         textparser_close(handle);
     }
-
-#ifdef OLD_CODE
-    /*fd = open(filename, O_RDONLY);
-    if (fd <= 0) {
-        fprintf(stderr, "Can't open [%s] file. Error: %m\n", filename);
-        ret = EXIT_FAILURE;
-        goto cleanup;
-    }
-
-    if (fstat(fd, &fd_stat)) {
-        fprintf(stderr, "Failed to stat file. Error: %m\n");
-        ret = EXIT_FAILURE;
-        goto cleanup;
-    }
-
-    if (fd_stat.st_size > MAX_PARSE_SIZE) {
-        ret = EXIT_FAILURE;
-        goto cleanup;
-    }
-
-    f_size = fd_stat.st_size;
-
-    f_content = mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (f_content == NULL) {
-        fprintf(stderr, "Failed to map file. Error: %m\n");
-        ret = EXIT_FAILURE;
-        goto cleanup;
-    }
-
-    language_def = get_language_definition_by_filename(filename);
-    if (language_def == NULL)
-    {
-        fprintf(stderr, "No language definition found for file: %s\n", filename);
-        ret = EXIT_FAILURE;
-        goto cleanup;
-    }
-
-    line_state = textparser_parse_state_new(NULL, 0);
-
-    /*language_definition *def = NULL;
-    int res = textparser_load_language_definition_from_json_file("json_definition.json", &def);
-    textparser_free_language_definition(def);
-    def = NULL;*/
-
-    const char *line = f_content;
-    do {
-        textparser_line_parser_item *item = textparser_parse_line(line, ADV_REGEX_TEXT_LATIN1, line_state, language_def);
-
-        item = NULL;
-
-        // https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit
-
-    } while(1);
-
-cleanup:
-    if (line_state)
-        textparser_parse_state_free(line_state);
-    if (f_content)
-        munmap ((void *)f_content, f_size);
-    if (fd)
-        close(fd);
-#endif // OLD_CODE
 
     return ret;
 }

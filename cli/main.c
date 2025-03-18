@@ -8,18 +8,22 @@
 #include <stdio.h>
 
 
-_Static_assert(__STDC_VERSION__ == 202000, "Wrong C standard");
-
 static void print_textparser_token_item(void *handle, textparser_token_item *item, int level)
 {
+    const language_definition *language;
     const char *token_name = NULL;
     char *token_text = NULL;
 
     for(int c = 0; c < level; c++)
         putc(' ', stdout);
 
+    language = textparser_get_language(handle);
     token_name = textparser_get_token_id_name(handle, item->token_id);
     token_text = textparser_get_token_text(handle, item);
+
+    uint32_t text_background = language->tokens[item->token_id].text_background;
+    uint32_t text_color = language->tokens[item->token_id].text_color;
+    uint32_t text_flags = language->tokens[item->token_id].text_flags;
 
     if ((token_text)&&((item->child == NULL)||(strlen(token_text) < 50))) {
         printf("type: \033[48;5;4m%s\033[0m, text: \033[48;5;5m%s\033[0m\n", token_name, token_text);
