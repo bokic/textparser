@@ -16,12 +16,6 @@
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
-#ifdef DEBUG_PARSER
-#define DBG(str, ...) printf(str, __VA_ARGS__); fflush(stdout)
-#else
-#define DBG(str, ...)
-#endif
-
 enum textparser_bom {
     NO_BOM,
     BOM_UTF_8,
@@ -123,16 +117,16 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
     return maxPos;
 }
 
-static bool textparser_find_token(const textparser_handle *int_handle, const language_definition *definition, int token_id, size_t offset, size_t *out)
+static bool textparser_find_token(const textparser_handle *int_handle, int token_id, size_t offset, size_t *out, bool only_first_character)
 {
     const textparser_token *token_def = NULL;
     const char *text = NULL;
     size_t found_at = 0;
     size_t len = 0;
 
-    token_def = &definition->tokens[token_id];
+    const language_definition *definition = int_handle->language;
 
-    DBG("Searching for token %s from pos: %zu\n", token_def->name, offset);
+    token_def = &definition->tokens[token_id];
 
     text = int_handle->text_addr + offset;
     len = int_handle->text_size - offset;
@@ -148,7 +142,7 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                 bool found_some = false;
                 for(int c = 0; token_def->nested_tokens[c] != -1; c++)
                 {
-                    if(textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, &tmp))
+                    if(textparser_find_token(int_handle, token_def->nested_tokens[c], offset, &tmp, false))
                     {
                         if (!found_some)
                         {
@@ -172,27 +166,14 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
                 if ((found_some)&&(out))
                     *out = lowest;
 
-                if (found_some)
-                {
-                    DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + tmp);
-                }
-
                 return found_some;
             }
             break;
         case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER:
             if (token_def->nested_tokens)
             {
-                if(textparser_find_token(int_handle, definition, token_def->nested_tokens[0], offset, out))
+                if(textparser_find_token(int_handle, token_def->nested_tokens[0], offset, out, false))
                 {
-                    if (out)
-                    {
-                        DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out);
-                    } else
-                    {
-                        DBG("\033[48;5;2mFound\033[0m token %s\n", token_def->name);
-                    }
-
                     return true;
                 }
             }
@@ -201,20 +182,12 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
-            if (adv_regex_find_pattern(definition->tokens[token_id].start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, NULL, !token_def->other_text_inside))
+            if (adv_regex_find_pattern(definition->tokens[token_id].start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, NULL, only_first_character))
             {
-                if ((token_def->other_text_inside)||(found_at == 0))
+                if ((!only_first_character)||(found_at == 0))
                 {
                     if (out)
                         *out = found_at;
-
-                    if (out)
-                    {
-                        DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu\n", token_def->name, offset + *out);
-                    } else
-                    {
-                        DBG("\033[48;5;2mFound\033[0m token %s at offset: %zu\n", token_def->name, offset);
-                    }
 
                     return true;
                 }
@@ -222,8 +195,6 @@ static bool textparser_find_token(const textparser_handle *int_handle, const lan
         default:
             break;
     }
-
-    DBG("\033[48;5;1mNOT Found\033[0m token %s from pos: %zu\n", token_def->name, offset);
 
     return false;
 }
@@ -272,10 +243,8 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->error = "nested_tokens list is empty!";
                 ret->position = current_offset;
                 int_handle->fatal_error = true;
-
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-
-                return ret;
+                goto exit;
             }
 
             do {
@@ -286,7 +255,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                 offset = textparser_skip_whitespace(int_handle, offset);
 
-                if (parent_end_token_id >= 0)
+                /*if (parent_end_token_id >= 0)
                 {
                     assert(int_handle->text_size > offset);
                     adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, NULL, false);
@@ -296,13 +265,13 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 {
                     assert(int_handle->text_size > offset);
                     adv_regex_find_pattern(definition->tokens[next_token_id].start_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_next_end, NULL, !definition->tokens[parent_end_token_id].other_text_inside);
-                }
+                }*/
 
                 for (int c = 0; token_def->nested_tokens[c] != -1; c++)
                 {
                     size_t current_closest = SIZE_MAX;
 
-                    if (textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, &current_closest))
+                    if (textparser_find_token(int_handle, token_def->nested_tokens[c], offset, &current_closest, !token_def->other_text_inside))
                     {
                         if ((current_closest < closest)&&(current_closest < closest_parent_end))
                         {
@@ -321,9 +290,19 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 {
                     if (child == NULL) {
                         child = textparser_parse_token(int_handle, definition, current_token_id, parent_end_token_id, next_token_id, offset);
+                        if (int_handle->fatal_error)
+                        {
+                            printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                            goto exit;
+                        }
                         ret->child = child;
                     } else {
                         child->next = textparser_parse_token(int_handle, definition, current_token_id, parent_end_token_id, next_token_id, offset);
+                        if (int_handle->fatal_error)
+                        {
+                            printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                            goto exit;
+                        }
                         child = child->next;
                     }
 
@@ -340,25 +319,31 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->error = "nested_tokens list is empty!";
                 ret->position = current_offset;
                 int_handle->fatal_error = true;
-
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                if (int_handle->fatal_error)
+                {
+                    printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                    goto exit;
+                }
 
-                return ret;
             }
 
             for (int c = 0; token_def->nested_tokens[c] != -1; c++)
             {
                 offset = textparser_skip_whitespace(int_handle, offset);
 
-                if (!textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, NULL))
+                if (!textparser_find_token(int_handle, token_def->nested_tokens[c], offset, NULL, !token_def->other_text_inside))
                 {
                     ret->error = "Child token not found!";
                     ret->position = current_offset;
                     int_handle->fatal_error = true;
-
                     printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                    if (int_handle->fatal_error)
+                    {
+                        printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                        goto exit;
+                    }
 
-                    return ret;
                 }
 
                 int current_next_token_id = 0;
@@ -369,19 +354,32 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
                 if (c == 0) {
                     child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, current_next_token_id, offset);
+                    if (int_handle->fatal_error)
+                    {
+                        printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                        goto exit;
+                    }
                     ret->child = child;
                 } else {
                     child->next = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, current_next_token_id, offset);
+                    if (int_handle->fatal_error)
+                    {
+                        printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                        goto exit;
+                    }
                     child = child->next;
                 }
 
                 if (int_handle->fatal_error)
                 {
                     printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-                    return ret;
-                }
+                    if (int_handle->fatal_error)
+                    {
+                        printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                        goto exit;
+                    }
 
-                DBG("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
+                }
 
                 offset = child->position + child->len;
             }
@@ -396,27 +394,27 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->error = "nested_tokens list is empty!";
                 ret->position = current_offset;
                 int_handle->fatal_error = true;
-
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                if (int_handle->fatal_error)
+                {
+                    printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                    goto exit;
+                }
 
-                return ret;
             }
 
             offset = textparser_skip_whitespace(int_handle, offset);
 
             for (int c = 0; token_def->nested_tokens[c] != -1; c++)
             {
-                if (textparser_find_token(int_handle, definition, token_def->nested_tokens[c], offset, NULL))
+                if (textparser_find_token(int_handle, token_def->nested_tokens[c], offset, NULL, !token_def->other_text_inside))
                 {
                     child = textparser_parse_token(int_handle, definition, token_def->nested_tokens[c], parent_end_token_id, next_token_id, offset);
-
                     if (int_handle->fatal_error)
                     {
                         printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-                        return ret;
+                        goto exit;
                     }
-
-                    DBG("\033[48;5;2mFound\033[0m child token %s at pos: %zu, len: %zu\n", definition->tokens[child->token_id].name, child->position, child->len);
 
                     ret->position = child->position;
                     ret->len = child->len;
@@ -432,9 +430,13 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->error = "Can't find start of the token!";
                 ret->position = current_offset;
                 int_handle->fatal_error = true;
-
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-                return ret;
+                if (int_handle->fatal_error)
+                {
+                    printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                    goto exit;
+                }
+
             }
 
             if ((!token_def->other_text_inside)&&(token_start > 0))
@@ -442,14 +444,17 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->error = "immediate_start not rule not!";
                 ret->position = current_offset;
                 int_handle->fatal_error = true;
-
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-                return ret;
+                if (int_handle->fatal_error)
+                {
+                    printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                    goto exit;
+                }
+
             }
 
             ret->position = current_offset + token_start;
             ret->len = len;
-            DBG("\033[48;5;2mFound\033[0m token %s at pos: %zu, len: %zu\n", definition->tokens[ret->token_id].name, ret->position, ret->len);
             break;
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
@@ -459,9 +464,12 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->error = "Can't find start of the token!";
                 ret->position = current_offset;
                 int_handle->fatal_error = true;
-
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-                return ret;
+                if (int_handle->fatal_error)
+                {
+                    printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                    goto exit;
+                }
             }
 
             if ((!token_def->other_text_inside)&&(token_start > 0))
@@ -471,7 +479,11 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 int_handle->fatal_error = true;
 
                 printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-                return ret;
+                if (int_handle->fatal_error)
+                {
+                    printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                    goto exit;
+                }
             }
 
             ret->position = current_offset + token_start;
@@ -498,7 +510,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     {
                         size_t pos = 0;
 
-                        if (!textparser_find_token(int_handle, definition, nested_tokens[c], current_offset, &pos))
+                        if (!textparser_find_token(int_handle, nested_tokens[c], current_offset, &pos, !token_def->other_text_inside))
                             continue;
 
                         if (pos < token_end)
@@ -523,11 +535,10 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                     if (child_token_id >= 0)
                     {
                         child = textparser_parse_token(int_handle, definition, child_token_id, parent_end_token_id, next_token_id, current_offset);
-
                         if (int_handle->fatal_error)
                         {
                             printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
-                            return ret;
+                            goto exit;
                         }
 
                         if (ret->child == NULL)
@@ -538,7 +549,13 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                         last_child = child;
 
                         if (int_handle->fatal_error)
-                            return ret;
+                        {
+                            if (int_handle->fatal_error)
+                            {
+                                printf("Error [%s] at position: %zu\n", ret->error, current_offset); fflush(stdout);
+                                goto exit;
+                            }
+                        }
 
                         current_offset += child->len;
                     }
@@ -553,10 +570,9 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 ret->error = "Can't find end of the token!";
                 ret->position = current_offset;
                 int_handle->error = strdup("Can't find end of the token!");
-
+                int_handle->fatal_error = true;
                 printf("Error [%s] for token: [%s] at position: %zu\n", ret->error, token_def->name, current_offset); fflush(stdout);
-
-                return ret;
+                goto exit;
             }
 
             ret->len = current_offset + token_end + len - ret->position;
@@ -567,13 +583,12 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             ret->error = "Not implemented(TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP)!";
             ret->position = current_offset;
             int_handle->fatal_error = true;
-
-            printf("Error [%s] for token [%s] at position: %zu\n", ret->error, token_def->name, current_offset); fflush(stdout);
-
-            return ret;
+            printf("Error [%s] for token [%s] at position: %zu\n", ret->error, token_def->name, current_offset); fflush(stdout);            
+            goto exit;
         default:
     }
 
+exit:
     return ret;
 }
 
@@ -968,7 +983,7 @@ int textparser_parse(textparser_t handle, const language_definition *definition)
         for (int c = 0; definition->starts_with[c] != -1; c++) {
             int token_id = definition->starts_with[c];
             size_t offset = SIZE_MAX;
-            if (textparser_find_token(handle, definition, token_id, pos, &offset))
+            if (textparser_find_token(handle, token_id, pos, &offset, false))
             {
                 if (offset < closest_offset) {
                     closest_token_id = token_id;
@@ -1067,6 +1082,16 @@ char *textparser_get_token_text(textparser_t handle, textparser_token_item *item
     }
 
     return ret;
+}
+
+const language_definition *textparser_get_language(textparser_t handle)
+{
+    const textparser_handle *int_handle = (textparser_handle *)handle;
+
+    if (int_handle == NULL)
+        return NULL;
+
+    return int_handle->language;
 }
 
 textparser_parser_state *textparser_parse_state_new(void *state, int size)

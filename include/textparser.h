@@ -2,6 +2,7 @@
 
 #include <adv_regex.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stddef.h>
 
 
@@ -47,6 +48,9 @@ typedef struct textparser_token_item {
     int token_id;
     size_t position;
     size_t len;
+    uint32_t text_color;
+    uint32_t text_background;
+    uint32_t text_flags;
     const char *error;
 } textparser_token_item;
 
@@ -60,6 +64,9 @@ typedef struct textparser_token_item {
     bool must_have_one_child;
     bool multi_line;
     bool search_parent_end_token_last;
+    uint32_t text_color;
+    uint32_t text_background;
+    uint32_t text_flags;
     int *nested_tokens;
 } textparser_token;
 
@@ -94,6 +101,8 @@ EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(textparser_t handle);
 EXPORT_TEXTPARSER const char *textparser_get_token_id_name(textparser_t handle, int token_id);
 EXPORT_TEXTPARSER char *textparser_get_token_text(textparser_t handle, textparser_token_item *item);
+EXPORT_TEXTPARSER const language_definition *textparser_get_language(textparser_t handle);
+
 
 EXPORT_TEXTPARSER textparser_parser_state *textparser_parse_state_new(textparser_t state, int size);
 EXPORT_TEXTPARSER void textparser_parse_state_free(textparser_parser_state *state);
