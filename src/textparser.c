@@ -671,7 +671,7 @@ static void textparser_free_regex(textparser_handle *int_handle)
     }
 }
 
-EXPORT_TEXTPARSER void textparser_free_language_definition(language_definition *definition)
+void textparser_free_language_definition(language_definition *definition)
 {
     if (definition == NULL)
         return;
@@ -695,7 +695,7 @@ EXPORT_TEXTPARSER void textparser_free_language_definition(language_definition *
     free(definition);
 }
 
-EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int text_format, textparser_t *handle)
+int textparser_openfile(const char *pathname, int text_format, textparser_t *handle)
 {
     textparser_handle local_hnd;
     struct stat fd_stat;
@@ -875,7 +875,7 @@ err:
     return err;
 }
 
-EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle)
+int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle)
 {
     textparser_handle *ret = NULL;
 
@@ -895,7 +895,7 @@ EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_for
     return 0;
 }
 
-EXPORT_TEXTPARSER void textparser_close(textparser_t handle)
+void textparser_close(textparser_t handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
     textparser_token_item *item = NULL;
@@ -926,7 +926,7 @@ EXPORT_TEXTPARSER void textparser_close(textparser_t handle)
     free(handle);
 }
 
-EXPORT_TEXTPARSER void textparser_dump(textparser_t handle)
+void textparser_dump(textparser_t handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -943,7 +943,7 @@ EXPORT_TEXTPARSER void textparser_dump(textparser_t handle)
     }
 }
 
-EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_definition *definition)
+int textparser_parse(textparser_t handle, const language_definition *definition)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -1002,7 +1002,7 @@ EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_defin
     return 0;
 }
 
-EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle)
+const char *textparser_get_text(textparser_t handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -1012,7 +1012,7 @@ EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle)
     return int_handle->text_addr;
 }
 
-EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle)
+size_t textparser_get_text_size(textparser_t handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -1022,7 +1022,7 @@ EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle)
     return int_handle->text_size;
 }
 
-EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(textparser_t handle)
+textparser_token_item *textparser_get_first_token(textparser_t handle)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -1032,7 +1032,7 @@ EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(textparser_t
     return int_handle->first_item;
 }
 
-EXPORT_TEXTPARSER const char *textparser_get_token_id_name(textparser_t handle, int token_id)
+const char *textparser_get_token_id_name(textparser_t handle, int token_id)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -1051,7 +1051,7 @@ EXPORT_TEXTPARSER const char *textparser_get_token_id_name(textparser_t handle, 
     return NULL;
 }
 
-EXPORT_TEXTPARSER char *textparser_get_token_text(textparser_t handle, textparser_token_item *item)
+char *textparser_get_token_text(textparser_t handle, textparser_token_item *item)
 {    
     char *ret = NULL;
 
@@ -1069,7 +1069,7 @@ EXPORT_TEXTPARSER char *textparser_get_token_text(textparser_t handle, textparse
     return ret;
 }
 
-EXPORT_TEXTPARSER textparser_parser_state *textparser_parse_state_new(void *state, int size)
+textparser_parser_state *textparser_parse_state_new(void *state, int size)
 {
     textparser_parser_state *ret = NULL;
     int to_allocate = 0;
@@ -1093,7 +1093,7 @@ EXPORT_TEXTPARSER textparser_parser_state *textparser_parse_state_new(void *stat
     return ret;
 }
 
-EXPORT_TEXTPARSER void textparser_parse_state_free(textparser_parser_state *state)
+void textparser_parse_state_free(textparser_parser_state *state)
 {
     if (state)
     {
@@ -1101,7 +1101,7 @@ EXPORT_TEXTPARSER void textparser_parse_state_free(textparser_parser_state *stat
     }
 }
 
-EXPORT_TEXTPARSER textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition)
+textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition)
 {
     return NULL;
 }

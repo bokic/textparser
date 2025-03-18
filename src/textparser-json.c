@@ -279,12 +279,12 @@ cleanup:
     return ret;
 }
 
-EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_json_file(const char *pathname, language_definition **definition)
+int textparser_json_load_language_definition_from_json_file(const char *pathname, language_definition **definition)
 {
     return textparser_json_load_language_definition_internal(json_object_from_file(pathname), definition);
 }
 
-EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_string(const char *text, language_definition **definition)
+int textparser_json_load_language_definition_from_string(const char *text, language_definition **definition)
 {
     return textparser_json_load_language_definition_internal(json_tokener_parse(text), definition);
 }
