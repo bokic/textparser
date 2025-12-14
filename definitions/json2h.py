@@ -129,6 +129,15 @@ def main(args):
         if "endRegex" in current_token:
             text += "            .end_regex = R\"regex(" + current_token["endRegex"] + ")regex\"," + os.linesep
 
+        if "textColor" in current_token:
+            text += "            .text_color = " + current_token["textColor"] + "," + os.linesep
+
+        if "textBackground" in current_token:
+            text += "            .text_background = " + current_token["textBackground"] + "," + os.linesep
+
+        if "textFlags" in current_token:
+            text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
+
         # immediate_start
         if "otherTextInside" in current_token:
             text += "            .other_text_inside = " + python_bool_to_c_string(current_token["otherTextInside"]) + "," + os.linesep
@@ -151,6 +160,10 @@ def main(args):
             text += "            }" + os.linesep
 
         text += "        }," + os.linesep
+
+    text += "        {" + os.linesep
+    text += "            .name = NULL," + os.linesep
+    text += "        }," + os.linesep
 
     text += "    }" + os.linesep
     text += "};" + os.linesep

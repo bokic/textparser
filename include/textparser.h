@@ -18,6 +18,8 @@
 
 #define TextParser_END (-1)
 
+#define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
+
 typedef void* textparser_t;
 
 enum textparser_token_type {
@@ -29,6 +31,7 @@ enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_START_OPT_STOP,
     TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
 };
+
 
 typedef struct {
     int allocated;
@@ -48,6 +51,9 @@ typedef struct textparser_token_item {
     int token_id;
     size_t position;
     size_t len;
+#ifdef DEBUG_TEXTPARSER
+    char *debug;
+#endif
     uint32_t text_color;
     uint32_t text_background;
     uint32_t text_flags;
@@ -91,6 +97,7 @@ extern "C"
 EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int text_format, textparser_t *handle);
 EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);
 EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
+EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 
 EXPORT_TEXTPARSER void textparser_dump(textparser_t handle);
 
@@ -98,10 +105,10 @@ EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_defin
 
 EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
-EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(textparser_t handle);
-EXPORT_TEXTPARSER const char *textparser_get_token_id_name(textparser_t handle, int token_id);
-EXPORT_TEXTPARSER char *textparser_get_token_text(textparser_t handle, textparser_token_item *item);
-EXPORT_TEXTPARSER const language_definition *textparser_get_language(textparser_t handle);
+EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textparser_t handle);
+EXPORT_TEXTPARSER const char *textparser_get_token_id_name(const textparser_t handle, int token_id);
+EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
+EXPORT_TEXTPARSER const language_definition *textparser_get_language(const textparser_t handle);
 
 
 EXPORT_TEXTPARSER textparser_parser_state *textparser_parse_state_new(textparser_t state, int size);

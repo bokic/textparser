@@ -19,23 +19,23 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
     // TODO: Implement textparser_load_language_definition_internal()
     /*size_t array_length = 0;
-    json_object *tokens = NULL;
-    json_object *value = NULL;
+    json_object *tokens = nullptr;
+    json_object *value = nullptr;
     json_bool found = false;
 
-    if (root_obj == NULL) {
+    if (root_obj == nullptr) {
         fputs(json_util_get_last_err(), stderr);
             ret = 1;
         goto cleanup;
     }
 
     *definition = malloc(sizeof(language_definition));
-    if (*definition == NULL) {
+    if (*definition == nullptr) {
         ret = 2;
         goto cleanup;
     }
 
-    memset(*definition, 0, sizeof(language_definition));
+    bzero(*definition, sizeof(language_definition));
 
     found = json_object_object_get_ex(root_obj, "name", &value);
     if (!found){
@@ -79,7 +79,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             (*definition)->default_file_extensions[i] = strdup(json_object_get_string(array_item));
         }
 
-        (*definition)->default_file_extensions[array_length] = NULL;
+        (*definition)->default_file_extensions[array_length] = nullptr;
     }
 
     found = json_object_object_get_ex(root_obj, "encoding", &value);
@@ -137,8 +137,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
     (*definition)->starts_with = malloc(sizeof(int) * (starts_with_cnt + 1));
 
-    memset((*definition)->starts_with, 0, sizeof(int) * starts_with_cnt);
-    (*definition)->starts_with[starts_with_cnt] = -1;
+    bzero((*definition)->starts_with, sizeof(int) * starts_with_cnt);
+    (*definition)->starts_with[starts_with_cnt] = TextParser_END;
 
     for(size_t c = 0; c < starts_with_cnt; c++) {
         json_object *array_item = json_object_array_get_idx(value, c);
@@ -154,7 +154,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         for(size_t c2 = 0; c2 < tokens_cnt; c2++) {
             json_object *token_item = json_object_array_get_idx(tokens, c2);
 
-            struct json_object *key_value = NULL;
+            struct json_object *key_value = nullptr;
             json_object_object_get_ex(token_item, "name", &key_value);
             const char *other_name = json_object_get_string(key_value);
 
@@ -171,7 +171,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     }
 
     (*definition)->tokens = malloc(sizeof(textparser_token) * (tokens_cnt + 1));
-    if ((*definition)->tokens == NULL) {
+    if ((*definition)->tokens == nullptr) {
         (*definition)->error_string = "malloc for tokens list FAILED!";
         ret = 11;
         goto cleanup;
@@ -181,8 +181,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         for(size_t token_idx = 0; token_idx < tokens_cnt; token_idx++) {
             json_object *token_item = json_object_array_get_idx(tokens, token_idx);
 
-            struct json_object *key_value = NULL;
-            const char *other_name = NULL;
+            struct json_object *key_value = nullptr;
+            const char *other_name = nullptr;
 
             json_object_object_get_ex(token_item, "name", &key_value);
             other_name = json_object_get_string(key_value);
@@ -246,12 +246,12 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                     }
 
                     const char *name = json_object_get_string(array_item);
-                    (*definition)->tokens[token_idx].nested_tokens[c2] = -1;
+                    (*definition)->tokens[token_idx].nested_tokens[c2] = TextParser_END;
 
                     for(size_t c3 = 0; c3 < tokens_cnt; c3++) {
                         token_item = json_object_array_get_idx(tokens, c3);
 
-                        struct json_object *key_value2 = NULL;
+                        struct json_object *key_value2 = nullptr;
                         json_object_object_get_ex(token_item, "name", &key_value2);
                         other_name = json_object_get_string(key_value2);
 
@@ -262,13 +262,13 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                     }
                 }
 
-                (*definition)->tokens[token_idx].nested_tokens[nested_tokens_cnt] = -1;
+                (*definition)->tokens[token_idx].nested_tokens[nested_tokens_cnt] = TextParser_END;
             } else {
-                (*definition)->tokens[token_idx].nested_tokens = NULL;
+                (*definition)->tokens[token_idx].nested_tokens = nullptr;
             }
         }
     }
-    (*definition)->tokens[tokens_cnt].name = NULL;
+    (*definition)->tokens[tokens_cnt].name = nullptr;
 
 
 cleanup:

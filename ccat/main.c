@@ -1,6 +1,6 @@
 #include <textparser.h>
 #include <cfml_definition.json.h>
-//#include <json_definition.json.h>
+#include <json_definition.json.h>
 //#include <php_definition.json.h>
 
 #include <sys/mman.h>
@@ -18,30 +18,28 @@
 #define GB * 1024 MB
 #define MAX_PARSE_SIZE (4 MB)
 
-//const language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, NULL};
-//const language_definition *definitions[] = {&cfml_definition, &json_definition, NULL};
-const language_definition *definitions[] = {&cfml_definition, NULL};
-
+//const language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, nullptr};
+const language_definition *definitions[] = {&cfml_definition, &json_definition, nullptr};
 
 static const language_definition *get_language_definition_by_filename(const char *filename)
 {
-    const language_definition *definition = NULL;
-    const char *definition_ext = NULL;
+    const language_definition *definition = nullptr;
+    const char *definition_ext = nullptr;
     int def_cnt = 0;
 
     const char *filename_ext = strrchr(filename, '.');
-    if (filename_ext == NULL)
-        return NULL;
+    if (filename_ext == nullptr)
+        return nullptr;
 
     filename_ext++;
 
-    while(definitions[def_cnt] != NULL)
+    while(definitions[def_cnt] != nullptr)
     {
         int ext_cnt = 0;
 
         definition = definitions[def_cnt];
 
-        while(definition->default_file_extensions[ext_cnt] != NULL)
+        while(definition->default_file_extensions[ext_cnt] != nullptr)
         {
             definition_ext = definition->default_file_extensions[ext_cnt];
 
@@ -54,44 +52,81 @@ static const language_definition *get_language_definition_by_filename(const char
         def_cnt++;
     }
 
-    return NULL;
+    return nullptr;
 }
 
-static void print_recursive_token(textparser_t handle, const char *text, textparser_token_item *token)
+static void print_element(const char *text, size_t len, const char *text_background, const char *text_color, const char *text_flags)
 {
-    // ESC[38;2;⟨r⟩;⟨g⟩;⟨b⟩m Select RGB foreground color
-    // ESC[48;2;⟨r⟩;⟨g⟩;⟨b⟩m Select RGB background color
+    static const char * const reset_ansi = "\33[0m";
+    bool clear_format = false;
 
-    const language_definition *language = NULL;
-    char ansi_format_str[64] = {0, };
-    bool have_format = false;
+    if (strlen(text_background)) { write(STDOUT_FILENO, text_background, strlen(text_background)); clear_format = true; }
+    if (strlen(text_color))      { write(STDOUT_FILENO, text_color, strlen(text_color));           clear_format = true; }
+    if (strlen(text_flags))      { write(STDOUT_FILENO, text_flags, strlen(text_flags));           clear_format = true; }
+    write(STDOUT_FILENO, text, len);
+    if (clear_format)    write(STDOUT_FILENO, reset_ansi, strlen(reset_ansi));
+}
+
+static void print_recursive_token(const textparser_t handle, const char *text, const textparser_token_item *token)
+{
+    const struct textparser_token_item *child = nullptr;
+    const language_definition *language = nullptr;
+    char ansi_format_background[64] = {0, };
+    char ansi_format_text_color[64] = {0, };
+    char ansi_format_flags[64] = {0, };
     uint32_t text_background = 0;
     uint32_t text_color = 0;
     uint32_t text_flags = 0;
-    size_t pos = 0;
+    size_t last_pos = 0;
 
     language = textparser_get_language(handle);
+
     text_background = language->tokens[token->token_id].text_background;
+    if (text_background) {
+        snprintf(ansi_format_background, sizeof(ansi_format_background),
+            "\33[48;2;%u;%u;%um",
+            (text_background >>  0) & 0xff,
+            (text_background >>  6) & 0xff,
+            (text_background >> 16) & 0xff
+        );
+    }
+
     text_color = language->tokens[token->token_id].text_color;
+    if (text_color) {
+        snprintf(ansi_format_text_color, sizeof(ansi_format_text_color),
+            "\33[38;2;%u;%u;%um",
+            (text_color >> 16) & 0xff,
+            (text_color >>  8) & 0xff,
+            (text_color >>  0) & 0xff
+        );
+    }
+
     text_flags = language->tokens[token->token_id].text_flags;
-    pos = token->position;
+    if (text_flags & 0x01) strcat(ansi_format_flags, "\33[1m");
+    if (text_flags & 0x02) strcat(ansi_format_flags, "\33[2m");
+    if (text_flags & 0x04) strcat(ansi_format_flags, "\33[3m");
+    if (text_flags & 0x08) strcat(ansi_format_flags, "\33[4m");
 
-    if ((text_background)||(text_color)||(text_flags)) {
+    child = token->child;
 
-        have_format = true;
-    }
+    last_pos = token->position;
 
-    char *str = "\33[38;2;255;102;102m";
-    const char *reset_ansi = "\33[0m";
+    if (child) {
+        while (child) {
+            if (child->position > last_pos) {
+                print_element(text + last_pos, child->position - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
+            }
+            print_recursive_token(handle, text, child);
+            last_pos = child->position + child->len;
+            child = child->next;
+        }
 
-    if (have_format) {
-        write(STDOUT_FILENO, str, strlen(str));
-    }
+        if (token->position + token->len > last_pos) {
+            print_element(text + last_pos, token->position + token->len - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
+        }
 
-    write(STDOUT_FILENO, text + token->position, token->len);
-
-    if (have_format) {
-        write(STDOUT_FILENO, reset_ansi, strlen(reset_ansi));
+    } else {
+        print_element(text + token->position, token->len, ansi_format_background, ansi_format_text_color, ansi_format_flags);
     }
 }
 
@@ -99,17 +134,12 @@ int main(int argc, char *argv[])
 {
     int ret = EXIT_SUCCESS;
 
-    const language_definition *language_def = NULL;
-    textparser_parser_state *line_state = NULL;
-    textparser_token_item *token = NULL;
+    const language_definition *language_def = nullptr;
+    const textparser_token_item *token = nullptr;
     bool should_end_with_newline = false;
-    const char *f_content = NULL;
-    const char *filename = NULL;
-    struct stat fd_stat;
-    size_t f_size = 0;
-    int fd = 0;
+    const char *filename = nullptr;
 
-    textparser_t handle = NULL;
+    textparser_t handle = nullptr;
     int res = 0;
 
     if (argc != 2)
@@ -128,7 +158,9 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    res = textparser_parse(handle, &cfml_definition);
+    language_def = get_language_definition_by_filename(filename);
+
+    res = textparser_parse(handle, language_def);
     if (res) {
         fprintf(stderr, "Parsing failed.\n");
         ret = EXIT_FAILURE;

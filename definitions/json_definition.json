@@ -1,0 +1,65 @@
+{
+  "name": "json",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["json"],
+  "otherTextInside": false,
+  "defaultTextEncoding": "Latin1",
+  "startTokens": ["Object", "Array"],
+  "tokens": {
+    "Object": {
+      "type": "StartStop",
+      "startRegex": "{",
+      "endRegex": "}",
+      "nestedTokens": ["String", "KeyValueSeparator", "Value", "ValueSeparator"]
+    },
+    "Array": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "nestedTokens": ["String", "Number", "Object", "Array", "Bool", "Null", "ValueSeparator"]
+    },
+    "Value": {
+      "type": "GroupOneChildOnly",
+      "nestedTokens": ["String", "Number", "Object", "Array", "Bool", "Null"]
+    },
+    "String": {
+      "type": "StartStop",
+      "otherTextInside": true,
+      "startRegex": "\\\"",
+      "endRegex": "\\\"",
+      "textColor": "0x649f57",
+      "textFlags": "0x00",
+      "nestedTokens": ["StringEscape"]
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "-?\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+      "textColor": "0x00ff00"
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\/|\\\\b|\\\\f|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-f]{4}",
+      "textColor": "0x649f97",
+      "textFlags": "0x01"
+    },
+    "Bool": {
+      "type": "SimpleToken",
+      "startRegex": "true|false",
+      "textColor": "0x0000ff"
+    },
+    "Null": {
+      "type": "SimpleToken",
+      "startRegex": "null",
+      "textColor": "0x0000ff"
+    },
+    "ValueSeparator": {
+      "type": "SimpleToken",
+      "startRegex": ","
+    },
+    "KeyValueSeparator": {
+      "type": "SimpleToken",
+      "startRegex": ":"
+    }
+  }
+}

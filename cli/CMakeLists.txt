@@ -9,12 +9,12 @@ add_executable(textparser
     main.c
 )
 
-set_property(TARGET textparser PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+#set_property(TARGET textparser PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-set_target_properties(textparser PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
-    C_VISIBILITY_PRESET hidden
-)
+#set_target_properties(textparser PROPERTIES
+#    INTERPROCEDURAL_OPTIMIZATION TRUE
+#    C_VISIBILITY_PRESET hidden
+#)
 
 target_link_libraries(textparser PRIVATE
     libtextparser
