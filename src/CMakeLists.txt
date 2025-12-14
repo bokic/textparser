@@ -4,8 +4,6 @@ project(libtextparser LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 
-#add_definitions(-DDEBUG_PARSER)
-
 find_package(PkgConfig)
 
 pkg_search_module(json-c REQUIRED json-c>=0.17)
