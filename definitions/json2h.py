@@ -149,14 +149,14 @@ def main(args):
         if "searchParentEndTokenLast" in current_token:
             text += "            .search_parent_end_token_last = " + python_bool_to_c_string(current_token["searchParentEndTokenLast"]) + "," + os.linesep
 
-        if "textFlags" in current_token:
-            text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
-
         if "textColor" in current_token:
             text += "            .text_color = " + current_token["textColor"] + "," + os.linesep
 
         if "textBackground" in current_token:
             text += "            .text_background = " + current_token["textBackground"] + "," + os.linesep
+
+        if "textFlags" in current_token:
+            text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
 
         # nested_tokens
         if "nestedTokens" in current_token:
