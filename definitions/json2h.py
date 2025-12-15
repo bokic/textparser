@@ -129,6 +129,26 @@ def main(args):
         if "endRegex" in current_token:
             text += "            .end_regex = R\"regex(" + current_token["endRegex"] + ")regex\"," + os.linesep
 
+        # immediate_start
+        if "otherTextInside" in current_token:
+            text += "            .other_text_inside = " + python_bool_to_c_string(current_token["otherTextInside"]) + "," + os.linesep
+
+        # delete_if_only_one_child
+        if "deleteIfOnlyOneChild" in current_token:
+            text += "            .delete_if_only_one_child = " + python_bool_to_c_string(current_token["deleteIfOnlyOneChild"]) + "," + os.linesep
+
+        # must_have_one_child
+        if "mustHaveOneChild" in current_token:
+            text += "            .must_have_one_child = " + python_bool_to_c_string(current_token["mustHaveOneChild"]) + "," + os.linesep
+
+        # multi_line
+        if "multiLine" in current_token:
+            text += "            .multi_line = " + python_bool_to_c_string(current_token["multiLine"]) + "," + os.linesep
+
+        # search_parent_end_token_last
+        if "searchParentEndTokenLast" in current_token:
+            text += "            .search_parent_end_token_last = " + python_bool_to_c_string(current_token["searchParentEndTokenLast"]) + "," + os.linesep
+
         if "textFlags" in current_token:
             text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
 
@@ -137,19 +157,6 @@ def main(args):
 
         if "textBackground" in current_token:
             text += "            .text_background = " + current_token["textBackground"] + "," + os.linesep
-
-        # immediate_start
-        if "otherTextInside" in current_token:
-            text += "            .other_text_inside = " + python_bool_to_c_string(current_token["otherTextInside"]) + "," + os.linesep
-
-        # delete_if_only_one_child
-        if "deleteIfOnlyOneChild" in current_token:
-            print("deleteIfOnlyOneChild is not implemented!")
-            exit(1)
-
-        # multi_line
-        if "multiLine" in current_token:
-            text += "            .multi_line = " + python_bool_to_c_string(current_token["multiLine"]) + "," + os.linesep
 
         # nested_tokens
         if "nestedTokens" in current_token:
