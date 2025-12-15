@@ -17,11 +17,11 @@ static int parse_json(const char *code)
 }
 
 TEST(parse_JSON, basic) {
-    EXPECT_EQ(parse_json(""), 0);
-    EXPECT_NE(parse_json("["), 0);
-    EXPECT_EQ(parse_json("]"), 0);
-    EXPECT_NE(parse_json("{"), 0);
-    EXPECT_EQ(parse_json("}"), 0);
-    EXPECT_EQ(parse_json("{}"), 0);
-    EXPECT_EQ(parse_json("[1]"), 0);
+    EXPECT_EQ(parse_json(R"()"), 0);
+    EXPECT_NE(parse_json(R"([)"), 0);
+    EXPECT_EQ(parse_json(R"(])"), 0);
+    EXPECT_NE(parse_json(R"({)"), 0);
+    EXPECT_EQ(parse_json(R"(})"), 0);
+    EXPECT_EQ(parse_json(R"({})"), 0);
+    EXPECT_EQ(parse_json(R"([1])"), 0);
 }
