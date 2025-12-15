@@ -129,14 +129,14 @@ def main(args):
         if "endRegex" in current_token:
             text += "            .end_regex = R\"regex(" + current_token["endRegex"] + ")regex\"," + os.linesep
 
+        if "textFlags" in current_token:
+            text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
+
         if "textColor" in current_token:
             text += "            .text_color = " + current_token["textColor"] + "," + os.linesep
 
         if "textBackground" in current_token:
             text += "            .text_background = " + current_token["textBackground"] + "," + os.linesep
-
-        if "textFlags" in current_token:
-            text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
 
         # immediate_start
         if "otherTextInside" in current_token:
