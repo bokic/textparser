@@ -23,7 +23,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
         {
             PCRE2_UCHAR8 buffer[256];
             pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            printf("PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
+            printf("PCRE2 compilation failed for regex [%s]\n", regex_str);
             return false;
         }
     }
