@@ -474,6 +474,16 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
             ret->position = current_offset + token_start;
             current_offset = ret->position + len;
 
+            assert(int_handle->text_size >= current_offset);
+            if (current_offset == int_handle->text_size)
+            {
+                ret->error = "reached end of text!";
+                ret->position = current_offset;
+                int_handle->fatal_error = true;
+                LOGD(ret->error, current_offset);
+                goto exit;
+            }
+
             if (token_def->nested_tokens)
             {
                 textparser_token_item *last_child = nullptr;
