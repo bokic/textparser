@@ -1,0 +1,27 @@
+#include <gtest/gtest.h>
+#include <textparser.h>
+
+#include <json_definition.json.h>
+
+
+static int parse(const language_definition &definition, const char *code)
+{
+    textparser_defer(mem);
+    textparser_openmem(code, strlen(code), definition.default_text_encoding, &mem);
+    return textparser_parse(mem, &definition);
+}
+
+static int parse_json(const char *code)
+{
+    return parse(json_definition, code);
+}
+
+TEST(parse_JSON, basic) {
+    EXPECT_EQ(parse_json(""), 0);
+    EXPECT_NE(parse_json("["), 0);
+    EXPECT_EQ(parse_json("]"), 0);
+    EXPECT_NE(parse_json("{"), 0);
+    EXPECT_EQ(parse_json("}"), 0);
+    EXPECT_EQ(parse_json("{}"), 0);
+    EXPECT_EQ(parse_json("[1]"), 0);
+}
