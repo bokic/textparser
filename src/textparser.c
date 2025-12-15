@@ -597,14 +597,18 @@ static void textparser_init_regex(textparser_handle *int_handle)
     if (int_handle == nullptr)
         return;
 
-    for(; int_handle->language->tokens[token_cnt].name != nullptr; token_cnt++);
+    while(int_handle->language->tokens[token_cnt].name != nullptr)
+        token_cnt++;
 
     if (token_cnt > 0)
     {
-        int_handle->start_regex = malloc(token_cnt * sizeof(void *));
-        bzero(int_handle->start_regex, token_cnt * sizeof(void *));
-        int_handle->end_regex = malloc(token_cnt * sizeof(void *));
-        bzero(int_handle->end_regex, token_cnt * sizeof(void *));
+        int malloc_size = token_cnt * sizeof(void *);
+
+        int_handle->start_regex = malloc(malloc_size);
+        bzero(int_handle->start_regex, malloc_size);
+
+        int_handle->end_regex = malloc(malloc_size);
+        bzero(int_handle->end_regex, malloc_size);
     }
 }
 
