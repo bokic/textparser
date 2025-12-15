@@ -17,14 +17,14 @@
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
-#define LOGD(text, offset) fprintf(stderr, "Error [%s] at position: %zu\n", text, offset)
-
 #define TOKEN_NOT_FOUND -1
 
 #ifdef DEBUG_TEXTPARSER
 #define DEBUG(format, ...) fprintf(stderr, format "\n" __VA_OPT__(,) __VA_ARGS__)
+#define LOGD(text, offset) fprintf(stderr, "Error [%s] at position: %zu\n", text, offset)
 #else
 #define DEBUG(format, ...)
+#define LOGD(text, offset)
 #endif
 
 enum textparser_bom {
