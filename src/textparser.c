@@ -94,7 +94,7 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
 
     if (int_handle->text_format == ADV_REGEX_TEXT_UNICODE)
     {
-        maxPos = int_handle->mmap_size / 2;
+        maxPos = int_handle->text_size / 2;
 
         const u_int16_t *text = (const u_int16_t *)int_handle->text_addr;
 
@@ -110,7 +110,7 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
     }
     else
     {
-        maxPos = int_handle->mmap_size;
+        maxPos = int_handle->text_size;
 
         const char *text = int_handle->text_addr;
 
