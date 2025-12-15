@@ -58,7 +58,7 @@
 
 #define check_and_exit_on_fatal_parsing_error(offset)                                  \
     if (int_handle->fatal_error) {                                                     \
-        LOGI("Fatal error detected(%s) at offset %zu. exiting..", ret->error, offset); \
+        LOGW("Fatal error detected(%s) at offset %zu. exiting..", ret->error, offset); \
         goto exit;                                                                     \
     }
 
@@ -244,8 +244,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     const int *nested_tokens = nullptr;
     size_t current_offset = offset;
 
-    LOGV("-----------");
-
     const language_definition *definition = int_handle->language;
 
     assert(int_handle);
@@ -256,6 +254,14 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     assert(offset < int_handle->text_size);
 
     const textparser_token *token_def = &definition->tokens[token_id];
+
+    if (parent_end_token_id != TextParser_END) {
+        LOGI("Searching for token type [%s] with parent token type [%s] at %zu",  definition->tokens[token_id].name, definition->tokens[parent_end_token_id].name, offset);
+    } else {
+        LOGI("Searching for token type [%s] at %zu",  definition->tokens[token_id].name, offset);
+    }
+
+    LOGV("-----------");
 
     // Check if current token has end token string, if so, search for it instead parent one!
     if (token_def->end_regex)
@@ -322,7 +328,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 if (parent_end_token_id >= 0)
                 {
                     assert(int_handle->text_size > offset);
-                    bool found = adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, nullptr, false);
+                    bool found = adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_regex, (void **)int_handle->end_regex + parent_end_token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, nullptr, !definition->tokens[parent_end_token_id].other_text_inside);
                     if (found)
                     {
                         if (closest_parent_end == offset)
@@ -335,7 +341,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
                 if (next_token_id >= 0)
                 {
                     assert(int_handle->text_size > offset);
-                    bool found = adv_regex_find_pattern(definition->tokens[next_token_id].start_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_next_end, nullptr, !definition->tokens[parent_end_token_id].other_text_inside);
+                    bool found = adv_regex_find_pattern(definition->tokens[next_token_id].start_regex, (void **)int_handle->start_regex + next_token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_next_end, nullptr, !definition->tokens[next_token_id].other_text_inside);
                     if (found)
                     {
                         break;
@@ -542,9 +548,10 @@ exit:
 #ifdef DEBUG_TEXTPARSER
     if (ret->len > 0) {
         int malloc_size = ret->len + 1;
-        ret->debug = malloc(malloc_size);
-        memcpy(ret->debug, int_handle->text_addr + ret->position, ret->len);
-        ret->debug[ret->len] = '\0';
+        ret->debug_text = malloc(malloc_size);
+        memcpy(ret->debug_text, int_handle->text_addr + ret->position, ret->len);
+        ret->debug_text[ret->len] = '\0';
+        ret->debug_token_name = strdup(definition->tokens[ret->token_id].name);
     }
 #endif
 
@@ -1097,7 +1104,7 @@ void textparser_parse_state_free(textparser_parser_state *state)
     }
 }
 
-textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition)
+/*textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition)
 {
     return nullptr;
-}
+}*/

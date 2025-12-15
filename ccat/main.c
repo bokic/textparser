@@ -130,7 +130,7 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
     }
 }
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
     int ret = EXIT_SUCCESS;
 

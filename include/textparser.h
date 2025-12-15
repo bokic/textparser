@@ -52,7 +52,8 @@ typedef struct textparser_token_item {
     size_t position;
     size_t len;
 #ifdef DEBUG_TEXTPARSER
-    char *debug;
+    char *debug_token_name;
+    char *debug_text;
 #endif
     uint32_t text_color;
     uint32_t text_background;
@@ -113,7 +114,7 @@ EXPORT_TEXTPARSER const language_definition *textparser_get_language(const textp
 
 EXPORT_TEXTPARSER textparser_parser_state *textparser_parse_state_new(textparser_t state, int size);
 EXPORT_TEXTPARSER void textparser_parse_state_free(textparser_parser_state *state);
-EXPORT_TEXTPARSER textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition);
+//EXPORT_TEXTPARSER textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition);
 
 #ifdef __cplusplus
 }
