@@ -1003,7 +1003,7 @@ int textparser_parse(textparser_t handle, const language_definition *definition)
 
         for (int c = 0; definition->starts_with[c] != TextParser_END; c++) {
             int token_id = definition->starts_with[c];
-            ssize_t offset = textparser_find_token(handle, token_id, pos, false);
+            ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside);
             if (offset >= 0)
             {
                 if (offset < closest_offset) {
