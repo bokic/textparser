@@ -192,7 +192,7 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
                 for(int c = 0; token->nested_tokens[c] != TextParser_END; c++)
                 {
                     ssize_t tmp = textparser_find_token(int_handle, token->nested_tokens[c], pos, token->other_text_inside);
-                    if (tmp == -1) continue;
+                    if (tmp == TOKEN_NOT_FOUND) continue;
                     if (tmp == 0) {
                         return 0;
                     }
@@ -679,7 +679,7 @@ void textparser_free_language_definition(language_definition *definition)
     free(definition);
 }
 
-int textparser_openfile(const char *pathname, int text_format, textparser_t *handle)
+int textparser_openfile(const char *pathname, int default_text_format, textparser_t *handle)
 {
     textparser_handle local_hnd;
     struct stat fd_stat;
@@ -706,12 +706,13 @@ int textparser_openfile(const char *pathname, int text_format, textparser_t *han
     local_hnd.mmap_size = fd_stat.st_size;
 
     local_hnd.mmap_addr = mmap(nullptr, local_hnd.mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (local_hnd.mmap_addr == nullptr) {
+    if (local_hnd.mmap_addr == MAP_FAILED) {
         err = 4;
         goto err;
     }
 
     close(fd);
+    fd = -1;
 
     local_hnd.text_addr = local_hnd.mmap_addr;
     local_hnd.text_size = local_hnd.mmap_size;
@@ -780,18 +781,20 @@ int textparser_openfile(const char *pathname, int text_format, textparser_t *han
         local_hnd.bom = NO_BOM;
     }
 
+    local_hnd.text_format = default_text_format;
+
     switch(local_hnd.bom)
     {
         case NO_BOM:
             break;
         case BOM_UTF_8:
-            text_format = ADV_REGEX_TEXT_UTF_8;
+            local_hnd.text_format = ADV_REGEX_TEXT_UTF_8;
             break;
         case BOM_UTF_16_LE:
-            text_format = ADV_REGEX_TEXT_UTF_16;
+            local_hnd.text_format = ADV_REGEX_TEXT_UTF_16;
             break;
         case BOM_UTF_32_LE:
-            text_format = ADV_REGEX_TEXT_UTF_32;
+            local_hnd.text_format = ADV_REGEX_TEXT_UTF_32;
             break;
         default:
             err = 5;
@@ -801,9 +804,7 @@ int textparser_openfile(const char *pathname, int text_format, textparser_t *han
     local_hnd.no_lines = 0;
     int cur_line_pos = 0;
 
-    local_hnd.text_format = text_format;
-
-    switch(text_format) {
+    switch(local_hnd.text_format) {
     case ADV_REGEX_TEXT_LATIN1:
         for(int ch = 0; ch < local_hnd.text_size; ch++) {
             if (local_hnd.text_addr[ch] == '\n')
@@ -965,7 +966,7 @@ int textparser_parse(textparser_t handle, const language_definition *definition)
         for (int c = 0; definition->starts_with[c] != TextParser_END; c++) {
             int token_id = definition->starts_with[c];
             ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside);
-            if (offset >= 0)
+            if (offset != TOKEN_NOT_FOUND)
             {
                 if (offset < closest_offset) {
                     closest_token_id = token_id;

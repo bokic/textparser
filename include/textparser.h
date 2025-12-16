@@ -95,7 +95,7 @@ extern "C"
 {
 #endif
 
-EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int text_format, textparser_t *handle);
+EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int default_text_format, textparser_t *handle);
 EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);
 EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
 EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
