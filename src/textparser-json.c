@@ -1,38 +1,49 @@
 #include <textparser-json.h>
+#include <adv_regex.h>
 
 #include <json-c/json.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-//#include <string.h>
-//#include <stdlib.h>
+#include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <stddef.h>
 #include <assert.h>
-//#include <stdio.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <stdbool.h>
 
 
+
+#define json_object_defer(var) struct json_object * var __attribute__((cleanup(json_object_cleanup))) = nullptr
+
+static void json_object_cleanup(struct json_object **handle)
+{
+    if (handle)
+    {
+        json_object_put(*handle);
+        *handle = nullptr;
+    }
+}
+
+
 static int textparser_json_load_language_definition_internal(struct json_object *root_obj, language_definition **definition)
 {
-    int ret = 0;
-
-    // TODO: Implement textparser_load_language_definition_internal()
-    /*size_t array_length = 0;
+    size_t array_length = 0;
     json_object *tokens = nullptr;
     json_object *value = nullptr;
     json_bool found = false;
 
     if (root_obj == nullptr) {
-        fputs(json_util_get_last_err(), stderr);
-            ret = 1;
-        goto cleanup;
+        return TEXTPARSER_JSON_ROOT_OBJ_IS_NULL;
     }
+
+    json_object_defer(root);
+    root = root_obj;
 
     *definition = malloc(sizeof(language_definition));
     if (*definition == nullptr) {
-        ret = 2;
-        goto cleanup;
+        return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
     bzero(*definition, sizeof(language_definition));
@@ -40,8 +51,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     found = json_object_object_get_ex(root_obj, "name", &value);
     if (!found){
         (*definition)->error_string = "Mandatory field `name` not set!";
-        ret = 3;
-        goto cleanup;
+        return TEXTPARSER_JSON_NAME_NOT_FOUND;
     }
 
     (*definition)->name = strdup(json_object_get_string(value));
@@ -59,20 +69,23 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     found = json_object_object_get_ex(root_obj, "case_sensitivity", &value);
     if (!found) {
         (*definition)->error_string = "Mandatory field `case_sensitivity` not set!";
-        ret = 4;
-        goto cleanup;
+        return TEXTPARSER_JSON_CASE_SENSITIVITY_NOT_FOUND;
     }
     (*definition)->case_sensitivity = json_object_get_boolean(value);
 
     found = json_object_object_get_ex(root_obj, "file_extensions", &value);
     if (!found) {
         (*definition)->error_string = "Mandatory field `file_extensions` not set!";
-        ret = 5;
-        goto cleanup;
+        return TEXTPARSER_JSON_FILE_EXTENSIONS_NOT_FOUND;
     }
     array_length = json_object_array_length(value);
     if (array_length > 0) {
         (*definition)->default_file_extensions = malloc((array_length + 1) * sizeof(char *));
+        if ((*definition)->default_file_extensions == nullptr) {
+            return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        }
+
+        bzero((*definition)->default_file_extensions, (array_length + 1) * sizeof(char *));
 
         for(size_t i = 0; i < array_length; i++) {
             json_object *array_item = json_object_array_get_idx(value, i);
@@ -86,44 +99,39 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     if (found) {
         const char *encoding = json_object_get_string(value);
         if(strcmp(encoding, "latin1") == 0)
-            (*definition)->default_text_encoding = TEXTPARSER_LATIN_1;
+            (*definition)->default_text_encoding = ADV_REGEX_TEXT_LATIN1;
         else if(strcmp(encoding, "utf8") == 0)
-            (*definition)->default_text_encoding = TEXTPARSER_UTF_8;
+            (*definition)->default_text_encoding = ADV_REGEX_TEXT_UTF_8;
         else if(strcmp(encoding, "unicode") == 0)
-            (*definition)->default_text_encoding = TEXTPARSER_UNICODE;
+            (*definition)->default_text_encoding = ADV_REGEX_TEXT_UNICODE;
         else {
             (*definition)->error_string = "Invalid `encoding` text encoding!";
-            ret = 6;
-            goto cleanup;
+            return TEXTPARSER_JSON_ENCODING_NOT_FOUND;
         }
     }
     else
-        (*definition)->default_text_encoding = TEXTPARSER_LATIN_1;
+        (*definition)->default_text_encoding = ADV_REGEX_TEXT_LATIN1;
 
     found = json_object_object_get_ex(root_obj, "starts_with", &value);
     if (!found) {
         (*definition)->error_string = "Mandatory field `starts_with` is missing!";
-        ret = 7;
-        goto cleanup;
+        return TEXTPARSER_JSON_STARTS_WITH_NOT_FOUND;
     }
 
     if (!json_object_is_type(value, json_type_array)) {
         (*definition)->error_string = "`starts_with` is not array!";
-        ret = 8;
-        goto cleanup;
+        return TEXTPARSER_JSON_STARTS_WITH_NOT_ARRAY;
     }
 
     found = json_object_object_get_ex(root_obj, "tokens", &tokens);
     if (!found) {
         (*definition)->error_string = "Mandatory field `tokens` is missing!";
-        ret = 9;
-        goto cleanup;
+        return TEXTPARSER_JSON_TOKENS_NOT_FOUND;
     }
 
     if (!json_object_is_type(tokens, json_type_array)) {
         (*definition)->error_string = "`tokens` is not array!";
-        ret = 9;
-        goto cleanup;
+        return TEXTPARSER_JSON_TOKENS_NOT_ARRAY;
     }
 
     size_t tokens_cnt = json_object_array_length(tokens);
@@ -131,11 +139,13 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     size_t starts_with_cnt = json_object_array_length(value);
     if (starts_with_cnt == 0) {
         (*definition)->error_string = "`starts_with` array is empty!";
-        ret = 9;
-        goto cleanup;
+        return TEXTPARSER_JSON_STARTS_WITH_IS_EMPTY;
     }
 
     (*definition)->starts_with = malloc(sizeof(int) * (starts_with_cnt + 1));
+    if ((*definition)->starts_with == nullptr) {
+        return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    }
 
     bzero((*definition)->starts_with, sizeof(int) * starts_with_cnt);
     (*definition)->starts_with[starts_with_cnt] = TextParser_END;
@@ -145,8 +155,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
         if (!json_object_is_type(array_item, json_type_string)) {
             (*definition)->error_string = "`starts_with` element not string!";
-            ret = 10;
-            goto cleanup;
+            return TEXTPARSER_JSON_STARTS_WITH_ELEMENT_NOT_STRING;
         }
 
         const char *name = json_object_get_string(array_item);
@@ -173,9 +182,10 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     (*definition)->tokens = malloc(sizeof(textparser_token) * (tokens_cnt + 1));
     if ((*definition)->tokens == nullptr) {
         (*definition)->error_string = "malloc for tokens list FAILED!";
-        ret = 11;
-        goto cleanup;
+        return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
+
+    bzero((*definition)->tokens, sizeof(textparser_token) * (tokens_cnt + 1));    
 
     if (tokens_cnt > 0) {
         for(size_t token_idx = 0; token_idx < tokens_cnt; token_idx++) {
@@ -196,11 +206,24 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             other_name = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].end_regex = strdup(other_name);
 
-            json_object_object_get_ex(token_item, "only_start_tag", &key_value);
+            json_object_object_get_ex(token_item, "other_text_inside", &key_value);
             if (key_value)
-                (*definition)->tokens[token_idx].only_start_tag = json_object_get_boolean(key_value);
+                (*definition)->tokens[token_idx].other_text_inside = json_object_get_boolean(key_value);
             else
-                (*definition)->tokens[token_idx].only_start_tag = false;
+                (*definition)->tokens[token_idx].other_text_inside = false;
+
+            json_object_object_get_ex(token_item, "delete_if_only_one_child", &key_value);
+            if (key_value)
+                (*definition)->tokens[token_idx].delete_if_only_one_child = json_object_get_boolean(key_value);
+            else
+                (*definition)->tokens[token_idx].delete_if_only_one_child = false;
+
+            json_object_object_get_ex(token_item, "must_have_one_child", &key_value);
+            if (key_value)
+                (*definition)->tokens[token_idx].must_have_one_child = json_object_get_boolean(key_value);
+            else
+                (*definition)->tokens[token_idx].must_have_one_child = false;
+
 
             json_object_object_get_ex(token_item, "multi_line", &key_value);
             if (key_value)
@@ -208,41 +231,57 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             else
                 (*definition)->tokens[token_idx].multi_line = false;
 
-            json_object_object_get_ex(token_item, "can_have_other_text_inside", &key_value);
+            json_object_object_get_ex(token_item, "search_parent_end_token_last", &key_value);
             if (key_value)
-                (*definition)->tokens[token_idx].can_have_other_text_inside = json_object_get_boolean(key_value);
+                (*definition)->tokens[token_idx].search_parent_end_token_last = json_object_get_boolean(key_value);
             else
-                (*definition)->tokens[token_idx].can_have_other_text_inside = false;
+                (*definition)->tokens[token_idx].search_parent_end_token_last = false;
 
-            json_object_object_get_ex(token_item, "end_tag_is_optional", &key_value);
+
+            json_object_object_get_ex(token_item, "text_color", &key_value);
             if (key_value)
-                (*definition)->tokens[token_idx].end_tag_is_optional = json_object_get_boolean(key_value);
+                (*definition)->tokens[token_idx].text_color = json_object_get_int(key_value);
             else
-                (*definition)->tokens[token_idx].end_tag_is_optional = false;
+                (*definition)->tokens[token_idx].text_color = 0;
+
+            json_object_object_get_ex(token_item, "text_background", &key_value);
+            if (key_value)
+                (*definition)->tokens[token_idx].text_background = json_object_get_int(key_value);
+            else
+                (*definition)->tokens[token_idx].text_background = 0;
+
+            json_object_object_get_ex(token_item, "text_flags", &key_value);
+            if (key_value)
+                (*definition)->tokens[token_idx].text_flags = json_object_get_int(key_value);
+            else
+                (*definition)->tokens[token_idx].text_flags = 0;
 
             json_object_object_get_ex(token_item, "nested_tokens", &key_value);
             if (key_value) {
                 if (!json_object_is_type(key_value, json_type_array)) {
                     (*definition)->error_string = "`nested_tokens` is not array!";
-                    goto cleanup;
+                    return TEXTPARSER_JSON_NESTED_TOKENS_NOT_ARRAY;
                 }
 
                 size_t nested_tokens_cnt = json_object_array_length(key_value);
                 if (nested_tokens_cnt == 0) {
                     (*definition)->error_string = "`nested_tokens` array is empty!";
-                    ret = 13;
-                    goto cleanup;
+                    return TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY;
                 }
 
                 (*definition)->tokens[token_idx].nested_tokens = malloc(sizeof(int) * (nested_tokens_cnt + 1));
+                if ((*definition)->tokens[token_idx].nested_tokens == nullptr) {
+                    return TEXTPARSER_JSON_OUT_OF_MEMORY;
+                }
+
+                bzero((*definition)->tokens[token_idx].nested_tokens, sizeof(int) * (nested_tokens_cnt + 1));
 
                 for(size_t c2 = 0; token_idx < nested_tokens_cnt; c2++) {
                     json_object *array_item = json_object_array_get_idx(key_value, c2);
 
                     if (!json_object_is_type(array_item, json_type_string)) {
                         (*definition)->error_string = "`nested_tokens` element not string!";
-                        ret = 14;
-                        goto cleanup;
+                        return TEXTPARSER_JSON_NESTED_TOKENS_ELEMENT_NOT_STRING;
                     }
 
                     const char *name = json_object_get_string(array_item);
@@ -270,13 +309,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     }
     (*definition)->tokens[tokens_cnt].name = nullptr;
 
-
-cleanup:
-    if (root_obj) {
-        json_object_put(root_obj);
-    }*/
-
-    return ret;
+    return 0;
 }
 
 int textparser_json_load_language_definition_from_json_file(const char *pathname, language_definition **definition)
