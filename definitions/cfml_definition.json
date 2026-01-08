@@ -42,6 +42,7 @@
       },
       "OutputTagPair":{
          "type":"GroupAllChildrenInSameOrder",
+         "otherTextInside":true,
          "multiLine":true,
          "nestedTokens":[
             "OutputStartTag",
