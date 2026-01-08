@@ -127,7 +127,7 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
         {
             PCRE2_UCHAR8 buffer[256];
             pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            printf("PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
+            fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
             return false;
         }
     }
@@ -178,6 +178,8 @@ bool adv_regex_find_pattern(const char *regex_str, void **regex, enum adv_regex_
     case ADV_REGEX_TEXT_UTF_32:
         return adv_regex_find_pattern32(regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length, only_at_start);
     default:
+        fprintf(stderr, "Illegal text encoding(%d) at adv_regex_find_pattern()\n", encoding);
+        break;
     }
 
     return false;
@@ -202,6 +204,8 @@ void adv_regex_free(void **regex, enum adv_regex_encoding encoding)
         pcre2_code_free_32(*(pcre2_code_32 **)regex);
         break;
     default:
+        fprintf(stderr, "Illegal text encoding(%d) at adv_regex_free()\n", encoding);
+        break;
     }
 
     *regex = nullptr;
