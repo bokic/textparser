@@ -16,6 +16,7 @@
  #define EXPORT_TEXTPARSER
 #endif
 
+#define TextParser_START (0)
 #define TextParser_END (-1)
 
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
