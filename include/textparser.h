@@ -103,8 +103,6 @@ EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_for
 EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
 EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 
-EXPORT_TEXTPARSER void textparser_dump(textparser_t handle);
-
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_definition *definition);
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 

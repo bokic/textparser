@@ -751,38 +751,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     return nullptr;
 }
 
-static void textparser_dump_item(void *handle, textparser_token_item *item, int level)
-{
-    textparser_handle *int_handle = (textparser_handle *)handle;
-
-    int token_id = item->token_id;
-    size_t position = item->position;
-    size_t len = item->len;
-    const char *error = item->error;
-
-    for(int c = 0; c < level; c++)
-        write(1, "    ", 4);
-
-    if (!item->child) {
-        write(STDOUT_FILENO, int_handle->language->tokens[token_id].name, strlen(int_handle->language->tokens[token_id].name));
-        write(STDOUT_FILENO, " ->", 3);
-        write(STDOUT_FILENO, int_handle->text_addr + position, len);
-        write(STDOUT_FILENO, "<-", 2);
-        if (error) write(STDOUT_FILENO, error, strlen(error));
-        write(STDOUT_FILENO, "\n", 1);
-    } else {
-        printf("%s, %zu, %zu, %s\n", int_handle->language->tokens[token_id].name, position, len, error);
-    }
-    fflush(stdout);
-
-    textparser_token_item *child = item->child;
-    while(child)
-    {
-        textparser_dump_item(handle, child, level + 1);
-        child = child->next;
-    }
-}
-
 static void textparser_init_regex(textparser_handle *int_handle)
 {
     int token_cnt = 0;
@@ -1108,23 +1076,6 @@ void textparser_cleanup(textparser_t *handle)
     {
         textparser_close(*handle);
         *handle = nullptr;
-    }
-}
-
-void textparser_dump(textparser_t handle)
-{
-    textparser_handle *int_handle = (textparser_handle *)handle;
-
-    if (int_handle->error) {
-        printf("int_handle->error: %s!\n", int_handle->error);
-        return;
-    }
-
-    textparser_token_item *item = int_handle->first_item;
-    while(item)
-    {
-        textparser_dump_item(handle, item, 0);
-        item = item->next;
     }
 }
 
