@@ -14,7 +14,6 @@
 #include <stdbool.h>
 
 
-
 #define json_object_defer(var) struct json_object * var __attribute__((cleanup(json_object_cleanup))) = nullptr
 
 static void json_object_cleanup(struct json_object **handle)
@@ -25,7 +24,6 @@ static void json_object_cleanup(struct json_object **handle)
         *handle = nullptr;
     }
 }
-
 
 static int textparser_json_load_language_definition_internal(struct json_object *root_obj, language_definition **definition)
 {
@@ -110,7 +108,9 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         }
     }
     else
+    {
         (*definition)->default_text_encoding = ADV_REGEX_TEXT_LATIN1;
+    }
 
     found = json_object_object_get_ex(root_obj, "starts_with", &value);
     if (!found) {
@@ -224,7 +224,6 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             else
                 (*definition)->tokens[token_idx].must_have_one_child = false;
 
-
             json_object_object_get_ex(token_item, "multi_line", &key_value);
             if (key_value)
                 (*definition)->tokens[token_idx].multi_line = json_object_get_boolean(key_value);
@@ -237,18 +236,17 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             else
                 (*definition)->tokens[token_idx].search_parent_end_token_last = false;
 
-
             json_object_object_get_ex(token_item, "text_color", &key_value);
             if (key_value)
                 (*definition)->tokens[token_idx].text_color = json_object_get_int(key_value);
             else
-                (*definition)->tokens[token_idx].text_color = 0;
+                (*definition)->tokens[token_idx].text_color = TEXTPARSER_NOCOLOR;
 
             json_object_object_get_ex(token_item, "text_background", &key_value);
             if (key_value)
                 (*definition)->tokens[token_idx].text_background = json_object_get_int(key_value);
             else
-                (*definition)->tokens[token_idx].text_background = 0;
+                (*definition)->tokens[token_idx].text_background = TEXTPARSER_NOCOLOR;
 
             json_object_object_get_ex(token_item, "text_flags", &key_value);
             if (key_value)
