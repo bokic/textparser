@@ -510,7 +510,7 @@ exit:
     return ret;
 }
 
-static textparser_token_item *parse_token_start_stop(textparser_handle *int_handle, int token_id, size_t offset, int parent_end_token_id, bool stop_required)
+static textparser_token_item *parse_token_start_stop(textparser_handle *int_handle, int token_id, int parent_end_token_id, size_t offset, bool stop_required)
 {
     textparser_token_item *ret = nullptr;
 
@@ -578,7 +578,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
             offset = textparser_skip_whitespace(int_handle, offset);
 
-            assert(int_handle->text_size > offset);
+            if (offset >= int_handle->text_size)
+            {
+                return ret;
+            }
+
             bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, nullptr, false);
             if ((found_end)&&(token_end == 0))
                 break;
@@ -1162,6 +1166,13 @@ int textparser_parse(textparser_t handle, const language_definition *definition)
     return 0;
 }
 
+const char *textparser_parse_error(textparser_t handle)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+
+    return int_handle->error;
+}
+
 const char *textparser_get_text(textparser_t handle)
 {
     const textparser_handle *int_handle = (const textparser_handle *)handle;
@@ -1239,31 +1250,50 @@ const language_definition *textparser_get_language(const textparser_t handle)
     return int_handle->language;
 }
 
-textparser_parser_state *textparser_parse_state_new(void *state, int size)
+static void textparser_parse_state_recursively_fill(const textparser_token_item *token, int *state)
 {
+    if (token == nullptr)
+    {
+        return;
+    }
+
+    size_t pos = token->position;
+    size_t len = token->len;
+
+    for(size_t c = 0; c < len; c++)
+    {
+        state[pos + c] = token->token_id;
+    }
+
+    textparser_parse_state_recursively_fill(token->child, state);
+    textparser_parse_state_recursively_fill(token->next, state);
+}
+
+textparser_parser_state *textparser_state_new(const textparser_t handle)
+{
+    const textparser_handle *int_handle = (textparser_handle *)handle;
     textparser_parser_state *ret = nullptr;
     int to_allocate = 0;
     int allocated = 0;
+    size_t size = 0;
 
-    allocated = ((size / 16) + 2) * 16;
+    size = int_handle->text_size;
+    allocated = (size * sizeof(int));
     to_allocate = offsetof(textparser_parser_state, state) + allocated;
 
     ret = malloc(to_allocate);
     if (ret)
     {
-        ret->allocated = allocated;
+        bzero(ret, to_allocate);
         ret->len = size;
-        if (size)
-        {
-            memcpy(ret->state, state, size);
-        }
-        bzero(&ret->state[size], allocated - size);
+
+        textparser_parse_state_recursively_fill(int_handle->first_item, ret->state);
     }
 
     return ret;
 }
 
-void textparser_parse_state_free(textparser_parser_state *state)
+void textparser_state_free(textparser_parser_state *state)
 {
     if (state)
     {
@@ -1271,7 +1301,11 @@ void textparser_parse_state_free(textparser_parser_state *state)
     }
 }
 
-/*textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition)
+void textparser_state_cleanup(textparser_parser_state **state)
 {
-    return nullptr;
-}*/
+    if (state)
+    {
+        textparser_state_free(*state);
+        *state = nullptr;
+    }
+}

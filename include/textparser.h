@@ -35,10 +35,10 @@ enum textparser_token_type {
 
 
 typedef struct {
-    int allocated;
     int len;
     int state[];
 } textparser_parser_state;
+#define textparser_parser_state_defer(var) textparser_parser_state *var __attribute__((cleanup(textparser_state_cleanup))) = nullptr
 
 typedef struct {
     const char *text;
@@ -104,6 +104,7 @@ EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 EXPORT_TEXTPARSER void textparser_dump(textparser_t handle);
 
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_definition *definition);
+EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 
 EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
@@ -112,10 +113,9 @@ EXPORT_TEXTPARSER const char *textparser_get_token_id_name(const textparser_t ha
 EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
 EXPORT_TEXTPARSER const language_definition *textparser_get_language(const textparser_t handle);
 
-
-EXPORT_TEXTPARSER textparser_parser_state *textparser_parse_state_new(textparser_t state, int size);
-EXPORT_TEXTPARSER void textparser_parse_state_free(textparser_parser_state *state);
-//EXPORT_TEXTPARSER textparser_line_parser_item *textparser_parse_line(const char *line, enum adv_regex_encoding text_format, textparser_parser_state *state, const language_definition *definition);
+EXPORT_TEXTPARSER textparser_parser_state *textparser_state_new(const textparser_t handle);
+EXPORT_TEXTPARSER void textparser_state_free(textparser_parser_state *state);
+EXPORT_TEXTPARSER void textparser_state_cleanup(textparser_parser_state **state);
 
 #ifdef __cplusplus
 }
