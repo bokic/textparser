@@ -328,13 +328,9 @@
          "startRegex":"\\."
       },
       "Function":{
-         "type":"StartStop",
-         "startRegex":"[a-z_]+[a-z0-9_]*[\\s]*\\(",
-         "endRegex":"\\)",
-         "multiLine":true,
-         "nestedTokens":[
-            "Expression"
-         ]
+         "type":"SimpleToken",
+         "startRegex":"([a-z_]+[a-z0-9_]*)[\\s]*\\(",
+         "textColor": "0xc5f566"
       },
       "Separator":{
          "type":"SimpleToken",
