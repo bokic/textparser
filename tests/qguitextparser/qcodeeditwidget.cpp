@@ -797,12 +797,13 @@ void QCodeEditWidget::mouseMoveEvent(QMouseEvent *event)
 
 void QCodeEditWidget::mousePressEvent(QMouseEvent *event)
 {
-    // TODO: unhardcode 30
-    if (event->position().x() > 30)
+    QFontMetrics l_fm(m_TextFont);
+    int l_LineNumbersPanelWidth = 16 + (l_fm.horizontalAdvance(" ") * m_LineNumbersPanelWidth) + 4;
+
+    if (event->position().x() > l_LineNumbersPanelWidth)
     {
         m_SelectMouseDown = true;
 
-        QFontMetrics l_fm(m_TextFont);
         int l_fontHeight = l_fm.height();
         int l_fontWidth = l_fm.horizontalAdvance(' ');
 
