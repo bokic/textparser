@@ -212,11 +212,10 @@
             "ExpressionEnd",
             "Number",
             "Boolean",
+            "Keyword",
             "Function",
             "Operator",
             "ObjectMember",
-            "Keyword",
-            "Object",
             "Assigment",
             "Variable",
             "SubExpression",
@@ -239,11 +238,10 @@
             "ExpressionEnd",
             "Number",
             "Boolean",
+            "Keyword",
             "Function",
             "Operator",
             "ObjectMember",
-            "Keyword",
-            "Object",
             "Assigment",
             "Variable",
             "SubExpression",
@@ -341,10 +339,6 @@
          "startRegex":"[a-z_]+[a-z0-9_]*",
          "textColor": "0x9cdcfe"
       },
-      "Object":{
-         "type":"SimpleToken",
-         "startRegex":"[a-z_]+[a-z0-9_]*\\."
-      },
       "Assigment":{
          "type":"SimpleToken",
          "startRegex":"=|\\+=|\\-=|\\*=|\\/=|%=|&=",
@@ -376,13 +370,15 @@
          "type":"StartStop",
          "startRegex":"\\{",
          "endRegex":"\\}",
+         "textColor": "0xffd700",
          "nestedTokens":[
             "ScriptExpression"
          ]
       },
       "Keyword":{
          "type":"SimpleToken",
-         "startRegex":"var\\b|function\\b|this\\b|try\\b|catch\\b|if\\b|then\\b|else\\b"
+         "startRegex":"var\\b|function\\b|this\\b|try\\b|catch\\b|if\\b|then\\b|else\\b",
+         "textColor": "0xc586c0"
       }
    }
 }
