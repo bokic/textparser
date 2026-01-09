@@ -82,7 +82,7 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
     language = textparser_get_language(handle);
 
     text_background = language->tokens[token->token_id].text_background;
-    if (text_background) {
+    if (text_background != TEXTPARSER_NOCOLOR) {
         snprintf(ansi_format_background, sizeof(ansi_format_background),
             "\33[48;2;%u;%u;%um",
             (text_background >>  0) & 0xff,
@@ -92,7 +92,7 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
     }
 
     text_color = language->tokens[token->token_id].text_color;
-    if (text_color) {
+    if (text_color != TEXTPARSER_NOCOLOR) {
         snprintf(ansi_format_text_color, sizeof(ansi_format_text_color),
             "\33[38;2;%u;%u;%um",
             (text_color >> 16) & 0xff,
