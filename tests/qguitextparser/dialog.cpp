@@ -68,8 +68,8 @@ static void reformatWidget(const language_definition *definition, QList<QCodeEdi
                 QColor foregroundColor;
                 QColor backgroundColor;
 
-                if (definition->tokens[chType].text_flags & 0x01) foregroundColor = QColor((definition->tokens[chType].text_color >> 0) & 0xff, (definition->tokens[chType].text_color >> 8) & 0xff, (definition->tokens[chType].text_color >> 16) & 0xff);
-                if (definition->tokens[chType].text_flags & 0x02) backgroundColor = QColor((definition->tokens[chType].text_background >> 0) & 0xff, (definition->tokens[chType].text_background >> 8) & 0xff, (definition->tokens[chType].text_background >> 16) & 0xff);
+                if (definition->tokens[chType].text_color      != TEXTPARSER_NOCOLOR) foregroundColor = QColor((definition->tokens[chType].text_color      >> 0) & 0xff, (definition->tokens[chType].text_color      >> 8) & 0xff, (definition->tokens[chType].text_color      >> 16) & 0xff);
+                if (definition->tokens[chType].text_background != TEXTPARSER_NOCOLOR) backgroundColor = QColor((definition->tokens[chType].text_background >> 0) & 0xff, (definition->tokens[chType].text_background >> 8) & 0xff, (definition->tokens[chType].text_background >> 16) & 0xff);
 
                 if ((foregroundColor.isValid())||(backgroundColor.isValid()))
                 {

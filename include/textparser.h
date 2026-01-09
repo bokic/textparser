@@ -19,6 +19,8 @@
 #define TextParser_START (0)
 #define TextParser_END (-1)
 
+#define TEXTPARSER_NOCOLOR 0xffffffff
+
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
 
 typedef void* textparser_t;

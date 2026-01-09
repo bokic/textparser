@@ -151,9 +151,13 @@ def main(args):
 
         if "textColor" in current_token:
             text += "            .text_color = " + current_token["textColor"] + "," + os.linesep
+        else:
+            text += "            .text_color = TEXTPARSER_NOCOLOR," + os.linesep
 
         if "textBackground" in current_token:
             text += "            .text_background = " + current_token["textBackground"] + "," + os.linesep
+        else:
+            text += "            .text_background = TEXTPARSER_NOCOLOR," + os.linesep
 
         if "textFlags" in current_token:
             text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
