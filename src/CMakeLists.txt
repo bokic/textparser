@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(libtextparser LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig)
 
@@ -47,8 +48,8 @@ set_target_properties(libtextparser PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser"
-    VERSION "0.5.0"
-    SOVERSION "0.5"
+    VERSION "0.6.0"
+    SOVERSION "0.6"
 )
 
 add_library(libtextparser-json SHARED
@@ -77,6 +78,6 @@ set_target_properties(libtextparser-json PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser-json"
-    VERSION "0.5.0"
-    SOVERSION "0.5"
+    VERSION "0.6.0"
+    SOVERSION "0.6"
 )
