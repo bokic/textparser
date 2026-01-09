@@ -9,18 +9,20 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
-        main.cpp
+    main.cpp
 
-        dialog.cpp
-        dialog.h
-        dialog.ui
+    dialog.cpp
+    dialog.h
+    dialog.ui
 
-        qjsonhighlighter.cpp
-        qjsonhighlighter.h
+    qcodeeditwidget.cpp
+    qcodeeditwidget.h
 )
 
 qt_add_executable(qguitextparser

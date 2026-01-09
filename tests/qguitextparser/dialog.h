@@ -1,9 +1,7 @@
 #pragma once
 
-#include "qjsonhighlighter.h"
-
 #include <QDialog>
-#include <QTimer>
+#include <QWidget>
 
 
 QT_BEGIN_NAMESPACE
@@ -18,19 +16,15 @@ public:
     explicit Dialog(QWidget *parent = nullptr);
     ~Dialog();
 
-protected:
-    virtual void timerEvent(QTimerEvent *e) override;
-
 private slots:
+    void on_plainTextEdit_parserUpdate();
+    void on_parserDefinitionWidget_parserUpdate();
     void on_plainTextEdit_textChanged();
     void on_parserDefinitionWidget_textChanged();
 
 private:
-    void startTextChangeTimer();
-    void updateState();
+    void loadState();
+    void saveState();
 
     Ui::Dialog *ui = nullptr;
-
-    QJsonHighlighter jsonHighlighter;
-    int m_Timer = 0;
 };
