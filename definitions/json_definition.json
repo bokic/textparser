@@ -29,13 +29,14 @@
       "startRegex": "\\\"",
       "endRegex": "\\\"",
       "textColor": "0x649f57",
-      "textFlags": "0x00",
+      "textFlags": "0x01",
       "nestedTokens": ["StringEscape"]
     },
     "Number": {
       "type": "SimpleToken",
       "startRegex": "-?\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
-      "textColor": "0x00ff00"
+      "textColor": "0x00ff00",
+      "textFlags": "0x01"
     },
     "StringEscape": {
       "type": "SimpleToken",
@@ -46,12 +47,14 @@
     "Bool": {
       "type": "SimpleToken",
       "startRegex": "true|false",
-      "textColor": "0x0000ff"
+      "textColor": "0x0000ff",
+      "textFlags": "0x01"
     },
     "Null": {
       "type": "SimpleToken",
       "startRegex": "null",
-      "textColor": "0x0000ff"
+      "textColor": "0x0000ff",
+      "textFlags": "0x01"
     },
     "ValueSeparator": {
       "type": "SimpleToken",
