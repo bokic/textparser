@@ -105,7 +105,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         else if(strcmp(encoding, "unicode") == 0)
             (*definition)->default_text_encoding = ADV_REGEX_TEXT_UNICODE;
         else {
-            (*definition)->error_string = "Invalid `encoding` text encoding!";
+            (*definition)->error_string = "Invalid `encoding` encoding! Should be one of the following: latin1, utf8, unicode.";
             return TEXTPARSER_JSON_ENCODING_NOT_FOUND;
         }
     }
