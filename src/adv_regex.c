@@ -165,6 +165,11 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
 
 bool adv_regex_find_pattern(const char *regex_str, void **regex, enum adv_regex_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool only_at_start)
 {
+    if (regex_str == nullptr)
+    {
+        return false;
+    }
+
     switch(encoding)
     {
     case ADV_REGEX_TEXT_LATIN1:
