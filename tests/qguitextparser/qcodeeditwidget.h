@@ -98,7 +98,7 @@ public:
     bool canUndo() const;
     bool canRedo() const;
     bool hasSelection() const;
-    void setLines(QList<QCodeEditWidgetLine> lines);
+    void setLines(const QList<QCodeEditWidgetLine> &lines);
     QList<QCodeEditWidgetLine> lines() const;
 
 public slots:
