@@ -52,6 +52,20 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
             ret = true;
         }
     }
+    else if (rc == 2)
+    {
+        ovector = pcre2_get_ovector_pointer_8(match_data);
+        if ((ovector)&&(ovector[3] > 0))
+        {
+            if (offset)
+                *offset = ovector[2];
+
+            if (length)
+                *length = ovector[3] - ovector[2];
+
+            ret = true;
+        }
+    }
 
     if (match_data)
         pcre2_match_data_free_8(match_data);
@@ -93,13 +107,27 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
     if (rc == 1)
     {
         ovector = pcre2_get_ovector_pointer_16(match_data);
-        if (ovector)
+        if ((ovector)&&(ovector[1] > 0))
         {
             if (offset)
                 *offset = ovector[0];
 
             if (length)
                 *length = ovector[1] - ovector[0];
+
+            ret = true;
+        }
+    }
+    else if (rc == 2)
+    {
+        ovector = pcre2_get_ovector_pointer_16(match_data);
+        if ((ovector)&&(ovector[3] > 0))
+        {
+            if (offset)
+                *offset = ovector[2];
+
+            if (length)
+                *length = ovector[3] - ovector[2];
 
             ret = true;
         }
@@ -145,13 +173,27 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
     if (rc == 1)
     {
         ovector = pcre2_get_ovector_pointer_32(match_data);
-        if (ovector)
+        if ((ovector)&&(ovector[1] > 0))
         {
             if (offset)
                 *offset = ovector[0];
 
             if (length)
                 *length = ovector[1] - ovector[0];
+
+            ret = true;
+        }
+    }
+    else if (rc == 2)
+    {
+        ovector = pcre2_get_ovector_pointer_32(match_data);
+        if ((ovector)&&(ovector[3] > 0))
+        {
+            if (offset)
+                *offset = ovector[2];
+
+            if (length)
+                *length = ovector[3] - ovector[2];
 
             ret = true;
         }
