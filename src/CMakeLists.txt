@@ -52,6 +52,11 @@ set_target_properties(libtextparser PROPERTIES
     SOVERSION "0.6"
 )
 
+install(TARGETS libtextparser
+    PUBLIC_HEADER
+    COMPONENT libtextparser
+)
+
 add_library(libtextparser-json SHARED
     textparser-json.c
     ../include/textparser-json.h
@@ -80,4 +85,9 @@ set_target_properties(libtextparser-json PROPERTIES
     OUTPUT_NAME "textparser-json"
     VERSION "0.6.0"
     SOVERSION "0.6"
+)
+
+install(TARGETS libtextparser-json
+    PUBLIC_HEADER
+    COMPONENT libtextparser-json
 )

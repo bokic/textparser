@@ -30,3 +30,7 @@ add_executable(ccat
 target_link_libraries(ccat PRIVATE
     libtextparser
 )
+
+install(TARGETS ccat
+    COMPONENT ccat
+)
