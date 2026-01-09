@@ -1305,8 +1305,8 @@ textparser_parser_state *textparser_state_new(const textparser_t handle)
     ret = malloc(to_allocate);
     if (ret)
     {
-        bzero(ret, to_allocate);
         ret->len = size;
+        memset(ret->state, 0xff, allocated);
 
         textparser_parse_state_recursively_fill(int_handle->first_item, ret->state);
     }
