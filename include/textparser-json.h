@@ -1,7 +1,6 @@
 #pragma once
 
 #include <textparser.h>
-#include <adv_regex.h>
 #include <stdbool.h>
 #include <stddef.h>
 
