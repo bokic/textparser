@@ -23,7 +23,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
         {
             PCRE2_UCHAR8 buffer[256];
             pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            printf("PCRE2 compilation failed for regex [%s]\n", regex_str);
+            printf("PCRE2 compilation_8 failed for regex [%s]\n", regex_str);
             return false;
         }
     }
@@ -75,7 +75,7 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
         {
             PCRE2_UCHAR8 buffer[256];
             pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            printf("PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
+            printf("PCRE2 compilation_16 failed at offset %zu: %s\n", error_offset, buffer);
             return false;
         }
     }
@@ -127,7 +127,7 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
         {
             PCRE2_UCHAR8 buffer[256];
             pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", error_offset, buffer);
+            fprintf(stderr, "PCRE2 compilation_32 failed at offset %zu: %s\n", error_offset, buffer);
             return false;
         }
     }
