@@ -594,12 +594,21 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
             if (offset >= int_handle->text_size)
             {
-                return ret;
+                exit_with_error("offset >= int_handle->text_size", offset);
             }
 
-            bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, nullptr, false);
-            if ((found_end)&&(token_end == 0))
-                break;
+            if (token_def->search_parent_end_token_last == false)
+            {
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, nullptr, false);
+                if ((found_end)&&(token_end == 0))
+                {
+                    break;
+                }
+            }
+            else
+            {
+                token_end = INT_MAX;
+            }
 
             for(int c = 0; nested_tokens[c] != TextParser_END; c++)
             {
@@ -625,6 +634,18 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
                     }
                 }
             }
+
+            if (token_def->search_parent_end_token_last == true)
+            {
+                size_t parent_end = 0;
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &parent_end, nullptr, false);
+                if ((found_end)&&(parent_end < token_end))
+                {
+                    token_end = parent_end;
+                    break;
+                }
+            }
+
             offset += token_end;
 
             if (child_token_id >= 0)
