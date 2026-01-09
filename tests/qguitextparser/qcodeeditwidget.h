@@ -136,7 +136,6 @@ private:
     QBrush m_CurrentLineBackground;
     int m_FontSize = 10;
     QFont m_TextFont;
-    QFont m_TextFontBold;
     QPixmap m_BreakPointPixmap;
     QPixmap m_BreakPointPixmapPending;
     QPixmap m_BreakPointPixmapDisabled;

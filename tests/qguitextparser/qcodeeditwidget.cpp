@@ -25,13 +25,10 @@ QCodeEditWidget::QCodeEditWidget(QWidget *parent)
     , m_CurrentLineBackground(QColor(224, 233, 247))
 #ifdef Q_OS_WIN
     , m_TextFont(QFont("Courier", m_FontSize, QFont::Normal))
-    , m_TextFontBold(QFont("Courier", m_FontSize, QFont::Bold))
 #elif defined Q_OS_LINUX
     , m_TextFont(QFont("Droid Sans Mono", m_FontSize, QFont::Normal))
-    , m_TextFontBold(QFont("Droid Sans Mono", m_FontSize, QFont::Bold))
 #elif defined Q_OS_MACOS
     , m_TextFont(QFont("Monaco", m_FontSize, QFont::Normal))
-    , m_TextFontBold(QFont("Monaco", m_FontSize, QFont::Bold))
 #else
 #error Unsupported OS.
 #endif
@@ -87,7 +84,6 @@ void QCodeEditWidget::keyPressEvent(QKeyEvent *event)
         m_FontSize = 10;
 
         m_TextFont = QFont("Source Code Pro", m_FontSize, QFont::Normal, false);
-        m_TextFontBold = QFont("Source Code Pro", m_FontSize, QFont::Bold, false);
         viewport()->update();
 
         return;
@@ -493,7 +489,7 @@ void QCodeEditWidget::paintEvent(QPaintEvent *event)
 
     	if ((m_ScrollYLinePos + l_line + 1) == m_CarretPosition.m_Row)
     	{
-            painter.setFont(m_TextFontBold);
+            painter.setFont(m_TextFont);
     		painter.setPen(m_LineNumbersCurrent);
     	}
     	else
@@ -864,14 +860,12 @@ void QCodeEditWidget::wheelEvent(QWheelEvent *event)
         {
             ++m_FontSize;
             m_TextFont = QFont("Source Code Pro", m_FontSize, QFont::Normal, false);
-            m_TextFontBold = QFont("Source Code Pro", m_FontSize, QFont::Bold, false);
             viewport()->update();
         }
         else if ((event->angleDelta().ry() < 0)&&(m_FontSize > 3))
         {
             --m_FontSize;
             m_TextFont = QFont("Source Code Pro", m_FontSize, QFont::Normal, false);
-            m_TextFontBold = QFont("Source Code Pro", m_FontSize, QFont::Bold, false);
             viewport()->update();
         }
     }
