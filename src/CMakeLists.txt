@@ -5,6 +5,8 @@ project(libtextparser LANGUAGES C)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+include(GNUInstallDirs)
+
 find_package(PkgConfig)
 
 pkg_search_module(json-c REQUIRED json-c>=0.17)
@@ -53,7 +55,10 @@ set_target_properties(libtextparser PROPERTIES
 )
 
 install(TARGETS libtextparser
-    PUBLIC_HEADER
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     COMPONENT libtextparser
 )
 
@@ -88,6 +93,9 @@ set_target_properties(libtextparser-json PROPERTIES
 )
 
 install(TARGETS libtextparser-json
-    PUBLIC_HEADER
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     COMPONENT libtextparser-json
 )
