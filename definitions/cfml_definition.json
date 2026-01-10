@@ -245,8 +245,7 @@
             "Assigment",
             "Variable",
             "SubExpression",
-            "VariableIndex",
-            "CodeBlock"
+            "VariableIndex"
          ]
       },
       "OutputExpression":{

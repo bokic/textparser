@@ -132,21 +132,18 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
 
 int main(int argc, const char *argv[])
 {
-    int ret = EXIT_SUCCESS;
-
     const language_definition *language_def = nullptr;
     const textparser_token_item *token = nullptr;
     bool should_end_with_newline = false;
     const char *filename = nullptr;
 
-    textparser_t handle = nullptr;
+    textparser_defer(handle);
     int res = 0;
 
     if (argc != 2)
     {
         fprintf(stderr, "Usage ccat <text file>.\n");
-        ret = EXIT_FAILURE;
-        goto cleanup;
+        return EXIT_FAILURE;
     }
 
     filename = argv[1];
@@ -154,8 +151,7 @@ int main(int argc, const char *argv[])
     res = textparser_openfile(filename, ADV_REGEX_TEXT_LATIN1, &handle);
     if (res) {
         fprintf(stderr, "Error opening file.\n");
-        ret = EXIT_FAILURE;
-        goto cleanup;
+        return EXIT_FAILURE;
     }
 
     language_def = get_language_definition_by_filename(filename);
@@ -163,8 +159,7 @@ int main(int argc, const char *argv[])
     res = textparser_parse(handle, language_def);
     if (res) {
         fprintf(stderr, "Parsing failed.\n");
-        ret = EXIT_FAILURE;
-        goto cleanup;
+        return EXIT_FAILURE;
     }
 
     const char *text = textparser_get_text(handle);
@@ -202,10 +197,5 @@ int main(int argc, const char *argv[])
         write(STDOUT_FILENO, "\n", 1);
     }
 
-cleanup:
-    if (handle) {
-        textparser_close(handle);
-    }
-
-    return ret;
+    return EXIT_SUCCESS;
 }
