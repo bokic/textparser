@@ -1,6 +1,5 @@
 #pragma once
 
-#include <adv_regex.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -22,6 +21,8 @@
 #define TEXTPARSER_NOCOLOR 0xffffffff
 
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
+
+enum adv_regex_encoding { ADV_REGEX_TEXT_ERROR, ADV_REGEX_TEXT_LATIN1, ADV_REGEX_TEXT_UTF_8, ADV_REGEX_TEXT_UNICODE, ADV_REGEX_TEXT_UTF_16, ADV_REGEX_TEXT_UTF_32 };
 
 typedef void* textparser_t;
 
