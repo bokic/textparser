@@ -873,7 +873,6 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     }
 
     close(fd);
-    fd = -1;
 
     local_hnd.text_addr = local_hnd.mmap_addr;
     local_hnd.text_size = local_hnd.mmap_size;
