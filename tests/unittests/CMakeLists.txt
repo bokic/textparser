@@ -20,6 +20,9 @@ enable_testing()
 add_executable( unittests
   unittests.cpp
 )
+target_include_directories( unittests PRIVATE
+    ../../definitions
+)
 target_link_libraries( unittests
   libtextparser
   GTest::gtest_main

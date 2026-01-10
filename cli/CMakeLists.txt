@@ -9,6 +9,10 @@ add_executable(textparser
     main.c
 )
 
+target_include_directories(textparser PRIVATE
+    ../definitions
+)
+
 #set_property(TARGET textparser PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 #set_target_properties(textparser PROPERTIES

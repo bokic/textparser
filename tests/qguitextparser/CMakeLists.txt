@@ -35,6 +35,10 @@ target_link_libraries(qguitextparser PRIVATE
     libtextparser
 )
 
+target_include_directories(qguitextparser PRIVATE
+    ../../definitions
+)
+
 set_target_properties(qguitextparser PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

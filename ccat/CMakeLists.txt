@@ -27,6 +27,10 @@ add_executable(ccat
     ../definitions/cfml_definition.json.h
 )
 
+target_include_directories(ccat PRIVATE
+    ../definitions
+)
+
 target_link_libraries(ccat PRIVATE
     libtextparser
 )

@@ -5,6 +5,12 @@ project(libtextparser LANGUAGES C)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 include(GNUInstallDirs)
 
 find_package(PkgConfig)
@@ -24,7 +30,6 @@ add_library(libtextparser SHARED
 
 target_include_directories(libtextparser PUBLIC
     ../include
-    ../definitions
 )
 
 target_include_directories(libtextparser PRIVATE
@@ -55,10 +60,7 @@ set_target_properties(libtextparser PROPERTIES
 )
 
 install(TARGETS libtextparser
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PUBLIC_HEADER
     COMPONENT libtextparser
 )
 
@@ -93,9 +95,6 @@ set_target_properties(libtextparser-json PROPERTIES
 )
 
 install(TARGETS libtextparser-json
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PUBLIC_HEADER
     COMPONENT libtextparser-json
 )
