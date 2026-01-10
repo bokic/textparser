@@ -263,7 +263,7 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY");
     if (!token_def->nested_tokens) {
-        exit_with_error("nested_tokens list is empty!", offset);
+        exit_with_error("group_one_child token type nested_tokens list is empty!", offset);
     }
 
     ret = malloc(sizeof(textparser_token_item));
@@ -281,22 +281,29 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
 
+    size_t closest = SIZE_MAX;
+    int current_token_id = TextParser_END;
     for (int c = 0; token_def->nested_tokens[c] != TextParser_END; c++)
     {
-        LOGV("1 - trying to find [%s] at pos %zu with other_text_inside: %d", int_handle->language->tokens[token_def->nested_tokens[c]].name, offset, token_def->other_text_inside);
-        if (textparser_find_token(int_handle, token_def->nested_tokens[c], offset, token_def->other_text_inside) >= 0)
+        ssize_t current_closest = textparser_find_token(int_handle, token_def->nested_tokens[c], offset, token_def->other_text_inside);
+        if ((current_closest >= 0)&&(current_closest < closest))
         {
-            LOGI("1 - Found!");
-            child = textparser_parse_token(int_handle, token_def->nested_tokens[c], parent_end_token_id, offset);
-            check_and_exit_on_fatal_parsing_error(offset);
-
-            LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %ld", int_handle->language->tokens[child->token_id].name, child->position);
-            ret->position = child->position;
-            ret->len = child->len;
-            ret->child = child;
-            break;
+            closest = current_closest;
+            current_token_id = token_def->nested_tokens[c];
         }
     }
+
+    if (current_token_id == TextParser_END)
+    {
+        exit_with_error("Search for group_one_child token type failed. Can't find one child.", offset);
+    }
+
+    child = textparser_parse_token(int_handle, current_token_id, parent_end_token_id, offset);
+    check_and_exit_on_fatal_parsing_error(offset);
+    LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %ld", int_handle->language->tokens[child->token_id].name, child->position);
+    ret->position = child->position;
+    ret->len = child->len;
+    ret->child = child;
 
 exit:
     return ret;
@@ -334,63 +341,54 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
     ret->token_id = token_id;
     ret->position = offset;
 
+    LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
+
     size_t closest;
     size_t closest_parent_end;
+    size_t closest_end;
     int current_token_id;
-    do {
-        closest = SIZE_MAX;
-        closest_parent_end = SIZE_MAX;
-        current_token_id = TextParser_END;
-
+    while(1) {
         offset = textparser_skip_whitespace(int_handle, offset);
-
-        if (parent_end_token_id >= 0)
-        {
-            assert(int_handle->text_size > offset);
-            bool found = adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_regex, (void **)int_handle->end_regex + parent_end_token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, nullptr, !definition->tokens[parent_end_token_id].other_text_inside);
-            if (found)
-            {
-                if (closest_parent_end == offset)
-                {
-                    break;
-                }
-            }
-        }
-
-        // Work on from here and down!
-        //closest = INT_MAX;
+        closest = SIZE_MAX;
+        current_token_id = TextParser_END;
         for (int c = 0; token_def->nested_tokens[c] != TextParser_END; c++)
         {
             ssize_t current_closest = textparser_find_token(int_handle, token_def->nested_tokens[c], offset, token_def->other_text_inside);
-            if (current_closest >= 0)
+            if ((current_closest >= 0)&&(current_closest < closest))
             {
-                if ((current_closest < closest)&&(current_closest < closest_parent_end))
-                {
-                    closest = current_closest;
-                    current_token_id = token_def->nested_tokens[c];
-                }
+                closest = current_closest;
+                current_token_id = token_def->nested_tokens[c];
             }
         }
 
-        if ((closest < SIZE_MAX)&&(closest < closest_parent_end))
+        //fprintf(stderr, "Search for parent_end_token_id name[%s] with regex[%s]\n", definition->tokens[parent_end_token_id].name, definition->tokens[parent_end_token_id].end_regex);
+        bool found_parent_end_token = adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_regex, (void **)int_handle->end_regex + parent_end_token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, nullptr, !definition->tokens[parent_end_token_id].other_text_inside);
+        if ((found_parent_end_token)&&(closest_parent_end < closest))
         {
-            if (child == nullptr) {
-                child = textparser_parse_token(int_handle,  current_token_id, parent_end_token_id, offset);
-                check_and_exit_on_fatal_parsing_error(closest);
-                ret->child = child;
-            } else {
-                child->next = textparser_parse_token(int_handle, current_token_id, parent_end_token_id, offset);
-                check_and_exit_on_fatal_parsing_error(closest);
-                child = child->next;
-            }
-
-            offset = child->position + child->len;
+            ret->len = offset + closest_parent_end - ret->position;
+            break;
         }
-    } while (closest < SIZE_MAX);
 
-    if (child) {
-        ret->len = child->position + child->len - ret->position;
-    }            
+        if (current_token_id == TextParser_END)
+        {
+            fprintf(stderr, "Search for parent_end_token_id name[%s], group_one_child token type failed. Can't find one child at offset %ld", definition->tokens[parent_end_token_id].name, offset);
+            fprintf(stderr, "\n\n%s", int_handle->text_addr + offset); exit(1);
+
+            exit_with_error("Search for group_one_child token type failed. Can't find one child.", offset);
+        }
+
+        if (child == nullptr) {
+            child = textparser_parse_token(int_handle,  current_token_id, parent_end_token_id, offset);
+            check_and_exit_on_fatal_parsing_error(closest);
+            ret->child = child;
+        } else {
+            child->next = textparser_parse_token(int_handle, current_token_id, parent_end_token_id, offset);
+            check_and_exit_on_fatal_parsing_error(closest);
+            child = child->next;
+        }
+
+        offset = child->position + child->len;
+    }
 
 exit:
     return ret;
@@ -449,8 +447,8 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
                 bail_token_id = token_def->nested_tokens[c + 1];
 
             child = textparser_parse_token(int_handle, token_def->nested_tokens[c], bail_token_id, offset);
-            check_and_exit_on_fatal_parsing_error(offset);
             ret->child = child;
+            check_and_exit_on_fatal_parsing_error(offset);
         } else {
             int bail_token_id;
             if (token_def->nested_tokens[c + 1] == TextParser_END)
@@ -728,7 +726,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     // Check if current token has end token string, if so, search for it instead parent one!
     if (token_def->end_regex)
     {
-        LOGI("Override parent_end_token_id with %d", token_id);
+        LOGI("Override parent_end_token_id with [%s] with end regex[%s]", definition->tokens[token_id].name, token_def->end_regex);
         parent_end_token_id = token_id;
     }
 
@@ -849,7 +847,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     bzero(&local_hnd, sizeof(local_hnd));
 
     int fd = open(pathname, O_RDONLY);
-    if (fd <= 0) {
+    if (fd == -1) {
         err = 1;
         goto err;
     }
@@ -866,10 +864,13 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
     local_hnd.mmap_size = fd_stat.st_size;
 
-    local_hnd.mmap_addr = mmap(nullptr, local_hnd.mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (local_hnd.mmap_addr == MAP_FAILED) {
-        err = 4;
-        goto err;
+    if (local_hnd.mmap_size > 0)
+    {
+        local_hnd.mmap_addr = mmap(nullptr, local_hnd.mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
+        if (local_hnd.mmap_addr == MAP_FAILED) {
+            err = 4;
+            goto err;
+        }
     }
 
     close(fd);
@@ -985,6 +986,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         }
         break;
     case ADV_REGEX_TEXT_UTF_8:
+        LOGW("no_lines for ADV_REGEX_TEXT_UTF_8 type is not implemented!");
         break;
     case ADV_REGEX_TEXT_UNICODE:
         for(int ch = 0; ch < local_hnd.text_size / sizeof(u_int16_t); ch++) {
@@ -1016,6 +1018,8 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 err:
     if (local_hnd.mmap_addr)
         munmap(local_hnd.mmap_addr, local_hnd.mmap_size);
+    if (fd > 0)
+        close(fd);
 
     return err;
 }
