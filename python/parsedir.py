@@ -9,9 +9,9 @@ def recursiveParseDirectory(definition_file, dir):
     parser = TextParser(definition_file)
     for file in os.listdir(dir):
         if file.endswith(".cfm") or file.endswith(".cfc"):
-            with open(dir + "/" + file, "r") as f:
-                text = f.read()
             print("Parsing " + dir + "/" + file + "...", end="")
+            with open(dir + "/" + file, "r", encoding='latin-1') as f:
+                text = f.read()
             start_ns = time.perf_counter_ns()
             tree = parser.parse(text)
             end_ns = time.perf_counter_ns()

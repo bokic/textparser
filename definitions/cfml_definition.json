@@ -345,7 +345,7 @@
       },
       "Operator":{
          "type":"SimpleToken",
-         "startRegex":""
+         "startRegex":"\\+|-|\\*|\\/|\\^|mod|\\%|\\\\|\\&|eq|==|is|neq|!=|is\\s+not|gt|>|lt|<|gte|>=|ge|lte|<=|le|contains|does\\s+not\\s+contain|and|or|not|xor|\\?|\\:"
       },
       "SubExpression":{
          "type":"StartStop",
