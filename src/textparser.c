@@ -1,7 +1,6 @@
 #include <textparser.h>
 #include <adv_regex.h>
 
-#include <json-c/json.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <string.h>
@@ -1198,7 +1197,7 @@ const char *textparser_get_token_id_name(const textparser_t handle, int token_id
 }
 
 char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item)
-{    
+{
     char *ret = nullptr;
 
     const textparser_handle *int_handle = (const textparser_handle *)handle;
