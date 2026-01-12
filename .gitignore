@@ -1,5 +1,6 @@
 .vscode
 .cache
+__pycache__
 build
 bin
 *.json.h
