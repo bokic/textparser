@@ -13,9 +13,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include(GNUInstallDirs)
 
+find_package(json-c CONFIG REQUIRED)
 find_package(PkgConfig)
 
-pkg_search_module(json-c REQUIRED json-c>=0.17)
 pkg_search_module(libpcre2-8 REQUIRED libpcre2-8>=10.42)
 pkg_search_module(libpcre2-16 REQUIRED libpcre2-16>=10.42)
 pkg_search_module(libpcre2-32 REQUIRED libpcre2-32>=10.42)
@@ -74,15 +74,15 @@ target_include_directories(libtextparser-json PUBLIC
 )
 
 target_include_directories(libtextparser-json PRIVATE
-    ${json-c_INCLUDE_DIRS}
+    json-c::json-c
 )
 
 target_link_directories(libtextparser-json PRIVATE
-    ${json-c_LIBRARY_DIRS}
+    json-c::json-c
 )
 
 target_link_libraries(libtextparser-json PRIVATE
-    ${json-c_LIBRARIES}
+    json-c::json-c
 )
 
 set_target_properties(libtextparser-json PROPERTIES
