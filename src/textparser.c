@@ -56,10 +56,14 @@
     int_handle->error_offset = offset;                         \
     goto exit;
 
-#define check_and_exit_on_fatal_parsing_error(offset)                                  \
-    if (int_handle->error) {                                                           \
-        LOGW("Fatal error detected(%s) at offset %zu. exiting..", ret->error, offset); \
-        goto exit;                                                                     \
+#define check_and_exit_on_fatal_parsing_error(offset)                                      \
+    if (int_handle->error) {                                                               \
+        LOGW("Fatal error detected(%s) at offset %zu. exiting..", ret->error, offset);     \
+        goto exit;                                                                         \
+    }                                                                                      \
+    if (child->len == 0) {                                                                 \
+        LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", ret->error, offset); \
+        goto exit;                                                                         \
     }
 
 enum textparser_bom {
@@ -298,11 +302,11 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
     }
 
     child = textparser_parse_token(int_handle, current_token_id, parent_end_token_id, offset);
-    check_and_exit_on_fatal_parsing_error(offset);
     LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %ld", int_handle->language->tokens[child->token_id].name, child->position);
     ret->position = child->position;
     ret->len = child->len;
     ret->child = child;
+    check_and_exit_on_fatal_parsing_error(offset);
 
 exit:
     return ret;
@@ -342,9 +346,8 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
 
-    size_t closest;
-    size_t closest_parent_end;
-    size_t closest_end;
+    size_t closest = SIZE_MAX;
+    size_t closest_parent_end = SIZE_MAX;
     int current_token_id;
     while(1) {
         offset = textparser_skip_whitespace(int_handle, offset);
@@ -360,7 +363,6 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
             }
         }
 
-        //fprintf(stderr, "Search for parent_end_token_id name[%s] with regex[%s]\n", definition->tokens[parent_end_token_id].name, definition->tokens[parent_end_token_id].end_regex);
         bool found_parent_end_token = adv_regex_find_pattern(definition->tokens[parent_end_token_id].end_regex, (void **)int_handle->end_regex + parent_end_token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent_end, nullptr, !definition->tokens[parent_end_token_id].other_text_inside);
         if ((found_parent_end_token)&&(closest_parent_end < closest))
         {
@@ -370,20 +372,25 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
 
         if (current_token_id == TextParser_END)
         {
-            fprintf(stderr, "Search for parent_end_token_id name[%s], group_one_child token type failed. Can't find one child at offset %ld", definition->tokens[parent_end_token_id].name, offset);
-            fprintf(stderr, "\n\n%s", int_handle->text_addr + offset); exit(1);
+            if (child)
+            {
+                ret->len = offset + closest_parent_end - ret->position;
+                goto exit;
+            }
 
             exit_with_error("Search for group_one_child token type failed. Can't find one child.", offset);
         }
 
+        offset += closest;
+
         if (child == nullptr) {
             child = textparser_parse_token(int_handle,  current_token_id, parent_end_token_id, offset);
-            check_and_exit_on_fatal_parsing_error(closest);
             ret->child = child;
+            check_and_exit_on_fatal_parsing_error(closest);
         } else {
             child->next = textparser_parse_token(int_handle, current_token_id, parent_end_token_id, offset);
-            check_and_exit_on_fatal_parsing_error(closest);
             child = child->next;
+            check_and_exit_on_fatal_parsing_error(closest);
         }
 
         offset = child->position + child->len;
@@ -456,8 +463,8 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
                 bail_token_id = token_def->nested_tokens[c + 1];
 
             child->next = textparser_parse_token(int_handle, token_def->nested_tokens[c], bail_token_id, offset);
-            check_and_exit_on_fatal_parsing_error(offset);
             child = child->next;
+            check_and_exit_on_fatal_parsing_error(offset);
         }
 
         offset = child->position + child->len;
@@ -648,8 +655,6 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             if (child_token_id >= 0)
             {
                 child = textparser_parse_token(int_handle,  child_token_id, parent_end_token_id, offset);
-                check_and_exit_on_fatal_parsing_error(offset);
-
                 if (ret->child == nullptr)
                     ret->child = child;
 
@@ -658,6 +663,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
                 last_child = child;
 
                 offset += child->len;
+                check_and_exit_on_fatal_parsing_error(offset);
             }
         } while (child_token_id >= 0);
     }
@@ -666,6 +672,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
     assert(int_handle->text_size > offset);
     if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, &len, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
+        LOGE("Can't find [%s] at %ld. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + offset);
         exit_with_error("Can't find end of the token!", offset);
     }
 
