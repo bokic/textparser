@@ -216,7 +216,6 @@
             "Function",
             "Operator",
             "ObjectMember",
-            "Assigment",
             "Variable",
             "SubExpression",
             "VariableIndex",
@@ -242,7 +241,6 @@
             "Function",
             "Operator",
             "ObjectMember",
-            "Assigment",
             "Variable",
             "SubExpression",
             "VariableIndex"
@@ -338,14 +336,10 @@
          "startRegex":"[a-z_]+[a-z0-9_]*",
          "textColor": "0x9cdcfe"
       },
-      "Assigment":{
-         "type":"SimpleToken",
-         "startRegex":"=|\\+=|\\-=|\\*=|\\/=|%=|&=",
-         "textColor": "0x35b2dd"
-      },
       "Operator":{
          "type":"SimpleToken",
-         "startRegex":"\\+|-|\\*|\\/|\\^|mod|\\%|\\\\|\\&|eq|==|is|neq|!=|is\\s+not|gt|>|lt|<|gte|>=|ge|lte|<=|le|contains|does\\s+not\\s+contain|and|or|not|xor|\\?|\\:"
+         "startRegex":"does\\s+not\\s+contain|is\\s+not|contains|and|not|mod|neq|lte|gte|xor|eq|\\+=|\\-=|\\*=|\\/=|\\\\|==|is|>=|or|ge|lt|gt|<=|le|%=|!=|&=|\\+|-|\\*|\\&|\\%|\\/|\\^|\\?|\\:|>|<|=",
+         "textColor": "0x35b2dd"
       },
       "SubExpression":{
          "type":"StartStop",
