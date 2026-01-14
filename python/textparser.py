@@ -3,11 +3,11 @@ import json
 import re
 
 class TextParser:
-    def __init__(self, definitionFile):
-        
+    def __init__(self, definitionFile: str):
+
         with open(definitionFile, "r") as f:
             fileContent = f.read()
-        
+
         self.definition = json.loads(fileContent)
 
         if self.definition.get('version') is None:
@@ -40,9 +40,6 @@ class TextParser:
             pos += 1
         return pos
 
-    def __parseTokenGroupOneChildOnly(self, text, tokenName, token, parentToken, pos):
-        raise Exception("Not implemented __parseTokenGroupOneChildOnly")
-
     def __parseGroup(self, text, tokenName, token, parentRegex, pos):
 
         pos = self.__skipWhitespace(text, pos)
@@ -60,16 +57,15 @@ class TextParser:
             closestchildTokenPos = sys.maxsize
             closestchildTokenName = None
 
-            if (token['searchParentEndTokenLast'] == False):
+            if (not token['searchParentEndTokenLast']):
                 if parentRegex is not None:
                     endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
                         endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
-                        endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
                         if (endTokenPos == 0):
                             ret['length'] = pos - ret['position']
                             break
-                
+
             for childTokenName in token['nestedTokens']:
                 childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], self.definition['otherTextInside'])
                 if (childTokenPos is not None):
@@ -78,13 +74,12 @@ class TextParser:
                         closestchildTokenName = childTokenName
                         if (closestchildTokenPos == 0):
                             break
-            
-            if (closestchildTokenPos > 0) and (token['searchParentEndTokenLast'] == True):
+
+            if (closestchildTokenPos > 0) and (token['searchParentEndTokenLast']):
                 if parentRegex is not None:
                     endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
                         endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
-                        endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
                         if (endTokenPos == 0):
                             ret['length'] = pos - ret['position']
                             break
@@ -93,7 +88,7 @@ class TextParser:
                 ret['length'] = pos + endTokenPos - ret['position']
                 break
 
-            if (closestchildTokenPos == sys.maxsize):
+            if ((closestchildTokenPos == sys.maxsize)or(closestchildTokenName is None)):
                 break
 
             pos += closestchildTokenPos
@@ -157,13 +152,13 @@ class TextParser:
             if (endTokenPos < innerTokenPos):
                 break
 
-            if (endTokenPos == innerTokenPos) and (token['searchParentEndTokenLast'] == False):
+            if (endTokenPos == innerTokenPos) and (not token['searchParentEndTokenLast']):
                 break
 
             pos += innerTokenPos
 
             child = self.__parseToken(text, innerToken, self.definition['tokens'][innerToken], parentRegex, pos)
-            
+
             ret['length'] = child['position'] + child['length'] - ret['position']
             ret['children'].append(child)
             pos = child['position'] + child['length']
@@ -177,7 +172,7 @@ class TextParser:
 
         return ret
 
-    def __parseSimpleToken(self, text, tokenName, token, parentRegex, pos):
+    def __parseSimpleToken(self, text, tokenName, token, pos):
 
         pos = self.__skipWhitespace(text, pos)
 
@@ -230,9 +225,10 @@ class TextParser:
 
         while True:
             endTokenPos = sys.maxsize
+            endTokenLength = 0
             pos = self.__skipWhitespace(text, pos)
 
-            if (token['searchParentEndTokenLast'] == False):
+            if (not token['searchParentEndTokenLast']):
                 if parentRegex is not None:
                     endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
@@ -244,7 +240,7 @@ class TextParser:
 
             closestchildTokenPos = sys.maxsize
             closestchildTokenName = None
-                
+
             for childTokenName in token['nestedTokens']:
                 childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], self.definition['otherTextInside'])
                 if (childTokenPos is not None):
@@ -253,8 +249,8 @@ class TextParser:
                         closestchildTokenName = childTokenName
                         if (closestchildTokenPos == 0):
                             break
-            
-            if (token['searchParentEndTokenLast'] == True):
+
+            if (token['searchParentEndTokenLast']):
                 if parentRegex is not None:
                     endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
@@ -268,7 +264,7 @@ class TextParser:
                 ret['length'] = pos - ret['position'] + endTokenPos + endTokenLength
                 break
 
-            if closestchildTokenPos == sys.maxsize:
+            if (closestchildTokenPos == sys.maxsize) or (closestchildTokenName is None):
                 break
 
             pos += closestchildTokenPos
@@ -287,7 +283,7 @@ class TextParser:
 
             endRegex = re.search(token['endRegex'], text[pos:], flags=re.IGNORECASE)
 
-            if (endRegex is None) and (endRequired == True):
+            if (endRegex is None) and (endRequired):
                 raise Exception("Expected endtoken for " + tokenName + " at position: " + str(pos))
 
             if (endRegex is not None):
@@ -299,10 +295,7 @@ class TextParser:
 
         return ret
 
-    def __parseDualStartStop(self, text, tokenName, token, parentRegex, pos):
-        raise Exception("Not implemented __parseDualStartStop")
-
-    def __parseToken(self, text, tokenName, token, parentRegex, pos):
+    def __parseToken(self, text: str, tokenName: str, token: dict, parentRegex: str | None, pos: int):
 
         if (token['endRegex'] is not None):
             parentRegex = token['endRegex']
@@ -310,20 +303,16 @@ class TextParser:
         pos = self.__skipWhitespace(text, pos)
 
         match token['type']:
-            case "GroupOneChildOnly":
-                return self.__parseTokenGroupOneChildOnly(text, tokenName, token, parentRegex, pos)
             case "Group":
                 return self.__parseGroup(text, tokenName, token, parentRegex, pos)
             case "GroupAllChildrenInSameOrder":
                 return self.__parseGroupAllChildrenInSameOrder(text, tokenName, token, parentRegex, pos)
             case "SimpleToken":
-                return self.__parseSimpleToken(text, tokenName, token, parentRegex, pos)
+                return self.__parseSimpleToken(text, tokenName, token, pos)
             case "StartStop":
                 return self.__parseStartStop(text, tokenName, token, parentRegex, pos, True)
             case "StartOptStop":
                 return self.__parseStartStop(text, tokenName, token, parentRegex, pos, False)
-            case "DualStartStop":
-                return self.__parseDualStartStop(text, tokenName, token, parentRegex, pos)
 
         raise Exception("Unknown token type: " + token["type"])
 
@@ -333,7 +322,7 @@ class TextParser:
                 closestChildPos = sys.maxsize
                 for childTokenName in token['nestedTokens']:
                     childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], otherTextInside)
-                    if (childTokenPos is not None): 
+                    if (childTokenPos is not None):
                         if (childTokenPos < closestChildPos):
                             closestChildPos = childTokenPos
                 if (closestChildPos == sys.maxsize):
@@ -344,18 +333,18 @@ class TextParser:
             case "SimpleToken" | "StartStop" | "StartOptStop" | "DualStartStop":
                 res = re.search(token["startRegex"], text[pos:], flags=re.IGNORECASE)
                 if (res is None):
-                    return None            
+                    return None
                 if (res.regs[len(res.regs) - 1][1] == 0):
                     return None
-                if ((otherTextInside == False)and(res.pos != 0)):
+                if ((not otherTextInside)and(res.pos != 0)):
                     return None
-                
+
                 return res.regs[len(res.regs) - 1][0]
 
         raise Exception("Fatal error: Unknown token type: " + token["type"])
 
     def parse(self, text):
-        
+
         tokens = []
 
         pos = 0
@@ -377,12 +366,12 @@ class TextParser:
                 break
 
             pos += closestTokenPos
-            
+
             child = self.__parseToken(text, closestTokenName, self.definition['tokens'][closestTokenName], None, pos)
             if (child["length"] == 0):
                 raise Exception("Child token " + closestTokenName + " has no length!")
 
-            tokens.append(child)        
+            tokens.append(child)
             pos = child['position'] + child['length']
 
         return tokens
