@@ -19,7 +19,7 @@ static int parseFile(const QString &filename)
         return EXIT_FAILURE;
     }
 
-    printf("Prsing. file(%s).\n", filename.toUtf8().constData()); fflush(stdout);
+    printf("Parsing. file(%s).\n", filename.toUtf8().constData()); fflush(stdout);
 
     res = textparser_parse(handle, &cfml_definition);
     if (res)
@@ -47,14 +47,19 @@ static int parseDir(const QString &path)
     for (int c = 0; c < files.size(); c++)
     {
         QFileInfo fileinfo = files.at(c);
+        int res = 0;
 
         if (fileinfo.isDir() == true)
         {
-            parseDir(fileinfo.absoluteFilePath());
+            res = parseDir(fileinfo.absoluteFilePath());
+            if (res != EXIT_SUCCESS)
+            {
+                return res;
+            }
         }
         else
         {
-            int res = parseFile(fileinfo.absoluteFilePath());
+            res = parseFile(fileinfo.absoluteFilePath());
             if (res != EXIT_SUCCESS)
             {
                 return res;
@@ -70,7 +75,7 @@ static void usage()
     printf("Usage cfml_validator <dir|cfml_file>\n");
 }
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
     const char *dir_file = nullptr;
 
