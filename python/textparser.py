@@ -110,6 +110,39 @@ class TextParser:
 
         return ret
 
+    def __parseGroupOneChildOnly(self, text, tokenName, token, parentRegex, pos):
+
+        pos = self.__skipWhitespace(text, pos)
+
+        ret = {}
+        ret['id'] = tokenName
+        ret['position'] = pos
+        ret['length'] = 0
+        ret['children'] = []
+
+        if (token['nestedTokens'] is None) or (len(token['nestedTokens']) == 0):
+            raise Exception("GroupOneChildOnly token type nested_tokens list is empty!")
+
+        closestChildTokenPos = sys.maxsize
+        closestChildTokenName = None
+
+        for childTokenName in token['nestedTokens']:
+            childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], token['otherTextInside'])
+            if (childTokenPos is not None) and (childTokenPos >= 0) and (childTokenPos < closestChildTokenPos):
+                closestChildTokenPos = childTokenPos
+                closestChildTokenName = childTokenName
+
+        if (closestChildTokenName is None):
+            raise Exception("Search for GroupOneChildOnly token type failed. Can't find one child.")
+
+        child = self.__parseToken(text, closestChildTokenName, self.definition['tokens'][closestChildTokenName], parentRegex, pos)
+
+        ret['position'] = child['position']
+        ret['length'] = child['length']
+        ret['children'].append(child)
+
+        return ret
+
     def __parseGroupAllChildrenInSameOrder(self, text, tokenName, token, parentRegex, pos):
 
         pos = self.__skipWhitespace(text, pos)
@@ -305,6 +338,8 @@ class TextParser:
         match token['type']:
             case "Group":
                 return self.__parseGroup(text, tokenName, token, parentRegex, pos)
+            case "GroupOneChildOnly":
+                return self.__parseGroupOneChildOnly(text, tokenName, token, parentRegex, pos)
             case "GroupAllChildrenInSameOrder":
                 return self.__parseGroupAllChildrenInSameOrder(text, tokenName, token, parentRegex, pos)
             case "SimpleToken":
@@ -375,3 +410,24 @@ class TextParser:
             pos = child['position'] + child['length']
 
         return tokens
+
+    def __recursiveFormat(self, array, token):
+        tokenId = list(self.definition['tokens'].keys()).index(token['id'])
+        char = tokenId.to_bytes(1)
+        array[token['position']:token['position'] + token['length']] = char * token['length']
+
+        if ('children' in token):
+            for child in token['children']:
+                self.__recursiveFormat(array, child)
+
+    def parseFormat(self, text):
+        ret = bytearray()
+
+        ret.extend(b'\x00' * len(text))
+
+        tokens = self.parse(text)
+
+        for token in tokens:
+            self.__recursiveFormat(ret, token)
+
+        return ret
