@@ -54,8 +54,8 @@ class TextParser:
             endTokenPos = sys.maxsize
             pos = self.__skipWhitespace(text, pos)
 
-            closestchildTokenPos = sys.maxsize
-            closestchildTokenName = None
+            closestChildTokenPos = sys.maxsize
+            closestChildTokenName = None
 
             if (not token['searchParentEndTokenLast']):
                 if parentRegex is not None:
@@ -69,13 +69,13 @@ class TextParser:
             for childTokenName in token['nestedTokens']:
                 childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], self.definition['otherTextInside'])
                 if (childTokenPos is not None):
-                    if (childTokenPos < closestchildTokenPos):
-                        closestchildTokenPos = childTokenPos
-                        closestchildTokenName = childTokenName
-                        if (closestchildTokenPos == 0):
+                    if (childTokenPos < closestChildTokenPos):
+                        closestChildTokenPos = childTokenPos
+                        closestChildTokenName = childTokenName
+                        if (closestChildTokenPos == 0):
                             break
 
-            if (closestchildTokenPos > 0) and (token['searchParentEndTokenLast']):
+            if (closestChildTokenPos > 0) and (token['searchParentEndTokenLast']):
                 if parentRegex is not None:
                     endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
@@ -84,25 +84,28 @@ class TextParser:
                             ret['length'] = pos - ret['position']
                             break
 
-            if (endTokenPos < closestchildTokenPos):
+            if (endTokenPos < closestChildTokenPos):
                 ret['length'] = pos + endTokenPos - ret['position']
                 break
 
-            if ((closestchildTokenPos == sys.maxsize)or(closestchildTokenName is None)):
+            if ((closestChildTokenPos == sys.maxsize)or(closestChildTokenName is None)):
                 break
 
-            pos += closestchildTokenPos
+            if (closestChildTokenPos > 0) and (self.definition['tokens'][tokenName]['otherTextInside'] == False):
+                raise Exception("Child token " + closestChildTokenName + " has illegal position!")
 
-            child = self.__parseToken(text, closestchildTokenName, self.definition['tokens'][closestchildTokenName], parentRegex, pos)
+            pos += closestChildTokenPos
+
+            child = self.__parseToken(text, closestChildTokenName, self.definition['tokens'][closestChildTokenName], parentRegex, pos)
             if (child['position'] < pos):
-                raise Exception("Child token " + closestchildTokenName + " has illegal position!")
+                raise Exception("Child token " + closestChildTokenName + " has illegal position!")
 
             if (child['length'] <= 0):
-                raise Exception("Child token " + closestchildTokenName + " has illegal length!")
+                raise Exception("Child token " + closestChildTokenName + " has illegal length!")
 
             ret['length'] = child['position'] + child['length'] - ret['position']
             if (ret['length'] <= 0):
-                raise Exception("Child token " + closestchildTokenName + " has illegal length!")
+                raise Exception("Child token " + closestChildTokenName + " has illegal length!")
 
             ret['children'].append(child)
 
@@ -271,16 +274,16 @@ class TextParser:
                             ret['length'] = pos - ret['position'] + endTokenLength
                             break
 
-            closestchildTokenPos = sys.maxsize
-            closestchildTokenName = None
+            closestChildTokenPos = sys.maxsize
+            closestChildTokenName = None
 
             for childTokenName in token['nestedTokens']:
                 childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], self.definition['otherTextInside'])
                 if (childTokenPos is not None):
-                    if (childTokenPos < closestchildTokenPos):
-                        closestchildTokenPos = childTokenPos
-                        closestchildTokenName = childTokenName
-                        if (closestchildTokenPos == 0):
+                    if (childTokenPos < closestChildTokenPos):
+                        closestChildTokenPos = childTokenPos
+                        closestChildTokenName = childTokenName
+                        if (closestChildTokenPos == 0):
                             break
 
             if (token['searchParentEndTokenLast']):
@@ -293,18 +296,21 @@ class TextParser:
                             ret['length'] = pos - ret['position'] + endTokenLength
                             break
 
-            if (endTokenPos < closestchildTokenPos):
+            if (endTokenPos < closestChildTokenPos):
                 ret['length'] = pos - ret['position'] + endTokenPos + endTokenLength
                 break
 
-            if (closestchildTokenPos == sys.maxsize) or (closestchildTokenName is None):
+            if (closestChildTokenPos == sys.maxsize) or (closestChildTokenName is None):
                 break
 
-            pos += closestchildTokenPos
+            if (closestChildTokenPos > 0) and (self.definition['tokens'][tokenName]['otherTextInside'] == False):
+                raise Exception("Child token " + closestChildTokenName + " has illegal position!")
 
-            child = self.__parseToken(text, closestchildTokenName, self.definition['tokens'][closestchildTokenName], parentRegex, pos)
+            pos += closestChildTokenPos
+
+            child = self.__parseToken(text, closestChildTokenName, self.definition['tokens'][closestChildTokenName], parentRegex, pos)
             if (child["length"] == 0):
-                raise Exception("Child token " + closestchildTokenName + " has no length!")
+                raise Exception("Child token " + closestChildTokenName + " has no length!")
 
             ret['length'] = child['position'] + child['length'] - ret['position']
 
