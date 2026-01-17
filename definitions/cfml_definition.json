@@ -140,6 +140,7 @@
          "startRegex":"<!---",
          "endRegex":"--->",
          "multiLine":true,
+         "otherTextInside":true,
          "nestedTokens":[
             "Comment"
          ]
@@ -338,7 +339,7 @@
       },
       "Operator":{
          "type":"SimpleToken",
-         "startRegex":"does\\s+not\\s+contain|is\\s+not|contains|and|not|mod|neq|lte|gte|xor|eq|\\+=|\\-=|\\*=|\\/=|\\\\|==|is|>=|or|ge|lt|gt|<=|le|%=|!=|&=|\\+|-|\\*|\\&|\\%|\\/|\\^|\\?|\\:|>|<|=",
+         "startRegex":"greater\\s+than\\s+or\\s+equal\\s+to|less\\s+than\\s+or\\s+equal\\s+to|does\\s+not\\s+contain|is\\s+not|contains|less\\s+than|greater\\s+than|not\\s+equal|equal|and|not|mod|neq|lte|gte|xor|imp|eqv|eq|\\+=|\\-=|\\*=|\\/=|\\\\|==|is|>=|or|ge|lt|gt|<=|le|%=|!=|&=|\\+|-|\\*|\\&|\\%|\\/|\\^|\\?|\\:|>|<|=|!|\\$",
          "textColor": "0x35b2dd"
       },
       "SubExpression":{
