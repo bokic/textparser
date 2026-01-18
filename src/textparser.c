@@ -8,7 +8,6 @@
 #include <limits.h>
 #include <unistd.h>
 #include <stddef.h>
-#include <assert.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -578,7 +577,11 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
     textparser_token_item *child = nullptr;
 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
-    assert(int_handle->text_size > offset);
+
+    if (offset >= int_handle->text_size) {
+        int_handle->error = "offset >= int_handle->text_size!";
+        return nullptr;
+    }
 
     ret = malloc(sizeof(textparser_token_item));
     if (ret == nullptr) {
@@ -636,7 +639,10 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         LOGV("enter TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
     }
 
-    assert(int_handle->text_size > offset);
+    if (offset >= int_handle->text_size) {
+        int_handle->error = "offset >= int_handle->text_size!";
+        return nullptr;
+    }
 
     ret = malloc(sizeof(textparser_token_item));
     if (ret == nullptr) {
@@ -663,7 +669,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     ret->position = offset + token_start;
     offset = ret->position + len;
 
-    assert(int_handle->text_size >= offset);
+    if (offset >= int_handle->text_size) {
+        int_handle->error = "offset >= int_handle->text_size!";
+        return nullptr;
+    }
+
     if (offset == int_handle->text_size) {
         exit_with_error("reached end of text!", offset);
     }
@@ -761,7 +771,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
-    assert(int_handle->text_size > offset);
+    if (offset >= int_handle->text_size) {
+        int_handle->error = "offset >= int_handle->text_size!";
+        return nullptr;
+    }
+
     if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, &len, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
         LOGE("Can't find [%s] at %ld. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + offset);
         exit_with_error("Can't find end of the token!", offset);
@@ -770,7 +784,10 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %ld", int_handle->language->tokens[ret->token_id].name, ret->position);
     ret->len = offset + token_end + len - ret->position;
     offset += token_end + len;
-    assert(offset == ret->position + ret->len);
+
+    if (offset != ret->position + ret->len) {
+        exit_with_error("offset != ret->position + ret->len!", offset);
+    }
 
 exit:
     return ret;
@@ -805,10 +822,25 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
 
     const language_definition *definition = int_handle->language;
 
-    assert(definition);
-    assert(token_id >= TextParser_START);
-    assert(parent_token_id >= TextParser_END);
-    assert(offset < int_handle->text_size);
+    if (definition == nullptr) {
+        LOGE("definition == nullptr");
+        return nullptr;
+    }
+
+    if (token_id < TextParser_START) {
+        LOGE("token_id < TextParser_START");
+        return nullptr;
+    }
+
+    if (parent_token_id < TextParser_END) {
+        LOGE("parent_token_id < TextParser_END");
+        return nullptr;
+    }
+
+    if (offset >= int_handle->text_size) {
+        LOGE("offset >= int_handle->text_size");
+        return nullptr;
+    }
 
     const textparser_token *token_def = &definition->tokens[token_id];
 
@@ -1219,7 +1251,10 @@ int textparser_parse(textparser_t handle, const language_definition *definition)
             break;
 
         textparser_token_item *token_item = textparser_parse_token(handle, closest_token_id, TextParser_END, TEXTPARSER_SEARCH_END_TOKEN, closest_offset);
-        assert(token_item);
+        if (token_item == nullptr) {
+            LOGE("token_item == nullptr");
+            return -1;
+        }
 
         if (int_handle->first_item == nullptr)
             int_handle->first_item = token_item;
