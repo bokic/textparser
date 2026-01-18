@@ -7,6 +7,10 @@
 #include <stddef.h>
 
 
+static pcre2_compile_context_8 *ccontext8 = nullptr;
+static pcre2_compile_context_16 *ccontext16 = nullptr;
+static pcre2_compile_context_32 *ccontext32 = nullptr;
+
 static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool only_at_start)
 {
     bool ret = false;
@@ -16,9 +20,15 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
     pcre2_match_data_8 *match_data = nullptr;
     PCRE2_SIZE *ovector = nullptr;
 
+    if (ccontext8 == nullptr)
+    {
+        ccontext8 = pcre2_compile_context_create_8(nullptr);
+        pcre2_set_newline_8(ccontext8, PCRE2_NEWLINE_ANY);
+    }
+
     if (*regex == nullptr)
     {
-        *regex = pcre2_compile_8((PCRE2_SPTR8)regex_str, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF|PCRE2_CASELESS:PCRE2_CASELESS, &error_number, &error_offset, nullptr);                 /* use default compile context */
+        *regex = pcre2_compile_8((PCRE2_SPTR8)regex_str, PCRE2_ZERO_TERMINATED, is_utf ? (PCRE2_UTF | PCRE2_CASELESS) : PCRE2_CASELESS, &error_number, &error_offset, ccontext8); // TODO: hardcoded CASELESS
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
@@ -82,9 +92,15 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
     pcre2_match_data_16 *match_data = nullptr;
     PCRE2_SIZE *ovector = nullptr;
 
+    if (ccontext16 == nullptr)
+    {
+        ccontext16 = pcre2_compile_context_create_16(nullptr);
+        pcre2_set_newline_16(ccontext16, PCRE2_NEWLINE_ANY);
+    }
+
     if (*regex == nullptr)
     {
-        *regex = pcre2_compile_16((PCRE2_SPTR16)regex_str, PCRE2_ZERO_TERMINATED, is_utf?PCRE2_UTF|PCRE2_CASELESS:PCRE2_CASELESS, &error_number, &error_offset, nullptr);
+        *regex = pcre2_compile_16((PCRE2_SPTR16)regex_str, PCRE2_ZERO_TERMINATED, is_utf ? (PCRE2_UTF | PCRE2_CASELESS) : PCRE2_CASELESS, &error_number, &error_offset, ccontext16); // TODO: hardcoded CASELESS
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
@@ -148,9 +164,15 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
     pcre2_match_data_32 *match_data = nullptr;
     PCRE2_SIZE *ovector = nullptr;
 
+    if (ccontext32 == nullptr)
+    {
+        ccontext32 = pcre2_compile_context_create_32(nullptr);
+        pcre2_set_newline_32(ccontext32, PCRE2_NEWLINE_ANY);
+    }
+
     if (*regex == nullptr)
     {
-        *regex = pcre2_compile_32((PCRE2_SPTR32)regex_str, PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &error_number, &error_offset, nullptr);
+        *regex = pcre2_compile_32((PCRE2_SPTR32)regex_str, PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &error_number, &error_offset, ccontext32); // TODO: hardcoded CASELESS
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
