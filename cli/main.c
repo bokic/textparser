@@ -8,11 +8,11 @@
 #include <stdio.h>
 
 
-const language_definition *definitions[] = {&cfml_definition, &json_definition, nullptr};
+const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, nullptr};
 
-static const language_definition *get_language_definition_by_filename(const char *filename)
+static const textparser_language_definition *get_language_definition_by_filename(const char *filename)
 {
-    const language_definition *definition = nullptr;
+    const textparser_language_definition *definition = nullptr;
     const char *definition_ext = nullptr;
     int def_cnt = 0;
 
@@ -46,7 +46,7 @@ static const language_definition *get_language_definition_by_filename(const char
 
 static void print_textparser_token_item(void *handle, textparser_token_item *item, int level)
 {
-    //const language_definition *language;
+    //const textparser_language_definition *language;
     const char *token_name = nullptr;
     char *token_text = nullptr;
 

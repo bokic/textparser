@@ -18,12 +18,12 @@
 #define GB * 1024 MB
 #define MAX_PARSE_SIZE (4 MB)
 
-//const language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, nullptr};
-const language_definition *definitions[] = {&cfml_definition, &json_definition, nullptr};
+//const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, nullptr};
+const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, nullptr};
 
-static const language_definition *get_language_definition_by_filename(const char *filename)
+static const textparser_language_definition *get_language_definition_by_filename(const char *filename)
 {
-    const language_definition *definition = nullptr;
+    const textparser_language_definition *definition = nullptr;
     const char *definition_ext = nullptr;
     int def_cnt = 0;
 
@@ -70,7 +70,7 @@ static void print_element(const char *text, size_t len, const char *text_backgro
 static void print_recursive_token(const textparser_t handle, const char *text, const textparser_token_item *token)
 {
     const struct textparser_token_item *child = nullptr;
-    const language_definition *language = nullptr;
+    const textparser_language_definition *language = nullptr;
     char ansi_format_background[64] = {0, };
     char ansi_format_text_color[64] = {0, };
     char ansi_format_flags[64] = {0, };
@@ -132,7 +132,7 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
 
 int main(int argc, const char *argv[])
 {
-    const language_definition *language_def = nullptr;
+    const textparser_language_definition *language_def = nullptr;
     const textparser_token_item *token = nullptr;
     bool should_end_with_newline = false;
     const char *filename = nullptr;

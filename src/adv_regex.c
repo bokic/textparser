@@ -227,7 +227,7 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
     return ret;
 }
 
-bool adv_regex_find_pattern(const char *regex_str, void **regex, enum adv_regex_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool only_at_start)
+bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool only_at_start)
 {
     if (regex_str == nullptr)
     {
@@ -254,7 +254,7 @@ bool adv_regex_find_pattern(const char *regex_str, void **regex, enum adv_regex_
     return false;
 }
 
-void adv_regex_free(void **regex, enum adv_regex_encoding encoding)
+void adv_regex_free(void **regex, enum textparser_encoding encoding)
 {
     if ((regex == nullptr)||((*regex == nullptr)))
         return;

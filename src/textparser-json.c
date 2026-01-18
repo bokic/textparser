@@ -24,7 +24,7 @@ static void json_object_cleanup(struct json_object **handle)
     }
 }
 
-static int textparser_json_load_language_definition_internal(struct json_object *root_obj, language_definition **definition)
+static int textparser_json_load_language_definition_internal(struct json_object *root_obj, textparser_language_definition **definition)
 {
     size_t array_length = 0;
     json_object *tokens = nullptr;
@@ -38,12 +38,12 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     json_object_defer(root);
     root = root_obj;
 
-    *definition = malloc(sizeof(language_definition));
+    *definition = malloc(sizeof(textparser_language_definition));
     if (*definition == nullptr) {
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
-    bzero(*definition, sizeof(language_definition));
+    bzero(*definition, sizeof(textparser_language_definition));
 
     found = json_object_object_get_ex(root_obj, "name", &value);
     if (!found){
@@ -309,12 +309,12 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     return 0;
 }
 
-int textparser_json_load_language_definition_from_json_file(const char *pathname, language_definition **definition)
+int textparser_json_load_language_definition_from_json_file(const char *pathname, textparser_language_definition **definition)
 {
     return textparser_json_load_language_definition_internal(json_object_from_file(pathname), definition);
 }
 
-int textparser_json_load_language_definition_from_string(const char *text, language_definition **definition)
+int textparser_json_load_language_definition_from_string(const char *text, textparser_language_definition **definition)
 {
     return textparser_json_load_language_definition_internal(json_tokener_parse(text), definition);
 }

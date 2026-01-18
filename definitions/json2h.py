@@ -40,7 +40,7 @@ def main(args):
     text += "};" + os.linesep
     text += "" + os.linesep
 
-    text += "static const language_definition " + name_lowercase + "_definition = {" + os.linesep
+    text += "static const textparser_language_definition " + name_lowercase + "_definition = {" + os.linesep
 
     if "name" in root:
         text += "    .name = \"" + root["name"] + "\"," + os.linesep

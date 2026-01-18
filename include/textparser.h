@@ -22,7 +22,7 @@
 
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
 
-enum adv_regex_encoding { ADV_REGEX_TEXT_ERROR, ADV_REGEX_TEXT_LATIN1, ADV_REGEX_TEXT_UTF_8, ADV_REGEX_TEXT_UNICODE, ADV_REGEX_TEXT_UTF_16, ADV_REGEX_TEXT_UTF_32 };
+enum textparser_encoding { ADV_REGEX_TEXT_ERROR, ADV_REGEX_TEXT_LATIN1, ADV_REGEX_TEXT_UTF_8, ADV_REGEX_TEXT_UNICODE, ADV_REGEX_TEXT_UTF_16, ADV_REGEX_TEXT_UTF_32 };
 
 typedef void* textparser_t;
 
@@ -92,7 +92,7 @@ typedef struct {
     bool other_text_inside;
     textparser_token *tokens;
     const char *error_string;
-} language_definition;
+} textparser_language_definition;
 
 #ifdef __cplusplus
 extern "C"
@@ -104,7 +104,7 @@ EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_for
 EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
 EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 
-EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const language_definition *definition);
+EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_language_definition *definition);
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 
 EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
@@ -112,7 +112,7 @@ EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textparser_t handle);
 EXPORT_TEXTPARSER const char *textparser_get_token_id_name(const textparser_t handle, int token_id);
 EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
-EXPORT_TEXTPARSER const language_definition *textparser_get_language(const textparser_t handle);
+EXPORT_TEXTPARSER const textparser_language_definition *textparser_get_language(const textparser_t handle);
 
 EXPORT_TEXTPARSER textparser_parser_state *textparser_state_new(const textparser_t handle);
 EXPORT_TEXTPARSER void textparser_state_free(textparser_parser_state *state);

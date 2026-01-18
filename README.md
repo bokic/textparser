@@ -71,7 +71,7 @@ To use TextParser in your C project, include `textparser.h` and link against `li
 #include <stdio.h>
 
 // Assume 'my_lang_definition' is defined elsewhere
-extern const language_definition my_lang_definition;
+extern const textparser_language_definition my_lang_definition;
 
 int main() {
     textparser_defer(handle); // Auto-cleanup

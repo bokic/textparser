@@ -41,8 +41,8 @@ extern "C"
 {
 #endif
 
-EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_json_file(const char *pathname, language_definition **definition);
-EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_string(const char *text, language_definition **definition);
+EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_json_file(const char *pathname, textparser_language_definition **definition);
+EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_string(const char *text, textparser_language_definition **definition);
 
 #ifdef __cplusplus
 }

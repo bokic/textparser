@@ -90,13 +90,13 @@ enum parent_start_stop{
 };
 
 typedef struct {
-    const language_definition *language;
+    const textparser_language_definition *language;
     void *start_regex;
     void *end_regex;
     void *mmap_addr;
     size_t mmap_size;
     enum textparser_bom bom;
-    enum adv_regex_encoding text_format;
+    enum textparser_encoding text_format;
     textparser_token_item *first_item;
     size_t error_offset;
     const char *error;
@@ -179,7 +179,7 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
         return TOKEN_NOT_FOUND;
     }
 
-    const language_definition *definition = nullptr;
+    const textparser_language_definition *definition = nullptr;
     const textparser_token *token = nullptr;
     const char *text = nullptr;
     size_t found_at = 0;
@@ -273,7 +273,7 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
         return nullptr;
     }
 
-    const language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = int_handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
 
@@ -335,7 +335,7 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         return nullptr;
     }
 
-    const language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = int_handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
 
@@ -454,7 +454,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
         return nullptr;
     }
 
-    const language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = int_handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
     textparser_token_item *last_child = nullptr;
@@ -566,7 +566,7 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
         return nullptr;
     }
 
-    const language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = int_handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
 
     textparser_token_item *child = nullptr;
@@ -618,7 +618,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         exit_with_error("int_handle == nullptr!", offset);
     }
 
-    const language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = int_handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
 
@@ -809,7 +809,7 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
         return nullptr;
     }
 
-    const language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = int_handle->language;
 
     if (definition == nullptr) {
         LOGE("definition == nullptr");
@@ -891,7 +891,7 @@ static void textparser_init_regex(textparser_handle *int_handle)
 
 static void textparser_free_regex(textparser_handle *int_handle)
 {
-    enum adv_regex_encoding text_format = ADV_REGEX_TEXT_ERROR;
+    enum textparser_encoding text_format = ADV_REGEX_TEXT_ERROR;
     int token_cnt = 0;
 
     if ((int_handle == nullptr)||((int_handle->start_regex == nullptr)&&(int_handle->end_regex == nullptr)))
@@ -932,7 +932,7 @@ static void textparser_free_regex(textparser_handle *int_handle)
     }
 }
 
-void textparser_free_language_definition(language_definition *definition)
+void textparser_free_language_definition(textparser_language_definition *definition)
 {
     if (definition == nullptr)
         return;
@@ -1200,7 +1200,7 @@ void textparser_cleanup(textparser_t *handle)
     }
 }
 
-int textparser_parse(textparser_t handle, const language_definition *definition)
+int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
@@ -1336,7 +1336,7 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
     return ret;
 }
 
-const language_definition *textparser_get_language(const textparser_t handle)
+const textparser_language_definition *textparser_get_language(const textparser_t handle)
 {
     const textparser_handle *int_handle = (textparser_handle *)handle;
 

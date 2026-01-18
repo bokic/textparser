@@ -5,7 +5,7 @@
 #include <cfml_definition.json.h>
 
 
-static int parse(const language_definition &definition, const char *code)
+static int parse(const textparser_language_definition &definition, const char *code)
 {
     textparser_defer(mem);
     textparser_openmem(code, strlen(code), definition.default_text_encoding, &mem);
