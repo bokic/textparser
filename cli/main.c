@@ -44,7 +44,7 @@ static const textparser_language_definition *get_language_definition_by_filename
     return nullptr;
 }
 
-static void print_textparser_token_item(void *handle, textparser_token_item *item, int level)
+static void print_textparser_token_item(void *handle, textparser_token_item *item, int level, bool colored)
 {
     //const textparser_language_definition *language;
     const char *token_name = nullptr;
@@ -53,18 +53,24 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
     for(int c = 0; c < level; c++)
         putc(' ', stdout);
 
-    //language = textparser_get_language(handle);
     token_name = textparser_get_token_id_name(handle, item->token_id);
     token_text = textparser_get_token_text(handle, item);
 
-    //uint32_t text_background = language->tokens[item->token_id].text_background;
-    //uint32_t text_color = language->tokens[item->token_id].text_color;
-    //uint32_t text_flags = language->tokens[item->token_id].text_flags;
-
-    if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
-        printf("type: \033[48;5;4m%s\033[0m, text: \033[48;5;5m%s\033[0m\n", token_name, token_text);
-    } else {
-        printf("type: \033[48;5;4m%s\033[0m\n", token_name);
+    if (colored)
+    {
+        if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
+            printf("type: \033[48;5;4m%s\033[0m, position: %zd, length: %zd, text: \033[48;5;5m%s\033[0m\n", token_name, item->position, item->len, token_text);
+        } else {
+            printf("type: \033[48;5;4m%s\033[0m, position: %zd, length: %zd\n", token_name, item->position, item->len);
+        }
+    }
+    else
+    {
+        if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
+            printf("type: %s, position: %zd, length: %zd, text: %s\n", token_name, item->position, item->len, token_text);
+        } else {
+            printf("type: %s, position: %zd, length: %zd\n", token_name, item->position, item->len);
+        }
     }
 
     free(token_text);
@@ -72,20 +78,40 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
     struct textparser_token_item *child = item->child;
     while(child)
     {
-        print_textparser_token_item(handle, child, level + 1);
+        print_textparser_token_item(handle, child, level + 1, colored);
         child = child->next;
     }
 }
 
+void usage()
+{
+    fprintf(stderr, "Usage: textparser <file> [--no-color]\n");
+}
+
 int main(int argc, const char *argv[])
 {
-    const language_definition *language_def = nullptr;
+    bool colored = true;
+
+    const textparser_language_definition *language_def = nullptr;
     textparser_defer(handle);
 
-    if (argc != 2)
+    if ((argc < 2)||(argc > 3))
     {
-        fprintf(stderr, "Usage: textparser <file>\n");
+        usage();
         return EXIT_FAILURE;
+    }
+
+    if (argc == 3)
+    {
+        if (strcmp(argv[2], "--no-color") == 0)
+        {
+            colored = false;
+        }
+        else
+        {
+            usage();
+            return EXIT_FAILURE;
+        }
     }
 
     const char *filename = argv[1];
@@ -115,7 +141,7 @@ int main(int argc, const char *argv[])
 
     for(textparser_token_item *item = textparser_get_first_token(handle); item != nullptr; item = item->next)
     {
-        print_textparser_token_item(handle, item, 0);
+        print_textparser_token_item(handle, item, 0, colored);
     }
 
     return EXIT_SUCCESS;
