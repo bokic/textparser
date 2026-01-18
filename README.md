@@ -50,6 +50,18 @@ cmake --build build
 
 Artifacts (libraries and executables) will be output to the `bin/` directory.
 
+## Installation
+
+### Arch Linux
+
+`textparser` is available on the Arch User Repository (AUR). You can install it using an AUR helper like `yay`:
+
+```bash
+yay -S textparser
+```
+
+Or view the package details at [https://aur.archlinux.org/packages/textparser](https://aur.archlinux.org/packages/textparser).
+
 ## Usage
 
 ### CLI Tool
