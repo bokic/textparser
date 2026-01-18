@@ -63,15 +63,15 @@ def main(args):
     if "defaultTextEncoding" in root:
         match root["defaultTextEncoding"].lower():
             case "latin1":
-                text += "    .default_text_encoding = ADV_REGEX_TEXT_LATIN1," + os.linesep
+                text += "    .default_text_encoding = TEXTPARSER_ENCODING_LATIN1," + os.linesep
             case "utf-8":
-                text += "    .default_text_encoding = ADV_REGEX_TEXT_UTF_8," + os.linesep
+                text += "    .default_text_encoding = TEXTPARSER_ENCODING_UTF_8," + os.linesep
             case "unicode":
-                text += "    .default_text_encoding = ADV_REGEX_TEXT_UNICODE," + os.linesep
+                text += "    .default_text_encoding = TEXTPARSER_ENCODING_UNICODE," + os.linesep
             case "utf-16":
-                text += "    .default_text_encoding = ADV_REGEX_TEXT_UTF_16," + os.linesep
+                text += "    .default_text_encoding = TEXTPARSER_ENCODING_UTF_16," + os.linesep
             case "utf-32":
-                text += "    .default_text_encoding = ADV_REGEX_TEXT_UTF_32," + os.linesep
+                text += "    .default_text_encoding = TEXTPARSER_ENCODING_UTF_32," + os.linesep
             case _:
                 print("Illegal default_text_encoding. Valid options are: latin1, utf-8, unicode, utf-16, utf-32")
                 exit(1)

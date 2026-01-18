@@ -96,11 +96,11 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     if (found) {
         const char *encoding = json_object_get_string(value);
         if(strcmp(encoding, "latin1") == 0)
-            (*definition)->default_text_encoding = ADV_REGEX_TEXT_LATIN1;
+            (*definition)->default_text_encoding = TEXTPARSER_ENCODING_LATIN1;
         else if(strcmp(encoding, "utf8") == 0)
-            (*definition)->default_text_encoding = ADV_REGEX_TEXT_UTF_8;
+            (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UTF_8;
         else if(strcmp(encoding, "unicode") == 0)
-            (*definition)->default_text_encoding = ADV_REGEX_TEXT_UNICODE;
+            (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UNICODE;
         else {
             (*definition)->error_string = "Invalid `encoding` encoding! Should be one of the following: latin1, utf8, unicode.";
             return TEXTPARSER_JSON_ENCODING_NOT_FOUND;
@@ -108,7 +108,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     }
     else
     {
-        (*definition)->default_text_encoding = ADV_REGEX_TEXT_LATIN1;
+        (*definition)->default_text_encoding = TEXTPARSER_ENCODING_LATIN1;
     }
 
     found = json_object_object_get_ex(root_obj, "starts_with", &value);

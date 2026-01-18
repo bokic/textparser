@@ -12,7 +12,7 @@ static int parseFile(const QString &filename)
 
     textparser_defer(handle);
 
-    int res = textparser_openfile(itemFileName.toUtf8().constData(), ADV_REGEX_TEXT_LATIN1, &handle);
+    int res = textparser_openfile(itemFileName.toUtf8().constData(), TEXTPARSER_ENCODING_LATIN1, &handle);
     if (res)
     {
         fprintf(stderr, "textparser_openfile() failed to open file(%s). Error code: %d\n", filename.toUtf8().constData(), res);

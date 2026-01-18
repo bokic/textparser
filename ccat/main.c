@@ -148,7 +148,7 @@ int main(int argc, const char *argv[])
 
     filename = argv[1];
 
-    res = textparser_openfile(filename, ADV_REGEX_TEXT_LATIN1, &handle);
+    res = textparser_openfile(filename, TEXTPARSER_ENCODING_LATIN1, &handle);
     if (res) {
         fprintf(stderr, "Error opening file.\n");
         return EXIT_FAILURE;

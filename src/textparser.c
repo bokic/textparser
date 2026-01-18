@@ -135,7 +135,7 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
 {
     size_t maxPos = 0;
 
-    if (int_handle->text_format == ADV_REGEX_TEXT_UNICODE)
+    if (int_handle->text_format == TEXTPARSER_ENCODING_UNICODE)
     {
         maxPos = int_handle->text_size / 2;
 
@@ -891,7 +891,7 @@ static void textparser_init_regex(textparser_handle *int_handle)
 
 static void textparser_free_regex(textparser_handle *int_handle)
 {
-    enum textparser_encoding text_format = ADV_REGEX_TEXT_ERROR;
+    enum textparser_encoding text_format = TEXTPARSER_ENCODING_ERROR;
     int token_cnt = 0;
 
     if ((int_handle == nullptr)||((int_handle->start_regex == nullptr)&&(int_handle->end_regex == nullptr)))
@@ -1067,13 +1067,13 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         case NO_BOM:
             break;
         case BOM_UTF_8:
-            local_hnd.text_format = ADV_REGEX_TEXT_UTF_8;
+            local_hnd.text_format = TEXTPARSER_ENCODING_UTF_8;
             break;
         case BOM_UTF_16_LE:
-            local_hnd.text_format = ADV_REGEX_TEXT_UTF_16;
+            local_hnd.text_format = TEXTPARSER_ENCODING_UTF_16;
             break;
         case BOM_UTF_32_LE:
-            local_hnd.text_format = ADV_REGEX_TEXT_UTF_32;
+            local_hnd.text_format = TEXTPARSER_ENCODING_UTF_32;
             break;
         default:
             err = 5;
@@ -1084,7 +1084,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     int cur_line_pos = 0;
 
     switch(local_hnd.text_format) {
-    case ADV_REGEX_TEXT_LATIN1:
+    case TEXTPARSER_ENCODING_LATIN1:
         for(int ch = 0; ch < local_hnd.text_size; ch++) {
             if (local_hnd.text_addr[ch] == '\n')
                 local_hnd.no_lines++;
@@ -1103,10 +1103,10 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
             }
         }
         break;
-    case ADV_REGEX_TEXT_UTF_8:
-        LOGW("no_lines for ADV_REGEX_TEXT_UTF_8 type is not implemented!");
+    case TEXTPARSER_ENCODING_UTF_8:
+        LOGW("no_lines for TEXTPARSER_ENCODING_UTF_8 type is not implemented!");
         break;
-    case ADV_REGEX_TEXT_UNICODE:
+    case TEXTPARSER_ENCODING_UNICODE:
         for(int ch = 0; ch < local_hnd.text_size / sizeof(u_int16_t); ch++) {
             if (((u_int16_t *)local_hnd.text_addr)[ch] == '\n')
                 local_hnd.no_lines++;

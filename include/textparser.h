@@ -22,7 +22,7 @@
 
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
 
-enum textparser_encoding { ADV_REGEX_TEXT_ERROR, ADV_REGEX_TEXT_LATIN1, ADV_REGEX_TEXT_UTF_8, ADV_REGEX_TEXT_UNICODE, ADV_REGEX_TEXT_UTF_16, ADV_REGEX_TEXT_UTF_32 };
+enum textparser_encoding { TEXTPARSER_ENCODING_ERROR, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
 
 typedef void* textparser_t;
 

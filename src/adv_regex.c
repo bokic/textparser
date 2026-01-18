@@ -236,15 +236,15 @@ bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser
 
     switch(encoding)
     {
-    case ADV_REGEX_TEXT_LATIN1:
+    case TEXTPARSER_ENCODING_LATIN1:
         return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, false, only_at_start);
-    case ADV_REGEX_TEXT_UTF_8:
+    case TEXTPARSER_ENCODING_UTF_8:
         return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, true, only_at_start);
-    case ADV_REGEX_TEXT_UNICODE:
+    case TEXTPARSER_ENCODING_UNICODE:
         return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, false, only_at_start);
-    case ADV_REGEX_TEXT_UTF_16:
+    case TEXTPARSER_ENCODING_UTF_16:
         return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, true, only_at_start);
-    case ADV_REGEX_TEXT_UTF_32:
+    case TEXTPARSER_ENCODING_UTF_32:
         return adv_regex_find_pattern32(regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length, only_at_start);
     default:
         fprintf(stderr, "Illegal text encoding(%d) at adv_regex_find_pattern()\n", encoding);
@@ -261,15 +261,15 @@ void adv_regex_free(void **regex, enum textparser_encoding encoding)
 
     switch(encoding)
     {
-    case ADV_REGEX_TEXT_LATIN1:
-    case ADV_REGEX_TEXT_UTF_8:
+    case TEXTPARSER_ENCODING_LATIN1:
+    case TEXTPARSER_ENCODING_UTF_8:
         pcre2_code_free_8(*(pcre2_code_8 **)regex);
         break;
-    case ADV_REGEX_TEXT_UNICODE:
-    case ADV_REGEX_TEXT_UTF_16:
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16:
         pcre2_code_free_16(*(pcre2_code_16 **)regex);
         break;
-    case ADV_REGEX_TEXT_UTF_32:
+    case TEXTPARSER_ENCODING_UTF_32:
         pcre2_code_free_32(*(pcre2_code_32 **)regex);
         break;
     default:
