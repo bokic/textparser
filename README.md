@@ -10,8 +10,8 @@ The project currently provides robust support for CFML (ColdFusion Markup Langua
 - **Regex-Based Grammars**: Define language syntax using flexible regular expressions.
 - **Hierarchical AST**: Generates a structured tree of tokens (`textparser_token_item`) representing the code structure.
 - **Syntax Highlighting Support**: Tokens track metadata like color, background, and flags, making it suitable for building syntax highlighters and editors.
-- **Extensibility**: Language definitions are decoupled from the core parsing logic.
-- **Python Tooling**: Includes Python prototype and validation scripts for experimental features and cross-parser verification.
+- **Extensibility**: Language definitions are decoupled from the core parsing logic, constructed with JSON, and can be loaded at compile time (by generated header file) or at runtime (by loading JSON file).
+- **Python Tooling**: Includes Python scripts for: prototyping and validation of the core algorithm, generation of C header files, and other parser verification tools.
 
 ## Project Structure
 
