@@ -179,10 +179,6 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
         return TOKEN_NOT_FOUND;
     }
 
-    if (pos >= int_handle->text_size) {
-        return TOKEN_NOT_FOUND;
-    }
-
     const language_definition *definition = nullptr;
     const textparser_token *token = nullptr;
     const char *text = nullptr;
@@ -553,7 +549,6 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
     check_and_exit_on_fatal_parsing_error(offset);
 
     last_child->next = child;
-    last_child = child;
 
     ret->len = (offset + final_end_pos) - ret->position;
 
@@ -619,10 +614,8 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 {
     textparser_token_item *ret = nullptr;
 
-    if (int_handle == nullptr)
-    {
-        LOGF("int_handle == nullptr");
-        return nullptr;
+    if (int_handle == nullptr) {
+        exit_with_error("int_handle == nullptr!", offset);
     }
 
     const language_definition *definition = int_handle->language;
@@ -640,14 +633,12 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     }
 
     if (offset >= int_handle->text_size) {
-        int_handle->error = "offset >= int_handle->text_size!";
-        return nullptr;
+        exit_with_error("offset >= int_handle->text_size!", offset);
     }
 
     ret = malloc(sizeof(textparser_token_item));
     if (ret == nullptr) {
-        int_handle->error = "Can't allocate memory!";
-        return nullptr;
+        exit_with_error("Can't allocate memory!", offset);
     }
 
     bzero(ret, sizeof(textparser_token_item));
@@ -670,8 +661,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     offset = ret->position + len;
 
     if (offset >= int_handle->text_size) {
-        int_handle->error = "offset >= int_handle->text_size!";
-        return nullptr;
+        exit_with_error("offset >= int_handle->text_size!", offset);
     }
 
     if (offset == int_handle->text_size) {
@@ -772,8 +762,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     offset = textparser_skip_whitespace(int_handle, offset);
 
     if (offset >= int_handle->text_size) {
-        int_handle->error = "offset >= int_handle->text_size!";
-        return nullptr;
+        exit_with_error("offset >= int_handle->text_size!", offset);
     }
 
     if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, &len, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
