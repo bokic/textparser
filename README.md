@@ -7,6 +7,8 @@ The project currently provides robust support for CFML (ColdFusion Markup Langua
 ## Features
 
 - **High Performance**: Written in optimized C for fast parsing of large codebases.
+- **Small Footprint**: The library is designed to be small and easy to integrate into other projects.
+- **Minimal Dependencies**: The library has minimal dependencies (only crpe2 library for regex matching).
 - **Regex-Based Grammars**: Define language syntax using flexible regular expressions.
 - **Hierarchical AST**: Generates a structured tree of tokens (`textparser_token_item`) representing the code structure.
 - **Syntax Highlighting Support**: Tokens track metadata like color, background, and flags, making it suitable for building syntax highlighters and editors.
@@ -94,6 +96,41 @@ int main() {
     }
     
     return 0;
+}
+```
+
+## Language Definition Example
+
+TextParser uses a JSON-based format to define language grammars. This allows for defining complex syntax rules using regular expressions and hierarchical token structures.
+
+Here is a simplified example of what a JSON definition might look like (based on `definitions/json_definition.json`):
+
+```json
+{
+  "name": "json",
+  "version": 1.0,
+  "startTokens": ["Object", "Array"],
+  "tokens": {
+    "Object": {
+      "type": "StartStop",
+      "startRegex": "{",
+      "endRegex": "}",
+      "textColor": "0xffd700",
+      "nestedTokens": ["Key", "String", "Number", "ValueSeparator"]
+    },
+    "String": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "textColor": "0xce9178",
+      "nestedTokens": ["StringEscape"]
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "-?\\d+(?:\\.\\d+)?",
+      "textColor": "0xb5cea8"
+    }
+  }
 }
 ```
 
