@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(cfml_validator VERSION 0.6.0 LANGUAGES CXX)
+project(cfml_validator VERSION 0.7.0 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
