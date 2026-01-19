@@ -3,8 +3,6 @@
 #include <json_definition.json.h>
 //#include <php_definition.json.h>
 
-#include <sys/mman.h>
-#include <sys/stat.h>
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>

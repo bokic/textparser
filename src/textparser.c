@@ -1,8 +1,8 @@
 #include <textparser.h>
 #include <adv_regex.h>
+#include <os.h>
 
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -392,17 +392,17 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         default:
             exit_with_error("Unknown parent_start_stop value!", offset);
         }
-        
+
         if (parent_regex_pattern) {
             bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent, nullptr, !token_def->other_text_inside);
-            
+
             if ((found_parent_token)&&(closest_parent <= closest))
             {
                 ret->len = offset + closest_parent - ret->position;
                 break;
             }
         }
-        
+
         if (closest != SIZE_MAX) {
              LOGI("Found child [%s] at offset %zu (child offset from current %zu). Parsing...", definition->tokens[current_token_id].name, offset, closest);
         } else {
@@ -466,7 +466,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
 
     int nested_count = 0;
     while(token_def->nested_tokens[nested_count] != TextParser_END) nested_count++;
-    
+
     if (nested_count != 3) {
          exit_with_error("GroupAllChildrenInSameOrder should have exactly 3 nested tokens", offset);
     }
@@ -538,7 +538,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
 
     offset = textparser_skip_whitespace(int_handle, offset);
     ssize_t final_end_pos = textparser_find_token(int_handle, end_token_id, offset, true);
-    
+
     if (final_end_pos == TOKEN_NOT_FOUND) {
          exit_with_error("End token vanished!", offset);
     }
@@ -964,34 +964,11 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
     bzero(&local_hnd, sizeof(local_hnd));
 
-    int fd = open(pathname, O_RDONLY);
-    if (fd == -1) {
+    local_hnd.text_addr = os_map(pathname, &local_hnd.mmap_size);
+    if (local_hnd.text_addr == nullptr) {
         err = 1;
         goto err;
     }
-
-    if (fstat(fd, &fd_stat)) {
-        err = 2;
-        goto err;
-    }
-
-    if (fd_stat.st_size > MAX_PARSE_SIZE) {
-        err = 3;
-        goto err;
-    }
-
-    local_hnd.mmap_size = fd_stat.st_size;
-
-    if (local_hnd.mmap_size > 0)
-    {
-        local_hnd.mmap_addr = mmap(nullptr, local_hnd.mmap_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        if (local_hnd.mmap_addr == MAP_FAILED) {
-            err = 4;
-            goto err;
-        }
-    }
-
-    close(fd);
 
     local_hnd.text_addr = local_hnd.mmap_addr;
     local_hnd.text_size = local_hnd.mmap_size;
@@ -1134,10 +1111,9 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     return 0;
 
 err:
-    if (local_hnd.mmap_addr)
-        munmap(local_hnd.mmap_addr, local_hnd.mmap_size);
-    if (fd > 0)
-        close(fd);
+    if (local_hnd.mmap_addr) {
+        os_unmap(local_hnd.mmap_addr, local_hnd.mmap_size);
+    }
 
     return err;
 }
@@ -1177,8 +1153,9 @@ void textparser_close(textparser_t handle)
     mmap_addr = int_handle->mmap_addr;
     mmap_size = int_handle->mmap_size;
 
-    if (mmap_addr)
-        munmap(mmap_addr, mmap_size);
+    if (mmap_addr) {
+        os_unmap(mmap_addr, mmap_size);
+    }
 
     item = int_handle->first_item;
     if (item)

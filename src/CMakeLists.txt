@@ -11,6 +11,12 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+if(WIN32)
+    set(OS_FILES ../os/os_win.c ../os/os.h)
+else()
+    set(OS_FILES ../os/os_posix.c ../os/os.h)
+endif()
+
 if(NOT WIN32)
     include(GNUInstallDirs)
 
@@ -28,10 +34,13 @@ add_library(libtextparser SHARED
 
     ../include/textparser.h
     ../include/adv_regex.h
+
+    ${OS_FILES}
 )
 
 target_include_directories(libtextparser PUBLIC
     ../include
+    ../os
 )
 
 if(WIN32)

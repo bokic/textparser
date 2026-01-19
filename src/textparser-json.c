@@ -2,8 +2,6 @@
 #include <adv_regex.h>
 
 #include <json-c/json.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -184,7 +182,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
-    bzero((*definition)->tokens, sizeof(textparser_token) * (tokens_cnt + 1));    
+    bzero((*definition)->tokens, sizeof(textparser_token) * (tokens_cnt + 1));
 
     if (tokens_cnt > 0) {
         for(size_t token_idx = 0; token_idx < tokens_cnt; token_idx++) {
