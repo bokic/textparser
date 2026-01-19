@@ -11,14 +11,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-include(GNUInstallDirs)
+if(NOT WIN32)
+    include(GNUInstallDirs)
 
-find_package(json-c CONFIG REQUIRED)
-find_package(PkgConfig)
+    find_package(json-c CONFIG REQUIRED)
+    find_package(PkgConfig)
 
-pkg_search_module(libpcre2-8 REQUIRED libpcre2-8>=10.42)
-pkg_search_module(libpcre2-16 REQUIRED libpcre2-16>=10.42)
-pkg_search_module(libpcre2-32 REQUIRED libpcre2-32>=10.42)
+    pkg_search_module(libpcre2-8 REQUIRED libpcre2-8>=10.42)
+    pkg_search_module(libpcre2-16 REQUIRED libpcre2-16>=10.42)
+    pkg_search_module(libpcre2-32 REQUIRED libpcre2-32>=10.42)
+endif()
 
 add_library(libtextparser SHARED
     textparser.c
@@ -32,23 +34,28 @@ target_include_directories(libtextparser PUBLIC
     ../include
 )
 
-target_include_directories(libtextparser PRIVATE
-    ${libpcre2-8_INCLUDE_DIRS}
-    ${libpcre2-16_INCLUDE_DIRS}
-    ${libpcre2-32_INCLUDE_DIRS}
-)
+if(WIN32)
+    target_link_directories(libtextparser PRIVATE bin)
+    #    target_link_libraries(libtextparser PRIVATE )
+else()
+    target_include_directories(libtextparser PRIVATE
+        ${libpcre2-8_INCLUDE_DIRS}
+        ${libpcre2-16_INCLUDE_DIRS}
+        ${libpcre2-32_INCLUDE_DIRS}
+    )
 
-target_link_directories(libtextparser PRIVATE
-    ${libpcre2-8_LIBRARY_DIRS}
-    ${libpcre2-16_LIBRARY_DIRS}
-    ${libpcre2-32_LIBRARY_DIRS}
-)
+    target_link_directories(libtextparser PRIVATE
+        ${libpcre2-8_LIBRARY_DIRS}
+        ${libpcre2-16_LIBRARY_DIRS}
+        ${libpcre2-32_LIBRARY_DIRS}
+    )
 
-target_link_libraries(libtextparser PRIVATE
-    ${libpcre2-8_LIBRARIES}
-    ${libpcre2-16_LIBRARIES}
-    ${libpcre2-32_LIBRARIES}
-)
+    target_link_libraries(libtextparser PRIVATE
+        ${libpcre2-8_LIBRARIES}
+        ${libpcre2-16_LIBRARIES}
+        ${libpcre2-32_LIBRARIES}
+    )
+endif()
 
 set_target_properties(libtextparser PROPERTIES
     PUBLIC_HEADER "../include/textparser.h"
@@ -73,17 +80,22 @@ target_include_directories(libtextparser-json PUBLIC
     ../include
 )
 
-target_include_directories(libtextparser-json PRIVATE
-    json-c::json-c
-)
+if(WIN32)
+    #target_link_directories(libtextparser-json PRIVATE)
+    #target_link_libraries(libtextparser-json PRIVATE)
+else()
+    target_include_directories(libtextparser-json PRIVATE
+        json-c::json-c
+    )
 
-target_link_directories(libtextparser-json PRIVATE
-    json-c::json-c
-)
+    target_link_directories(libtextparser-json PRIVATE
+        json-c::json-c
+    )
 
-target_link_libraries(libtextparser-json PRIVATE
-    json-c::json-c
-)
+    target_link_libraries(libtextparser-json PRIVATE
+        json-c::json-c
+    )
+endif()
 
 set_target_properties(libtextparser-json PROPERTIES
     PUBLIC_HEADER "../include/textparser-json.h"
