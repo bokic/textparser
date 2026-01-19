@@ -36,5 +36,6 @@ target_link_libraries(ccat PRIVATE
 )
 
 install(TARGETS ccat
-    COMPONENT ccat
+    RUNTIME DESTINATION bin
+    COMPONENT cli
 )

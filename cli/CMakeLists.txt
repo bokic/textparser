@@ -13,13 +13,11 @@ target_include_directories(textparser PRIVATE
     ../definitions
 )
 
-#set_property(TARGET textparser PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-
-#set_target_properties(textparser PROPERTIES
-#    INTERPROCEDURAL_OPTIMIZATION TRUE
-#    C_VISIBILITY_PRESET hidden
-#)
-
 target_link_libraries(textparser PRIVATE
     libtextparser
+)
+
+install(TARGETS textparser
+    RUNTIME DESTINATION bin
+    COMPONENT cli
 )
