@@ -5,12 +5,6 @@ project(libtextparser LANGUAGES C)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
 if(WIN32)
     set(OS_FILES ../os/os_win.c ../os/os.h)
 else()
@@ -44,8 +38,8 @@ target_include_directories(libtextparser PUBLIC
 )
 
 if(WIN32)
-    target_link_directories(libtextparser PRIVATE bin)
-    #    target_link_libraries(libtextparser PRIVATE )
+    target_link_directories(libtextparser PRIVATE ../bin)
+    target_link_libraries(libtextparser PRIVATEpcre2-8.lib  pcre2-16.lib pcre2-32.lib)
 else()
     target_include_directories(libtextparser PRIVATE
         ${libpcre2-8_INCLUDE_DIRS}
@@ -76,8 +70,9 @@ set_target_properties(libtextparser PROPERTIES
 )
 
 install(TARGETS libtextparser
+    RUNTIME DESTINATION bin
     PUBLIC_HEADER
-    COMPONENT libtextparser
+    COMPONENT src
 )
 
 add_library(libtextparser-json SHARED
@@ -90,8 +85,8 @@ target_include_directories(libtextparser-json PUBLIC
 )
 
 if(WIN32)
-    #target_link_directories(libtextparser-json PRIVATE)
-    #target_link_libraries(libtextparser-json PRIVATE)
+    target_link_directories(libtextparser-json PRIVATE ../bin)
+    target_link_libraries(libtextparser-json PRIVATE json-c.lib)
 else()
     target_include_directories(libtextparser-json PRIVATE
         json-c::json-c
@@ -116,6 +111,7 @@ set_target_properties(libtextparser-json PROPERTIES
 )
 
 install(TARGETS libtextparser-json
+    RUNTIME DESTINATION bin
     PUBLIC_HEADER
-    COMPONENT libtextparser-json
+    COMPONENT src
 )
