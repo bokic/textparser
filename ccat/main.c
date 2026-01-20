@@ -1,4 +1,5 @@
 #include <textparser.h>
+#include <os.h>
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
 //#include <php_definition.json.h>
@@ -6,7 +7,6 @@
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 
@@ -58,11 +58,11 @@ static void print_element(const char *text, size_t len, const char *text_backgro
     static const char * const reset_ansi = "\33[0m";
     bool clear_format = false;
 
-    if (strlen(text_background)) { write(STDOUT_FILENO, text_background, strlen(text_background)); clear_format = true; }
-    if (strlen(text_color))      { write(STDOUT_FILENO, text_color, strlen(text_color));           clear_format = true; }
-    if (strlen(text_flags))      { write(STDOUT_FILENO, text_flags, strlen(text_flags));           clear_format = true; }
-    write(STDOUT_FILENO, text, len);
-    if (clear_format)    write(STDOUT_FILENO, reset_ansi, strlen(reset_ansi));
+    if (strlen(text_background)) { os_write_to_terminal(text_background, strlen(text_background)); clear_format = true; }
+    if (strlen(text_color))      { os_write_to_terminal(text_color, strlen(text_color));           clear_format = true; }
+    if (strlen(text_flags))      { os_write_to_terminal(text_flags, strlen(text_flags));           clear_format = true; }
+    os_write_to_terminal(text, len);
+    if (clear_format)    os_write_to_terminal(reset_ansi, strlen(reset_ansi));
 }
 
 static void print_recursive_token(const textparser_t handle, const char *text, const textparser_token_item *token)
@@ -174,7 +174,7 @@ int main(int argc, const char *argv[])
 
         do {
             if (token->position > pos) {
-                write(STDOUT_FILENO, text + pos, token->position - pos);
+                os_write_to_terminal(text + pos, token->position - pos);
             }
 
             print_recursive_token(handle, text, token);
@@ -185,14 +185,14 @@ int main(int argc, const char *argv[])
         } while(token);
 
         if (text_size > pos) {
-            write(STDOUT_FILENO, text + pos, text_size - pos);
+            os_write_to_terminal(text + pos, text_size - pos);
         }
     } else {
-        write(STDOUT_FILENO, text, text_size);
+        os_write_to_terminal(text, text_size);
     }
 
     if (should_end_with_newline) {
-        write(STDOUT_FILENO, "\n", 1);
+        os_write_to_terminal("\n", 1);
     }
 
     return EXIT_SUCCESS;
