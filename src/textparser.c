@@ -173,8 +173,6 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
 
 static ssize_t textparser_find_token(const textparser_handle *int_handle, int token_id, size_t pos, bool other_text_inside)
 {
-    ssize_t ret = TOKEN_NOT_FOUND;
-
     if (pos >= int_handle->text_size) {
         return TOKEN_NOT_FOUND;
     }
@@ -569,8 +567,6 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
     const textparser_language_definition *definition = int_handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
 
-    textparser_token_item *child = nullptr;
-
     LOGV("enter TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
 
     if (offset >= int_handle->text_size) {
@@ -959,7 +955,6 @@ void textparser_free_language_definition(textparser_language_definition *definit
 int textparser_openfile(const char *pathname, int default_text_format, textparser_t *handle)
 {
     textparser_handle local_hnd;
-    struct stat fd_stat;
     int err = 0;
 
     memset(&local_hnd, 0, sizeof(local_hnd));
