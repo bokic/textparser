@@ -313,7 +313,7 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
     }
 
     child = textparser_parse_token(int_handle, current_token_id, parent_token_id, parent_start_stop, offset);
-    LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %ld", int_handle->language->tokens[child->token_id].name, child->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %zd", int_handle->language->tokens[child->token_id].name, child->position);
     ret->position = child->position;
     ret->len = child->len;
     ret->child = child;
@@ -597,7 +597,7 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
         exit_with_error("immediate_start not rule not!", offset);
     }
 
-    LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %ld", int_handle->language->tokens[ret->token_id].name, ret->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %zd", int_handle->language->tokens[ret->token_id].name, ret->position);
     ret->position = offset + token_start;
     ret->len = len;
     //current_offset = ret->position + len;
@@ -698,7 +698,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             {
                 LOGV("Search for nested token type %d - [%s] from pos: %zu", nested_tokens[c], int_handle->language->tokens[nested_tokens[c]].name, offset);
                 ssize_t pos = textparser_find_token(int_handle, nested_tokens[c], offset, token_def->other_text_inside);
-                LOGV("textparser_find_token() returned %ld", pos);
+                LOGV("textparser_find_token() returned %zd", pos);
                 if (pos < 0)
                     continue;
 
@@ -762,11 +762,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     }
 
     if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, &len, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
-        LOGE("Can't find [%s] at %ld. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + offset);
+        LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + offset);
         exit_with_error("Can't find end of the token!", offset);
     }
 
-    LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %ld", int_handle->language->tokens[ret->token_id].name, ret->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %zd", int_handle->language->tokens[ret->token_id].name, ret->position);
     ret->len = offset + token_end + len - ret->position;
     offset += token_end + len;
 
