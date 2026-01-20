@@ -12,6 +12,9 @@
 #include <fcntl.h>
 #include <stdbool.h>
 
+#ifndef SSIZE_MAX
+#define SSIZE_MAX ((ssize_t)((((size_t)-1) << 1) >> 1))
+#endif
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
