@@ -1096,6 +1096,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         memcpy(*handle, &local_hnd, sizeof(textparser_handle));
 
         for(int ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
+            if (((uint16_t *)local_hnd.text_addr)[ch] == '\n') {
                 ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
             }
         }
