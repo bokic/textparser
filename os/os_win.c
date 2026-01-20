@@ -29,10 +29,31 @@ ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 void* os_map(const char *pathname, size_t* size)
 {
     void* ret = NULL;
+    LARGE_INTEGER fileSize;
 
     HANDLE hnd = CreateFileA(pathname, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    HANDLE map_hnd = CreateFileMapping(hnd, NULL, PAGE_READONLY, 0, 1, NULL);
-    ret = MapViewOfFile(map_hnd, FILE_MAP_READ, 0, 0, 1);
+    if (hnd == INVALID_HANDLE_VALUE)
+        return NULL;
+
+    if (!GetFileSizeEx(hnd, &fileSize)) {
+        CloseHandle(hnd);
+        return NULL;
+    }
+
+    *size = (size_t)fileSize.QuadPart;
+
+    if (*size == 0) {
+        CloseHandle(hnd);
+        return NULL;
+    }
+
+    HANDLE map_hnd = CreateFileMapping(hnd, NULL, PAGE_READONLY, 0, 0, NULL);
+    if (map_hnd == NULL) {
+        CloseHandle(hnd);
+        return NULL;
+    }
+
+    ret = MapViewOfFile(map_hnd, FILE_MAP_READ, 0, 0, 0);
 
     CloseHandle(map_hnd);
     CloseHandle(hnd);
