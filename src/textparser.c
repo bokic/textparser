@@ -2,11 +2,9 @@
 #include <adv_regex.h>
 #include <os.h>
 
-#include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <unistd.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <fcntl.h>
