@@ -288,7 +288,7 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
         return nullptr;
     }
 
-    bzero(ret, sizeof(textparser_token_item));
+    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -350,7 +350,7 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         return nullptr;
     }
 
-    bzero(ret, sizeof(textparser_token_item));
+    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -481,7 +481,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
         return nullptr;
     }
 
-    bzero(ret, sizeof(textparser_token_item));
+    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -584,7 +584,7 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
         return nullptr;
     }
 
-    bzero(ret, sizeof(textparser_token_item));
+    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -641,7 +641,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         exit_with_error("Can't allocate memory!", offset);
     }
 
-    bzero(ret, sizeof(textparser_token_item));
+    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -882,10 +882,10 @@ static void textparser_init_regex(textparser_handle *int_handle)
         int malloc_size = token_cnt * sizeof(void *);
 
         int_handle->start_regex = malloc(malloc_size);
-        bzero(int_handle->start_regex, malloc_size);
+        memset(int_handle->start_regex, 0, malloc_size);
 
         int_handle->end_regex = malloc(malloc_size);
-        bzero(int_handle->end_regex, malloc_size);
+        memset(int_handle->end_regex, 0, malloc_size);
     }
 }
 
@@ -962,7 +962,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     struct stat fd_stat;
     int err = 0;
 
-    bzero(&local_hnd, sizeof(local_hnd));
+    memset(&local_hnd, 0, sizeof(local_hnd));
 
     local_hnd.text_addr = os_map(pathname, &local_hnd.mmap_size);
     if (local_hnd.text_addr == nullptr) {
@@ -1127,7 +1127,7 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
         return 6;
     }
 
-    bzero(ret, sizeof(textparser_handle));
+    memset(ret, 0, sizeof(textparser_handle));
 
     ret->text_format = text_format;
     ret->text_addr = text;

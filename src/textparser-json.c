@@ -4,7 +4,6 @@
 #include <json-c/json.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -41,7 +40,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
-    bzero(*definition, sizeof(textparser_language_definition));
+    memset(*definition, 0, sizeof(textparser_language_definition));
 
     found = json_object_object_get_ex(root_obj, "name", &value);
     if (!found){
@@ -80,7 +79,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             return TEXTPARSER_JSON_OUT_OF_MEMORY;
         }
 
-        bzero((*definition)->default_file_extensions, (array_length + 1) * sizeof(char *));
+        memset((*definition)->default_file_extensions, 0, (array_length + 1) * sizeof(char *));
 
         for(size_t i = 0; i < array_length; i++) {
             json_object *array_item = json_object_array_get_idx(value, i);
@@ -144,7 +143,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
-    bzero((*definition)->starts_with, sizeof(int) * starts_with_cnt);
+    memset((*definition)->starts_with, 0, sizeof(int) * starts_with_cnt);
     (*definition)->starts_with[starts_with_cnt] = TextParser_END;
 
     for(size_t c = 0; c < starts_with_cnt; c++) {
@@ -182,7 +181,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
-    bzero((*definition)->tokens, sizeof(textparser_token) * (tokens_cnt + 1));
+    memset((*definition)->tokens, 0, sizeof(textparser_token) * (tokens_cnt + 1));
 
     if (tokens_cnt > 0) {
         for(size_t token_idx = 0; token_idx < tokens_cnt; token_idx++) {
@@ -269,7 +268,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                     return TEXTPARSER_JSON_OUT_OF_MEMORY;
                 }
 
-                bzero((*definition)->tokens[token_idx].nested_tokens, sizeof(int) * (nested_tokens_cnt + 1));
+                memset((*definition)->tokens[token_idx].nested_tokens, 0, sizeof(int) * (nested_tokens_cnt + 1));
 
                 for(size_t c2 = 0; token_idx < nested_tokens_cnt; c2++) {
                     json_object *array_item = json_object_array_get_idx(key_value, c2);
