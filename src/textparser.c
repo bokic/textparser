@@ -139,11 +139,11 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
     {
         maxPos = int_handle->text_size / 2;
 
-        const u_int16_t *text = (const u_int16_t *)int_handle->text_addr;
+        const uint16_t *text = (const uint16_t *)int_handle->text_addr;
 
         for (size_t c = pos; c < maxPos; c++)
         {
-            u_int8_t ch = text[c];
+            uint8_t ch = text[c];
 
             if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
             {
@@ -1084,8 +1084,8 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         LOGW("no_lines for TEXTPARSER_ENCODING_UTF_8 type is not implemented!");
         break;
     case TEXTPARSER_ENCODING_UNICODE:
-        for(int ch = 0; ch < local_hnd.text_size / sizeof(u_int16_t); ch++) {
-            if (((u_int16_t *)local_hnd.text_addr)[ch] == '\n')
+        for(int ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
+            if (((uint16_t *)local_hnd.text_addr)[ch] == '\n')
                 local_hnd.no_lines++;
         }
 
@@ -1097,8 +1097,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
         memcpy(*handle, &local_hnd, sizeof(textparser_handle));
 
-        for(int ch = 0; ch < local_hnd.text_size / sizeof(u_int16_t); ch++) {
-            if (((u_int16_t *)local_hnd.text_addr)[ch] == '\n') {
+        for(int ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
                 ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
             }
         }
