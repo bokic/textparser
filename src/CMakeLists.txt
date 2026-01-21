@@ -39,7 +39,7 @@ target_include_directories(libtextparser PUBLIC
 
 if(WIN32)
     target_link_directories(libtextparser PRIVATE ../bin)
-    target_link_libraries(libtextparser PRIVATEpcre2-8.lib  pcre2-16.lib pcre2-32.lib)
+    target_link_libraries(libtextparser PRIVATE pcre2-8.lib pcre2-16.lib pcre2-32.lib)
 else()
     target_include_directories(libtextparser PRIVATE
         ${libpcre2-8_INCLUDE_DIRS}
