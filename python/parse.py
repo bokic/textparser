@@ -20,13 +20,13 @@ def main(args):
         chars = parser.parseFormat(text)
         print(chars.hex())
     elif len(args) == 2:
-        with open(args[1], "r") as f:
-            text = f.read()
+        with open(args[1], "rb") as f:
+            text = f.read().decode('latin-1', errors='ignore')
         tree = parser.parse(text)
         print(json.dumps(tree, indent=4))
     elif len(args) == 3 and args[2] == "--format":
-        with open(args[1], "r") as f:
-            text = f.read()
+        with open(args[1], "rb") as f:
+            text = f.read().decode('latin-1', errors='ignore')
         chars = parser.parseFormat(text)
         print(chars.hex())
     else:
