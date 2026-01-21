@@ -2,6 +2,8 @@
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
 //#include <php_definition.json.h>
+
+#include <json-c/json.h>
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -83,14 +85,46 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
     }
 }
 
+static struct json_object *recursivelyAddChildsToJson(const textparser_t handle, const textparser_token_item *item)
+{
+    struct json_object *ret = json_object_new_array();
+
+    const textparser_language_definition *language = textparser_get_language(handle);
+
+    while (item)
+    {
+        struct json_object *child = json_object_new_object();
+
+        json_object_object_add(child, "id", json_object_new_string(language->tokens[item->token_id].name));
+        json_object_object_add(child, "position", json_object_new_int(item->position));
+        json_object_object_add(child, "length", json_object_new_int(item->len));
+
+        if (item->child)
+        {
+            json_object_object_add(child, "children", recursivelyAddChildsToJson(handle, item->child));
+        }
+        else
+        {
+            json_object_object_add(child, "children", json_object_new_array());
+        }
+
+        json_object_array_add(ret, child);
+
+        item = item->next;
+    }
+
+    return ret;
+}
+
 void usage()
 {
-    fprintf(stderr, "Usage: textparser <file> [--no-color]\n");
+    fprintf(stderr, "Usage: textparser <file> [--no-color|--json]\n");
 }
 
 int main(int argc, const char *argv[])
 {
     bool colored = true;
+    bool json = false;
 
     const textparser_language_definition *language_def = nullptr;
     textparser_defer(handle);
@@ -106,6 +140,10 @@ int main(int argc, const char *argv[])
         if (strcmp(argv[2], "--no-color") == 0)
         {
             colored = false;
+        }
+        else if (strcmp(argv[2], "--json") == 0)
+        {
+            json = true;
         }
         else
         {
@@ -137,11 +175,22 @@ int main(int argc, const char *argv[])
         return EXIT_FAILURE;
     }
 
-    printf("File parsed ok!\n");
-
-    for(textparser_token_item *item = textparser_get_first_token(handle); item != nullptr; item = item->next)
+    if (json == true)
     {
-        print_textparser_token_item(handle, item, 0, colored);
+        struct json_object *jobj = recursivelyAddChildsToJson(handle, textparser_get_first_token(handle));
+
+        puts(json_object_to_json_string_ext(jobj, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY | JSON_C_TO_STRING_PRETTY_TAB));
+
+        json_object_put(jobj);
+    }
+    else
+    {
+        printf("File parsed ok!\n");
+
+        for(textparser_token_item *item = textparser_get_first_token(handle); item != nullptr; item = item->next)
+        {
+            print_textparser_token_item(handle, item, 0, colored);
+        }
     }
 
     return EXIT_SUCCESS;
