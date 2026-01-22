@@ -55,7 +55,7 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
     for(int c = 0; c < level; c++)
         putc(' ', stdout);
 
-    token_name = textparser_get_token_id_name(handle, item->token_id);
+    token_name = textparser_get_token_type_str(handle, item);
     token_text = textparser_get_token_text(handle, item);
 
     if (colored)

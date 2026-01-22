@@ -1273,25 +1273,6 @@ textparser_token_item *textparser_get_first_token(const textparser_t handle)
     return int_handle->first_item;
 }
 
-const char *textparser_get_token_id_name(const textparser_t handle, int token_id)
-{
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    if ((int_handle == nullptr)||(token_id < 0))
-        return nullptr;
-
-    for (int c = 0; c <= token_id; c++)
-    {
-        if (int_handle->language->tokens[c].name == nullptr)
-            return nullptr;
-
-        if (c == token_id)
-            return int_handle->language->tokens[c].name;
-    }
-
-    return nullptr;
-}
-
 char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item)
 {
     char *ret = nullptr;
@@ -1318,6 +1299,110 @@ const textparser_language_definition *textparser_get_language(const textparser_t
         return nullptr;
 
     return int_handle->language;
+}
+
+
+const textparser_token_item *textparser_get_token_child(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return nullptr;
+
+    return token->child;
+}
+
+const textparser_token_item *textparser_get_token_next(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return nullptr;
+
+    return token->next;
+}
+
+const char *textparser_get_token_type_str(const textparser_t handle, const textparser_token_item *token)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+    int token_id = 0;
+
+    if (int_handle == nullptr)
+        return nullptr;
+
+    if (token == nullptr)
+        return nullptr;
+
+    token_id = token->token_id;
+    if (token_id < 0)
+        return nullptr;
+
+    for (int c = 0; c <= token_id; c++)
+    {
+        if (int_handle->language->tokens[c].name == nullptr)
+        {
+            return nullptr;
+        }
+
+        if (c == token_id)
+        {
+            return int_handle->language->tokens[c].name;
+        }
+    }
+
+    return nullptr;
+}
+
+int textparser_get_token_type(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return -1;
+
+    return token->token_id;
+}
+
+int textparser_get_token_position(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return -1;
+
+    return token->position;
+}
+
+int textparser_get_token_length(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return -1;
+
+    return token->len;
+}
+
+uint32_t textparser_get_token_text_color(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return 0;
+
+    return token->text_color;
+}
+
+uint32_t textparser_get_token_text_background(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return 0;
+
+    return token->text_background;
+}
+
+uint32_t textparser_get_token_text_flags(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return 0;
+
+    return token->text_flags;
+}
+
+const char *textparser_get_token_error(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return nullptr;
+
+    return token->error;
 }
 
 static void textparser_parse_state_recursively_fill(const textparser_token_item *token, int *state)

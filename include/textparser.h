@@ -21,10 +21,9 @@
 #define TEXTPARSER_NOCOLOR 0xffffffff
 
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
+#define textparser_parser_state_defer(var) textparser_parser_state *var __attribute__((cleanup(textparser_state_cleanup))) = nullptr
 
 enum textparser_encoding { TEXTPARSER_ENCODING_ERROR, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
-
-typedef void* textparser_t;
 
 enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_GROUP,
@@ -36,18 +35,13 @@ enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
 };
 
+typedef void* textparser_t;
+typedef void* textparser_token_item_t;
 
 typedef struct {
     int len;
     int state[];
 } textparser_parser_state;
-#define textparser_parser_state_defer(var) textparser_parser_state *var __attribute__((cleanup(textparser_state_cleanup))) = nullptr
-
-typedef struct {
-    const char *text;
-    size_t len;
-    int type;
-} textparser_line_parser_item;
 
 typedef struct textparser_token_item {
     struct textparser_token_item *next;
@@ -106,9 +100,19 @@ EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textparser_t handle);
-EXPORT_TEXTPARSER const char *textparser_get_token_id_name(const textparser_t handle, int token_id);
 EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
 EXPORT_TEXTPARSER const textparser_language_definition *textparser_get_language(const textparser_t handle);
+
+EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_child(const textparser_token_item *token);
+EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_next(const textparser_token_item *token);
+EXPORT_TEXTPARSER const char *textparser_get_token_type_str(const textparser_t handle, const textparser_token_item *token);
+EXPORT_TEXTPARSER int textparser_get_token_type(const textparser_token_item *token);
+EXPORT_TEXTPARSER int textparser_get_token_position(const textparser_token_item *token);
+EXPORT_TEXTPARSER int textparser_get_token_length(const textparser_token_item *token);
+EXPORT_TEXTPARSER uint32_t textparser_get_token_text_color(const textparser_token_item *token);
+EXPORT_TEXTPARSER uint32_t textparser_get_token_text_background(const textparser_token_item *token);
+EXPORT_TEXTPARSER uint32_t textparser_get_token_text_flags(const textparser_token_item *token);
+EXPORT_TEXTPARSER const char *textparser_get_token_error(const textparser_token_item *token);
 
 EXPORT_TEXTPARSER textparser_parser_state *textparser_state_new(const textparser_t handle);
 EXPORT_TEXTPARSER void textparser_state_free(textparser_parser_state *state);
