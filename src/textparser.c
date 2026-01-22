@@ -221,7 +221,7 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
         case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER:
             if (token->nested_tokens) {
                 LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
-                return textparser_find_token(int_handle, token->nested_tokens[0], pos, token->other_text_inside);
+                return textparser_find_token(int_handle, token->nested_tokens[0], pos, other_text_inside);
             }
             LOGE("token->nested_tokens = nullptr for TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
             break;
@@ -545,11 +545,10 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
     offset += final_end_pos;
 
     child = textparser_parse_token(int_handle, end_token_id, parent_token_id, parent_start_stop, offset);
+    last_child->next = child;
     check_and_exit_on_fatal_parsing_error(offset);
 
-    last_child->next = child;
-
-    ret->len = (offset + final_end_pos) - ret->position;
+    ret->len = child->position + child->len - ret->position;
 
 exit:
     return ret;
@@ -571,14 +570,12 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
     LOGV("enter TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
 
     if (offset >= int_handle->text_size) {
-        int_handle->error = "offset >= int_handle->text_size!";
-        return nullptr;
+        exit_with_error("offset >= int_handle->text_size!", offset);
     }
 
     ret = malloc(sizeof(textparser_token_item));
     if (ret == nullptr) {
-        int_handle->error = "Can't allocate memory!";
-        return nullptr;
+        exit_with_error("Can't allocate memory!", offset);
     }
 
     memset(ret, 0, sizeof(textparser_token_item));
@@ -960,8 +957,10 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
     memset(&local_hnd, 0, sizeof(local_hnd));
 
+    local_hnd.mmap_size = SIZE_MAX;
+
     local_hnd.mmap_addr = os_map(pathname, &local_hnd.mmap_size);
-    if (local_hnd.mmap_addr == nullptr) {
+    if ((local_hnd.mmap_addr == nullptr)&&(local_hnd.mmap_size > 0)) {
         err = 1;
         goto err;
     }
@@ -1202,7 +1201,7 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
             {
                 if (offset < closest_offset) {
                     closest_token_id = token_id;
-                    closest_offset = pos + offset;
+                    closest_offset = offset;
                     if (offset == 0)
                         break;
                 }
@@ -1211,6 +1210,8 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
 
         if (closest_token_id < 0)
             break;
+
+        closest_offset += pos;
 
         textparser_token_item *token_item = textparser_parse_token(handle, closest_token_id, TextParser_END, TEXTPARSER_SEARCH_END_TOKEN, closest_offset);
         if (token_item == nullptr) {
