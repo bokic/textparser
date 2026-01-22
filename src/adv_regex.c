@@ -36,6 +36,8 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
             printf("PCRE2 compilation_8 failed for regex [%s]\n", regex_str);
             return false;
         }
+
+        pcre2_jit_compile_8(*regex, PCRE2_JIT_COMPLETE);
     }
 
     match_data = pcre2_match_data_create_from_pattern_8(*regex, nullptr);
@@ -108,6 +110,8 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
             printf("PCRE2 compilation_16 failed at offset %zu: %s\n", error_offset, buffer);
             return false;
         }
+
+        pcre2_jit_compile_16(*regex, PCRE2_JIT_COMPLETE);
     }
 
     match_data = pcre2_match_data_create_from_pattern_16(*regex, nullptr);
@@ -180,6 +184,8 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
             fprintf(stderr, "PCRE2 compilation_32 failed at offset %zu: %s\n", error_offset, buffer);
             return false;
         }
+
+        pcre2_jit_compile_32(*regex, PCRE2_JIT_COMPLETE);
     }
 
     match_data = pcre2_match_data_create_from_pattern_32(*regex, nullptr);
