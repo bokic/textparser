@@ -55,10 +55,6 @@ typedef struct textparser_token_item {
     int token_id;
     size_t position;
     size_t len;
-#ifdef DEBUG_TEXTPARSER
-    char *debug_token_name;
-    char *debug_text;
-#endif
     uint32_t text_color;
     uint32_t text_background;
     uint32_t text_flags;

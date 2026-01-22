@@ -8,8 +8,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-#add_compile_definitions(DEBUG_TEXTPARSER)
-
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/json_definition.json.h
   COMMAND python ./json2h.py json_definition.json
