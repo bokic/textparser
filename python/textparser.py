@@ -62,9 +62,6 @@ class TextParser:
                     endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
                         endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
-                        if (endTokenPos == 0):
-                            ret['length'] = pos - ret['position']
-                            break
 
             for childTokenName in token['nestedTokens']:
                 childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], self.definition['otherTextInside'])
@@ -80,11 +77,12 @@ class TextParser:
                     endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
                         endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
-                        if (endTokenPos == 0):
-                            ret['length'] = pos - ret['position']
-                            break
 
-            if (endTokenPos < closestChildTokenPos):
+            shouldBreak = False
+            if (endTokenPos != sys.maxsize) and (endTokenPos <= closestChildTokenPos):
+                 shouldBreak = True
+
+            if shouldBreak:
                 ret['length'] = pos + endTokenPos - ret['position']
                 break
 
@@ -292,8 +290,8 @@ class TextParser:
                     if (endRegex is not None):
                         endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
                         endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
-                        if (endTokenPos == 0):
-                            ret['length'] = pos - ret['position'] + endTokenLength
+                        if (endTokenPos < closestChildTokenPos):
+                            ret['length'] = pos - ret['position'] + endTokenPos + endTokenLength
                             break
 
             if (endTokenPos < closestChildTokenPos):
@@ -329,6 +327,8 @@ class TextParser:
                 endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
                 endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
                 if (endTokenPos == 0):
+                    if token['searchParentEndTokenLast']:
+                         continue
                     ret['length'] = pos + endTokenPos + endTokenLength - ret['position']
                     break
 
