@@ -305,9 +305,8 @@
       },
       "ScriptLineComment":{
          "type":"SimpleToken",
-         "startRegex":"\\/\\/.*"
-      },
-      "ExpressionEnd":{
+         "startRegex":"\\/\\/.*[^\\r\\n]"
+      },      "ExpressionEnd":{
          "type":"SimpleToken",
          "startRegex":";"
       },
