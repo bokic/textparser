@@ -39,11 +39,11 @@ void* os_map(const char *pathname, size_t* size)
     if (fstat(fd, &stat))
         return NULL;
 
+    *size = stat.st_size;
+
     ret = mmap(NULL, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (ret == MAP_FAILED)
         return NULL;
-
-    *size = stat.st_size;
 
     return ret;
 }
