@@ -22,7 +22,7 @@ static int parseFile(const path &filename)
         return EXIT_FAILURE;
     }
 
-    println("Parsing. file({}).", itemFileName);
+    print("Parsing. file({})", itemFileName);
 
     res = textparser_parse(handle, &cfml_definition);
     if (res)
@@ -31,7 +31,7 @@ static int parseFile(const path &filename)
         return EXIT_FAILURE;
     }
 
-    println("ok. file({}).", itemFileName);
+    println(" - done.");
 
     return EXIT_SUCCESS;
 }
