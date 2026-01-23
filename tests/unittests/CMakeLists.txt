@@ -19,7 +19,10 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable( unittests
-  unittests.cpp
+  cfml_tests.cpp
+  json_tests.cpp
+
+  tokenparser.hpp
 )
 target_include_directories( unittests PRIVATE
     ../../definitions
