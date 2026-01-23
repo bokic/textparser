@@ -1301,6 +1301,20 @@ const textparser_language_definition *textparser_get_language(const textparser_t
     return int_handle->language;
 }
 
+size_t textparser_get_token_children_count(const textparser_token_item *token)
+{
+    size_t ret = 0;
+
+    const struct textparser_token_item * child = token->child;
+
+    while (child)
+    {
+        ret++;
+        child = child->next;
+    }
+
+    return ret;
+}
 
 const textparser_token_item *textparser_get_token_child(const textparser_token_item *token)
 {
@@ -1318,12 +1332,11 @@ const textparser_token_item *textparser_get_token_next(const textparser_token_it
     return token->next;
 }
 
-const char *textparser_get_token_type_str(const textparser_t handle, const textparser_token_item *token)
+const char *textparser_get_token_type_str(const textparser_language_definition *language, const textparser_token_item *token)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
     int token_id = 0;
 
-    if (int_handle == nullptr)
+    if (language == nullptr)
         return nullptr;
 
     if (token == nullptr)
@@ -1335,14 +1348,14 @@ const char *textparser_get_token_type_str(const textparser_t handle, const textp
 
     for (int c = 0; c <= token_id; c++)
     {
-        if (int_handle->language->tokens[c].name == nullptr)
+        if (language->tokens[c].name == nullptr)
         {
             return nullptr;
         }
 
         if (c == token_id)
         {
-            return int_handle->language->tokens[c].name;
+            return language->tokens[c].name;
         }
     }
 

@@ -103,9 +103,10 @@ EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textpa
 EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
 EXPORT_TEXTPARSER const textparser_language_definition *textparser_get_language(const textparser_t handle);
 
+EXPORT_TEXTPARSER size_t textparser_get_token_children_count(const textparser_token_item *token);
 EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_child(const textparser_token_item *token);
 EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_next(const textparser_token_item *token);
-EXPORT_TEXTPARSER const char *textparser_get_token_type_str(const textparser_t handle, const textparser_token_item *token);
+EXPORT_TEXTPARSER const char *textparser_get_token_type_str(const textparser_language_definition *language, const textparser_token_item *token);
 EXPORT_TEXTPARSER int textparser_get_token_type(const textparser_token_item *token);
 EXPORT_TEXTPARSER int textparser_get_token_position(const textparser_token_item *token);
 EXPORT_TEXTPARSER int textparser_get_token_length(const textparser_token_item *token);
