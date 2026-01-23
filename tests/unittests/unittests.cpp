@@ -16,7 +16,7 @@ public:
     TokenParserItem(const TokenParserItem &other)
         : position(other.position)
         , length(other.length)
-        , name(other.name)
+        , type(other.type)
         , children(other.children)
         , m_token(other.m_token)
         , m_definition(other.m_definition)
@@ -25,7 +25,7 @@ public:
     {
         position = other.position;
         length = other.length;
-        name = other.name;
+        type = other.type;
         children = other.children;
         m_token = other.m_token;
         m_definition = other.m_definition;
@@ -43,7 +43,7 @@ public:
         {
             position = textparser_get_token_position(token);
             length = textparser_get_token_length(token);
-            name = textparser_get_token_type_str(definition, token);
+            type = textparser_get_token_type_str(definition, token);
             children = textparser_get_token_children_count(token);
         }
     }
@@ -63,7 +63,7 @@ public:
 
     int position = -1;
     int length = 0;
-    const char *name = nullptr;
+    const char *type = nullptr;
     size_t children = 0;
 
 private:
@@ -127,32 +127,32 @@ TEST(parse_JSON, basic) {
     auto tokens = TextParser(R"([1,2,3])", &json_definition);
     EXPECT_EQ(tokens.count, 1);
 
-    EXPECT_STREQ(tokens[0].name, "Array");
+    EXPECT_STREQ(tokens[0].type, "Array");
     EXPECT_EQ   (tokens[0].position, 0);
     EXPECT_EQ   (tokens[0].length,   7);
     EXPECT_EQ   (tokens[0].children, 5);
 
-    EXPECT_STREQ(tokens[0][0].name, "Number");
+    EXPECT_STREQ(tokens[0][0].type, "Number");
     EXPECT_EQ   (tokens[0][0].position, 1);
     EXPECT_EQ   (tokens[0][0].length,   1);
     EXPECT_EQ   (tokens[0][0].children, 0);
 
-    EXPECT_STREQ(tokens[0][1].name, "ValueSeparator");
+    EXPECT_STREQ(tokens[0][1].type, "ValueSeparator");
     EXPECT_EQ   (tokens[0][1].position, 2);
     EXPECT_EQ   (tokens[0][1].length,   1);
     EXPECT_EQ   (tokens[0][1].children, 0);
 
-    EXPECT_STREQ(tokens[0][2].name, "Number");
+    EXPECT_STREQ(tokens[0][2].type, "Number");
     EXPECT_EQ   (tokens[0][2].position, 3);
     EXPECT_EQ   (tokens[0][2].length,   1);
     EXPECT_EQ   (tokens[0][2].children, 0);
 
-    EXPECT_STREQ(tokens[0][3].name, "ValueSeparator");
+    EXPECT_STREQ(tokens[0][3].type, "ValueSeparator");
     EXPECT_EQ   (tokens[0][3].position, 4);
     EXPECT_EQ   (tokens[0][3].length,   1);
     EXPECT_EQ   (tokens[0][3].children, 0);
 
-    EXPECT_STREQ(tokens[0][4].name, "Number");
+    EXPECT_STREQ(tokens[0][4].type, "Number");
     EXPECT_EQ   (tokens[0][4].position, 5);
     EXPECT_EQ   (tokens[0][4].length,   1);
     EXPECT_EQ   (tokens[0][4].children, 0);
@@ -162,27 +162,27 @@ TEST(parse_CFML, basic_cfset) {
     auto tokens = TextParser(R"(<cfset a = 1234 />)", &cfml_definition);
     EXPECT_EQ(tokens.count, 1);
 
-    EXPECT_STREQ(tokens[0].name, "StartTag");
+    EXPECT_STREQ(tokens[0].type, "StartTag");
     EXPECT_EQ   (tokens[0].position, 0);
     EXPECT_EQ   (tokens[0].length,   18);
     EXPECT_EQ   (tokens[0].children, 1);
 
-    EXPECT_STREQ(tokens[0][0].name, "Expression");
+    EXPECT_STREQ(tokens[0][0].type, "Expression");
     EXPECT_EQ   (tokens[0][0].position, 7);
     EXPECT_EQ   (tokens[0][0].length,   9);
     EXPECT_EQ   (tokens[0][0].children, 3);
 
-    EXPECT_STREQ(tokens[0][0][0].name, "Variable");
+    EXPECT_STREQ(tokens[0][0][0].type, "Variable");
     EXPECT_EQ   (tokens[0][0][0].position, 7);
     EXPECT_EQ   (tokens[0][0][0].length,   1);
     EXPECT_EQ   (tokens[0][0][0].children, 0);
 
-    EXPECT_STREQ(tokens[0][0][1].name, "Operator");
+    EXPECT_STREQ(tokens[0][0][1].type, "Operator");
     EXPECT_EQ   (tokens[0][0][1].position, 9);
     EXPECT_EQ   (tokens[0][0][1].length,   1);
     EXPECT_EQ   (tokens[0][0][1].children, 0);
 
-    EXPECT_STREQ(tokens[0][0][2].name, "Number");
+    EXPECT_STREQ(tokens[0][0][2].type, "Number");
     EXPECT_EQ   (tokens[0][0][2].position, 11);
     EXPECT_EQ   (tokens[0][0][2].length,   4);
     EXPECT_EQ   (tokens[0][0][2].children, 0);
