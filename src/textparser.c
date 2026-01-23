@@ -1377,7 +1377,7 @@ int textparser_get_token_type(const textparser_token_item *token)
     return token->token_id;
 }
 
-int textparser_get_token_position(const textparser_token_item *token)
+size_t textparser_get_token_position(const textparser_token_item *token)
 {
     if (token == nullptr)
         return -1;
@@ -1385,7 +1385,7 @@ int textparser_get_token_position(const textparser_token_item *token)
     return token->position;
 }
 
-int textparser_get_token_length(const textparser_token_item *token)
+size_t textparser_get_token_length(const textparser_token_item *token)
 {
     if (token == nullptr)
         return -1;
