@@ -1243,6 +1243,13 @@ const char *textparser_parse_error(textparser_t handle)
     return int_handle->error;
 }
 
+size_t textparser_parse_error_position(textparser_t handle)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+
+    return int_handle->error_offset;
+}
+
 const char *textparser_get_text(textparser_t handle)
 {
     const textparser_handle *int_handle = (const textparser_handle *)handle;

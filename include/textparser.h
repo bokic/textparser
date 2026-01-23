@@ -96,6 +96,7 @@ EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_language_definition *definition);
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
+EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle);
 
 EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
