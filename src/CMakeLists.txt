@@ -65,8 +65,8 @@ set_target_properties(libtextparser PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser"
-    VERSION "0.7.0"
-    SOVERSION "0.7"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
 )
 
 install(TARGETS libtextparser
@@ -106,8 +106,8 @@ set_target_properties(libtextparser-json PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser-json"
-    VERSION "0.7.0"
-    SOVERSION "0.7"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
 )
 
 install(TARGETS libtextparser-json
