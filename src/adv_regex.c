@@ -11,7 +11,7 @@ static pcre2_compile_context_8 *ccontext8 = nullptr;
 static pcre2_compile_context_16 *ccontext16 = nullptr;
 static pcre2_compile_context_32 *ccontext32 = nullptr;
 
-static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool only_at_start)
+static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start)
 {
     bool ret = false;
 
@@ -28,7 +28,10 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
 
     if (*regex == nullptr)
     {
-        *regex = pcre2_compile_8((PCRE2_SPTR8)regex_str, PCRE2_ZERO_TERMINATED, is_utf ? (PCRE2_UTF | PCRE2_CASELESS) : PCRE2_CASELESS, &error_number, &error_offset, ccontext8); // TODO: hardcoded CASELESS
+        uint32_t options = 0;
+        if (is_utf) options |= PCRE2_UTF;
+        if (is_caseless) options |= PCRE2_CASELESS;
+        *regex = pcre2_compile_8((PCRE2_SPTR8)regex_str, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext8);
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
@@ -85,7 +88,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
     return ret;
 }
 
-static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool only_at_start)
+static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start)
 {
     bool ret = false;
 
@@ -102,7 +105,10 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
 
     if (*regex == nullptr)
     {
-        *regex = pcre2_compile_16((PCRE2_SPTR16)regex_str, PCRE2_ZERO_TERMINATED, is_utf ? (PCRE2_UTF | PCRE2_CASELESS) : PCRE2_CASELESS, &error_number, &error_offset, ccontext16); // TODO: hardcoded CASELESS
+        uint32_t options = 0;
+        if (is_utf) options |= PCRE2_UTF;
+        if (is_caseless) options |= PCRE2_CASELESS;
+        *regex = pcre2_compile_16((PCRE2_SPTR16)regex_str, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext16);
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
@@ -159,7 +165,7 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
     return ret;
 }
 
-static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool only_at_start)
+static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     bool ret = false;
 
@@ -176,7 +182,9 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
 
     if (*regex == nullptr)
     {
-        *regex = pcre2_compile_32((PCRE2_SPTR32)regex_str, PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &error_number, &error_offset, ccontext32); // TODO: hardcoded CASELESS
+        uint32_t options = 0;
+        if (is_caseless) options |= PCRE2_CASELESS;
+        *regex = pcre2_compile_32((PCRE2_SPTR32)regex_str, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext32);
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
@@ -233,7 +241,7 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
     return ret;
 }
 
-bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool only_at_start)
+bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     if (regex_str == nullptr)
     {
@@ -243,15 +251,15 @@ bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser
     switch(encoding)
     {
     case TEXTPARSER_ENCODING_LATIN1:
-        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, false, only_at_start);
+        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, false, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UTF_8:
-        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, true, only_at_start);
+        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UNICODE:
-        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, false, only_at_start);
+        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, false, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UTF_16:
-        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, true, only_at_start);
+        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UTF_32:
-        return adv_regex_find_pattern32(regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length, only_at_start);
+        return adv_regex_find_pattern32(regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length, is_caseless, only_at_start);
     default:
         fprintf(stderr, "Illegal text encoding(%d) at adv_regex_find_pattern()\n", encoding);
         break;

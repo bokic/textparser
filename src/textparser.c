@@ -233,7 +233,7 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP");
-            if (adv_regex_find_pattern(token->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, nullptr, !other_text_inside)) {
+            if (adv_regex_find_pattern(token->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, nullptr, !int_handle->language->case_sensitivity, !other_text_inside)) {
                 LOGI("found_at token type: [%s] at %zu",  int_handle->language->tokens[token_id].name, pos + found_at);
                 return found_at;
             }
@@ -393,7 +393,7 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         }
 
         if (parent_regex_pattern) {
-            bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent, nullptr, !token_def->other_text_inside);
+            bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent, nullptr, !int_handle->language->case_sensitivity, !token_def->other_text_inside);
 
             if ((found_parent_token)&&(closest_parent <= closest))
             {
@@ -587,7 +587,7 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
 
     size_t token_start = 0;
     size_t len = 0;
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_start, &len, !definition->tokens[parent_token_id].other_text_inside)) {
+    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_start, &len, !int_handle->language->case_sensitivity, !definition->tokens[parent_token_id].other_text_inside)) {
         exit_with_error("Can't find start of the token!", offset);
     }
 
@@ -643,7 +643,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     ret->position = offset;
 
     // Search for start token
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_start, &len, !definition->tokens[parent_token_id].other_text_inside)) {
+    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_start, &len, !int_handle->language->case_sensitivity, !definition->tokens[parent_token_id].other_text_inside)) {
         exit_with_error("Can't find start of the token!", offset);
     }
 
@@ -681,7 +681,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
             if (token_def->search_parent_end_token_last == false)
             {
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, nullptr, false);
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, nullptr, !int_handle->language->case_sensitivity, false);
                 if ((found_end)&&(token_end == 0))
                 {
                     break;
@@ -720,7 +720,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             if (token_def->search_parent_end_token_last == true)
             {
                 size_t parent_end = 0;
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &parent_end, nullptr, false);
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &parent_end, nullptr, !int_handle->language->case_sensitivity, false);
                 if ((found_end)&&(parent_end < token_end))
                 {
                     token_end = parent_end;
@@ -759,7 +759,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         exit_with_error("offset >= int_handle->text_size!", offset);
     }
 
-    if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, &len, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
+    if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, &len, !int_handle->language->case_sensitivity, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
         LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + offset);
         exit_with_error("Can't find end of the token!", offset);
     }
