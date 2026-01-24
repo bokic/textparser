@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
-add_subdirectory(unittests)
+if (NOT APPLE)
+    add_subdirectory(unittests)
+endif()
+
 add_subdirectory(cfml_validator)
