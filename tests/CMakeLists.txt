@@ -5,3 +5,4 @@ if (NOT APPLE)
 endif()
 
 add_subdirectory(cfml_validator)
+#add_subdirectory(qscintilla)
