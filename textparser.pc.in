@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: textparser
+Description: Text parsing library
+Version: @TEXTPARSER_VERSION_TAG@
+Requires.private: libpcre2-8 libpcre2-16 libpcre2-32
+Libs: -L${libdir} -ltextparser
+Cflags: -I${includedir}

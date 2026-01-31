@@ -43,6 +43,8 @@ string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*$" "\\1" TEXTPARSER_VERSION_TAG_SHO
 
 project(textparser)
 
+include(GNUInstallDirs)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
@@ -67,3 +69,14 @@ add_subdirectory(src)
 add_subdirectory(cli)
 add_subdirectory(ccat)
 add_subdirectory(tests)
+
+# PkgConfig config
+configure_file(textparser.pc.in textparser.pc @ONLY)
+configure_file(textparser-json.pc.in textparser-json.pc @ONLY)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/textparser.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+        COMPONENT src)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/textparser-json.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+        COMPONENT src)
