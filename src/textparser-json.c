@@ -56,20 +56,20 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     else
         (*definition)->version = 0.;
 
-    found = json_object_object_get_ex(root_obj, "empty_segment_language", &value);
+    found = json_object_object_get_ex(root_obj, "emptySegmentLanguage", &value);
     if (found)
         (*definition)->empty_segment_language = strdup(json_object_get_string(value));
 
-    found = json_object_object_get_ex(root_obj, "case_sensitivity", &value);
+    found = json_object_object_get_ex(root_obj, "caseSensitivity", &value);
     if (!found) {
-        (*definition)->error_string = "Mandatory field `case_sensitivity` not set!";
+        (*definition)->error_string = "Mandatory field `caseSensitivity` not set!";
         return TEXTPARSER_JSON_CASE_SENSITIVITY_NOT_FOUND;
     }
     (*definition)->case_sensitivity = json_object_get_boolean(value);
 
-    found = json_object_object_get_ex(root_obj, "file_extensions", &value);
+    found = json_object_object_get_ex(root_obj, "defaultFileExtensions", &value);
     if (!found) {
-        (*definition)->error_string = "Mandatory field `file_extensions` not set!";
+        (*definition)->error_string = "Mandatory field `defaultFileExtensions` not set!";
         return TEXTPARSER_JSON_FILE_EXTENSIONS_NOT_FOUND;
     }
     array_length = json_object_array_length(value);
@@ -89,7 +89,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->default_file_extensions[array_length] = nullptr;
     }
 
-    found = json_object_object_get_ex(root_obj, "encoding", &value);
+    found = json_object_object_get_ex(root_obj, "defaultTextEncoding", &value);
     if (found) {
         const char *encoding = json_object_get_string(value);
         if(strcmp(encoding, "latin1") == 0)
@@ -99,7 +99,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         else if(strcmp(encoding, "unicode") == 0)
             (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UNICODE;
         else {
-            (*definition)->error_string = "Invalid `encoding` encoding! Should be one of the following: latin1, utf8, unicode.";
+            (*definition)->error_string = "Invalid `defaultTextEncoding` encoding! Should be one of the following: latin1, utf8, unicode.";
             return TEXTPARSER_JSON_ENCODING_NOT_FOUND;
         }
     }
@@ -108,14 +108,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->default_text_encoding = TEXTPARSER_ENCODING_LATIN1;
     }
 
-    found = json_object_object_get_ex(root_obj, "starts_with", &value);
+    found = json_object_object_get_ex(root_obj, "startTokens", &value);
     if (!found) {
-        (*definition)->error_string = "Mandatory field `starts_with` is missing!";
+        (*definition)->error_string = "Mandatory field `startTokens` is missing!";
         return TEXTPARSER_JSON_STARTS_WITH_NOT_FOUND;
     }
 
     if (!json_object_is_type(value, json_type_array)) {
-        (*definition)->error_string = "`starts_with` is not array!";
+        (*definition)->error_string = "`startTokens` is not array!";
         return TEXTPARSER_JSON_STARTS_WITH_NOT_ARRAY;
     }
 
@@ -125,16 +125,16 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_TOKENS_NOT_FOUND;
     }
 
-    if (!json_object_is_type(tokens, json_type_array)) {
-        (*definition)->error_string = "`tokens` is not array!";
-        return TEXTPARSER_JSON_TOKENS_NOT_ARRAY;
+    if (!json_object_is_type(tokens, json_type_object)) {
+        (*definition)->error_string = "`tokens` is not object!";
+        return TEXTPARSER_JSON_TOKENS_NOT_OBJECT;
     }
 
-    size_t tokens_cnt = json_object_array_length(tokens);
+    size_t tokens_cnt = json_object_object_length(tokens);
 
     size_t starts_with_cnt = json_object_array_length(value);
     if (starts_with_cnt == 0) {
-        (*definition)->error_string = "`starts_with` array is empty!";
+        (*definition)->error_string = "`startTokens` array is empty!";
         return TEXTPARSER_JSON_STARTS_WITH_IS_EMPTY;
     }
 
@@ -146,8 +146,9 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     memset((*definition)->starts_with, 0, sizeof(int) * starts_with_cnt);
     (*definition)->starts_with[starts_with_cnt] = TextParser_END;
 
-    for(size_t c = 0; c < starts_with_cnt; c++) {
-        json_object *array_item = json_object_array_get_idx(value, c);
+    /*for(size_t c = 0; c < starts_with_cnt; c++) {
+        //json_object *array_item = json_object_array_get_idx(value, c);
+        json_object *array_item = json_object_;
 
         if (!json_object_is_type(array_item, json_type_string)) {
             (*definition)->error_string = "`starts_with` element not string!";
@@ -168,9 +169,9 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                 break;
             }
         }
-    }
+    }*/
 
-    found = json_object_object_get_ex(root_obj, "other_text_inside", &value);
+    found = json_object_object_get_ex(root_obj, "otherTextInside", &value);
     if (found) {
         (*definition)->other_text_inside = json_object_get_boolean(value);
     }

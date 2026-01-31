@@ -25,6 +25,7 @@ target_include_directories(textparser PRIVATE
 )
 
 target_link_libraries(textparser PRIVATE
+    libtextparser-json
     libtextparser
 )
 

@@ -1,3 +1,4 @@
+#include <textparser-json.h>
 #include <textparser.h>
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
@@ -118,7 +119,7 @@ static struct json_object *recursivelyAddChildsToJson(const textparser_t handle,
 
 void usage()
 {
-    fprintf(stderr, "Usage: textparser <file> [--no-color|--json]\n");
+    fprintf(stderr, "Usage: textparser <file> [--no-color|--json|--definition definition_file.json]\n");
 }
 
 int main(int argc, const char *argv[])
@@ -129,7 +130,7 @@ int main(int argc, const char *argv[])
     const textparser_language_definition *language_def = nullptr;
     textparser_defer(handle);
 
-    if ((argc < 2)||(argc > 3))
+    if ((argc < 2)||(argc > 4))
     {
         usage();
         return EXIT_FAILURE;
@@ -151,10 +152,32 @@ int main(int argc, const char *argv[])
             return EXIT_FAILURE;
         }
     }
+    else if (argc == 4)
+    {
+        if (strcmp(argv[2], "--definition") == 0)
+        {
+            const char *definition_file = argv[3];
+            int res = textparser_json_load_language_definition_from_json_file(definition_file, (textparser_language_definition **)&language_def);
+            if (res)
+            {
+                fprintf(stderr, "textparser_json_load_language_definition_from_json_file returned with error code: %d\n", res);
+                return EXIT_FAILURE;
+            }
+        }
+        else
+        {
+            usage();
+            return EXIT_FAILURE;
+        }
+    }
 
     const char *filename = argv[1];
 
-    language_def = get_language_definition_by_filename(filename);
+    if (language_def == nullptr)
+    {
+        language_def = get_language_definition_by_filename(filename);
+    }
+
     if (language_def == nullptr)
     {
         fprintf(stderr, "Unsupported file extension for file %s\n", filename);
