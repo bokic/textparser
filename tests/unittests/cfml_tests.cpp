@@ -6,6 +6,10 @@
 #include <cfml_definition.json.h>
 
 
+TEST(parse_CFML, crash_cfset) {
+    auto tokens = TextParser(R"(<!--- <!--- --->)", &cfml_definition);
+}
+
 TEST(parse_CFML, basic_cfset) {
     auto tokens = TextParser(R"(<cfset a = 1234 />)", &cfml_definition);
     EXPECT_EQ(tokens.count, 1);
