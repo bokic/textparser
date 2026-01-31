@@ -33,8 +33,9 @@ add_library(libtextparser SHARED
 )
 
 target_include_directories(libtextparser PUBLIC
-    ../include
-    ../os
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../os>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 if(WIN32)
@@ -70,6 +71,7 @@ set_target_properties(libtextparser PROPERTIES
 )
 
 install(TARGETS libtextparser
+    EXPORT textparserTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -83,7 +85,8 @@ add_library(libtextparser-json SHARED
 )
 
 target_include_directories(libtextparser-json PUBLIC
-    ../include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 if(WIN32)
@@ -113,9 +116,41 @@ set_target_properties(libtextparser-json PROPERTIES
 )
 
 install(TARGETS libtextparser-json
+    EXPORT textparserTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     COMPONENT src
+)
+
+# Export targets
+install(EXPORT textparserTargets
+    FILE textparserTargets.cmake
+    NAMESPACE textparser::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/textparser
+    COMPONENT Devel
+)
+
+include(CMakePackageConfigHelpers)
+
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/textparser)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/textparserConfigVersion.cmake"
+    VERSION ${TEXTPARSER_VERSION_TAG}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/textparserConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/textparserConfig.cmake"
+    INSTALL_DESTINATION ${ConfigPackageLocation}
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/textparserConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/textparserConfigVersion.cmake"
+    DESTINATION ${ConfigPackageLocation}
+    COMPONENT Devel
 )

@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Dependencies
+if(NOT WIN32)
+    find_dependency(json-c)
+    find_dependency(PkgConfig)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/textparserTargets.cmake")
+
+check_required_components(textparser)
