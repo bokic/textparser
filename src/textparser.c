@@ -716,8 +716,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
             if (offset == int_handle->text_size)
             {
-                ret->len = offset + token_end + len - ret->position;
-                return ret;
+                exit_with_error("offset == int_handle->text_size", offset);
             }
         } while (child_token_id >= 0);
     }
