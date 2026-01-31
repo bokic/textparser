@@ -7,7 +7,7 @@
       "cfc"
    ],
    "otherTextInside":true,
-   "defaultTextEncoding":"Latin1",
+   "defaultTextEncoding":"latin1",
    "startTokens":[
       "ScriptTagPair",
       "OutputTagPair",

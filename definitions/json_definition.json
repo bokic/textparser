@@ -4,7 +4,7 @@
   "caseSensitivity": false,
   "defaultFileExtensions": ["json"],
   "otherTextInside": false,
-  "defaultTextEncoding": "Latin1",
+  "defaultTextEncoding": "latin1",
   "startTokens": ["Object", "Array"],
   "tokens": {
     "Object": {
