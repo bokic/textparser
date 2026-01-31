@@ -118,6 +118,9 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->error_string = "`startTokens` is not array!";
         return TEXTPARSER_JSON_STARTS_WITH_NOT_ARRAY;
     }
+    
+    // Save startTokens json object for later processing
+    json_object *start_tokens_arr = value;
 
     found = json_object_object_get_ex(root_obj, "tokens", &tokens);
     if (!found) {
@@ -132,7 +135,116 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
     size_t tokens_cnt = json_object_object_length(tokens);
 
-    size_t starts_with_cnt = json_object_array_length(value);
+    (*definition)->tokens = malloc(sizeof(textparser_token) * (tokens_cnt + 1));
+    if ((*definition)->tokens == nullptr) {
+        (*definition)->error_string = "malloc for tokens list FAILED!";
+        return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    }
+
+    memset((*definition)->tokens, 0, sizeof(textparser_token) * (tokens_cnt + 1));
+
+    // Pass 1: Load basic token data
+    {
+        size_t token_idx = 0;
+        json_object_object_foreach(tokens, key, val) {
+            json_object *token_item = val;
+            struct json_object *key_value = nullptr;
+            const char *str_val = nullptr;
+
+            // Use the key as the name if "name" field is missing? 
+            // The JSON definition usually includes "name" inside.
+            json_object_object_get_ex(token_item, "name", &key_value);
+            str_val = json_object_get_string(key_value);
+            (*definition)->tokens[token_idx].name = strdup(str_val ? str_val : key);
+
+            json_object_object_get_ex(token_item, "start_regex", &key_value);
+            str_val = json_object_get_string(key_value);
+            (*definition)->tokens[token_idx].start_regex = str_val ? strdup(str_val) : nullptr;
+
+            json_object_object_get_ex(token_item, "end_regex", &key_value);
+            str_val = json_object_get_string(key_value);
+            (*definition)->tokens[token_idx].end_regex = str_val ? strdup(str_val) : nullptr;
+
+            json_object_object_get_ex(token_item, "other_text_inside", &key_value);
+            (*definition)->tokens[token_idx].other_text_inside = key_value ? json_object_get_boolean(key_value) : false;
+
+            json_object_object_get_ex(token_item, "delete_if_only_one_child", &key_value);
+            (*definition)->tokens[token_idx].delete_if_only_one_child = key_value ? json_object_get_boolean(key_value) : false;
+
+            json_object_object_get_ex(token_item, "must_have_one_child", &key_value);
+            (*definition)->tokens[token_idx].must_have_one_child = key_value ? json_object_get_boolean(key_value) : false;
+
+            json_object_object_get_ex(token_item, "multi_line", &key_value);
+            (*definition)->tokens[token_idx].multi_line = key_value ? json_object_get_boolean(key_value) : false;
+
+            json_object_object_get_ex(token_item, "search_parent_end_token_last", &key_value);
+            (*definition)->tokens[token_idx].search_parent_end_token_last = key_value ? json_object_get_boolean(key_value) : false;
+
+            json_object_object_get_ex(token_item, "text_color", &key_value);
+            (*definition)->tokens[token_idx].text_color = key_value ? ((uint32_t)json_object_get_int64(key_value)) : TEXTPARSER_NOCOLOR;
+
+            json_object_object_get_ex(token_item, "text_background", &key_value);
+            (*definition)->tokens[token_idx].text_background = key_value ? ((uint32_t)json_object_get_int64(key_value)) : TEXTPARSER_NOCOLOR;
+
+            json_object_object_get_ex(token_item, "text_flags", &key_value);
+            (*definition)->tokens[token_idx].text_flags = key_value ? ((uint32_t)json_object_get_int64(key_value)) : 0;
+
+            token_idx++;
+        }
+    }
+    
+    // Pass 2: Resolve nested tokens names to indices
+    {
+        size_t token_idx = 0;
+        json_object_object_foreach(tokens, key, val) {
+            json_object *token_item = val;
+            struct json_object *nested_tokens_json = nullptr;
+
+            json_object_object_get_ex(token_item, "nested_tokens", &nested_tokens_json);
+            if (nested_tokens_json) {
+                if (!json_object_is_type(nested_tokens_json, json_type_array)) {
+                    (*definition)->error_string = "`nested_tokens` is not array!";
+                    return TEXTPARSER_JSON_NESTED_TOKENS_NOT_ARRAY;
+                }
+
+                size_t nested_cnt = json_object_array_length(nested_tokens_json);
+                // Allow empty array? Existing code checked if empty.
+                // Assuming empty is fine, but code returned TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY.
+                // We keep original behavior for error code, but maybe empty array is valid (just no children).
+                if (nested_cnt == 0) {
+                     (*definition)->error_string = "`nested_tokens` array is empty!";
+                     return TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY;
+                }
+
+                (*definition)->tokens[token_idx].nested_tokens = malloc(sizeof(int) * (nested_cnt + 1));
+                if (!(*definition)->tokens[token_idx].nested_tokens) {
+                     return TEXTPARSER_JSON_OUT_OF_MEMORY;
+                }
+                
+                for(size_t i = 0; i < nested_cnt; i++) {
+                     json_object *item = json_object_array_get_idx(nested_tokens_json, i);
+                     const char *name = json_object_get_string(item);
+                     
+                     int found_idx = TextParser_END;
+                     for(size_t j = 0; j < tokens_cnt; j++) {
+                         if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
+                             found_idx = (int)j;
+                             break;
+                         }
+                     }
+                     (*definition)->tokens[token_idx].nested_tokens[i] = found_idx;
+                }
+                 (*definition)->tokens[token_idx].nested_tokens[nested_cnt] = TextParser_END;
+            } else {
+                 (*definition)->tokens[token_idx].nested_tokens = nullptr;
+            }
+            token_idx++;
+        }
+    }
+    (*definition)->tokens[tokens_cnt].name = nullptr; // Sentinel
+
+    // Process startTokens (now that tokens are loaded)
+    size_t starts_with_cnt = json_object_array_length(start_tokens_arr);
     if (starts_with_cnt == 0) {
         (*definition)->error_string = "`startTokens` array is empty!";
         return TEXTPARSER_JSON_STARTS_WITH_IS_EMPTY;
@@ -143,164 +255,24 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
-    memset((*definition)->starts_with, 0, sizeof(int) * starts_with_cnt);
+    for(size_t i = 0; i < starts_with_cnt; i++) {
+        json_object *item = json_object_array_get_idx(start_tokens_arr, i);
+        const char *name = json_object_get_string(item);
+        
+        int found_idx = TextParser_END;
+        for(size_t j = 0; j < tokens_cnt; j++) {
+             if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
+                 found_idx = (int)j;
+                 break;
+             }
+        }
+        (*definition)->starts_with[i] = found_idx;
+    }
     (*definition)->starts_with[starts_with_cnt] = TextParser_END;
-
-    /*for(size_t c = 0; c < starts_with_cnt; c++) {
-        //json_object *array_item = json_object_array_get_idx(value, c);
-        json_object *array_item = json_object_;
-
-        if (!json_object_is_type(array_item, json_type_string)) {
-            (*definition)->error_string = "`starts_with` element not string!";
-            return TEXTPARSER_JSON_STARTS_WITH_ELEMENT_NOT_STRING;
-        }
-
-        const char *name = json_object_get_string(array_item);
-
-        for(size_t c2 = 0; c2 < tokens_cnt; c2++) {
-            json_object *token_item = json_object_array_get_idx(tokens, c2);
-
-            struct json_object *key_value = nullptr;
-            json_object_object_get_ex(token_item, "name", &key_value);
-            const char *other_name = json_object_get_string(key_value);
-
-            if (strcmp(name, other_name) == 0) {
-                (*definition)->starts_with[c] = c2;
-                break;
-            }
-        }
-    }*/
 
     found = json_object_object_get_ex(root_obj, "otherTextInside", &value);
     if (found) {
         (*definition)->other_text_inside = json_object_get_boolean(value);
-    }
-
-    (*definition)->tokens = malloc(sizeof(textparser_token) * (tokens_cnt + 1));
-    if ((*definition)->tokens == nullptr) {
-        (*definition)->error_string = "malloc for tokens list FAILED!";
-        return TEXTPARSER_JSON_OUT_OF_MEMORY;
-    }
-
-    memset((*definition)->tokens, 0, sizeof(textparser_token) * (tokens_cnt + 1));
-
-    if (tokens_cnt > 0) {
-        for(size_t token_idx = 0; token_idx < tokens_cnt; token_idx++) {
-            json_object *token_item = json_object_array_get_idx(tokens, token_idx);
-
-            struct json_object *key_value = nullptr;
-            const char *other_name = nullptr;
-
-            json_object_object_get_ex(token_item, "name", &key_value);
-            other_name = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].name = strdup(other_name);
-
-            json_object_object_get_ex(token_item, "start_regex", &key_value);
-            other_name = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].start_regex = strdup(other_name);
-
-            json_object_object_get_ex(token_item, "end_regex", &key_value);
-            other_name = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].end_regex = strdup(other_name);
-
-            json_object_object_get_ex(token_item, "other_text_inside", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].other_text_inside = json_object_get_boolean(key_value);
-            else
-                (*definition)->tokens[token_idx].other_text_inside = false;
-
-            json_object_object_get_ex(token_item, "delete_if_only_one_child", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].delete_if_only_one_child = json_object_get_boolean(key_value);
-            else
-                (*definition)->tokens[token_idx].delete_if_only_one_child = false;
-
-            json_object_object_get_ex(token_item, "must_have_one_child", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].must_have_one_child = json_object_get_boolean(key_value);
-            else
-                (*definition)->tokens[token_idx].must_have_one_child = false;
-
-            json_object_object_get_ex(token_item, "multi_line", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].multi_line = json_object_get_boolean(key_value);
-            else
-                (*definition)->tokens[token_idx].multi_line = false;
-
-            json_object_object_get_ex(token_item, "search_parent_end_token_last", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].search_parent_end_token_last = json_object_get_boolean(key_value);
-            else
-                (*definition)->tokens[token_idx].search_parent_end_token_last = false;
-
-            json_object_object_get_ex(token_item, "text_color", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].text_color = json_object_get_int(key_value);
-            else
-                (*definition)->tokens[token_idx].text_color = TEXTPARSER_NOCOLOR;
-
-            json_object_object_get_ex(token_item, "text_background", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].text_background = json_object_get_int(key_value);
-            else
-                (*definition)->tokens[token_idx].text_background = TEXTPARSER_NOCOLOR;
-
-            json_object_object_get_ex(token_item, "text_flags", &key_value);
-            if (key_value)
-                (*definition)->tokens[token_idx].text_flags = json_object_get_int(key_value);
-            else
-                (*definition)->tokens[token_idx].text_flags = 0;
-
-            json_object_object_get_ex(token_item, "nested_tokens", &key_value);
-            if (key_value) {
-                if (!json_object_is_type(key_value, json_type_array)) {
-                    (*definition)->error_string = "`nested_tokens` is not array!";
-                    return TEXTPARSER_JSON_NESTED_TOKENS_NOT_ARRAY;
-                }
-
-                size_t nested_tokens_cnt = json_object_array_length(key_value);
-                if (nested_tokens_cnt == 0) {
-                    (*definition)->error_string = "`nested_tokens` array is empty!";
-                    return TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY;
-                }
-
-                (*definition)->tokens[token_idx].nested_tokens = malloc(sizeof(int) * (nested_tokens_cnt + 1));
-                if ((*definition)->tokens[token_idx].nested_tokens == nullptr) {
-                    return TEXTPARSER_JSON_OUT_OF_MEMORY;
-                }
-
-                memset((*definition)->tokens[token_idx].nested_tokens, 0, sizeof(int) * (nested_tokens_cnt + 1));
-
-                for(size_t c2 = 0; token_idx < nested_tokens_cnt; c2++) {
-                    json_object *array_item = json_object_array_get_idx(key_value, c2);
-
-                    if (!json_object_is_type(array_item, json_type_string)) {
-                        (*definition)->error_string = "`nested_tokens` element not string!";
-                        return TEXTPARSER_JSON_NESTED_TOKENS_ELEMENT_NOT_STRING;
-                    }
-
-                    const char *name = json_object_get_string(array_item);
-                    (*definition)->tokens[token_idx].nested_tokens[c2] = TextParser_END;
-
-                    for(size_t c3 = 0; c3 < tokens_cnt; c3++) {
-                        token_item = json_object_array_get_idx(tokens, c3);
-
-                        struct json_object *key_value2 = nullptr;
-                        json_object_object_get_ex(token_item, "name", &key_value2);
-                        other_name = json_object_get_string(key_value2);
-
-                        if (strcmp(name, other_name) == 0) {
-                            (*definition)->tokens[token_idx].nested_tokens[c2] = c3;
-                            break;
-                        }
-                    }
-                }
-
-                (*definition)->tokens[token_idx].nested_tokens[nested_tokens_cnt] = TextParser_END;
-            } else {
-                (*definition)->tokens[token_idx].nested_tokens = nullptr;
-            }
-        }
     }
     (*definition)->tokens[tokens_cnt].name = nullptr;
 
