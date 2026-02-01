@@ -89,7 +89,7 @@ int main() {
     textparser_defer(handle); // Auto-cleanup
 
     // Open a file
-    int err = textparser_openfile("example.txt", 0, &handle);
+    int err = textparser_openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, &handle);
     if (err) {
         fprintf(stderr, "Failed to open file\n");
         return 1;
