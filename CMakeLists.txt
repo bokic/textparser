@@ -69,9 +69,21 @@ add_custom_command(
 )
 
 add_subdirectory(src)
-add_subdirectory(cli)
-add_subdirectory(ccat)
-add_subdirectory(tests)
+# add_subdirectory(src) is already called above
+option(BUILD_CLI "Build CLI tool" ON)
+if(BUILD_CLI)
+    add_subdirectory(cli)
+endif()
+
+option(BUILD_CCAT "Build CCAT tool" ON)
+if(BUILD_CCAT)
+    add_subdirectory(ccat)
+endif()
+
+option(BUILD_TESTING "Build tests" ON) # Standard CMake option
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
 
 # PkgConfig config
 configure_file(textparser.pc.in textparser.pc @ONLY)

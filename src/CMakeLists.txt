@@ -11,7 +11,10 @@ else()
     set(OS_FILES ../os/os_posix.c ../os/os.h)
 endif()
 
-if(NOT WIN32)
+if(EMSCRIPTEN)
+    include(../cmake/WasmDeps.cmake)
+    # PCRE2 and JSON-C targets should be available from FetchContent
+elseif(NOT WIN32)
     include(GNUInstallDirs)
 
     find_package(json-c CONFIG REQUIRED)
@@ -41,6 +44,8 @@ target_include_directories(libtextparser PUBLIC
 if(WIN32)
     target_link_directories(libtextparser PRIVATE ../bin)
     target_link_libraries(libtextparser PRIVATE pcre2-8.lib pcre2-16.lib pcre2-32.lib)
+elseif(EMSCRIPTEN)
+    target_link_libraries(libtextparser PRIVATE pcre2-8 pcre2-16 pcre2-32)
 else()
     target_include_directories(libtextparser PRIVATE
         ${libpcre2-8_INCLUDE_DIRS}
@@ -70,6 +75,7 @@ set_target_properties(libtextparser PROPERTIES
     SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
 )
 
+if(NOT EMSCRIPTEN)
 install(TARGETS libtextparser
     EXPORT textparserTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -78,6 +84,7 @@ install(TARGETS libtextparser
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     COMPONENT src
 )
+endif()
 
 add_library(libtextparser-json SHARED
     textparser-json.c
@@ -92,6 +99,8 @@ target_include_directories(libtextparser-json PUBLIC
 if(WIN32)
     target_link_directories(libtextparser-json PRIVATE ../bin)
     target_link_libraries(libtextparser-json PRIVATE json-c.lib)
+elseif(EMSCRIPTEN)
+    target_link_libraries(libtextparser-json PRIVATE json-c)
 else()
     target_include_directories(libtextparser-json PRIVATE
         json-c::json-c
@@ -115,6 +124,7 @@ set_target_properties(libtextparser-json PROPERTIES
     SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
 )
 
+if(NOT EMSCRIPTEN)
 install(TARGETS libtextparser-json
     EXPORT textparserTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -154,3 +164,4 @@ install(FILES
     DESTINATION ${ConfigPackageLocation}
     COMPONENT Devel
 )
+endif()
