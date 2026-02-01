@@ -4,7 +4,8 @@
 #include <json_definition.json.h>
 //#include <php_definition.json.h>
 
-#include <json-c/json.h>
+#include <json.h>
+
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>

@@ -1,7 +1,8 @@
 #include <textparser-json.h>
 #include <adv_regex.h>
 
-#include <json-c/json.h>
+#include <json.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
