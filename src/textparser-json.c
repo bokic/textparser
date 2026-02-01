@@ -158,6 +158,21 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             str_val = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].name = strdup(str_val ? str_val : key);
 
+            json_object_object_get_ex(token_item, "type", &key_value);
+            str_val = json_object_get_string(key_value);
+            if (str_val) {
+                 if (strcasecmp(str_val, "Group") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_GROUP;
+                 else if (strcasecmp(str_val, "GroupAllChildrenInSameOrder") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER;
+                 else if (strcasecmp(str_val, "GroupOneChildOnly") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY;
+                 else if (strcasecmp(str_val, "SimpleToken") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN;
+                 else if (strcasecmp(str_val, "StartStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
+                 else if (strcasecmp(str_val, "StartOptStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_START_OPT_STOP;
+                 else if (strcasecmp(str_val, "DualStartAndStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP;
+                 else return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+            } else {
+                return TEXTPARSER_JSON_TOKEN_TYPE_NOT_FOUND;
+            }
+
             json_object_object_get_ex(token_item, "start_regex", &key_value);
             str_val = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].start_regex = str_val ? strdup(str_val) : nullptr;
