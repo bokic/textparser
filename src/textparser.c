@@ -113,7 +113,7 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
 
         for (size_t c = pos; c < maxPos; c++)
         {
-            uint8_t ch = text[c];
+            uint16_t ch = text[c];
 
             if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
             {
