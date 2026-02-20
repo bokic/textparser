@@ -404,6 +404,10 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
             check_and_exit_on_fatal_parsing_error(closest);
         }
 
+        if (child->len == 0) {
+            exit_with_error("0-length child token match caused infinite loop", offset);
+        }
+
         offset = child->position + child->len;
         ret->len = child->position + child->len - ret->position;
     }
@@ -500,6 +504,10 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
         last_child->next = child;
         last_child = child;
         check_and_exit_on_fatal_parsing_error(offset);
+
+        if (child->len == 0) {
+            exit_with_error("0-length child token match caused infinite loop", offset);
+        }
 
         offset = child->position + child->len;
     }
@@ -708,6 +716,10 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
                 if (last_child)
                     last_child->next = child;
                 last_child = child;
+
+                if (child->len == 0) {
+                    exit_with_error("0-length child token match caused infinite loop", offset);
+                }
 
                 offset += child->len;
 
