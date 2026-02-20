@@ -131,6 +131,8 @@ int main(int argc, const char *argv[])
     const textparser_language_definition *language_def = nullptr;
     textparser_defer(handle);
 
+    bool delete_language_def = false;
+
     if ((argc < 2)||(argc > 4))
     {
         usage();
@@ -164,6 +166,7 @@ int main(int argc, const char *argv[])
                 fprintf(stderr, "textparser_json_load_language_definition_from_json_file returned with error code: %d\n", res);
                 return EXIT_FAILURE;
             }
+            delete_language_def = true;
         }
         else
         {
@@ -188,6 +191,10 @@ int main(int argc, const char *argv[])
     int err = textparser_openfile(filename, language_def->default_text_encoding, &handle);
     if (err)
     {
+        if (delete_language_def) {
+            textparser_cleanup(&handle);
+            textparser_free_language_definition((textparser_language_definition *)language_def);
+        }
         fprintf(stderr, "textparser_openfile returned with error code: %d\n", err);
         return EXIT_FAILURE;
     }
@@ -195,6 +202,10 @@ int main(int argc, const char *argv[])
     err = textparser_parse(handle, language_def);
     if (err)
     {
+        if (delete_language_def) {
+            textparser_cleanup(&handle);
+            textparser_free_language_definition((textparser_language_definition *)language_def);
+        }
         fprintf(stderr, "textparser_parse returned with error code: %d\n", err);
         return EXIT_FAILURE;
     }
@@ -215,6 +226,12 @@ int main(int argc, const char *argv[])
         {
             print_textparser_token_item(handle, item, 0, colored);
         }
+    }
+
+    if (delete_language_def)
+    {
+        textparser_cleanup(&handle);
+        textparser_free_language_definition((textparser_language_definition *)language_def);
     }
 
     return EXIT_SUCCESS;

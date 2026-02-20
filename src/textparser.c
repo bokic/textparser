@@ -913,7 +913,36 @@ void textparser_free_language_definition(textparser_language_definition *definit
         free((void *)definition->name);
     }
 
-    // TODO: Free token and it's related stuff!
+    if (definition->empty_segment_language) {
+        free((void *)definition->empty_segment_language);
+    }
+
+    if (definition->starts_with) {
+        free((void *)definition->starts_with);
+    }
+
+    if (definition->tokens) {
+        int c = 0;
+        while(definition->tokens[c].name != nullptr) {
+            textparser_token *token = &definition->tokens[c];
+            
+            if (token->name) {
+                free((void *)token->name);
+            }
+            if (token->start_regex) {
+                free((void *)token->start_regex);
+            }
+            if (token->end_regex) {
+                free((void *)token->end_regex);
+            }
+            if (token->nested_tokens) {
+                free((void *)token->nested_tokens);
+            }
+            
+            c++;
+        }
+        free(definition->tokens);
+    }
 
     free(definition);
 }
