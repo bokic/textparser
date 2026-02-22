@@ -28,22 +28,22 @@ ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 
 void* os_map(const char *pathname, size_t* size)
 {
-    void* ret = NULL;
+    void* ret = nullptr;
     struct stat stat;
     os_file_defer(fd);
 
     fd = open(pathname, O_RDONLY);
     if (fd == -1)
-        return NULL;
+        return nullptr;
 
     if (fstat(fd, &stat))
-        return NULL;
+        return nullptr;
 
     *size = stat.st_size;
 
-    ret = mmap(NULL, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    ret = mmap(nullptr, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (ret == MAP_FAILED)
-        return NULL;
+        return nullptr;
 
     return ret;
 }
@@ -62,6 +62,6 @@ void os_file_cleanup(void *fd) {
     int *fd_int = (int *) fd;
     if (fd_int) {
         close(*fd_int);
-        *fd_int = 0;
+        *fd_int = -1;
     }
 }
