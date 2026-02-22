@@ -290,7 +290,6 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     if (found) {
         (*definition)->other_text_inside = json_object_get_boolean(value);
     }
-    (*definition)->tokens[tokens_cnt].name = nullptr;
 
     return 0;
 }
