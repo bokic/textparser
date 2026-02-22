@@ -1470,6 +1470,10 @@ textparser_parser_state *textparser_state_new(const textparser_t handle)
     size_t size = 0;
 
     size = int_handle->text_size;
+
+    if (size >= MAX_PARSE_SIZE)
+        return nullptr;
+
     allocated = (size * sizeof(int));
     to_allocate = offsetof(textparser_parser_state, state) + allocated;
 
