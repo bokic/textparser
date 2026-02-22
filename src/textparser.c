@@ -856,9 +856,17 @@ static void textparser_init_regex(textparser_handle *int_handle)
         int malloc_size = token_cnt * sizeof(void *);
 
         int_handle->start_regex = malloc(malloc_size);
+        if (int_handle->start_regex == nullptr) {
+            LOGE("malloc() failed for start_regex");
+            return;
+        }
         memset(int_handle->start_regex, 0, malloc_size);
 
         int_handle->end_regex = malloc(malloc_size);
+        if (int_handle->end_regex == nullptr) {
+            LOGE("malloc() failed for end_regex");
+            return;
+        }
         memset(int_handle->end_regex, 0, malloc_size);
     }
 }
