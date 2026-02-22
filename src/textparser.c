@@ -1465,8 +1465,8 @@ textparser_parser_state *textparser_state_new(const textparser_t handle)
 {
     const textparser_handle *int_handle = (textparser_handle *)handle;
     textparser_parser_state *ret = nullptr;
-    int to_allocate = 0;
-    int allocated = 0;
+    size_t to_allocate = 0;
+    size_t allocated = 0;
     size_t size = 0;
 
     size = int_handle->text_size;
