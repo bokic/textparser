@@ -977,7 +977,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     local_hnd.text_addr = local_hnd.mmap_addr;
     local_hnd.text_size = local_hnd.mmap_size;
 
-    if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xfe')&&(local_hnd.text_addr[1] == '\xbb')&&(local_hnd.text_addr[2] == '\xbf')) {
+    if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xef')&&(local_hnd.text_addr[1] == '\xbb')&&(local_hnd.text_addr[2] == '\xbf')) {
         local_hnd.text_addr += 3;
         local_hnd.text_size -= 3;
         local_hnd.bom = BOM_UTF_8;
