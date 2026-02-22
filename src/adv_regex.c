@@ -40,7 +40,14 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
             return false;
         }
 
-        pcre2_jit_compile_8(*regex, PCRE2_JIT_COMPLETE);
+        int err = pcre2_jit_compile_8(*regex, PCRE2_JIT_COMPLETE);
+        if (err != 0)
+        {
+            PCRE2_UCHAR8 buffer[256];
+            pcre2_get_error_message_8(err, buffer, sizeof(buffer));
+            printf("PCRE2 JIT compilation failed for regex [%s]\n", regex_str);
+            return false;
+        }
     }
 
     match_data = pcre2_match_data_create_from_pattern_8(*regex, nullptr);
