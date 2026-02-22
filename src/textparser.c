@@ -569,7 +569,7 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
     }
 
     if ((!token_def->other_text_inside)&&(token_start > 0)) {
-        exit_with_error("immediate_start not rule not!", offset);
+        exit_with_error("immediate_start rule violated!", offset);
     }
 
     LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %zd", int_handle->language->tokens[ret->token_id].name, ret->position);
@@ -625,7 +625,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     }
 
     if ((!token_def->other_text_inside)&&(token_start > 0)) {
-        exit_with_error("immediate_start not rule not!", offset);
+        exit_with_error("immediate_start rule violated!", offset);
     }
 
     ret->position = offset + token_start;
