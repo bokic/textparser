@@ -631,7 +631,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     ret->position = offset + token_start;
     offset = ret->position + len;
 
-    if (offset >= int_handle->text_size) {
+    if (offset > int_handle->text_size) {
         exit_with_error("offset >= int_handle->text_size!", offset);
     }
 
