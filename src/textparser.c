@@ -1397,7 +1397,7 @@ int textparser_get_token_type(const textparser_token_item *token)
 size_t textparser_get_token_position(const textparser_token_item *token)
 {
     if (token == nullptr)
-        return -1;
+        return 0;
 
     return token->position;
 }
@@ -1405,7 +1405,7 @@ size_t textparser_get_token_position(const textparser_token_item *token)
 size_t textparser_get_token_length(const textparser_token_item *token)
 {
     if (token == nullptr)
-        return -1;
+        return 0;
 
     return token->len;
 }
