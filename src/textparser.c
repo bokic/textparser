@@ -19,20 +19,20 @@
 
 #define TOKEN_NOT_FOUND -1
 
-#define exit_with_error(error_text, offset)                    \
-    LOGE(error_text ". Error: %s at %zu", error_text, offset); \
-    int_handle->error = error_text;                            \
-    int_handle->error_offset = offset;                         \
+#define exit_with_error(error_text, offset)       \
+    LOGE("Error: %s at %zu", error_text, offset); \
+    int_handle->error = error_text;               \
+    int_handle->error_offset = offset;            \
     goto exit;
 
-#define check_and_exit_on_fatal_parsing_error(offset)                                      \
-    if (int_handle->error) {                                                               \
-        LOGW("Fatal error detected(%s) at offset %zu. exiting..", ret->error, offset);     \
-        goto exit;                                                                         \
-    }                                                                                      \
-    if (child->len == 0) {                                                                 \
-        LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", ret->error, offset); \
-        goto exit;                                                                         \
+#define check_and_exit_on_fatal_parsing_error(offset)                                             \
+    if (int_handle->error) {                                                                      \
+        LOGW("Fatal error detected(%s) at offset %zu. exiting..", int_handle->error, offset);     \
+        goto exit;                                                                                \
+    }                                                                                             \
+    if (child->len == 0) {                                                                        \
+        LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", int_handle->error, offset); \
+        goto exit;                                                                                \
     }
 
 enum textparser_bom {
