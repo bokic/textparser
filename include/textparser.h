@@ -73,7 +73,7 @@ typedef struct textparser_token_item {
 
 typedef struct {
     const char *name;
-    float version;
+    double version;
     const char *empty_segment_language;
     bool case_sensitivity;
     const char **default_file_extensions;
