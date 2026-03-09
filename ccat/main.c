@@ -84,7 +84,7 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
         snprintf(ansi_format_background, sizeof(ansi_format_background),
             "\33[48;2;%u;%u;%um",
             (text_background >>  0) & 0xff,
-            (text_background >>  6) & 0xff,
+            (text_background >>  8) & 0xff,
             (text_background >> 16) & 0xff
         );
     }
