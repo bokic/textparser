@@ -22,6 +22,7 @@ add_executable(textparser
 
 target_include_directories(textparser PRIVATE
     ../definitions
+    ../include
 )
 
 target_link_libraries(textparser PRIVATE

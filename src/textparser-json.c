@@ -11,6 +11,10 @@
 #include <stdbool.h>
 
 
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+
 #define json_object_defer(var) struct json_object * var __attribute__((cleanup(json_object_cleanup))) = nullptr
 
 static void json_object_cleanup(struct json_object **handle)
