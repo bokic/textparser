@@ -666,7 +666,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             }
             else
             {
-                token_end = INT_MAX;
+                token_end = SIZE_MAX;
             }
 
             for(int c = 0; nested_tokens[c] != TextParser_END; c++)
