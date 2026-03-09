@@ -22,6 +22,7 @@ add_executable(ccat
 )
 
 target_include_directories(ccat PRIVATE
+    ../include
     ../definitions
 )
 

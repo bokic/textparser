@@ -25,6 +25,7 @@ add_executable( unittests
   tokenparser.hpp
 )
 target_include_directories( unittests PRIVATE
+    ../../include
     ../../definitions
 )
 target_link_libraries( unittests

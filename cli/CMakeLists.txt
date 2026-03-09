@@ -21,14 +21,9 @@ add_executable(textparser
 )
 
 target_include_directories(textparser PRIVATE
+    ../include
     ../definitions
 )
-
-if(WIN32)
-    target_include_directories(textparser PRIVATE
-        ../include
-    )
-endif()
 
 target_link_libraries(textparser PRIVATE
     libtextparser-json

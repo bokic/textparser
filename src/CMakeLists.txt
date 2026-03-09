@@ -40,7 +40,6 @@ target_include_directories(libtextparser PUBLIC
 if(WIN32)
     target_include_directories(libtextparser PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include/json>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     )
 endif()
 
@@ -49,6 +48,7 @@ if(WIN32)
     target_link_libraries(libtextparser PRIVATE pcre2-8.lib pcre2-16.lib pcre2-32.lib)
 else()
     target_include_directories(libtextparser PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
         ${libpcre2-8_INCLUDE_DIRS}
         ${libpcre2-16_INCLUDE_DIRS}
         ${libpcre2-32_INCLUDE_DIRS}
@@ -91,13 +91,13 @@ add_library(libtextparser-json SHARED
 )
 
 target_include_directories(libtextparser-json PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 if(WIN32)
     target_include_directories(libtextparser-json PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include/json-c>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     )
 endif()
 

@@ -14,6 +14,7 @@ add_executable(cfml_validator
 )
 
 target_include_directories(cfml_validator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../definitions
 )
 
