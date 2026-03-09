@@ -7,7 +7,7 @@
 
 file_hnd_fd os_creat_file(const char* pathname)
 {
-    return CreateFileA(pathname, GENERIC_WRITE, FILE_SHARE_READ, NULL, TRUNCATE_EXISTING, 0, NULL);
+    return CreateFileA(pathname, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, 0, NULL);
 }
 
 void os_file_close(file_hnd_fd hnd_fd)
