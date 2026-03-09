@@ -35,8 +35,8 @@ enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
 };
 
-typedef void* textparser_t;
-typedef void* textparser_token_item_t;
+typedef struct textparser_handle_s *textparser_t;
+typedef struct textparser_token_item_s *textparser_token_item_t;
 
 typedef struct {
     int len;
