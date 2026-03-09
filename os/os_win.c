@@ -70,10 +70,9 @@ ssize_t os_write_to_terminal(const void *buffer, size_t len)
 {
     DWORD written = 0;
 
-    HANDLE hnd = CreateConsoleScreenBuffer(GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+    HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hnd != INVALID_HANDLE_VALUE) {
         WriteConsole(hnd, buffer, len, &written, NULL);
-        CloseHandle(hnd);
     }
 
     return written;
