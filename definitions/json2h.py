@@ -50,6 +50,8 @@ def main(args):
 
     if "emptySegmentLanguage" in root:
         text += "    .empty_segment_language = \"" + root["emptySegmentLanguage"] + "\"," + os.linesep
+    else:
+        text += "    .empty_segment_language = NULL," + os.linesep
 
     if "caseSensitivity" in root:
         text += "    .case_sensitivity = " + python_bool_to_c_string(root["caseSensitivity"]) + "," + os.linesep
@@ -125,29 +127,43 @@ def main(args):
             text += "            .start_regex = R\"regex(" + current_token["startRegex"] + ")regex\"," + os.linesep
         elif "regex" in current_token:
             text += "            .start_regex = R\"regex(" + current_token["regex"] + ")regex\"," + os.linesep
+        else:
+            text += "            .start_regex = NULL," + os.linesep
 
         if "endRegex" in current_token:
             text += "            .end_regex = R\"regex(" + current_token["endRegex"] + ")regex\"," + os.linesep
+        else:
+            text += "            .end_regex = NULL," + os.linesep
 
         # immediate_start
         if "otherTextInside" in current_token:
             text += "            .other_text_inside = " + python_bool_to_c_string(current_token["otherTextInside"]) + "," + os.linesep
+        else:
+            text += "            .other_text_inside = false," + os.linesep
 
         # delete_if_only_one_child
         if "deleteIfOnlyOneChild" in current_token:
             text += "            .delete_if_only_one_child = " + python_bool_to_c_string(current_token["deleteIfOnlyOneChild"]) + "," + os.linesep
+        else:
+            text += "            .delete_if_only_one_child = false," + os.linesep
 
         # must_have_one_child
         if "mustHaveOneChild" in current_token:
             text += "            .must_have_one_child = " + python_bool_to_c_string(current_token["mustHaveOneChild"]) + "," + os.linesep
+        else:
+            text += "            .must_have_one_child = false," + os.linesep
 
         # multi_line
         if "multiLine" in current_token:
             text += "            .multi_line = " + python_bool_to_c_string(current_token["multiLine"]) + "," + os.linesep
+        else:
+            text += "            .multi_line = false," + os.linesep
 
         # search_parent_end_token_last
         if "searchParentEndTokenLast" in current_token:
             text += "            .search_parent_end_token_last = " + python_bool_to_c_string(current_token["searchParentEndTokenLast"]) + "," + os.linesep
+        else:
+            text += "            .search_parent_end_token_last = false," + os.linesep
 
         if "textColor" in current_token:
             text += "            .text_color = " + current_token["textColor"] + "," + os.linesep
@@ -161,6 +177,8 @@ def main(args):
 
         if "textFlags" in current_token:
             text += "            .text_flags = " + current_token["textFlags"] + "," + os.linesep
+        else:
+            text += "            .text_flags = 0," + os.linesep
 
         # nested_tokens
         if "nestedTokens" in current_token:
@@ -169,14 +187,29 @@ def main(args):
                 text += "                TextParser_" + name_lowercase + "_" + token_name + "," + os.linesep
             text += "                TextParser_END" + os.linesep
             text += "            }" + os.linesep
+        else:
+            text += "            .nested_tokens = NULL," + os.linesep
 
         text += "        }," + os.linesep
 
     text += "        {" + os.linesep
     text += "            .name = NULL," + os.linesep
+    text += "            .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN," + os.linesep
+    text += "            .start_regex = NULL," + os.linesep
+    text += "            .end_regex = NULL," + os.linesep
+    text += "            .other_text_inside = false," + os.linesep
+    text += "            .delete_if_only_one_child = false," + os.linesep
+    text += "            .must_have_one_child = false," + os.linesep
+    text += "            .multi_line = false," + os.linesep
+    text += "            .search_parent_end_token_last = false," + os.linesep
+    text += "            .text_color = 0," + os.linesep
+    text += "            .text_background = 0," + os.linesep
+    text += "            .text_flags = 0," + os.linesep
+    text += "            .nested_tokens = NULL," + os.linesep
     text += "        }," + os.linesep
 
-    text += "    }" + os.linesep
+    text += "    }," + os.linesep
+    text += "    .error_string = NULL," + os.linesep
     text += "};" + os.linesep
 
     open(out_file, "w").write(text)
