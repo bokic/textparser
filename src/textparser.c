@@ -1145,7 +1145,7 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     ret->text_addr = text;
     ret->text_size = len;
 
-    *handle = ret;
+    *handle = (textparser_t)ret;
 
     return 0;
 }
@@ -1209,11 +1209,11 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
         int closest_token_id = TextParser_END;
         size_t closest_offset = size - pos;
 
-        pos = textparser_skip_whitespace(handle, pos);
+        pos = textparser_skip_whitespace(int_handle, pos);
 
         for (int c = 0; definition->starts_with[c] != TextParser_END; c++) {
             int token_id = definition->starts_with[c];
-            ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside);
+            ssize_t offset = textparser_find_token(int_handle, token_id, pos, definition->other_text_inside);
             if (offset != TOKEN_NOT_FOUND)
             {
                 if (offset < closest_offset) {
@@ -1230,7 +1230,7 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
 
         closest_offset += pos;
 
-        textparser_token_item *token_item = textparser_parse_token(handle, closest_token_id, TextParser_END, TEXTPARSER_SEARCH_END_TOKEN, closest_offset);
+        textparser_token_item *token_item = textparser_parse_token(int_handle, closest_token_id, TextParser_END, TEXTPARSER_SEARCH_END_TOKEN, closest_offset);
         if (token_item == nullptr) {
             LOGE("token_item == nullptr");
             return -1;
