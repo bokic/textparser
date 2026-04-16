@@ -1,7 +1,9 @@
 #include "os.h"
+#include <stdio.h>
 
-#ifdef _WIN32
-#error Not a Windows target
+
+#ifndef _POSIX_C_SOURCE
+#error Not a POSIX target
 #endif
 
 #include <sys/types.h>
@@ -39,11 +41,14 @@ void* os_map(const char *pathname, size_t* size)
     if (fstat(fd, &stat))
         return nullptr;
 
-    ret = mmap(nullptr, stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (stat.st_size <= 0)
+        return nullptr;
+
+    ret = mmap(nullptr, (unsigned)stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (ret == MAP_FAILED)
         return nullptr;
 
-    *size = stat.st_size;
+    *size = (size_t)stat.st_size;
 
     return ret;
 }

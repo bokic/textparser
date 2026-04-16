@@ -98,8 +98,8 @@ static struct json_object *recursivelyAddChildsToJson(const textparser_t handle,
         struct json_object *child = json_object_new_object();
 
         json_object_object_add(child, "id", json_object_new_string(language->tokens[item->token_id].name));
-        json_object_object_add(child, "position", json_object_new_int(item->position));
-        json_object_object_add(child, "length", json_object_new_int(item->len));
+        json_object_object_add(child, "position", json_object_new_int((int32_t)item->position));
+        json_object_object_add(child, "length", json_object_new_int((int32_t)item->len));
 
         if (item->child)
         {

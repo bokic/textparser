@@ -37,6 +37,10 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_ROOT_OBJ_IS_NULL;
     }
 
+    if (definition == nullptr) {
+        return TEXTPARSER_JSON_DEFINITION_IS_NULL;
+    }
+
     json_object_defer(root);
     root = root_obj;
 
@@ -81,6 +85,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     if (array_length > 0) {
         (*definition)->default_file_extensions = malloc((array_length + 1) * sizeof(char *));
         if ((*definition)->default_file_extensions == nullptr) {
+            (*definition)->error_string = "malloc for default_file_extensions FAILED!";
             return TEXTPARSER_JSON_OUT_OF_MEMORY;
         }
 
@@ -123,7 +128,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->error_string = "`startTokens` is not array!";
         return TEXTPARSER_JSON_STARTS_WITH_NOT_ARRAY;
     }
-    
+
     // Save startTokens json object for later processing
     json_object *start_tokens_arr = value;
 
@@ -138,7 +143,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_TOKENS_NOT_OBJECT;
     }
 
-    size_t tokens_cnt = json_object_object_length(tokens);
+    size_t tokens_cnt = (size_t)json_object_object_length(tokens);
 
     (*definition)->tokens = malloc(sizeof(textparser_token) * (tokens_cnt + 1));
     if ((*definition)->tokens == nullptr) {
@@ -156,7 +161,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             struct json_object *key_value = nullptr;
             const char *str_val = nullptr;
 
-            // Use the key as the name if "name" field is missing? 
+            // Use the key as the name if "name" field is missing?
             // The JSON definition usually includes "name" inside.
             json_object_object_get_ex(token_item, "name", &key_value);
             str_val = json_object_get_string(key_value);
@@ -212,13 +217,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             token_idx++;
         }
     }
-    
+
     // Pass 2: Resolve nested tokens names to indices
     {
         size_t token_idx = 0;
         json_object_object_foreach(tokens, key, val) {
             json_object *token_item = val;
             struct json_object *nested_tokens_json = nullptr;
+            (void)key;
 
             json_object_object_get_ex(token_item, "nested_tokens", &nested_tokens_json);
             if (nested_tokens_json) {
@@ -238,13 +244,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
                 (*definition)->tokens[token_idx].nested_tokens = malloc(sizeof(int) * (nested_cnt + 1));
                 if (!(*definition)->tokens[token_idx].nested_tokens) {
+                    (*definition)->error_string = "malloc for nested_tokens FAILED!";
                      return TEXTPARSER_JSON_OUT_OF_MEMORY;
                 }
-                
+
                 for(size_t i = 0; i < nested_cnt; i++) {
                      json_object *item = json_object_array_get_idx(nested_tokens_json, i);
                      const char *name = json_object_get_string(item);
-                     
+
                      int found_idx = TextParser_END;
                      for(size_t j = 0; j < tokens_cnt; j++) {
                          if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
@@ -272,13 +279,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
     (*definition)->starts_with = malloc(sizeof(int) * (starts_with_cnt + 1));
     if ((*definition)->starts_with == nullptr) {
+        (*definition)->error_string = "malloc for starts_with FAILED!";
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
 
     for(size_t i = 0; i < starts_with_cnt; i++) {
         json_object *item = json_object_array_get_idx(start_tokens_arr, i);
         const char *name = json_object_get_string(item);
-        
+
         int found_idx = TextParser_END;
         for(size_t j = 0; j < tokens_cnt; j++) {
              if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {

@@ -1,5 +1,9 @@
 #include "os.h"
 
+#ifndef _WIN32
+#error Not a Windows target
+#endif
+
 #include <Windows.h>
 #include <Winbase.h>
 #include <Fileapi.h>
