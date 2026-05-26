@@ -1287,6 +1287,19 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
 {
     textparser_handle *int_handle = (textparser_handle *)handle;
 
+    if (int_handle == nullptr)
+        return -1;
+
+    // Reset error state
+    int_handle->error = nullptr;
+    int_handle->error_offset = 0;
+
+    // Free any previously parsed token tree to prevent leaks and AST corruption
+    if (int_handle->first_item) {
+        free_item_tree(int_handle->first_item);
+        int_handle->first_item = nullptr;
+    }
+
     textparser_token_item *prev_item = nullptr;
 
     size_t size = int_handle->text_size;
