@@ -1,0 +1,73 @@
+{
+  "name": "asm",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["asm"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Keyword",
+    "Directive",
+    "Register",
+    "Number",
+    "SingleString",
+    "Variable",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": ";[^\\r\\n]*|\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "mov\\b|add\\b|sub\\b|mul\\b|div\\b|imul\\b|idiv\\b|inc\\b|dec\\b|neg\\b|cmp\\b|test\\b|and\\b|or\\b|xor\\b|not\\b|shl\\b|shr\\b|sal\\b|sar\\b|rol\\b|ror\\b|rcl\\b|rcr\\b|push\\b|pop\\b|pushf\\b|popf\\b|pusha\\b|popa\\b|call\\b|ret\\b|retf\\b|iretd\\b|int\\b|into\\b|syscall\\b|sysenter\\b|jmp\\b|je\\b|jne\\b|jz\\b|jnz\\b|jg\\b|jl\\b|jge\\b|jle\\b|ja\\b|jb\\b|jae\\b|jbe\\b|jo\\b|jno\\b|js\\b|jns\\b|jp\\b|jnp\\b|jcxz\\b|jecxz\\b|loop\\b|loope\\b|loopne\\b|nop\\b|hlt\\b|cli\\b|sti\\b|cld\\b|std\\b|cmc\\b|clc\\b|stc\\b|movsb\\b|movsw\\b|movsd\\b|cmpsb\\b|cmpsw\\b|cmpsd\\b|scasb\\b|scasw\\b|scasd\\b|lodsb\\b|lodsw\\b|lodsd\\b|stosb\\b|stosw\\b|stosd\\b|lea\\b|movzx\\b|movsx\\b|cwde\\b|cdq\\b|cqo\\b|xchg\\b|bswap\\b|bt\\b|bts\\b|btr\\b|btc\\b|bsf\\b|bsr\\b|sete\\b|setne\\b|setg\\b|setl\\b|setge\\b|setle\\b|seta\\b|setb\\b|setae\\b|setbe\\b|cpuid\\b|rdtsc\\b|rdmsr\\b|wrmsr\\b|lgdt\\b|lidt\\b|sgdt\\b|sidt\\b",
+      "textColor": "0xc586c0"
+    },
+    "Directive": {
+      "type": "SimpleToken",
+      "startRegex": "\\.[a-zA-Z_][a-zA-Z0-9_]*|section\\b|segment\\b|proc\\b|endp\\b|assume\\b|model\\b|stack\\b|data\\b|code\\b|public\\b|extern\\b|global\\b|align\\b|org\\b|equ\\b|=\\b|db\\b|dw\\b|dd\\b|dq\\b|dt\\b|resb\\b|resw\\b|resd\\b|resq\\b|incbin\\b|macro\\b|endm\\b|local\\b|rept\\b|irp\\b|irpc\\b|exitm\\b",
+      "textColor": "0xd7ba7d"
+    },
+    "Register": {
+      "type": "SimpleToken",
+      "startRegex": "[re]?[abcd]x\\b|[re]?[bs]p\\b|[re]?[bs]i\\b|[re]?[di]p\\b|r[0-9]+\\b|e?[abcd]x\\b|e?[bs]p\\b|e?[bs]i\\b|e?[di]p\\b|r[0-9]+[dw]?\\b|st\\([0-9]+\\)\\b|mm[0-7]\\b|xmm[0-9]+\\b|ymm[0-9]+\\b|zmm[0-9]+\\b|cr[0-8]\\b|dr[0-7]\\b|cs\\b|ds\\b|es\\b|fs\\b|gs\\b|ss\\b|ax\\b|bx\\b|cx\\b|dx\\b|si\\b|di\\b|bp\\b|sp\\b|ip\\b|ah\\b|al\\b|bh\\b|bl\\b|ch\\b|cl\\b|dh\\b|dl\\b",
+      "textColor": "0x569cd6"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F]+\\b|0[oOqQ][0-7]+\\b|0[bByY][01]+\\b|[0-9]+(?:\\.[0-9]+)?\\b",
+      "textColor": "0xb5cea8"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "\\[|\\]|\\(|\\)|\\+|-|\\*|\\/|,|:|;",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
