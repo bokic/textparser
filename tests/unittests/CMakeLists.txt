@@ -41,6 +41,7 @@ add_executable( unittests
   swift_tests.cpp
   ada_tests.cpp
   matlab_tests.cpp
+  vb_tests.cpp
 
   tokenparser.hpp
 )
