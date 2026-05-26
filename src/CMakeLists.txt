@@ -89,6 +89,8 @@ if(WIN32)
     )
 endif()
 
+target_link_libraries(libtextparser-json PRIVATE libtextparser)
+
 if(WIN32)
     target_link_directories(libtextparser-json PRIVATE ../bin)
     target_link_libraries(libtextparser-json PRIVATE json-c.lib)

@@ -65,19 +65,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/json_definition.json.h
-  COMMAND ${Python3_EXECUTABLE} ./json2h.py json_definition.json
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/json_definition.json
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/definitions
-)
-
-add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/cfml_definition.json.h
-  COMMAND ${Python3_EXECUTABLE} ./json2h.py cfml_definition.json
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/cfml_definition.json
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/definitions
-)
+foreach(DEF bash c cpp cfml csharp css html java javascript json php sql)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json.h
+    COMMAND ${Python3_EXECUTABLE} ./json2h.py ${DEF}_definition.json
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/definitions
+  )
+endforeach()
 
 add_subdirectory(src)
 add_subdirectory(cli)
