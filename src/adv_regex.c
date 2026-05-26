@@ -16,10 +16,21 @@ static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
     size_t len = 0;
     const unsigned char *p = (const unsigned char *)utf8;
     while (*p) {
-        if (*p < 0x80) { len++; p++; }
-        else if (*p < 0xE0) { len++; p += 2; }
-        else if (*p < 0xF0) { len++; p += 3; }
-        else { len += 2; p += 4; }
+        if (*p < 0x80) {
+            len++; p++;
+        } else if (*p < 0xE0) {
+            len++; p++;
+            if (*p) p++;
+        } else if (*p < 0xF0) {
+            len++; p++;
+            if (*p) p++;
+            if (*p) p++;
+        } else {
+            len += 2; p++;
+            if (*p) p++;
+            if (*p) p++;
+            if (*p) p++;
+        }
     }
     
     uint16_t *utf16 = malloc((len + 1) * sizeof(uint16_t));
@@ -32,14 +43,17 @@ static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
         if (*p < 0x80) {
             cp = *p++;
         } else if (*p < 0xE0) {
-            cp = ((*p & 0x1F) << 6) | (*(p+1) & 0x3F);
-            p += 2;
+            cp = (*p & 0x1F) << 6; p++;
+            if (*p) { cp |= (*p & 0x3F); p++; }
         } else if (*p < 0xF0) {
-            cp = ((*p & 0x0F) << 12) | ((*(p+1) & 0x3F) << 6) | (*(p+2) & 0x3F);
-            p += 3;
+            cp = (*p & 0x0F) << 12; p++;
+            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
+            if (*p) { cp |= (*p & 0x3F); p++; }
         } else {
-            cp = ((*p & 0x07) << 18) | ((*(p+1) & 0x3F) << 12) | ((*(p+2) & 0x3F) << 6) | (*(p+3) & 0x3F);
-            p += 4;
+            cp = (*p & 0x07) << 18; p++;
+            if (*p) { cp |= (*p & 0x3F) << 12; p++; }
+            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
+            if (*p) { cp |= (*p & 0x3F); p++; }
         }
         
         if (cp < 0x10000) {
@@ -60,10 +74,21 @@ static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
     size_t len = 0;
     const unsigned char *p = (const unsigned char *)utf8;
     while (*p) {
-        if (*p < 0x80) { len++; p++; }
-        else if (*p < 0xE0) { len++; p += 2; }
-        else if (*p < 0xF0) { len++; p += 3; }
-        else { len++; p += 4; }
+        if (*p < 0x80) {
+            len++; p++;
+        } else if (*p < 0xE0) {
+            len++; p++;
+            if (*p) p++;
+        } else if (*p < 0xF0) {
+            len++; p++;
+            if (*p) p++;
+            if (*p) p++;
+        } else {
+            len++; p++;
+            if (*p) p++;
+            if (*p) p++;
+            if (*p) p++;
+        }
     }
     
     uint32_t *utf32 = malloc((len + 1) * sizeof(uint32_t));
@@ -76,14 +101,17 @@ static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
         if (*p < 0x80) {
             cp = *p++;
         } else if (*p < 0xE0) {
-            cp = ((*p & 0x1F) << 6) | (*(p+1) & 0x3F);
-            p += 2;
+            cp = (*p & 0x1F) << 6; p++;
+            if (*p) { cp |= (*p & 0x3F); p++; }
         } else if (*p < 0xF0) {
-            cp = ((*p & 0x0F) << 12) | ((*(p+1) & 0x3F) << 6) | (*(p+2) & 0x3F);
-            p += 3;
+            cp = (*p & 0x0F) << 12; p++;
+            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
+            if (*p) { cp |= (*p & 0x3F); p++; }
         } else {
-            cp = ((*p & 0x07) << 18) | ((*(p+1) & 0x3F) << 12) | ((*(p+2) & 0x3F) << 6) | (*(p+3) & 0x3F);
-            p += 4;
+            cp = (*p & 0x07) << 18; p++;
+            if (*p) { cp |= (*p & 0x3F) << 12; p++; }
+            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
+            if (*p) { cp |= (*p & 0x3F); p++; }
         }
         utf32[idx++] = cp;
     }
@@ -91,6 +119,7 @@ static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
     if (out_len) *out_len = idx;
     return utf32;
 }
+
 
 static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start)
 {
