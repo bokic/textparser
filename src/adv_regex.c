@@ -384,3 +384,19 @@ void adv_regex_free(void **regex, enum textparser_encoding encoding)
 
     *regex = nullptr;
 }
+
+void adv_regex_cleanup(void)
+{
+    if (ccontext8) {
+        pcre2_compile_context_free_8(ccontext8);
+        ccontext8 = nullptr;
+    }
+    if (ccontext16) {
+        pcre2_compile_context_free_16(ccontext16);
+        ccontext16 = nullptr;
+    }
+    if (ccontext32) {
+        pcre2_compile_context_free_32(ccontext32);
+        ccontext32 = nullptr;
+    }
+}

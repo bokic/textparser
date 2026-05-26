@@ -32,6 +32,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     json_object *tokens = nullptr;
     json_object *value = nullptr;
     json_bool found = false;
+    int ret_code = 0;
 
     if (root_obj == nullptr) {
         return TEXTPARSER_JSON_ROOT_OBJ_IS_NULL;
@@ -54,7 +55,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     found = json_object_object_get_ex(root_obj, "name", &value);
     if (!found){
         (*definition)->error_string = "Mandatory field `name` not set!";
-        return TEXTPARSER_JSON_NAME_NOT_FOUND;
+        ret_code = TEXTPARSER_JSON_NAME_NOT_FOUND;
+        goto err;
     }
 
     (*definition)->name = strdup(json_object_get_string(value));
@@ -72,21 +74,24 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     found = json_object_object_get_ex(root_obj, "caseSensitivity", &value);
     if (!found) {
         (*definition)->error_string = "Mandatory field `caseSensitivity` not set!";
-        return TEXTPARSER_JSON_CASE_SENSITIVITY_NOT_FOUND;
+        ret_code = TEXTPARSER_JSON_CASE_SENSITIVITY_NOT_FOUND;
+        goto err;
     }
     (*definition)->case_sensitivity = json_object_get_boolean(value);
 
     found = json_object_object_get_ex(root_obj, "defaultFileExtensions", &value);
     if (!found) {
         (*definition)->error_string = "Mandatory field `defaultFileExtensions` not set!";
-        return TEXTPARSER_JSON_FILE_EXTENSIONS_NOT_FOUND;
+        ret_code = TEXTPARSER_JSON_FILE_EXTENSIONS_NOT_FOUND;
+        goto err;
     }
     array_length = json_object_array_length(value);
     if (array_length > 0) {
         (*definition)->default_file_extensions = malloc((array_length + 1) * sizeof(char *));
         if ((*definition)->default_file_extensions == nullptr) {
             (*definition)->error_string = "malloc for default_file_extensions FAILED!";
-            return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+            goto err;
         }
 
         memset((*definition)->default_file_extensions, 0, (array_length + 1) * sizeof(char *));
@@ -110,7 +115,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UNICODE;
         else {
             (*definition)->error_string = "Invalid `defaultTextEncoding` encoding! Should be one of the following: latin1, utf8, unicode.";
-            return TEXTPARSER_JSON_ENCODING_NOT_FOUND;
+            ret_code = TEXTPARSER_JSON_ENCODING_NOT_FOUND;
+            goto err;
         }
     }
     else
@@ -121,12 +127,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     found = json_object_object_get_ex(root_obj, "startTokens", &value);
     if (!found) {
         (*definition)->error_string = "Mandatory field `startTokens` is missing!";
-        return TEXTPARSER_JSON_STARTS_WITH_NOT_FOUND;
+        ret_code = TEXTPARSER_JSON_STARTS_WITH_NOT_FOUND;
+        goto err;
     }
 
     if (!json_object_is_type(value, json_type_array)) {
         (*definition)->error_string = "`startTokens` is not array!";
-        return TEXTPARSER_JSON_STARTS_WITH_NOT_ARRAY;
+        ret_code = TEXTPARSER_JSON_STARTS_WITH_NOT_ARRAY;
+        goto err;
     }
 
     // Save startTokens json object for later processing
@@ -135,12 +143,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     found = json_object_object_get_ex(root_obj, "tokens", &tokens);
     if (!found) {
         (*definition)->error_string = "Mandatory field `tokens` is missing!";
-        return TEXTPARSER_JSON_TOKENS_NOT_FOUND;
+        ret_code = TEXTPARSER_JSON_TOKENS_NOT_FOUND;
+        goto err;
     }
 
     if (!json_object_is_type(tokens, json_type_object)) {
         (*definition)->error_string = "`tokens` is not object!";
-        return TEXTPARSER_JSON_TOKENS_NOT_OBJECT;
+        ret_code = TEXTPARSER_JSON_TOKENS_NOT_OBJECT;
+        goto err;
     }
 
     size_t tokens_cnt = (size_t)json_object_object_length(tokens);
@@ -148,7 +158,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     (*definition)->tokens = malloc(sizeof(textparser_token) * (tokens_cnt + 1));
     if ((*definition)->tokens == nullptr) {
         (*definition)->error_string = "malloc for tokens list FAILED!";
-        return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+        goto err;
     }
 
     memset((*definition)->tokens, 0, sizeof(textparser_token) * (tokens_cnt + 1));
@@ -177,9 +188,13 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                  else if (strcasecmp(str_val, "StartStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
                  else if (strcasecmp(str_val, "StartOptStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_START_OPT_STOP;
                  else if (strcasecmp(str_val, "DualStartAndStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP;
-                 else return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+                 else {
+                     ret_code = TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+                     goto err;
+                 }
             } else {
-                return TEXTPARSER_JSON_TOKEN_TYPE_NOT_FOUND;
+                ret_code = TEXTPARSER_JSON_TOKEN_TYPE_NOT_FOUND;
+                goto err;
             }
 
             json_object_object_get_ex(token_item, "start_regex", &key_value);
@@ -230,7 +245,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             if (nested_tokens_json) {
                 if (!json_object_is_type(nested_tokens_json, json_type_array)) {
                     (*definition)->error_string = "`nested_tokens` is not array!";
-                    return TEXTPARSER_JSON_NESTED_TOKENS_NOT_ARRAY;
+                    ret_code = TEXTPARSER_JSON_NESTED_TOKENS_NOT_ARRAY;
+                    goto err;
                 }
 
                 size_t nested_cnt = json_object_array_length(nested_tokens_json);
@@ -239,13 +255,15 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                 // We keep original behavior for error code, but maybe empty array is valid (just no children).
                 if (nested_cnt == 0) {
                      (*definition)->error_string = "`nested_tokens` array is empty!";
-                     return TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY;
+                     ret_code = TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY;
+                     goto err;
                 }
 
                 (*definition)->tokens[token_idx].nested_tokens = malloc(sizeof(int) * (nested_cnt + 1));
                 if (!(*definition)->tokens[token_idx].nested_tokens) {
                     (*definition)->error_string = "malloc for nested_tokens FAILED!";
-                     return TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    goto err;
                 }
 
                 for(size_t i = 0; i < nested_cnt; i++) {
@@ -254,10 +272,10 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
                      int found_idx = TextParser_END;
                      for(size_t j = 0; j < tokens_cnt; j++) {
-                         if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
-                             found_idx = (int)j;
-                             break;
-                         }
+                          if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
+                              found_idx = (int)j;
+                              break;
+                          }
                      }
                      (*definition)->tokens[token_idx].nested_tokens[i] = found_idx;
                 }
@@ -274,13 +292,15 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     size_t starts_with_cnt = json_object_array_length(start_tokens_arr);
     if (starts_with_cnt == 0) {
         (*definition)->error_string = "`startTokens` array is empty!";
-        return TEXTPARSER_JSON_STARTS_WITH_IS_EMPTY;
+        ret_code = TEXTPARSER_JSON_STARTS_WITH_IS_EMPTY;
+        goto err;
     }
 
     (*definition)->starts_with = malloc(sizeof(int) * (starts_with_cnt + 1));
     if ((*definition)->starts_with == nullptr) {
         (*definition)->error_string = "malloc for starts_with FAILED!";
-        return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+        goto err;
     }
 
     for(size_t i = 0; i < starts_with_cnt; i++) {
@@ -304,6 +324,13 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     }
 
     return 0;
+
+err:
+    if (definition && *definition) {
+        textparser_free_language_definition(*definition);
+        *definition = nullptr;
+    }
+    return ret_code;
 }
 
 int textparser_json_load_language_definition_from_json_file(const char *pathname, textparser_language_definition **definition)

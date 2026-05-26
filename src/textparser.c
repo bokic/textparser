@@ -16,6 +16,8 @@
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
+static int active_handle_count = 0;
+
 #define TOKEN_NOT_FOUND -1
 
 #define exit_with_error(error_text, offset)           \
@@ -1205,6 +1207,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         goto err;
     }
 
+    active_handle_count++;
     return 0;
 
 err:
@@ -1231,6 +1234,7 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     ret->text_size = (size_t)len;
 
     *handle = (textparser_t)ret;
+    active_handle_count++;
 
     return 0;
 }
@@ -1263,6 +1267,11 @@ void textparser_close(textparser_t handle)
 
     free(handle);
     handle = nullptr;
+
+    active_handle_count--;
+    if (active_handle_count == 0) {
+        adv_regex_cleanup();
+    }
 }
 
 void textparser_cleanup(textparser_t *handle)
