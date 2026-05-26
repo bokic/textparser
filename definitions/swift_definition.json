@@ -1,0 +1,136 @@
+{
+  "name": "swift",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["swift"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Keyword",
+    "Boolean",
+    "Variable",
+    "CodeBlock",
+    "Operator",
+    "SingleString",
+    "DoubleString",
+    "MultiLineString",
+    "Number"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "actor\\b|associatedtype\\b|async\\b|await\\b|class\\b|convenience\\b|deinit\\b|distributed\\b|dynamic\\b|enum\\b|extension\\b|fileprivate\\b|final\\b|func\\b|get\\b|guard\\b|import\\b|indirect\\b|infix\\b|init\\b|inout\\b|internal\\b|isolated\\b|lazy\\b|let\\b|macro\\b|mutating\\b|nonisolated\\b|nonmutating\\b|open\\b|operator\\b|optional\\b|override\\b|package\\b|postfix\\b|precedencegroup\\b|prefix\\b|private\\b|protocol\\b|public\\b|required\\b|rethrows\\b|set\\b|some\\b|static\\b|struct\\b|subscript\\b|typealias\\b|unowned\\b|var\\b|weak\\b|willSet\\b|didSet\\b|where\\b|any\\b|as\\b|break\\b|case\\b|catch\\b|continue\\b|default\\b|defer\\b|do\\b|else\\b|fallthrough\\b|for\\b|if\\b|in\\b|is\\b|repeat\\b|return\\b|switch\\b|throw\\b|throws\\b|try\\b|while\\b|#available\\b|#selector\\b|#keyPath\\b|#file\\b|#line\\b|#column\\b|#function\\b|#dsohandle\\b|#warning\\b|#error\\b|#if\\b|#else\\b|#elseif\\b|#endif\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b|nil\\b",
+      "textColor": "0x088c54"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "Boolean",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "MultiLineString",
+        "Number"
+      ]
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "\\?\\?|===|!==|\\.\\.<|\\.\\.\\.|->|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<<|>>|\\+\\+|\\-\\-|\\+=|\\-=|\\*=|\\/=|[=<>!&|^~+\\-*/%\\?:;.,()\\[\\]]",
+      "textColor": "0x35b2dd"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape",
+        "StringInterpolation"
+      ]
+    },
+    "MultiLineString": {
+      "type": "StartStop",
+      "startRegex": "\"\"\"",
+      "endRegex": "\"\"\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape",
+        "StringInterpolation"
+      ]
+    },
+    "StringInterpolation": {
+      "type": "StartStop",
+      "startRegex": "\\\\\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x35b2dd",
+      "nestedTokens": [
+        "Keyword",
+        "Boolean",
+        "Variable",
+        "Operator",
+        "Number"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\[\\\\\\\"'nrt0]|\\\\u\\{[0-9a-fA-F]{1,8}\\}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?(?:[pP][-+]?[0-9]+)?\\b|0[oO][0-7]+\\b|0[bB][01]+\\b|[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?\\b",
+      "textColor": "0xb5cea8"
+    }
+  }
+}
