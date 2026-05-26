@@ -1,0 +1,107 @@
+{
+  "name": "sql",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["sql"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Keyword",
+    "DataType",
+    "Boolean",
+    "BacktickIdentifier",
+    "BracketIdentifier",
+    "Variable",
+    "Operator",
+    "SingleString",
+    "DoubleString",
+    "Number"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "--[^\\r\\n]*",
+      "otherTextInside": true
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "select\\b|insert\\b|update\\b|delete\\b|from\\b|where\\b|join\\b|left\\b|right\\b|inner\\b|outer\\b|on\\b|group\\b|by\\b|having\\b|order\\b|limit\\b|offset\\b|create\\b|table\\b|drop\\b|alter\\b|add\\b|column\\b|index\\b|primary\\b|key\\b|foreign\\b|references\\b|into\\b|values\\b|set\\b|and\\b|or\\b|not\\b|in\\b|is\\b|null\\b|like\\b|between\\b|exists\\b|any\\b|all\\b|as\\b|distinct\\b|union\\b|intersect\\b|except\\b|with\\b|recursive\\b|database\\b|use\\b|view\\b|trigger\\b|procedure\\b|function\\b|returns\\b|declare\\b|begin\\b|end\\b|if\\b|else\\b|then\\b|commit\\b|rollback\\b|transaction\\b|grant\\b|revoke\\b|constraint\\b|default\\b|unique\\b|check\\b",
+      "textColor": "0xc586c0"
+    },
+    "DataType": {
+      "type": "SimpleToken",
+      "startRegex": "int\\b|integer\\b|varchar\\b|char\\b|text\\b|boolean\\b|bool\\b|date\\b|time\\b|timestamp\\b|datetime\\b|decimal\\b|numeric\\b|float\\b|double\\b|real\\b|blob\\b|clob\\b|json\\b|uuid\\b",
+      "textColor": "0x569cd6"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    },
+    "BacktickIdentifier": {
+      "type": "StartStop",
+      "startRegex": "`",
+      "endRegex": "`",
+      "otherTextInside": true,
+      "textColor": "0x9cdcfe"
+    },
+    "BracketIdentifier": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "otherTextInside": true,
+      "textColor": "0x9cdcfe"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "<>|<=|>=|!=|:=|[-+*/%&|^~<>!=;.,|()=]",
+      "textColor": "0x35b2dd"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "\\b[0-9]+(?:\\.[0-9]+)?\\b",
+      "textColor": "0xb5cea8"
+    }
+  }
+}
