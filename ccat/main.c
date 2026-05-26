@@ -4,6 +4,7 @@
 #include <json_definition.json.h>
 #include <php_definition.json.h>
 #include <java_definition.json.h>
+#include <c_definition.json.h>
 
 #include <string.h>
 #include <stddef.h>
@@ -17,7 +18,7 @@
 #define GB * 1024 MB
 #define MAX_PARSE_SIZE (4 MB)
 
-const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, &java_definition, nullptr};
+const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, &java_definition, &c_definition, nullptr};
 
 static const textparser_language_definition *get_language_definition_by_filename(const char *filename)
 {
