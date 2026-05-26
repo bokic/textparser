@@ -1,0 +1,105 @@
+{
+  "name": "csharp",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["cs"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Keyword",
+    "Boolean",
+    "Variable",
+    "CodeBlock",
+    "Operator",
+    "SingleString",
+    "DoubleString",
+    "Number"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "using\\b|namespace\\b|class\\b|interface\\b|struct\\b|record\\b|enum\\b|public\\b|private\\b|protected\\b|internal\\b|static\\b|readonly\\b|volatile\\b|virtual\\b|override\\b|abstract\\b|sealed\\b|partial\\b|async\\b|await\\b|var\\b|int\\b|double\\b|float\\b|long\\b|short\\b|byte\\b|char\\b|bool\\b|string\\b|object\\b|decimal\\b|void\\b|if\\b|else\\b|for\\b|foreach\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|new\\b|this\\b|base\\b|try\\b|catch\\b|finally\\b|throw\\b|in\\b|out\\b|ref\\b|get\\b|set\\b|value\\b|add\\b|remove\\b|delegate\\b|event\\b|lock\\b|implicit\\b|explicit\\b|operator\\b|params\\b|null\\b",
+      "textColor": "0xc586c0"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "Boolean",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number"
+      ]
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "==={0,1}|!=={0,1}|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2}=|\\?\\?=|\\?\\?|\\?\\.|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|==|!=|->|\\.|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "textColor": "0x35b2dd"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-fA-F]{4}|\\\\x[0-9a-fA-F]{2}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?[fFdDlLmM]?",
+      "textColor": "0xb5cea8"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    }
+  }
+}
