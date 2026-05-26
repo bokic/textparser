@@ -10,6 +10,7 @@
 #include <javascript_definition.json.h>
 #include <css_definition.json.h>
 #include <html_definition.json.h>
+#include <bash_definition.json.h>
 
 #include <json.h>
 
@@ -19,7 +20,7 @@
 #include <stdio.h>
 
 
-const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, &java_definition, &c_definition, &cpp_definition, &csharp_definition, &javascript_definition, &css_definition, &html_definition, nullptr};
+const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, &java_definition, &c_definition, &cpp_definition, &csharp_definition, &javascript_definition, &css_definition, &html_definition, &bash_definition, nullptr};
 
 static const textparser_language_definition *get_language_definition_by_filename(const char *filename)
 {

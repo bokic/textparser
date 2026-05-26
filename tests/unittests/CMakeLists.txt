@@ -30,6 +30,7 @@ add_executable( unittests
   javascript_tests.cpp
   css_tests.cpp
   html_tests.cpp
+  bash_tests.cpp
 
   tokenparser.hpp
 )
