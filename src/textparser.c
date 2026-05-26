@@ -1078,6 +1078,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
     switch(local_hnd.text_format) {
     case TEXTPARSER_ENCODING_LATIN1:
+    case TEXTPARSER_ENCODING_UTF_8:
         for(size_t ch = 0; ch < local_hnd.text_size; ch++) {
             if (local_hnd.text_addr[ch] == '\n')
                 local_hnd.no_lines++;
@@ -1095,9 +1096,6 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
                 ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
             }
         }
-        break;
-    case TEXTPARSER_ENCODING_UTF_8:
-        LOGW("no_lines for TEXTPARSER_ENCODING_UTF_8 type is not implemented!");
         break;
     case TEXTPARSER_ENCODING_UNICODE:
         for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
