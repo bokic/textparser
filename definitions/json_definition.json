@@ -28,7 +28,7 @@
     "Key": {
       "type": "StartStop",
       "otherTextInside": true,
-      "startRegex": "\\\"",
+      "startRegex": "\\\"(?=[^\\\"\\\\\\\\]*(?:\\\\\\\\.[^\\\"\\\\\\\\]*)*\\\"\\s*:)",
       "endRegex": "(\\\")\\s*:",
       "textColor": "0x9cdcfe",
       "nestedTokens": ["StringEscape"]
