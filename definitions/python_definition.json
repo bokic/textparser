@@ -1,0 +1,122 @@
+{
+  "name": "python",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["py"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "TripleSingleString",
+    "TripleDoubleString",
+    "SingleString",
+    "DoubleString",
+    "FString",
+    "Keyword",
+    "Boolean",
+    "Number",
+    "Variable",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "#[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "TripleSingleString": {
+      "type": "StartStop",
+      "startRegex": "'''",
+      "endRegex": "'''",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "TripleDoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"\"\"",
+      "endRegex": "\"\"\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "FString": {
+      "type": "StartStop",
+      "startRegex": "[fF](?:\"\"\"|'''|\"|')",
+      "endRegex": "(?:\"\"\"|'''|\"|')",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape",
+        "FStringInterpolation"
+      ]
+    },
+    "FStringInterpolation": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x35b2dd",
+      "nestedTokens": [
+        "Keyword",
+        "Boolean",
+        "Number",
+        "Variable",
+        "Operator"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\[\\\\\\\"'nrt0]|\\\\x[0-9a-fA-F]{2}|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}|\\\\N\\{[a-zA-Z_][a-zA-Z0-9_]*\\}",
+      "textColor": "0xd7ba7d"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "False\\b|None\\b|True\\b|and\\b|as\\b|assert\\b|async\\b|await\\b|break\\b|class\\b|continue\\b|def\\b|del\\b|elif\\b|else\\b|except\\b|finally\\b|for\\b|from\\b|global\\b|if\\b|import\\b|in\\b|is\\b|lambda\\b|nonlocal\\b|not\\b|or\\b|pass\\b|raise\\b|return\\b|try\\b|while\\b|with\\b|yield\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F][0-9a-fA-F_]*|0[oO][0-7][0-7_]*|0[bB][01][01_]*|[-+]?[0-9][0-9_]*(?:\\.[0-9][0-9_]*)?(?:[eE][-+]?[0-9][0-9_]*)?[jJ]?",
+      "textColor": "0xb5cea8"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "@?[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": ":=|\\.\\.\\.|->|//|\\*\\*|<<|>>|==|!=|<=|>=|\\+=|\\-=|\\*=|\\/=|//=|%=|@=|&=|\\|=|\\^=|<<=|>>=|\\*\\*=|!=|[=<>!&|^~+\\-*/%@.,;:()\\[\\]]",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
