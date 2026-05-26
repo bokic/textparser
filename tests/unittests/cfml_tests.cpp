@@ -51,3 +51,43 @@ TEST(parse_CFML, basic_cfset) {
     EXPECT_EQ   (tokens[0][0][2].length,   4);
     EXPECT_EQ   (tokens[0][0][2].children, 0);
 }
+
+TEST(parse_CFML, line_mapping_subsystem) {
+    const char *text = "line0\nline1\n\nline3\n";
+    // offsets of newlines: 5, 11, 12, 18
+    textparser_t handle = nullptr;
+    int err = textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+
+    // Initial state: no line map
+    EXPECT_EQ(textparser_get_line_count(handle), 1);
+    EXPECT_EQ(textparser_get_line_start_position(handle, 0), 0);
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 10), 0);
+
+    // Build the line map
+    err = textparser_build_line_map(handle);
+    ASSERT_EQ(err, 0);
+
+    // Verify line count (4 newlines => 5 lines)
+    EXPECT_EQ(textparser_get_line_count(handle), 5);
+
+    // Verify line starting positions
+    EXPECT_EQ(textparser_get_line_start_position(handle, 0), 0);  // line 0 start
+    EXPECT_EQ(textparser_get_line_start_position(handle, 1), 6);  // line 1 start (after \n at 5)
+    EXPECT_EQ(textparser_get_line_start_position(handle, 2), 12); // line 2 start (after \n at 11)
+    EXPECT_EQ(textparser_get_line_start_position(handle, 3), 13); // line 3 start (after \n at 12)
+    EXPECT_EQ(textparser_get_line_start_position(handle, 4), 19); // line 4 start (after \n at 18)
+
+    // Verify line numbers at specific positions
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 0), 0);  // "l" in line0
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 5), 0);  // newline at 5 (terminates line 0)
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 6), 1);  // "l" in line1
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 11), 1); // newline at 11 (terminates line 1)
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 12), 2); // newline at 12 (terminates line 2)
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 13), 3); // "l" in line3
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 18), 3); // newline at 18 (terminates line 3)
+    EXPECT_EQ(textparser_get_line_number_at_position(handle, 19), 4); // empty line 4 at the end
+
+    textparser_close(handle);
+}

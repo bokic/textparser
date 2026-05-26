@@ -118,6 +118,11 @@ EXPORT_TEXTPARSER uint32_t textparser_get_token_text_background(const textparser
 EXPORT_TEXTPARSER uint32_t textparser_get_token_text_flags(const textparser_token_item *token);
 EXPORT_TEXTPARSER const char *textparser_get_token_error(const textparser_token_item *token);
 
+EXPORT_TEXTPARSER int textparser_build_line_map(textparser_t handle);
+EXPORT_TEXTPARSER size_t textparser_get_line_count(const textparser_t handle);
+EXPORT_TEXTPARSER size_t textparser_get_line_start_position(const textparser_t handle, size_t line_index);
+EXPORT_TEXTPARSER size_t textparser_get_line_number_at_position(const textparser_t handle, size_t position);
+
 EXPORT_TEXTPARSER textparser_parser_state *textparser_state_new(const textparser_t handle);
 EXPORT_TEXTPARSER void textparser_state_free(textparser_parser_state *state);
 EXPORT_TEXTPARSER void textparser_state_cleanup(textparser_parser_state **state);

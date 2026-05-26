@@ -74,7 +74,7 @@ typedef struct {
     const char *text_addr;
     size_t text_size;
     size_t no_lines;
-    size_t lines[];
+    size_t *lines;
 } textparser_handle;
 
 static size_t textparser_get_byte_offset(const textparser_handle *int_handle, size_t pos)
@@ -1145,74 +1145,26 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     }
 
     local_hnd.no_lines = 0;
-    size_t cur_line_pos = 0;
+    local_hnd.lines = nullptr;
 
     switch(local_hnd.text_format) {
     case TEXTPARSER_ENCODING_LATIN1:
     case TEXTPARSER_ENCODING_UTF_8:
-        for(size_t ch = 0; ch < local_hnd.text_size; ch++) {
-            if (local_hnd.text_addr[ch] == '\n')
-                local_hnd.no_lines++;
-        }
-
-        *handle = malloc(sizeof(textparser_handle) + (sizeof(size_t) * (local_hnd.no_lines)));
-        if (*handle == nullptr) {
-            err = 6;
-            goto err;
-        }
-        memcpy(*handle, &local_hnd, sizeof(textparser_handle));
-
-        for(size_t ch = 0; ch < local_hnd.text_size; ch++) {
-            if (local_hnd.text_addr[ch] == '\n') {
-                ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
-            }
-        }
-        break;
     case TEXTPARSER_ENCODING_UNICODE:
     case TEXTPARSER_ENCODING_UTF_16:
-        for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
-            if (((uint16_t *)local_hnd.text_addr)[ch] == '\n')
-                local_hnd.no_lines++;
-        }
-
-        *handle = malloc(sizeof(textparser_handle) + (sizeof(size_t) * (local_hnd.no_lines)));
-        if (*handle == nullptr) {
-            err = 6;
-            goto err;
-        }
-
-        memcpy(*handle, &local_hnd, sizeof(textparser_handle));
-
-        for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
-            if (((uint16_t *)local_hnd.text_addr)[ch] == '\n') {
-                ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
-            }
-        }
-        break;
     case TEXTPARSER_ENCODING_UTF_32:
-        for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint32_t); ch++) {
-            if (((uint32_t *)local_hnd.text_addr)[ch] == '\n')
-                local_hnd.no_lines++;
-        }
-
-        *handle = malloc(sizeof(textparser_handle) + (sizeof(size_t) * (local_hnd.no_lines)));
-        if (*handle == nullptr) {
-            err = 6;
-            goto err;
-        }
-
-        memcpy(*handle, &local_hnd, sizeof(textparser_handle));
-
-        for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint32_t); ch++) {
-            if (((uint32_t *)local_hnd.text_addr)[ch] == '\n') {
-                ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
-            }
-        }
         break;
     default:
         err = 7;
         goto err;
     }
+
+    *handle = malloc(sizeof(textparser_handle));
+    if (*handle == nullptr) {
+        err = 6;
+        goto err;
+    }
+    memcpy(*handle, &local_hnd, sizeof(textparser_handle));
 
     active_handle_count++;
     return 0;
@@ -1224,6 +1176,7 @@ err:
 
     return err;
 }
+
 
 int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle)
 {
@@ -1270,6 +1223,11 @@ void textparser_close(textparser_t handle)
     {
         free_item_tree(item);
         item = nullptr;
+    }
+
+    if (int_handle->lines) {
+        free(int_handle->lines);
+        int_handle->lines = nullptr;
     }
 
     free(handle);
@@ -1641,4 +1599,158 @@ void textparser_state_cleanup(textparser_parser_state **state)
         textparser_state_free(*state);
         *state = nullptr;
     }
+}
+
+int textparser_build_line_map(textparser_t handle)
+{
+    textparser_handle *int_handle = (textparser_handle *)handle;
+    if (int_handle == nullptr)
+        return -1;
+
+    if (int_handle->lines) {
+        free(int_handle->lines);
+        int_handle->lines = nullptr;
+    }
+    int_handle->no_lines = 0;
+
+    size_t count = 0;
+    size_t text_size = int_handle->text_size;
+    const char *text_addr = int_handle->text_addr;
+
+    if (text_addr == nullptr || text_size == 0) {
+        return 0;
+    }
+
+    switch (int_handle->text_format)
+    {
+    case TEXTPARSER_ENCODING_LATIN1:
+    case TEXTPARSER_ENCODING_UTF_8:
+        for (size_t ch = 0; ch < text_size; ch++) {
+            if (text_addr[ch] == '\n') {
+                count++;
+            }
+        }
+        break;
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16: {
+        const uint16_t *text16 = (const uint16_t *)text_addr;
+        size_t units16 = text_size / sizeof(uint16_t);
+        for (size_t ch = 0; ch < units16; ch++) {
+            if (text16[ch] == '\n') {
+                count++;
+            }
+        }
+        break;
+    }
+    case TEXTPARSER_ENCODING_UTF_32: {
+        const uint32_t *text32 = (const uint32_t *)text_addr;
+        size_t units32 = text_size / sizeof(uint32_t);
+        for (size_t ch = 0; ch < units32; ch++) {
+            if (text32[ch] == '\n') {
+                count++;
+            }
+        }
+        break;
+    }
+    default:
+        return -1;
+    }
+
+    if (count == 0) {
+        return 0;
+    }
+
+    int_handle->lines = malloc(sizeof(size_t) * count);
+    if (int_handle->lines == nullptr) {
+        return -1;
+    }
+    int_handle->no_lines = count;
+
+    size_t cur_line_pos = 0;
+
+    switch (int_handle->text_format)
+    {
+    case TEXTPARSER_ENCODING_LATIN1:
+    case TEXTPARSER_ENCODING_UTF_8:
+        for (size_t ch = 0; ch < text_size; ch++) {
+            if (text_addr[ch] == '\n') {
+                int_handle->lines[cur_line_pos++] = ch;
+            }
+        }
+        break;
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16: {
+        const uint16_t *text16 = (const uint16_t *)text_addr;
+        size_t units16 = text_size / sizeof(uint16_t);
+        for (size_t ch = 0; ch < units16; ch++) {
+            if (text16[ch] == '\n') {
+                int_handle->lines[cur_line_pos++] = ch;
+            }
+        }
+        break;
+    }
+    case TEXTPARSER_ENCODING_UTF_32: {
+        const uint32_t *text32 = (const uint32_t *)text_addr;
+        size_t units32 = text_size / sizeof(uint32_t);
+        for (size_t ch = 0; ch < units32; ch++) {
+            if (text32[ch] == '\n') {
+                int_handle->lines[cur_line_pos++] = ch;
+            }
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+size_t textparser_get_line_count(const textparser_t handle)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+    if (int_handle == nullptr)
+        return 0;
+
+    if (int_handle->text_addr == nullptr || int_handle->text_size == 0)
+        return 0;
+
+    return int_handle->no_lines + 1;
+}
+
+size_t textparser_get_line_start_position(const textparser_t handle, size_t line_index)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+    if (int_handle == nullptr)
+        return 0;
+
+    if (line_index == 0)
+        return 0;
+
+    if (line_index > int_handle->no_lines) {
+        return textparser_get_total_units(int_handle);
+    }
+
+    return int_handle->lines[line_index - 1] + 1;
+}
+
+size_t textparser_get_line_number_at_position(const textparser_t handle, size_t position)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+    if (int_handle == nullptr || int_handle->no_lines == 0 || int_handle->lines == nullptr)
+        return 0;
+
+    size_t low = 0;
+    size_t high = int_handle->no_lines;
+
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        if (int_handle->lines[mid] >= position) {
+            high = mid;
+        } else {
+            low = mid + 1;
+        }
+    }
+
+    return low;
 }
