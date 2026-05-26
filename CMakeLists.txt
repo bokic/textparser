@@ -38,6 +38,15 @@ if(NOT TEXTPARSER_VERSION_TAG)
     endif()
 endif()
 
+if(NOT TEXTPARSER_VERSION_TAG)
+    if(DEFINED ENV{TEXTPARSER_VERSION})
+        set(TEXTPARSER_VERSION_TAG "$ENV{TEXTPARSER_VERSION}")
+        set(REVISION "0")
+    else()
+        message(FATAL_ERROR "Not building under Git repository and the TEXTPARSER_VERSION environment variable is not set! Please set TEXTPARSER_VERSION (e.g., export TEXTPARSER_VERSION=X.Y.Z) to configure the build.")
+    endif()
+endif()
+
 if(NOT TEXTPARSER_VERSION_TAG MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     message(FATAL_ERROR "Git last tag '${TEXTPARSER_VERSION_TAG}' is not in format X.Y.Z")
 endif()
@@ -48,6 +57,8 @@ project(textparser)
 
 include(GNUInstallDirs)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
@@ -56,14 +67,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/json_definition.json.h
-  COMMAND python ./json2h.py json_definition.json
+  COMMAND ${Python3_EXECUTABLE} ./json2h.py json_definition.json
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/json_definition.json
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/definitions
 )
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/cfml_definition.json.h
-  COMMAND python ./json2h.py cfml_definition.json
+  COMMAND ${Python3_EXECUTABLE} ./json2h.py cfml_definition.json
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/cfml_definition.json
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/definitions
 )

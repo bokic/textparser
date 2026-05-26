@@ -17,9 +17,9 @@ if(NOT WIN32)
     find_package(json-c CONFIG REQUIRED)
     find_package(PkgConfig)
 
-    pkg_search_module(libpcre2-8 REQUIRED libpcre2-8>=10.42)
-    pkg_search_module(libpcre2-16 REQUIRED libpcre2-16>=10.42)
-    pkg_search_module(libpcre2-32 REQUIRED libpcre2-32>=10.42)
+    pkg_search_module(libpcre2-8 REQUIRED IMPORTED_TARGET libpcre2-8>=10.42)
+    pkg_search_module(libpcre2-16 REQUIRED IMPORTED_TARGET libpcre2-16>=10.42)
+    pkg_search_module(libpcre2-32 REQUIRED IMPORTED_TARGET libpcre2-32>=10.42)
 endif()
 
 add_library(libtextparser SHARED
@@ -48,22 +48,10 @@ if(WIN32)
     target_link_directories(libtextparser PRIVATE ../bin)
     target_link_libraries(libtextparser PRIVATE pcre2-8.lib pcre2-16.lib pcre2-32.lib)
 else()
-    target_include_directories(libtextparser PRIVATE
-        ${libpcre2-8_INCLUDE_DIRS}
-        ${libpcre2-16_INCLUDE_DIRS}
-        ${libpcre2-32_INCLUDE_DIRS}
-    )
-
-    target_link_directories(libtextparser PRIVATE
-        ${libpcre2-8_LIBRARY_DIRS}
-        ${libpcre2-16_LIBRARY_DIRS}
-        ${libpcre2-32_LIBRARY_DIRS}
-    )
-
     target_link_libraries(libtextparser PRIVATE
-        ${libpcre2-8_LIBRARIES}
-        ${libpcre2-16_LIBRARIES}
-        ${libpcre2-32_LIBRARIES}
+        PkgConfig::libpcre2-8
+        PkgConfig::libpcre2-16
+        PkgConfig::libpcre2-32
     )
 endif()
 
@@ -105,14 +93,6 @@ if(WIN32)
     target_link_directories(libtextparser-json PRIVATE ../bin)
     target_link_libraries(libtextparser-json PRIVATE json-c.lib)
 else()
-    target_include_directories(libtextparser-json PRIVATE
-        json-c::json-c
-    )
-
-    target_link_directories(libtextparser-json PRIVATE
-        json-c::json-c
-    )
-
     target_link_libraries(libtextparser-json PRIVATE
         json-c::json-c
     )

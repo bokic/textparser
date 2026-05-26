@@ -13,11 +13,17 @@ qt_add_executable(qscintilla
     mainwindow.ui
 )
 
+find_library(QSCINTILLA_LIBRARY NAMES qscintilla2_qt6 qscintilla2-qt6)
+if(NOT QSCINTILLA_LIBRARY)
+    message(WARNING "QScintilla QT6 library not found! Compiler link might fail.")
+    set(QSCINTILLA_LIBRARY qscintilla2_qt6) # Fallback to original
+endif()
+
 target_link_libraries(qscintilla
     PRIVATE
         Qt::Core
         Qt::Widgets
-        qscintilla2_qt6
+        ${QSCINTILLA_LIBRARY}
         libtextparser
 )
 
