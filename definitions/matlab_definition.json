@@ -1,0 +1,77 @@
+{
+  "name": "matlab",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["m"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "Keyword",
+    "Boolean",
+    "SingleString",
+    "DoubleString",
+    "Number",
+    "Variable",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "%[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "break\\b|case\\b|catch\\b|classdef\\b|continue\\b|else\\b|elseif\\b|end\\b|enumeration\\b|events\\b|for\\b|function\\b|global\\b|if\\b|methods\\b|otherwise\\b|parfor\\b|persistent\\b|properties\\b|return\\b|spmd\\b|switch\\b|try\\b|while\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "''|\"\"",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "[-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?[iIjJ]?|[-+]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?[iIjJ]?|0[xX][0-9a-fA-F]+",
+      "textColor": "0xb5cea8"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "\\.\\*|\\.\\/|\\.\\\\|\\.\\^|==|~=|\\.'|&&|\\|\\||<<|>>|\\+=|\\-=|\\*=|\\/=|[=~&|<>=+\\-*/\\\\^'.:;,@()\\[\\]{}]",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
