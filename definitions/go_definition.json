@@ -1,0 +1,117 @@
+{
+  "name": "go",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["go"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Keyword",
+    "Boolean",
+    "Variable",
+    "CodeBlock",
+    "Operator",
+    "SingleString",
+    "DoubleString",
+    "BacktickString",
+    "Number"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "break\\b|case\\b|chan\\b|const\\b|continue\\b|default\\b|defer\\b|else\\b|fallthrough\\b|for\\b|func\\b|go\\b|goto\\b|if\\b|import\\b|interface\\b|map\\b|package\\b|range\\b|return\\b|select\\b|struct\\b|switch\\b|type\\b|var\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b|nil\\b|iota\\b",
+      "textColor": "0x088c54"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "Boolean",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "BacktickString",
+        "Number"
+      ]
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "\\+\\+|\\-\\-|\\+=|\\-=|\\*=|\\/=|%=|&=|\\|=|\\^=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<-|<<|>>|&\\^|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|&=|\\|=|<<|>>|&\\^|==|!=|<|>|=|!|\\+|-|\\*|\\/|%|&|\\||\\^|&\\^|<<|>>|:=|\\.\\.\\.|:|;|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}",
+      "textColor": "0x35b2dd"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "BacktickString": {
+      "type": "StartStop",
+      "startRegex": "`",
+      "endRegex": "`",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\[\\\\\\\"'nrt]|\\\\x[0-9a-fA-F]{2}|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}|\\\\[0-7]{3}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?",
+      "textColor": "0xb5cea8"
+    }
+  }
+}
