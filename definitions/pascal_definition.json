@@ -1,0 +1,105 @@
+{
+  "name": "pascal",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["pas"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "CompilerDirective",
+    "BlockCommentCurly",
+    "BlockCommentParen",
+    "Keyword",
+    "DataType",
+    "Boolean",
+    "CharLiteral",
+    "SingleString",
+    "Number",
+    "Variable",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "CompilerDirective": {
+      "type": "StartStop",
+      "startRegex": "\\{\\$",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xd7ba7d"
+    },
+    "BlockCommentCurly": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "BlockCommentParen": {
+      "type": "StartStop",
+      "startRegex": "\\(\\*",
+      "endRegex": "\\*\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "and\\b|or\\b|not\\b|xor\\b|shl\\b|shr\\b|div\\b|mod\\b|as\\b|is\\b|program\\b|unit\\b|interface\\b|implementation\\b|uses\\b|var\\b|type\\b|const\\b|resourcestring\\b|threadvar\\b|begin\\b|end\\b|procedure\\b|function\\b|constructor\\b|destructor\\b|property\\b|class\\b|record\\b|object\\b|helper\\b|strict\\b|private\\b|protected\\b|public\\b|published\\b|initialization\\b|finalization\\b|if\\b|then\\b|else\\b|case\\b|of\\b|for\\b|to\\b|downto\\b|do\\b|while\\b|repeat\\b|until\\b|with\\b|try\\b|except\\b|finally\\b|raise\\b|at\\b|on\\b|inherited\\b|inline\\b|overload\\b|override\\b|virtual\\b|abstract\\b|reintroduce\\b|nil\\b|out\\b|label\\b|goto\\b|exports\\b|library\\b|package\\b|requires\\b|contains\\b|absolute\\b|assembler\\b|cdecl\\b|pascal\\b|register\\b|safecall\\b|stdcall\\b|reference\\b|operator\\b",
+      "textColor": "0xc586c0"
+    },
+    "DataType": {
+      "type": "SimpleToken",
+      "startRegex": "integer\\b|cardinal\\b|shortint\\b|smallint\\b|longint\\b|int64\\b|byte\\b|word\\b|fixedint\\b|fixeduint\\b|real\\b|single\\b|double\\b|extended\\b|comp\\b|currency\\b|char\\b|ansichar\\b|widechar\\b|boolean\\b|bytebool\\b|wordbool\\b|longbool\\b|string\\b|ansistring\\b|widestring\\b|unicodestring\\b|shortstring\\b|pointer\\b|variant\\b|tobject\\b|tclass\\b",
+      "textColor": "0x569cd6"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    },
+    "CharLiteral": {
+      "type": "SimpleToken",
+      "startRegex": "#[0-9]+|#\\$[0-9a-fA-F]+",
+      "textColor": "0xce9178"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "EscapedQuote"
+      ]
+    },
+    "EscapedQuote": {
+      "type": "SimpleToken",
+      "startRegex": "''",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "\\$[0-9a-fA-F]+\\b|\\b[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?\\b",
+      "textColor": "0xb5cea8"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": ":=|==|<=|>=|<>|\\+=|\\-=|\\*=|\\/=|[@\\^.\\,:;\\(\\)\\[\\]\\+\\-\\*\\/=<>]",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
