@@ -6,6 +6,12 @@
 #include <print>
 
 
+inline bool &textparser_suppress_errors() {
+    static bool suppress = false;
+    return suppress;
+}
+
+
 class TokenParserItem
 {
 public:
@@ -88,7 +94,7 @@ public:
                 token = token->next;
             }
         }
-        else
+        else if (!textparser_suppress_errors())
         {
             std::println(stderr, "Parsing error: {}, at position: {}", textparser_parse_error(m_handle), textparser_parse_error_position(m_handle));
         }

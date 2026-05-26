@@ -7,7 +7,9 @@
 
 
 TEST(parse_CFML, crash_cfset) {
+    textparser_suppress_errors() = true;
     auto tokens = TextParser(R"(<!--- <!--- --->)", &cfml_definition);
+    textparser_suppress_errors() = false;
 }
 
 TEST(parse_CFML, null_definition) {
