@@ -875,8 +875,8 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
         return nullptr;
     }
 
-    if (offset >= int_handle->text_size) {
-        LOGE("offset >= int_handle->text_size");
+    if (offset >= textparser_get_total_units(int_handle)) {
+        LOGE("offset >= textparser_get_total_units(int_handle)");
         return nullptr;
     }
 
@@ -1311,8 +1311,7 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
     }
 
     textparser_token_item *prev_item = nullptr;
-
-    size_t size = int_handle->text_size;
+    size_t size = textparser_get_total_units(int_handle);
     size_t pos = 0;
 
     if (int_handle->language != definition)
