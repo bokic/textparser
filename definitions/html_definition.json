@@ -1,0 +1,85 @@
+{
+  "name": "html",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["html", "htm"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "Comment",
+    "Doctype",
+    "ClosingTag",
+    "Tag"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "Comment": {
+      "type": "StartStop",
+      "startRegex": "<!--",
+      "endRegex": "-->",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Doctype": {
+      "type": "SimpleToken",
+      "startRegex": "<!doctype\\b[^>]*>",
+      "textColor": "0xc586c0"
+    },
+    "ClosingTag": {
+      "type": "SimpleToken",
+      "startRegex": "<\\/[a-zA-Z0-9:-]+\\s*>",
+      "textColor": "0x569cd6"
+    },
+    "Tag": {
+      "type": "StartStop",
+      "startRegex": "<[a-zA-Z0-9:-]+",
+      "endRegex": "\\/?>",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x569cd6",
+      "nestedTokens": [
+        "DoubleString",
+        "SingleString",
+        "Equal",
+        "AttributeName"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
+      "textColor": "0xd7ba7d"
+    },
+    "Equal": {
+      "type": "SimpleToken",
+      "startRegex": "=",
+      "textColor": "0x35b2dd"
+    },
+    "AttributeName": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z0-9:-]+",
+      "textColor": "0x9cdcfe"
+    }
+  }
+}

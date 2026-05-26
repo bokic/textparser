@@ -29,6 +29,7 @@ add_executable( unittests
   csharp_tests.cpp
   javascript_tests.cpp
   css_tests.cpp
+  html_tests.cpp
 
   tokenparser.hpp
 )
