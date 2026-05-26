@@ -33,6 +33,7 @@ add_executable( unittests
   bash_tests.cpp
   sql_tests.cpp
   pascal_tests.cpp
+  typescript_tests.cpp
 
   tokenparser.hpp
 )

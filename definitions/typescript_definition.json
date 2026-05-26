@@ -1,0 +1,117 @@
+{
+  "name": "typescript",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["ts"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Keyword",
+    "Boolean",
+    "Variable",
+    "CodeBlock",
+    "Operator",
+    "SingleString",
+    "DoubleString",
+    "TemplateString",
+    "Number"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "async\\b|await\\b|class\\b|const\\b|let\\b|var\\b|function\\b|import\\b|export\\b|from\\b|default\\b|extends\\b|implements\\b|interface\\b|type\\b|enum\\b|namespace\\b|module\\b|declare\\b|abstract\\b|readonly\\b|static\\b|public\\b|private\\b|protected\\b|super\\b|this\\b|new\\b|return\\b|try\\b|catch\\b|finally\\b|throw\\b|if\\b|else\\b|switch\\b|case\\b|break\\b|continue\\b|do\\b|while\\b|for\\b|in\\b|of\\b|typeof\\b|instanceof\\b|keyof\\b|satisfies\\b|as\\b|infer\\b|is\\b|never\\b|unknown\\b|any\\b|yield\\b|debugger\\b|delete\\b|void\\b|with\\b|null\\b|undefined\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_$][a-zA-Z0-9_$]*",
+      "textColor": "0x9cdcfe"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "Boolean",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "TemplateString",
+        "Number"
+      ]
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "==={0,1}|!=={0,1}|=>|\\+=|\\-=|\\*=|\\/=|%=|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|\\?\\.|\\?\\?|\\?\\?=|\\?:|::|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "textColor": "0x35b2dd"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "TemplateString": {
+      "type": "StartStop",
+      "startRegex": "`",
+      "endRegex": "`",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\\\`|\\\\u[0-9a-fA-F]{4}|\\\\x[0-9a-fA-F]{2}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?",
+      "textColor": "0xb5cea8"
+    }
+  }
+}
