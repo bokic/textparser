@@ -1,0 +1,76 @@
+{
+  "name": "scratch",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["sb3"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "Keyword",
+    "Boolean",
+    "DoubleString",
+    "Number",
+    "Variable",
+    "RoundBlock",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "#[^\\r\\n]*|\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "when\\b|green\\b|flag\\b|clicked\\b|key\\b|pressed\\b|space\\b|any\\b|move\\b|steps\\b|turn\\b|cw\\b|ccw\\b|degrees\\b|go\\b|to\\b|glide\\b|secs\\b|point\\b|towards\\b|direction\\b|change\\b|set\\b|effect\\b|size\\b|graphic\\b|clear\\b|show\\b|hide\\b|say\\b|think\\b|seconds\\b|wait\\b|costume\\b|backdrop\\b|switch\\b|next\\b|sound\\b|play\\b|until\\b|stop\\b|all\\b|this\\b|script\\b|create\\b|clone\\b|delete\\b|forever\\b|repeat\\b|if\\b|then\\b|else\\b|broadcast\\b|message\\b|message1\\b|new\\b|ask\\b|answer\\b|mouse\\b|x\\b|y\\b|down\\b|loudness\\b|timer\\b|reset\\b|random\\b|pick\\b|between\\b|join\\b|letter\\b|of\\b|length\\b|contains\\b|round\\b|sqrt\\b|abs\\b|and\\b|or\\b|not\\b|touching\\b|color\\b|distance\\b|to\\b|item\\b|of\\b|list\\b|add\\b|delete\\b|insert\\b|replace\\b|contains\\b|show\\b|hide\\b|counter\\b|mod\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "[-+]?[0-9]*\\.?[0-9]+",
+      "textColor": "0xb5cea8"
+    },
+    "RoundBlock": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "Keyword",
+        "Boolean",
+        "DoubleString",
+        "Number",
+        "Variable",
+        "RoundBlock",
+        "Operator"
+      ]
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*|\\[[a-zA-Z_][a-zA-Z0-9_]*\\]",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "[=<>+\\-*/]",
+      "textColor": "0x35b2dd"
+    }
+  }
+}

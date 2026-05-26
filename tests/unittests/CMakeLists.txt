@@ -43,6 +43,7 @@ add_executable( unittests
   matlab_tests.cpp
   vb_tests.cpp
   r_tests.cpp
+  scratch_tests.cpp
 
   tokenparser.hpp
 )
