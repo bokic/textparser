@@ -1,0 +1,150 @@
+{
+  "name": "css",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["css"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "BlockComment",
+    "AtRule",
+    "ClassName",
+    "IdName",
+    "PseudoClass",
+    "TagName",
+    "Operator",
+    "CodeBlock"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true
+    },
+    "AtRule": {
+      "type": "SimpleToken",
+      "startRegex": "@[a-zA-Z-]+",
+      "textColor": "0xc586c0"
+    },
+    "ClassName": {
+      "type": "SimpleToken",
+      "startRegex": "\\.[a-zA-Z_-][a-zA-Z0-9_-]*",
+      "textColor": "0xd7ba7d"
+    },
+    "IdName": {
+      "type": "SimpleToken",
+      "startRegex": "#[a-zA-Z_-][a-zA-Z0-9_-]*",
+      "textColor": "0xffd700"
+    },
+    "PseudoClass": {
+      "type": "SimpleToken",
+      "startRegex": ":{1,2}[a-zA-Z-]+",
+      "textColor": "0xc586c0"
+    },
+    "TagName": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z-][a-zA-Z0-9-]*",
+      "textColor": "0xc586c0"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "[,>+~*]",
+      "textColor": "0x35b2dd"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "BlockComment",
+        "AtRule",
+        "ClassName",
+        "IdName",
+        "PseudoClass",
+        "Declaration",
+        "TagName",
+        "Operator",
+        "CodeBlock"
+      ]
+    },
+    "Declaration": {
+      "type": "StartStop",
+      "startRegex": "[a-zA-Z-][a-zA-Z0-9-]*\\s*:",
+      "endRegex": ";",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x9cdcfe",
+      "nestedTokens": [
+        "BlockComment",
+        "HexColor",
+        "Number",
+        "FunctionCall",
+        "SingleString",
+        "DoubleString",
+        "Important",
+        "Value",
+        "DeclOperator"
+      ]
+    },
+    "HexColor": {
+      "type": "SimpleToken",
+      "startRegex": "#[0-9a-fA-F]{3,8}",
+      "textColor": "0xce9178"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "[-+]?[0-9]*\\.?[0-9]+(?:[a-zA-Z%]+)?",
+      "textColor": "0xb5cea8"
+    },
+    "FunctionCall": {
+      "type": "SimpleToken",
+      "startRegex": "url\\([^)]*\\)|rgb\\([^)]*\\)|rgba\\([^)]*\\)|hsl\\([^)]*\\)|hsla\\([^)]*\\)|var\\([^)]*\\)|calc\\([^)]*\\)",
+      "textColor": "0x35b2dd"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
+      "textColor": "0xd7ba7d"
+    },
+    "Important": {
+      "type": "SimpleToken",
+      "startRegex": "!important\\b",
+      "textColor": "0xc586c0"
+    },
+    "Value": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z-][a-zA-Z0-9-]*",
+      "textColor": "0xce9178"
+    },
+    "DeclOperator": {
+      "type": "SimpleToken",
+      "startRegex": "[,/!]",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
