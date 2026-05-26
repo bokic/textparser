@@ -27,6 +27,7 @@ add_executable( unittests
   c_tests.cpp
   cpp_tests.cpp
   csharp_tests.cpp
+  javascript_tests.cpp
 
   tokenparser.hpp
 )
