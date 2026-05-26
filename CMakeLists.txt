@@ -65,7 +65,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-foreach(DEF ada asm bash c cpp cfml csharp css fortran go html java javascript json matlab pascal perl php sql swift typescript vb)
+foreach(DEF ada asm bash c cpp cfml csharp css fortran go html java javascript json matlab pascal perl php r sql swift typescript vb)
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json.h
     COMMAND ${Python3_EXECUTABLE} ./json2h.py ${DEF}_definition.json

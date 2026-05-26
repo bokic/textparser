@@ -1,0 +1,85 @@
+{
+  "name": "r",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["r"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "Keyword",
+    "Boolean",
+    "SingleString",
+    "DoubleString",
+    "BacktickString",
+    "Number",
+    "Variable",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "#[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "break\\b|else\\b|for\\b|function\\b|if\\b|in\\b|next\\b|repeat\\b|return\\b|switch\\b|while\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "null\\b|na\\b|true\\b|false\\b|inf\\b|nan\\b|na_integer_\\b|na_real_\\b|na_complex_\\b|na_character_\\b",
+      "textColor": "0x088c54"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "BacktickString": {
+      "type": "StartStop",
+      "startRegex": "`",
+      "endRegex": "`",
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\[\\\\\\\"'nrt0]|\\\\x[0-9a-fA-F]{1,2}|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F]+[lL]?|[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?[lLi]?|\\.[0-9]+(?:[eE][-+]?[0-9]+)?[lLi]?",
+      "textColor": "0xb5cea8"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z.][a-zA-Z0-9_.]*|\\.[a-zA-Z.][a-zA-Z0-9_.]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "<-|<<-|->|->>|:::|::|%%|%/%|%in%|%\\*%|%o%|%x%|~|\\$|@|\\|\\||&&|\\||&|!=|<=|>=|==|\\+\\+|\\-\\-|[=<>!+\\-*/^:,;()\\[\\]{}]",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
