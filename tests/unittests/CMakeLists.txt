@@ -39,6 +39,7 @@ add_executable( unittests
   go_tests.cpp
   asm_tests.cpp
   swift_tests.cpp
+  ada_tests.cpp
 
   tokenparser.hpp
 )

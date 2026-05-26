@@ -1,0 +1,76 @@
+{
+  "name": "ada",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["ada"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "Keyword",
+    "DataType",
+    "Boolean",
+    "CharLiteral",
+    "SingleString",
+    "Number",
+    "Variable",
+    "Attribute",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "--[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "abort\\b|abs\\b|abstract\\b|accept\\b|access\\b|aliased\\b|all\\b|and\\b|array\\b|at\\b|begin\\b|body\\b|case\\b|constant\\b|declare\\b|delay\\b|delta\\b|digits\\b|do\\b|else\\b|elsif\\b|end\\b|entry\\b|exception\\b|exit\\b|for\\b|function\\b|generic\\b|goto\\b|if\\b|in\\b|interface\\b|is\\b|limited\\b|loop\\b|mod\\b|new\\b|not\\b|null\\b|of\\b|or\\b|others\\b|out\\b|overriding\\b|package\\b|pragma\\b|private\\b|procedure\\b|protected\\b|raise\\b|range\\b|record\\b|rem\\b|renames\\b|requeue\\b|return\\b|reverse\\b|select\\b|separate\\b|some\\b|subtype\\b|synchronized\\b|tagged\\b|task\\b|terminate\\b|then\\b|type\\b|until\\b|use\\b|when\\b|while\\b|with\\b|xor\\b",
+      "textColor": "0xc586c0"
+    },
+    "DataType": {
+      "type": "SimpleToken",
+      "startRegex": "integer\\b|float\\b|character\\b|boolean\\b|string\\b|natural\\b|positive\\b|long_integer\\b|long_float\\b|short_integer\\b|short_float\\b|wide_character\\b|wide_string\\b|duration\\b|address\\b|count\\b|float\\b|integer\\b",
+      "textColor": "0x569cd6"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b",
+      "textColor": "0x088c54"
+    },
+    "CharLiteral": {
+      "type": "SimpleToken",
+      "startRegex": "'.'",
+      "textColor": "0xce9178"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "[0-9]+(?:#[0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?#)?(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?\\b",
+      "textColor": "0xb5cea8"
+    },
+    "Attribute": {
+      "type": "SimpleToken",
+      "startRegex": "'[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x35b2dd"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": ":=|=>|\\.\\.|<>|>=|<=|\\*\\*|/=|[=<>+\\-*/&.,;:()\\[\\]]",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
