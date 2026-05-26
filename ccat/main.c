@@ -2,7 +2,7 @@
 #include <os.h>
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
-//#include <php_definition.json.h>
+#include <php_definition.json.h>
 
 #include <string.h>
 #include <stddef.h>
@@ -16,8 +16,7 @@
 #define GB * 1024 MB
 #define MAX_PARSE_SIZE (4 MB)
 
-//const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, nullptr};
-const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, nullptr};
+const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, nullptr};
 
 static const textparser_language_definition *get_language_definition_by_filename(const char *filename)
 {
