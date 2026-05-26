@@ -91,13 +91,38 @@ TEST(parse_JSON, unicode_object) {
     
     char *key_text = textparser_get_token_text(handle, child);
     ASSERT_NE(key_text, nullptr);
+    EXPECT_STREQ(key_text, "\"key\"");
+    free(key_text);
     
-    const char16_t *sliced_key = (const char16_t *)key_text;
-    EXPECT_EQ(sliced_key[0], u'"');
-    EXPECT_EQ(sliced_key[1], u'k');
-    EXPECT_EQ(sliced_key[2], u'e');
-    EXPECT_EQ(sliced_key[3], u'y');
-    EXPECT_EQ(sliced_key[4], u'"');
+    textparser_close(handle);
+}
+
+TEST(parse_JSON, utf32_object) {
+    const char32_t text[] = U"{\"key\": \"value\"}";
+    size_t byte_len = (sizeof(text) / sizeof(char32_t) - 1) * sizeof(char32_t);
+    
+    textparser_t handle = nullptr;
+    int err = textparser_openmem((const char *)text, byte_len, TEXTPARSER_ENCODING_UTF_32, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+    
+    err = textparser_parse(handle, &json_definition);
+    ASSERT_EQ(err, 0);
+    
+    textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    
+    EXPECT_STREQ(textparser_get_token_type_str(&json_definition, first), "Object");
+    EXPECT_EQ(first->position, 0);
+    EXPECT_EQ(first->len, byte_len / sizeof(uint32_t));
+    
+    textparser_token_item *child = first->child;
+    ASSERT_NE(child, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&json_definition, child), "Key");
+    
+    char *key_text = textparser_get_token_text(handle, child);
+    ASSERT_NE(key_text, nullptr);
+    EXPECT_STREQ(key_text, "\"key\"");
     free(key_text);
     
     textparser_close(handle);

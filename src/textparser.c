@@ -137,15 +137,31 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
 {
     size_t maxPos = 0;
 
-    if (int_handle->text_format == TEXTPARSER_ENCODING_UNICODE)
+    if (int_handle->text_format == TEXTPARSER_ENCODING_UNICODE || int_handle->text_format == TEXTPARSER_ENCODING_UTF_16)
     {
-        maxPos = int_handle->text_size / 2;
+        maxPos = int_handle->text_size / sizeof(uint16_t);
 
         const uint16_t *text = (const uint16_t *)int_handle->text_addr;
 
         for (size_t c = pos; c < maxPos; c++)
         {
             uint16_t ch = text[c];
+
+            if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
+            {
+                return c;
+            }
+        }
+    }
+    else if (int_handle->text_format == TEXTPARSER_ENCODING_UTF_32)
+    {
+        maxPos = int_handle->text_size / sizeof(uint32_t);
+
+        const uint32_t *text = (const uint32_t *)int_handle->text_addr;
+
+        for (size_t c = pos; c < maxPos; c++)
+        {
+            uint32_t ch = text[c];
 
             if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
             {
@@ -770,17 +786,30 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     offset = textparser_skip_whitespace(int_handle, offset);
 
     if (offset >= textparser_get_total_units(int_handle)) {
-        exit_with_error("offset >= total units count!", offset);
+        if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
+            exit_with_error("offset >= total units count!", offset);
+        } else {
+            ret->len = offset - ret->position;
+            goto exit;
+        }
     }
 
-    if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &token_end, &len, !int_handle->language->case_sensitivity, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
-        LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset));
-        exit_with_error("Can't find end of the token!", offset);
+    size_t end_len = 0;
+    bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &token_end, &end_len, !int_handle->language->case_sensitivity, false);
+
+    if (!found_end) {
+        if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
+            LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset));
+            exit_with_error("Can't find end of the token!", offset);
+        } else {
+            ret->len = offset - ret->position;
+            goto exit;
+        }
     }
 
     LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %zd", int_handle->language->tokens[ret->token_id].name, ret->position);
-    ret->len = offset + token_end + len - ret->position;
-    offset += token_end + len;
+    ret->len = offset + token_end + end_len - ret->position;
+    offset += token_end + end_len;
 
     if (offset != ret->position + ret->len) {
         exit_with_error("offset != ret->position + ret->len!", offset);
@@ -1131,6 +1160,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         }
         break;
     case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16:
         for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
             if (((uint16_t *)local_hnd.text_addr)[ch] == '\n')
                 local_hnd.no_lines++;
@@ -1146,6 +1176,26 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
         for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint16_t); ch++) {
             if (((uint16_t *)local_hnd.text_addr)[ch] == '\n') {
+                ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
+            }
+        }
+        break;
+    case TEXTPARSER_ENCODING_UTF_32:
+        for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint32_t); ch++) {
+            if (((uint32_t *)local_hnd.text_addr)[ch] == '\n')
+                local_hnd.no_lines++;
+        }
+
+        *handle = malloc(sizeof(textparser_handle) + (sizeof(size_t) * (local_hnd.no_lines)));
+        if (*handle == nullptr) {
+            err = 6;
+            goto err;
+        }
+
+        memcpy(*handle, &local_hnd, sizeof(textparser_handle));
+
+        for(size_t ch = 0; ch < local_hnd.text_size / sizeof(uint32_t); ch++) {
+            if (((uint32_t *)local_hnd.text_addr)[ch] == '\n') {
                 ((textparser_handle*)*handle)->lines[cur_line_pos++] = ch;
             }
         }
@@ -1341,19 +1391,31 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
     if ((int_handle == nullptr)||(item == nullptr)||(item->len <= 0))
         return nullptr;
 
-    size_t byte_len = textparser_get_byte_len(int_handle, item->len);
-    size_t padding = 1;
     if (int_handle->text_format == TEXTPARSER_ENCODING_UNICODE || int_handle->text_format == TEXTPARSER_ENCODING_UTF_16) {
-        padding = 2;
+        ret = malloc(item->len + 1);
+        if (ret) {
+            const uint16_t *src = (const uint16_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+            for (size_t i = 0; i < item->len; i++) {
+                ret[i] = (src[i] < 256) ? (char)src[i] : '?';
+            }
+            ret[item->len] = '\0';
+        }
     } else if (int_handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
-        padding = 4;
-    }
-
-    ret = malloc(byte_len + padding);
-    if (ret) {
-        // TODO: Implement tolatin1 conversion.
-        memcpy(ret, int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position), byte_len);
-        memset(ret + byte_len, 0, padding);
+        ret = malloc(item->len + 1);
+        if (ret) {
+            const uint32_t *src = (const uint32_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+            for (size_t i = 0; i < item->len; i++) {
+                ret[i] = (src[i] < 256) ? (char)src[i] : '?';
+            }
+            ret[item->len] = '\0';
+        }
+    } else {
+        size_t byte_len = textparser_get_byte_len(int_handle, item->len);
+        ret = malloc(byte_len + 1);
+        if (ret) {
+            memcpy(ret, int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position), byte_len);
+            ret[byte_len] = '\0';
+        }
     }
 
     return ret;
