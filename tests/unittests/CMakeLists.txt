@@ -25,6 +25,7 @@ add_executable( unittests
   php_tests.cpp
   java_tests.cpp
   c_tests.cpp
+  cpp_tests.cpp
 
   tokenparser.hpp
 )
