@@ -23,6 +23,7 @@ add_executable( unittests
   cfml_tests.cpp
   json_tests.cpp
   php_tests.cpp
+  java_tests.cpp
 
   tokenparser.hpp
 )
