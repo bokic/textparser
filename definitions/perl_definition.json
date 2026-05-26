@@ -1,0 +1,83 @@
+{
+  "name": "perl",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": ["pl"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "PODBlock",
+    "Keyword",
+    "Boolean",
+    "SingleString",
+    "DoubleString",
+    "Number",
+    "Variable",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "#[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "PODBlock": {
+      "type": "StartStop",
+      "startRegex": "^=\\w+",
+      "endRegex": "^=cut",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "package\\b|use\\b|require\\b|sub\\b|my\\b|our\\b|local\\b|state\\b|if\\b|unless\\b|else\\b|elsif\\b|given\\b|when\\b|default\\b|for\\b|foreach\\b|while\\b|until\\b|do\\b|continue\\b|last\\b|next\\b|redo\\b|goto\\b|return\\b|die\\b|warn\\b|exit\\b|eval\\b|try\\b|catch\\b|finally\\b|throw\\b|bless\\b|ref\\b|tie\\b|untie\\b|defined\\b|undef\\b|exists\\b|delete\\b|shift\\b|unshift\\b|push\\b|pop\\b|splice\\b|split\\b|join\\b|keys\\b|values\\b|each\\b|map\\b|grep\\b|sort\\b|print\\b|say\\b|printf\\b|sprintf\\b|open\\b|close\\b|read\\b|write\\b|sysopen\\b|sysread\\b|syswrite\\b|seek\\b|tell\\b|truncate\\b|flock\\b|chdir\\b|mkdir\\b|rmdir\\b|opendir\\b|closedir\\b|readdir\\b|glob\\b|unlink\\b|rename\\b|chmod\\b|chown\\b|umask\\b|link\\b|symlink\\b|readlink\\b|stat\\b|lstat\\b|fcntl\\b|ioctl\\b|select\\b|socket\\b|connect\\b|bind\\b|listen\\b|accept\\b|send\\b|recv\\b|shutdown\\b|setsockopt\\b|getsockopt\\b|fork\\b|exec\\b|system\\b|qx\\b|pipe\\b|wait\\b|waitpid\\b|times\\b|alarm\\b|sleep\\b|gmtime\\b|localtime\\b|time\\b|caller\\b|wantarray\\b|prototype\\b|__FILE__\\b|__LINE__\\b|__PACKAGE__\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "\\b(?:undef)\\b",
+      "textColor": "0x088c54"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\[\\\\\\\"'nrtfeab]|\\\\x[0-9a-fA-F]{1,2}|\\\\[0-7]{1,3}|\\\\c.",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?",
+      "textColor": "0xb5cea8"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[$@%*][a-zA-Z_][a-zA-Z0-9_]*|[$@%*]\\^[a-zA-Z]|[$@%*]\\$|[$@%*]\\d+|[$@%*][:]{2}[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "=>|->|==|!=|<=|>=|<|>|=~|!~|<=>|&&|\\|\\||//|\\.\\.|\\.\\.\\.|\\+\\+|\\-\\-|\\*\\*|\\+=|\\-=|\\*=|\\/=|%=|\\|\\|=|&=|\\^=|<<|>>|=>|==|!=|<=>|&&|\\|\\||\\|\\||//|=|!|<|>|\\||\\^|&|\\*|/|%|\\+|-|\\.|~|,|;|\\(|\\)|\\[|\\]|\\{|\\}|=>",
+      "textColor": "0x35b2dd"
+    }
+  }
+}

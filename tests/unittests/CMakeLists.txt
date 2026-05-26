@@ -35,6 +35,7 @@ add_executable( unittests
   pascal_tests.cpp
   typescript_tests.cpp
   fortran_tests.cpp
+  perl_tests.cpp
 
   tokenparser.hpp
 )
