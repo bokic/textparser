@@ -40,12 +40,13 @@ typedef struct textparser_token_item_s *textparser_token_item_t;
 
 typedef struct {
     int len;
-    int state[];
+    const struct textparser_token_item *state[];
 } textparser_parser_state;
 
 typedef struct textparser_token_item {
     struct textparser_token_item *next;
     struct textparser_token_item *child;
+    struct textparser_token_item *parent;
     int token_id;
     size_t position;
     size_t len;
