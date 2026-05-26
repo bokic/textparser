@@ -10,6 +10,18 @@ TEST(parse_CFML, crash_cfset) {
     auto tokens = TextParser(R"(<!--- <!--- --->)", &cfml_definition);
 }
 
+TEST(parse_CFML, null_definition) {
+    textparser_t handle = nullptr;
+    int err = textparser_openmem("test", 4, TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+
+    err = textparser_parse(handle, nullptr);
+    EXPECT_EQ(err, -1);
+
+    textparser_close(handle);
+}
+
 TEST(parse_CFML, basic_cfset) {
     auto tokens = TextParser(R"(<cfset a = 1234 />)", &cfml_definition);
     EXPECT_EQ(tokens.count, 1);

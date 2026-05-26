@@ -1297,6 +1297,9 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
     if (int_handle == nullptr)
         return -1;
 
+    if (definition == nullptr)
+        return -1;
+
     // Reset error state
     int_handle->error = nullptr;
     int_handle->error_offset = 0;

@@ -153,6 +153,10 @@ int main(int argc, const char *argv[])
     }
 
     language_def = get_language_definition_by_filename(filename);
+    if (language_def == nullptr) {
+        fprintf(stderr, "Unsupported file extension for file %s\n", filename);
+        return EXIT_FAILURE;
+    }
 
     res = textparser_parse(handle, language_def);
     if (res) {
