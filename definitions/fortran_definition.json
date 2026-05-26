@@ -1,0 +1,83 @@
+{
+  "name": "fortran",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": ["f90"],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "LineComment",
+    "Keyword",
+    "Boolean",
+    "SingleString",
+    "DoubleString",
+    "Number",
+    "Variable",
+    "Operator"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "![^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "program\\b|module\\b|subroutine\\b|function\\b|interface\\b|end\\b|do\\b|while\\b|if\\b|then\\b|else\\b|elseif\\b|endif\\b|enddo\\b|select\\b|case\\b|default\\b|type\\b|class\\b|contains\\b|use\\b|implicit\\b|none\\b|public\\b|private\\b|protected\\b|intent\\b|optional\\b|save\\b|parameter\\b|allocatable\\b|pointer\\b|target\\b|dimension\\b|external\\b|intrinsic\\b|write\\b|read\\b|print\\b|format\\b|open\\b|close\\b|call\\b|return\\b|stop\\b|continue\\b|cycle\\b|exit\\b|where\\b|elsewhere\\b|forall\\b|pure\\b|elemental\\b|recursive\\b|procedure\\b|enum\\b|bind\\b|import\\b|only\\b|operator\\b|assignment\\b|abstract\\b|deferred\\b|pass\\b|nopass\\b|extends\\b|final\\b|generic\\b|block\\b|critical\\b|allocate\\b|deallocate\\b|nullify\\b|null\\b|associated\\b|error\\b|in\\b|out\\b|inout\\b|new\\b|wait\\b|go\\b|to\\b|format\\b|data\\b|common\\b|equivalence\\b|include\\b|then\\b|end\\b|select\\b|case\\b|default\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "\\.true\\.|\\.false\\.",
+      "textColor": "0x088c54"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "EscapedApostrophe"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "EscapedDoubleQuote"
+      ]
+    },
+    "EscapedApostrophe": {
+      "type": "SimpleToken",
+      "startRegex": "''",
+      "textColor": "0xd7ba7d"
+    },
+    "EscapedDoubleQuote": {
+      "type": "SimpleToken",
+      "startRegex": "\"\"",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "\\b[0-9]+(?:\\.[0-9]+)?(?:[dDeE][-+]?[0-9]+)?\\b|\\.[0-9]+(?:[dDeE][-+]?[0-9]+)?\\b",
+      "textColor": "0xb5cea8"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "::|==|\\/=|>=|<=|=>|\\*\\*|\\+|-|\\*|\\/|=|<|>|\\(|\\)|\\[|\\]|,|:|%|;",
+      "textColor": "0x35b2dd"
+    }
+  }
+}
