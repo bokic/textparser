@@ -75,6 +75,39 @@ typedef struct {
     size_t lines[];
 } textparser_handle;
 
+static size_t textparser_get_byte_offset(const textparser_handle *int_handle, size_t pos)
+{
+    switch (int_handle->text_format)
+    {
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16:
+        return pos * sizeof(uint16_t);
+    case TEXTPARSER_ENCODING_UTF_32:
+        return pos * sizeof(uint32_t);
+    default:
+        return pos;
+    }
+}
+
+static size_t textparser_get_byte_len(const textparser_handle *int_handle, size_t len)
+{
+    return textparser_get_byte_offset(int_handle, len);
+}
+
+static size_t textparser_get_total_units(const textparser_handle *int_handle)
+{
+    switch (int_handle->text_format)
+    {
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16:
+        return int_handle->text_size / sizeof(uint16_t);
+    case TEXTPARSER_ENCODING_UTF_32:
+        return int_handle->text_size / sizeof(uint32_t);
+    default:
+        return int_handle->text_size;
+    }
+}
+
 static void free_item_tree(textparser_token_item *item)
 {
     textparser_token_item *next = nullptr;
@@ -142,7 +175,7 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
 
 static ssize_t textparser_find_token(const textparser_handle *int_handle, int token_id, size_t pos, bool other_text_inside)
 {
-    if (pos >= int_handle->text_size) {
+    if (pos >= textparser_get_total_units(int_handle)) {
         return TOKEN_NOT_FOUND;
     }
 
@@ -154,8 +187,8 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
 
     definition = int_handle->language;
     token = &definition->tokens[token_id];
-    text = int_handle->text_addr + pos;
-    len = int_handle->text_size - pos;
+    text = int_handle->text_addr + textparser_get_byte_offset(int_handle, pos);
+    len = textparser_get_total_units(int_handle) - pos;
 
     LOGV("textparser_find_token token->type [%s] pos %zu", token->name, pos);
 
@@ -361,7 +394,7 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         }
 
         if (parent_regex_pattern) {
-            bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &closest_parent, nullptr, !int_handle->language->case_sensitivity, !token_def->other_text_inside);
+            bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &closest_parent, nullptr, !int_handle->language->case_sensitivity, !token_def->other_text_inside);
 
             if ((found_parent_token)&&(closest_parent <= closest))
             {
@@ -381,7 +414,7 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
             if (child)
             {
                 if (closest_parent == SIZE_MAX) {
-                    ret->len = int_handle->text_size - ret->position;
+                    ret->len = textparser_get_total_units(int_handle) - ret->position;
                 } else {
                     ret->len = offset + closest_parent - ret->position;
                 }
@@ -546,8 +579,8 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
 
-    if (offset >= int_handle->text_size) {
-        exit_with_error("offset >= int_handle->text_size!", offset);
+    if (offset >= textparser_get_total_units(int_handle)) {
+        exit_with_error("offset >= total units count!", offset);
     }
 
     ret = malloc(sizeof(textparser_token_item));
@@ -564,7 +597,7 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
 
     size_t token_start = 0;
     size_t len = 0;
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_start, &len, !int_handle->language->case_sensitivity, !definition->tokens[parent_token_id].other_text_inside)) {
+    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &token_start, &len, !int_handle->language->case_sensitivity, !definition->tokens[parent_token_id].other_text_inside)) {
         exit_with_error("Can't find start of the token!", offset);
     }
 
@@ -604,8 +637,8 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         LOGV("enter TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
     }
 
-    if (offset >= int_handle->text_size) {
-        exit_with_error("offset >= int_handle->text_size!", offset);
+    if (offset >= textparser_get_total_units(int_handle)) {
+        exit_with_error("offset >= total units count!", offset);
     }
 
     ret = malloc(sizeof(textparser_token_item));
@@ -621,7 +654,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     ret->position = offset;
 
     // Search for start token
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_start, &len, !int_handle->language->case_sensitivity, !definition->tokens[parent_token_id].other_text_inside)) {
+    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &token_start, &len, !int_handle->language->case_sensitivity, !definition->tokens[parent_token_id].other_text_inside)) {
         exit_with_error("Can't find start of the token!", offset);
     }
 
@@ -632,11 +665,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     ret->position = offset + token_start;
     offset = ret->position + len;
 
-    if (offset > int_handle->text_size) {
-        exit_with_error("offset >= int_handle->text_size!", offset);
+    if (offset > textparser_get_total_units(int_handle)) {
+        exit_with_error("offset >= total units count!", offset);
     }
 
-    if (offset == int_handle->text_size) {
+    if (offset == textparser_get_total_units(int_handle)) {
         exit_with_error("reached end of text!", offset);
     }
 
@@ -652,14 +685,14 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
             offset = textparser_skip_whitespace(int_handle, offset);
 
-            if (offset >= int_handle->text_size)
+            if (offset >= textparser_get_total_units(int_handle))
             {
-                exit_with_error("offset >= int_handle->text_size", offset);
+                exit_with_error("offset >= total units count!", offset);
             }
 
             if (token_def->search_parent_end_token_last == false)
             {
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, nullptr, !int_handle->language->case_sensitivity, false);
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &token_end, nullptr, !int_handle->language->case_sensitivity, false);
                 if ((found_end)&&(token_end == 0))
                 {
                     break;
@@ -698,7 +731,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             if (token_def->search_parent_end_token_last == true)
             {
                 size_t parent_end = 0;
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &parent_end, nullptr, !int_handle->language->case_sensitivity, false);
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &parent_end, nullptr, !int_handle->language->case_sensitivity, false);
                 if ((found_end)&&(parent_end < token_end))
                 {
                     token_end = parent_end;
@@ -727,21 +760,21 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
                 check_and_exit_on_fatal_parsing_error(offset);
             }
 
-            if (offset == int_handle->text_size)
+            if (offset == textparser_get_total_units(int_handle))
             {
-                exit_with_error("offset == int_handle->text_size", offset);
+                exit_with_error("offset == total units count!", offset);
             }
         } while (child_token_id >= 0);
     }
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
-    if (offset >= int_handle->text_size) {
-        exit_with_error("offset >= int_handle->text_size!", offset);
+    if (offset >= textparser_get_total_units(int_handle)) {
+        exit_with_error("offset >= total units count!", offset);
     }
 
-    if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + offset, int_handle->text_size - offset, &token_end, &len, !int_handle->language->case_sensitivity, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
-        LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + offset);
+    if ((!adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &token_end, &len, !int_handle->language->case_sensitivity, false))&&(token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP)) {
+        LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset));
         exit_with_error("Can't find end of the token!", offset);
     }
 
@@ -1308,10 +1341,19 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
     if ((int_handle == nullptr)||(item == nullptr)||(item->len <= 0))
         return nullptr;
 
-    ret = malloc(item->len + 1);
+    size_t byte_len = textparser_get_byte_len(int_handle, item->len);
+    size_t padding = 1;
+    if (int_handle->text_format == TEXTPARSER_ENCODING_UNICODE || int_handle->text_format == TEXTPARSER_ENCODING_UTF_16) {
+        padding = 2;
+    } else if (int_handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
+        padding = 4;
+    }
+
+    ret = malloc(byte_len + padding);
     if (ret) {
-        memcpy(ret, int_handle->text_addr + item->position, item->len);
-        ret[item->len] = '\0';
+        // TODO: Implement tolatin1 conversion.
+        memcpy(ret, int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position), byte_len);
+        memset(ret + byte_len, 0, padding);
     }
 
     return ret;
@@ -1471,7 +1513,7 @@ textparser_parser_state *textparser_state_new(const textparser_t handle)
     size_t allocated = 0;
     size_t size = 0;
 
-    size = int_handle->text_size;
+    size = textparser_get_total_units(int_handle);
 
     if (size >= MAX_PARSE_SIZE)
         return nullptr;

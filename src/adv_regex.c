@@ -5,11 +5,92 @@
 
 #include <stdio.h>
 #include <stddef.h>
-
+#include <stdlib.h>
 
 static pcre2_compile_context_8 *ccontext8 = nullptr;
 static pcre2_compile_context_16 *ccontext16 = nullptr;
 static pcre2_compile_context_32 *ccontext32 = nullptr;
+
+static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
+{
+    size_t len = 0;
+    const unsigned char *p = (const unsigned char *)utf8;
+    while (*p) {
+        if (*p < 0x80) { len++; p++; }
+        else if (*p < 0xE0) { len++; p += 2; }
+        else if (*p < 0xF0) { len++; p += 3; }
+        else { len += 2; p += 4; }
+    }
+    
+    uint16_t *utf16 = malloc((len + 1) * sizeof(uint16_t));
+    if (!utf16) return nullptr;
+    
+    size_t idx = 0;
+    p = (const unsigned char *)utf8;
+    while (*p) {
+        uint32_t cp = 0;
+        if (*p < 0x80) {
+            cp = *p++;
+        } else if (*p < 0xE0) {
+            cp = ((*p & 0x1F) << 6) | (*(p+1) & 0x3F);
+            p += 2;
+        } else if (*p < 0xF0) {
+            cp = ((*p & 0x0F) << 12) | ((*(p+1) & 0x3F) << 6) | (*(p+2) & 0x3F);
+            p += 3;
+        } else {
+            cp = ((*p & 0x07) << 18) | ((*(p+1) & 0x3F) << 12) | ((*(p+2) & 0x3F) << 6) | (*(p+3) & 0x3F);
+            p += 4;
+        }
+        
+        if (cp < 0x10000) {
+            utf16[idx++] = (uint16_t)cp;
+        } else {
+            cp -= 0x10000;
+            utf16[idx++] = (uint16_t)((cp >> 10) + 0xD800);
+            utf16[idx++] = (uint16_t)((cp & 0x3FF) + 0xDC00);
+        }
+    }
+    utf16[idx] = 0;
+    if (out_len) *out_len = idx;
+    return utf16;
+}
+
+static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
+{
+    size_t len = 0;
+    const unsigned char *p = (const unsigned char *)utf8;
+    while (*p) {
+        if (*p < 0x80) { len++; p++; }
+        else if (*p < 0xE0) { len++; p += 2; }
+        else if (*p < 0xF0) { len++; p += 3; }
+        else { len++; p += 4; }
+    }
+    
+    uint32_t *utf32 = malloc((len + 1) * sizeof(uint32_t));
+    if (!utf32) return nullptr;
+    
+    size_t idx = 0;
+    p = (const unsigned char *)utf8;
+    while (*p) {
+        uint32_t cp = 0;
+        if (*p < 0x80) {
+            cp = *p++;
+        } else if (*p < 0xE0) {
+            cp = ((*p & 0x1F) << 6) | (*(p+1) & 0x3F);
+            p += 2;
+        } else if (*p < 0xF0) {
+            cp = ((*p & 0x0F) << 12) | ((*(p+1) & 0x3F) << 6) | (*(p+2) & 0x3F);
+            p += 3;
+        } else {
+            cp = ((*p & 0x07) << 18) | ((*(p+1) & 0x3F) << 12) | ((*(p+2) & 0x3F) << 6) | (*(p+3) & 0x3F);
+            p += 4;
+        }
+        utf32[idx++] = cp;
+    }
+    utf32[idx] = 0;
+    if (out_len) *out_len = idx;
+    return utf32;
+}
 
 static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start)
 {
@@ -108,7 +189,12 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
         uint32_t options = 0;
         if (is_utf) options |= PCRE2_UTF;
         if (is_caseless) options |= PCRE2_CASELESS;
-        *regex = pcre2_compile_16((PCRE2_SPTR16)regex_str, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext16);
+        uint16_t *pattern16 = utf8_to_utf16(regex_str, nullptr);
+        if (pattern16 == nullptr) {
+            return false;
+        }
+        *regex = pcre2_compile_16((PCRE2_SPTR16)pattern16, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext16);
+        free(pattern16);
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
@@ -184,7 +270,12 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
     {
         uint32_t options = 0;
         if (is_caseless) options |= PCRE2_CASELESS;
-        *regex = pcre2_compile_32((PCRE2_SPTR32)regex_str, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext32);
+        uint32_t *pattern32 = utf8_to_utf32(regex_str, nullptr);
+        if (pattern32 == nullptr) {
+            return false;
+        }
+        *regex = pcre2_compile_32((PCRE2_SPTR32)pattern32, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext32);
+        free(pattern32);
         if (*regex == nullptr)
         {
             PCRE2_UCHAR8 buffer[256];
