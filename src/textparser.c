@@ -739,7 +739,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
                 if (pos < 0)
                     continue;
 
-                if ((ssize_t)pos < (ssize_t)token_end)
+                if ((size_t)pos < token_end)
                 {
                     if (pos == 0)
                     {
