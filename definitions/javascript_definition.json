@@ -7,8 +7,8 @@
   "startTokens": [
     "LineComment",
     "BlockComment",
-    "Keyword",
     "Boolean",
+    "Keyword",
     "Variable",
     "CodeBlock",
     "Operator",
@@ -56,8 +56,8 @@
       "nestedTokens": [
         "LineComment",
         "BlockComment",
-        "Keyword",
         "Boolean",
+        "Keyword",
         "Variable",
         "CodeBlock",
         "Operator",
@@ -69,7 +69,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "==={0,1}|!=={0,1}|=>|\\+=|\\-=|\\*=|\\/=|%=|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|\\?\\.|\\?\\?|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "startRegex": "===|==|!==|!=|=>|\\+=|\\-=|\\*=|\\/=|%=|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|\\?\\.|\\?\\?|[=<>!&|^~+\\-*/%\\?:;.,]",
       "textColor": "0x35b2dd"
     },
     "SingleString": {

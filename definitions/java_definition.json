@@ -8,14 +8,14 @@
     "LineComment",
     "BlockComment",
     "Annotation",
+    "Boolean",
     "Keyword",
     "Variable",
     "CodeBlock",
     "Operator",
     "SingleString",
     "DoubleString",
-    "Number",
-    "Boolean"
+    "Number"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -38,7 +38,7 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "class\\b|interface\\b|enum\\b|extends\\b|implements\\b|package\\b|import\\b|public\\b|private\\b|protected\\b|static\\b|final\\b|void\\b|int\\b|double\\b|float\\b|long\\b|short\\b|byte\\b|char\\b|boolean\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|new\\b|this\\b|super\\b|try\\b|catch\\b|finally\\b|throw\\b|throws\\b|instanceof\\b|synchronized\\b|volatile\\b|transient\\b|abstract\\b|native\\b|strictfp\\b|assert\\b",
+      "startRegex": "class\\b|interface\\b|enum\\b|extends\\b|implements\\b|package\\b|import\\b|public\\b|private\\b|protected\\b|static\\b|final\\b|void\\b|int\\b|double\\b|float\\b|long\\b|short\\b|byte\\b|char\\b|boolean\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|new\\b|this\\b|super\\b|try\\b|catch\\b|finally\\b|throw\\b|throws\\b|instanceof\\b|synchronized\\b|volatile\\b|transient\\b|abstract\\b|native\\b|strictfp\\b|assert\\b|null\\b|var\\b",
       "textColor": "0xc586c0"
     },
     "Variable": {
@@ -57,19 +57,19 @@
         "LineComment",
         "BlockComment",
         "Annotation",
+        "Boolean",
         "Keyword",
         "Variable",
         "CodeBlock",
         "Operator",
         "SingleString",
         "DoubleString",
-        "Number",
-        "Boolean"
+        "Number"
       ]
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "==={0,1}|!=={0,1}|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2,3}=|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|==|!=|->|::|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "startRegex": "\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2,3}=|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|==|!=|->|::|[=<>!&|^~+\\-*/%\\?:;.,]",
       "textColor": "0x35b2dd"
     },
     "SingleString": {
@@ -100,7 +100,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?[fFdDlL]?",
+      "startRegex": "[-+]?(0[xX][0-9a-fA-F][0-9a-fA-F_]*[lL]*|0[bB][01][01_]*[lL]*|[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][-+]?[0-9_]+)?[fFdDlL]?)",
       "textColor": "0xb5cea8"
     },
     "Boolean": {

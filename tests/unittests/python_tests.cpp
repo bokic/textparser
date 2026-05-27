@@ -27,17 +27,20 @@ from typing import Optional
 class Greeter:
     name: str
     count: int = 0
+    enabled: bool = True
 
     def greet(self) -> str:
         """Return a greeting message."""
         self.count += 1
-        return f"Hello, {self.name}!"
+        return f"Hello, {self.name}!\n"
 
 
 def main() -> None:
     g = Greeter(name='World')
     result = g.greet()
     print(result)
+    flag = False
+    doc = '''this is a triple single quote string'''
 
 
 if __name__ == '__main__':
@@ -52,8 +55,10 @@ x = "hello"
     }
 
     EXPECT_TRUE(found.contains("LineComment"));
+    EXPECT_TRUE(found.contains("TripleSingleString"));
     EXPECT_TRUE(found.contains("TripleDoubleString"));
     EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("Boolean"));
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
     EXPECT_TRUE(found.contains("Operator"));
@@ -61,4 +66,5 @@ x = "hello"
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("FString"));
     EXPECT_TRUE(found.contains("FStringInterpolation"));
+    EXPECT_TRUE(found.contains("StringEscape"));
 }

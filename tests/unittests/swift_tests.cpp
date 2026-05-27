@@ -48,6 +48,12 @@ print(greeter.greet())
 
 let isDone: Bool = true
 let count = 42
+
+let escapedStr = "Hello, \n World!"
+let multilineStr = """
+This is a multiline
+string with \n escape and \(greeter.greet()) interpolation.
+"""
 )", &swift_definition);
 
     std::set<std::string> found;
@@ -59,9 +65,13 @@ let count = 42
     EXPECT_TRUE(found.contains("BlockComment"));
     EXPECT_TRUE(found.contains("Keyword"));
     EXPECT_TRUE(found.contains("Boolean"));
-    EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
+    EXPECT_TRUE(found.contains("CodeBlock"));
     EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("MultiLineString"));
     EXPECT_TRUE(found.contains("StringInterpolation"));
+    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("Number"));
 }
+

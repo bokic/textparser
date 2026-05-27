@@ -7,8 +7,8 @@
   "startTokens": [
     "LineComment",
     "PODBlock",
-    "Keyword",
     "Boolean",
+    "Keyword",
     "SingleString",
     "DoubleString",
     "Number",
@@ -33,7 +33,7 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "package\\b|use\\b|require\\b|sub\\b|my\\b|our\\b|local\\b|state\\b|if\\b|unless\\b|else\\b|elsif\\b|given\\b|when\\b|default\\b|for\\b|foreach\\b|while\\b|until\\b|do\\b|continue\\b|last\\b|next\\b|redo\\b|goto\\b|return\\b|die\\b|warn\\b|exit\\b|eval\\b|try\\b|catch\\b|finally\\b|throw\\b|bless\\b|ref\\b|tie\\b|untie\\b|defined\\b|undef\\b|exists\\b|delete\\b|shift\\b|unshift\\b|push\\b|pop\\b|splice\\b|split\\b|join\\b|keys\\b|values\\b|each\\b|map\\b|grep\\b|sort\\b|print\\b|say\\b|printf\\b|sprintf\\b|open\\b|close\\b|read\\b|write\\b|sysopen\\b|sysread\\b|syswrite\\b|seek\\b|tell\\b|truncate\\b|flock\\b|chdir\\b|mkdir\\b|rmdir\\b|opendir\\b|closedir\\b|readdir\\b|glob\\b|unlink\\b|rename\\b|chmod\\b|chown\\b|umask\\b|link\\b|symlink\\b|readlink\\b|stat\\b|lstat\\b|fcntl\\b|ioctl\\b|select\\b|socket\\b|connect\\b|bind\\b|listen\\b|accept\\b|send\\b|recv\\b|shutdown\\b|setsockopt\\b|getsockopt\\b|fork\\b|exec\\b|system\\b|qx\\b|pipe\\b|wait\\b|waitpid\\b|times\\b|alarm\\b|sleep\\b|gmtime\\b|localtime\\b|time\\b|caller\\b|wantarray\\b|prototype\\b|__FILE__\\b|__LINE__\\b|__PACKAGE__\\b",
+      "startRegex": "package\\b|use\\b|require\\b|sub\\b|my\\b|our\\b|local\\b|state\\b|if\\b|unless\\b|else\\b|elsif\\b|given\\b|when\\b|default\\b|for\\b|foreach\\b|while\\b|until\\b|do\\b|continue\\b|last\\b|next\\b|redo\\b|goto\\b|return\\b|die\\b|warn\\b|exit\\b|eval\\b|try\\b|catch\\b|finally\\b|throw\\b|bless\\b|ref\\b|tie\\b|untie\\b|defined\\b|exists\\b|delete\\b|shift\\b|unshift\\b|push\\b|pop\\b|splice\\b|split\\b|join\\b|keys\\b|values\\b|each\\b|map\\b|grep\\b|sort\\b|print\\b|say\\b|printf\\b|sprintf\\b|open\\b|close\\b|read\\b|write\\b|sysopen\\b|sysread\\b|syswrite\\b|seek\\b|tell\\b|truncate\\b|flock\\b|chdir\\b|mkdir\\b|rmdir\\b|opendir\\b|closedir\\b|readdir\\b|glob\\b|unlink\\b|rename\\b|chmod\\b|chown\\b|umask\\b|link\\b|symlink\\b|readlink\\b|stat\\b|lstat\\b|fcntl\\b|ioctl\\b|select\\b|socket\\b|connect\\b|bind\\b|listen\\b|accept\\b|send\\b|recv\\b|shutdown\\b|setsockopt\\b|getsockopt\\b|fork\\b|exec\\b|system\\b|qx\\b|pipe\\b|wait\\b|waitpid\\b|times\\b|alarm\\b|sleep\\b|gmtime\\b|localtime\\b|time\\b|caller\\b|wantarray\\b|prototype\\b|__FILE__\\b|__LINE__\\b|__PACKAGE__\\b",
       "textColor": "0xc586c0"
     },
     "Boolean": {
@@ -76,7 +76,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "=>|->|==|!=|<=|>=|<|>|=~|!~|<=>|&&|\\|\\||//|\\.\\.|\\.\\.\\.|\\+\\+|\\-\\-|\\*\\*|\\+=|\\-=|\\*=|\\/=|%=|\\|\\|=|&=|\\^=|<<|>>|=>|==|!=|<=>|&&|\\|\\||\\|\\||//|=|!|<|>|\\||\\^|&|\\*|/|%|\\+|-|\\.|~|,|;|\\(|\\)|\\[|\\]|\\{|\\}|=>",
+      "startRegex": "\\.\\.\\.|<=>|\\|\\||=|\\|\\||=>|->|==|!=|<=|>=|=~|!~|&&|//|\\.\\.|\\+\\+|\\-\\-|\\*\\*|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|<<|>>|=|<|>|!|\\||\\^|&|\\*|/|%|\\+|-|\\.|~|,|;|\\(|\\)|\\[|\\]|\\{|\\}",
       "textColor": "0x35b2dd"
     }
   }

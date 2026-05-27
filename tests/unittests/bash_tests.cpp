@@ -25,10 +25,10 @@ function run_build() {
     local verbose=true
     local count=100
     if [ $? -eq 0 ]; then
-        echo "Building target: ${target}"
-        echo 'Build has started...'
+        echo -e "Building target: \"${target}\"\n"
+        echo 'Build has started...\t'
     else
-        echo "Build failed with exit code $?"
+        echo "Build failed with exit code \$?"
     fi
 }
 )", &bash_definition);
@@ -46,5 +46,6 @@ function run_build() {
     EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("StringEscape"));
     EXPECT_TRUE(found.contains("Number"));
 }

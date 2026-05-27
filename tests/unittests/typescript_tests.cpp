@@ -41,7 +41,7 @@ class AdminUser<T extends User> implements IAdmin {
 type Status = 'active' | 'inactive';
 const count: number = 42;
 let isReady: boolean = false;
-let message: string = "Hello World";
+let message: string = "Hello\nWorld";
 let greeting = `Hello ${name}!`;
 )", &typescript_definition);
 
@@ -56,8 +56,10 @@ let greeting = `Hello ${name}!`;
     EXPECT_TRUE(found.contains("Boolean"));
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
+    EXPECT_TRUE(found.contains("CodeBlock"));
     EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("TemplateString"));
+    EXPECT_TRUE(found.contains("StringEscape"));
 }

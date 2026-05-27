@@ -64,6 +64,17 @@ TEST(parse_JSON, simple_array) {
 TEST(parse_JSON, simple_object) {
     auto tokens = TextParser(R"({"key": "value"})", &json_definition);
     EXPECT_EQ(tokens.count, 1);
+    
+    // Print the token tree
+    printf("DEBUG: Object children count: %zu\n", tokens[0].children);
+    for (size_t i = 0; i < tokens[0].children; ++i) {
+        printf("DEBUG: Child %zu: type='%s', pos=%d, len=%d, children=%zu\n", 
+               i, tokens[0][i].type, tokens[0][i].position, tokens[0][i].length, tokens[0][i].children);
+        for (size_t j = 0; j < tokens[0][i].children; ++j) {
+            printf("  DEBUG: Child %zu[%zu]: type='%s', pos=%d, len=%d, children=%zu\n", 
+                   i, j, tokens[0][i][j].type, tokens[0][i][j].position, tokens[0][i][j].length, tokens[0][i][j].children);
+        }
+    }
 }
 
 TEST(parse_JSON, unicode_object) {

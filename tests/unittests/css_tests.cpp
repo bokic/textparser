@@ -28,7 +28,8 @@ TEST(parse_CSS, basic_css_program) {
 
 #app-container .card > a:hover {
     background-color: #ffffff;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Helvetica \'Neue\'', "Arial \"Sans\"", sans-serif;
+    font: 12px/14px sans-serif;
     width: calc(100% - 2rem);
     display: flex !important;
 }
@@ -45,12 +46,16 @@ TEST(parse_CSS, basic_css_program) {
     EXPECT_TRUE(found.contains("ClassName"));
     EXPECT_TRUE(found.contains("PseudoClass"));
     EXPECT_TRUE(found.contains("TagName"));
+    EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("CodeBlock"));
     EXPECT_TRUE(found.contains("Declaration"));
     EXPECT_TRUE(found.contains("HexColor"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("FunctionCall"));
-    EXPECT_TRUE(found.contains("Important"));
     EXPECT_TRUE(found.contains("Number"));
+    EXPECT_TRUE(found.contains("FunctionCall"));
+    EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("Important"));
     EXPECT_TRUE(found.contains("Value"));
+    EXPECT_TRUE(found.contains("DeclOperator"));
 }

@@ -34,7 +34,7 @@ compute_stats <- function(data, na.rm = FALSE) {
         sd = std_val,
         n = n
     )
-    class(result) <- "summary_stats"
+    class(result) <- "summary_stats\n"
     return(result)
 }
 
@@ -50,6 +50,12 @@ stats <- compute_stats(data)
 print(stats)
 
 label <- 'result'
+
+# Backtick identifier and escaped string
+`custom identifier` <- "escaped\tvalue"
+
+# Custom infix operator
+a %custom_op% b
 )", &r_definition);
 
     std::set<std::string> found;
@@ -65,4 +71,7 @@ label <- 'result'
     EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("BacktickString"));
+    EXPECT_TRUE(found.contains("StringEscape"));
 }
+

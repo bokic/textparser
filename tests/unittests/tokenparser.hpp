@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <print>
+#include <string>
 
 
 inline bool &textparser_suppress_errors() {
@@ -25,8 +26,10 @@ public:
         , length(other.length)
         , type(other.type)
         , children(other.children)
+        , value(other.value)
         , m_token(other.m_token)
         , m_definition(other.m_definition)
+        , m_handle(other.m_handle)
     {}
     TokenParserItem& operator=(const TokenParserItem &other)
     {
@@ -34,17 +37,20 @@ public:
         length = other.length;
         type = other.type;
         children = other.children;
+        value = other.value;
         m_token = other.m_token;
         m_definition = other.m_definition;
+        m_handle = other.m_handle;
 
         return *this;
     }
     TokenParserItem(const TokenParserItem &&other) = delete;
     TokenParserItem& operator=(const TokenParserItem &&other) = delete;
 
-    TokenParserItem(const textparser_token_item *token, const textparser_language_definition *definition)
+    TokenParserItem(const textparser_token_item *token, const textparser_language_definition *definition, textparser_t handle = nullptr)
         : m_token(token)
         , m_definition(definition)
+        , m_handle(handle)
     {
         if (token)
         {
@@ -52,6 +58,15 @@ public:
             length = textparser_get_token_length(token);
             type = textparser_get_token_type_str(definition, token);
             children = textparser_get_token_children_count(token);
+            if (handle)
+            {
+                char *txt = textparser_get_token_text(handle, token);
+                if (txt)
+                {
+                    value = txt;
+                    free(txt);
+                }
+            }
         }
     }
 
@@ -65,17 +80,19 @@ public:
             token = token->next;
         }
 
-        return TokenParserItem(token, m_definition);
+        return TokenParserItem(token, m_definition, m_handle);
     }
 
     int position = -1;
     int length = 0;
     const char *type = nullptr;
     size_t children = 0;
+    std::string value;
 
 private:
     const textparser_token_item *m_token = nullptr;
     const textparser_language_definition *m_definition = nullptr;
+    textparser_t m_handle = nullptr;
 };
 
 class TextParser
@@ -124,7 +141,7 @@ public:
             token = token->next;
         }
 
-        return TokenParserItem(token, m_definition);
+        return TokenParserItem(token, m_definition, m_handle);
     }
 
     size_t count = 0;

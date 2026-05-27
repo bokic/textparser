@@ -8,14 +8,14 @@
     "LineComment",
     "BlockComment",
     "Preprocessor",
+    "Boolean",
     "Keyword",
     "Variable",
     "CodeBlock",
     "Operator",
     "SingleString",
     "DoubleString",
-    "Number",
-    "Boolean"
+    "Number"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -38,7 +38,7 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "int\\b|char\\b|double\\b|float\\b|void\\b|struct\\b|union\\b|enum\\b|typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b|true\\b|false\\b|_Bool\\b",
+      "startRegex": "int\\b|char\\b|double\\b|float\\b|void\\b|struct\\b|union\\b|enum\\b|typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b|_Bool\\b",
       "textColor": "0xc586c0"
     },
     "Variable": {
@@ -57,19 +57,19 @@
         "LineComment",
         "BlockComment",
         "Preprocessor",
+        "Boolean",
         "Keyword",
         "Variable",
         "CodeBlock",
         "Operator",
         "SingleString",
         "DoubleString",
-        "Number",
-        "Boolean"
+        "Number"
       ]
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "==={0,1}|!=={0,1}|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2}=|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|==|!=|->|\\.|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "startRegex": "\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2}=|<{2}|>{2}|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|==|!=|->|\\.|[=<>!&|^~+\\-*/%\\?:;.,]",
       "textColor": "0x35b2dd"
     },
     "SingleString": {

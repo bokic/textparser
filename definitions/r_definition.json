@@ -25,12 +25,12 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "break\\b|else\\b|for\\b|function\\b|if\\b|in\\b|next\\b|repeat\\b|return\\b|switch\\b|while\\b",
+      "startRegex": "(?:break|else|for|function|if|in|next|repeat|return|switch|while)(?![a-zA-Z0-9_.])",
       "textColor": "0xc586c0"
     },
     "Boolean": {
       "type": "SimpleToken",
-      "startRegex": "null\\b|na\\b|true\\b|false\\b|inf\\b|nan\\b|na_integer_\\b|na_real_\\b|na_complex_\\b|na_character_\\b",
+      "startRegex": "(?:TRUE|FALSE|NULL|NA|Inf|NaN|NA_integer_|NA_real_|NA_complex_|NA_character_)(?![a-zA-Z0-9_.])",
       "textColor": "0x088c54"
     },
     "SingleString": {
@@ -78,7 +78,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "<-|<<-|->|->>|:::|::|%%|%/%|%in%|%\\*%|%o%|%x%|~|\\$|@|\\|\\||&&|\\||&|!=|<=|>=|==|\\+\\+|\\-\\-|[=<>!+\\-*/^:,;()\\[\\]{}]",
+      "startRegex": "<-|<<-|->|->>|:::|::|%[^%\\r\\n]*%|\\*\\*|~|\\$|@|\\|\\||&&|\\||&|!=|<=|>=|==|[=<>!+\\-*/^:,;()\\[\\]{}]",
       "textColor": "0x35b2dd"
     }
   }

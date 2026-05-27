@@ -6,8 +6,8 @@
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
-    "Keyword",
     "Boolean",
+    "Keyword",
     "Variable",
     "CodeBlock",
     "Operator",
@@ -46,8 +46,8 @@
       "textColor": "0xffd700",
       "nestedTokens": [
         "LineComment",
-        "Keyword",
         "Boolean",
+        "Keyword",
         "Variable",
         "CodeBlock",
         "Operator",

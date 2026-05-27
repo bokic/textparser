@@ -7,14 +7,13 @@
   "startTokens": [
     "LineComment",
     "BlockComment",
-    "Keyword",
     "Boolean",
+    "Keyword",
     "Variable",
     "CodeBlock",
     "Operator",
-    "SingleString",
-    "DoubleString",
     "MultiLineString",
+    "DoubleString",
     "Number"
   ],
   "otherTextInside": true,
@@ -58,31 +57,20 @@
       "nestedTokens": [
         "LineComment",
         "BlockComment",
-        "Keyword",
         "Boolean",
+        "Keyword",
         "Variable",
         "CodeBlock",
         "Operator",
-        "SingleString",
-        "DoubleString",
         "MultiLineString",
+        "DoubleString",
         "Number"
       ]
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "\\?\\?|===|!==|\\.\\.<|\\.\\.\\.|->|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<<|>>|\\+\\+|\\-\\-|\\+=|\\-=|\\*=|\\/=|[=<>!&|^~+\\-*/%\\?:;.,()\\[\\]]",
+      "startRegex": "\\?\\?|===|!==|\\.\\.<|\\.\\.\\.|->|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<<|>>|[=<>!&|^~+\\-*/%\\?:;.,()\\[\\]]",
       "textColor": "0x35b2dd"
-    },
-    "SingleString": {
-      "type": "StartStop",
-      "startRegex": "'",
-      "endRegex": "'",
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ]
     },
     "DoubleString": {
       "type": "StartStop",
@@ -115,8 +103,8 @@
       "otherTextInside": true,
       "textColor": "0x35b2dd",
       "nestedTokens": [
-        "Keyword",
         "Boolean",
+        "Keyword",
         "Variable",
         "Operator",
         "Number"

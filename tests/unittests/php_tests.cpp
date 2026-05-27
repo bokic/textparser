@@ -99,3 +99,68 @@ TEST(parse_PHP, double_string_interpolation) {
     ASSERT_EQ(double_str.children, 1);
     EXPECT_STREQ(double_str[0].type, "Variable");
 }
+
+TEST(parse_PHP, extra_tokens_coverage) {
+    auto tokens = TextParser(R"(<?php
+$arr = ['key' => 'value'];
+$obj->method();
+?>)", &php_definition);
+    
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Tag");
+
+    bool found_array_key_value = false;
+    bool found_member_access = false;
+    bool found_single_string = false;
+
+    for (int i = 0; i < tokens[0].children; ++i) {
+        std::string type = tokens[0][i].type;
+        if (type == "ArrayKeyValue") found_array_key_value = true;
+        if (type == "MemberAccess") found_member_access = true;
+        if (type == "SingleString") found_single_string = true;
+    }
+
+    EXPECT_TRUE(found_array_key_value);
+    EXPECT_TRUE(found_member_access);
+    EXPECT_TRUE(found_single_string);
+}
+
+TEST(parse_PHP, string_escapes) {
+    auto tokens = TextParser(R"(<?php
+$s1 = 'escaped \' \\ string';
+$s2 = "escaped \" \$ \\ \n \r \t string";
+?>)", &php_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Tag");
+
+    // Find s1 and s2 strings
+    int single_str_idx = -1;
+    int double_str_idx = -1;
+    for (int i = 0; i < tokens[0].children; ++i) {
+        if (std::string(tokens[0][i].type) == "SingleString") {
+            single_str_idx = i;
+        }
+        if (std::string(tokens[0][i].type) == "DoubleString") {
+            double_str_idx = i;
+        }
+    }
+    ASSERT_NE(single_str_idx, -1);
+    ASSERT_NE(double_str_idx, -1);
+
+    auto single_str = tokens[0][single_str_idx];
+    // SingleString should have 2 children of type StringEscape (\' and \\)
+    ASSERT_EQ(single_str.children, 2);
+    EXPECT_STREQ(single_str[0].type, "StringEscape");
+    EXPECT_STREQ(single_str[1].type, "StringEscape");
+
+    auto double_str = tokens[0][double_str_idx];
+    // DoubleString should have 6 children of type StringEscape ( \", \$, \\, \n, \r, \t )
+    int escape_count = 0;
+    for (int i = 0; i < double_str.children; ++i) {
+        if (std::string(double_str[i].type) == "StringEscape") {
+            escape_count++;
+        }
+    }
+    EXPECT_EQ(escape_count, 6);
+}
+

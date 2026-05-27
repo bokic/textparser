@@ -7,8 +7,8 @@
   "startTokens": [
     "LineComment",
     "BlockComment",
-    "Keyword",
     "Boolean",
+    "Keyword",
     "Variable",
     "CodeBlock",
     "Operator",
@@ -50,8 +50,8 @@
       "nestedTokens": [
         "LineComment",
         "BlockComment",
-        "Keyword",
         "Boolean",
+        "Keyword",
         "Variable",
         "CodeBlock",
         "Operator",
@@ -62,7 +62,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "==={0,1}|!=={0,1}|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2}=|\\?\\?=|\\?\\?|\\?\\.|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|==|!=|->|\\.|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "startRegex": "\\?\\?=|\\?\\.|\\?\\?|=>|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2}=|\\+\\+|\\-\\-|&&|\\|\\||<{2}|>{2}|<=|>=|==|!=|->|::|\\.|[=<>!&|^~+\\-*/%\\?:;.,]",
       "textColor": "0x35b2dd"
     },
     "SingleString": {
@@ -93,7 +93,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?[fFdDlLmM]?",
+      "startRegex": "[-+]?(0[xX][0-9a-fA-F][0-9a-fA-F_]*[uUlL]*|0[bB][01][01_]*[uUlL]*|[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][-+]?[0-9_]+)?[fFdDlLmM]?)",
       "textColor": "0xb5cea8"
     },
     "Boolean": {

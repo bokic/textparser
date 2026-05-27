@@ -11,8 +11,8 @@
     "SingleString",
     "DoubleString",
     "FString",
-    "Keyword",
     "Boolean",
+    "Keyword",
     "Number",
     "Variable",
     "Operator"
@@ -95,12 +95,12 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "False\\b|None\\b|True\\b|and\\b|as\\b|assert\\b|async\\b|await\\b|break\\b|class\\b|continue\\b|def\\b|del\\b|elif\\b|else\\b|except\\b|finally\\b|for\\b|from\\b|global\\b|if\\b|import\\b|in\\b|is\\b|lambda\\b|nonlocal\\b|not\\b|or\\b|pass\\b|raise\\b|return\\b|try\\b|while\\b|with\\b|yield\\b",
+      "startRegex": "None\\b|and\\b|as\\b|assert\\b|async\\b|await\\b|break\\b|class\\b|continue\\b|def\\b|del\\b|elif\\b|else\\b|except\\b|finally\\b|for\\b|from\\b|global\\b|if\\b|import\\b|in\\b|is\\b|lambda\\b|nonlocal\\b|not\\b|or\\b|pass\\b|raise\\b|return\\b|try\\b|while\\b|with\\b|yield\\b",
       "textColor": "0xc586c0"
     },
     "Boolean": {
       "type": "SimpleToken",
-      "startRegex": "true\\b|false\\b",
+      "startRegex": "True\\b|False\\b",
       "textColor": "0x088c54"
     },
     "Number": {
@@ -115,7 +115,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": ":=|\\.\\.\\.|->|//|\\*\\*|<<|>>|==|!=|<=|>=|\\+=|\\-=|\\*=|\\/=|//=|%=|@=|&=|\\|=|\\^=|<<=|>>=|\\*\\*=|!=|[=<>!&|^~+\\-*/%@.,;:()\\[\\]]",
+      "startRegex": ":=|\\.\\.\\.|->|//|\\*\\*|<<|>>|==|!=|<=|>=|\\+=|\\-=|\\*=|\\/=|//=|%=|@=|&=|\\|=|\\^=|<<=|>>=|\\*\\*=|[=<>!&|^~+\\-*/%@.,;:()\\[\\]]",
       "textColor": "0x35b2dd"
     }
   }
