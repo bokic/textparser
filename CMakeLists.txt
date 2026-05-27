@@ -65,7 +65,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(GENERATED_DEFINITIONS "")
 foreach(DEF ada asm bash c cpp cfml csharp css fortran go html java javascript json matlab pascal perl php python r scratch sql swift typescript vb)
+  list(APPEND GENERATED_DEFINITIONS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json.h)
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json.h
     COMMAND ${Python3_EXECUTABLE} ./json2h.py ${DEF}_definition.json
@@ -74,10 +76,19 @@ foreach(DEF ada asm bash c cpp cfml csharp css fortran go html java javascript j
   )
 endforeach()
 
+add_custom_target(generated_definitions DEPENDS ${GENERATED_DEFINITIONS})
+
 add_subdirectory(src)
 add_subdirectory(cli)
 add_subdirectory(ccat)
 add_subdirectory(tests)
+
+add_dependencies(textparser generated_definitions)
+add_dependencies(ccat generated_definitions)
+if(NOT APPLE)
+  add_dependencies(unittests generated_definitions)
+endif()
+add_dependencies(cfml_validator generated_definitions)
 
 # PkgConfig config
 configure_file(textparser.pc.in textparser.pc @ONLY)
