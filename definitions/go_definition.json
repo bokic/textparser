@@ -7,8 +7,8 @@
   "startTokens": [
     "LineComment",
     "BlockComment",
-    "Keyword",
     "Boolean",
+    "Keyword",
     "Variable",
     "CodeBlock",
     "Operator",
@@ -58,8 +58,8 @@
       "nestedTokens": [
         "LineComment",
         "BlockComment",
-        "Keyword",
         "Boolean",
+        "Keyword",
         "Variable",
         "CodeBlock",
         "Operator",
@@ -71,7 +71,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "\\+\\+|\\-\\-|\\+=|\\-=|\\*=|\\/=|%=|&=|\\|=|\\^=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<-|<<|>>|&\\^|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|&=|\\|=|<<|>>|&\\^|==|!=|<|>|=|!|\\+|-|\\*|\\/|%|&|\\||\\^|&\\^|<<|>>|:=|\\.\\.\\.|:|;|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}",
+      "startRegex": "\\.\\.\\.|<<=|>>=|&\\^=|\\+\\+|\\-\\-|\\+=|\\-=|\\*=|\\/=|%=|&=|\\|=|\\^=|&&|\\|\\||<=|>=|==|!=|:=|<-|<<|>>|&\\^|=|<|>|!|\\+|-|\\*|\\/|%|&|\\||\\^|:|;|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}",
       "textColor": "0x35b2dd"
     },
     "SingleString": {
@@ -88,7 +88,6 @@
       "type": "StartStop",
       "startRegex": "\"",
       "endRegex": "\"",
-      "multiLine": true,
       "otherTextInside": true,
       "textColor": "0xce9178",
       "nestedTokens": [
@@ -105,7 +104,7 @@
     },
     "StringEscape": {
       "type": "SimpleToken",
-      "startRegex": "\\\\[\\\\\\\"'nrt]|\\\\x[0-9a-fA-F]{2}|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}|\\\\[0-7]{3}",
+      "startRegex": "\\\\[abfnrtv\\\\\\\"']|\\\\x[0-9a-fA-F]{2}|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}|\\\\[0-7]{3}",
       "textColor": "0xd7ba7d"
     },
     "Number": {

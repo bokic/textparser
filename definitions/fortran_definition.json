@@ -24,7 +24,7 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "program\\b|module\\b|subroutine\\b|function\\b|interface\\b|end\\b|do\\b|while\\b|if\\b|then\\b|else\\b|elseif\\b|endif\\b|enddo\\b|select\\b|case\\b|default\\b|type\\b|class\\b|contains\\b|use\\b|implicit\\b|none\\b|public\\b|private\\b|protected\\b|intent\\b|optional\\b|save\\b|parameter\\b|allocatable\\b|pointer\\b|target\\b|dimension\\b|external\\b|intrinsic\\b|write\\b|read\\b|print\\b|format\\b|open\\b|close\\b|call\\b|return\\b|stop\\b|continue\\b|cycle\\b|exit\\b|where\\b|elsewhere\\b|forall\\b|pure\\b|elemental\\b|recursive\\b|procedure\\b|enum\\b|bind\\b|import\\b|only\\b|operator\\b|assignment\\b|abstract\\b|deferred\\b|pass\\b|nopass\\b|extends\\b|final\\b|generic\\b|block\\b|critical\\b|allocate\\b|deallocate\\b|nullify\\b|null\\b|associated\\b|error\\b|in\\b|out\\b|inout\\b|new\\b|wait\\b|go\\b|to\\b|format\\b|data\\b|common\\b|equivalence\\b|include\\b|then\\b|end\\b|select\\b|case\\b|default\\b",
+      "startRegex": "abstract\\b|allocatable\\b|allocate\\b|assignment\\b|associated\\b|bind\\b|block\\b|call\\b|case\\b|class\\b|close\\b|common\\b|contains\\b|continue\\b|critical\\b|cycle\\b|data\\b|deallocate\\b|default\\b|deferred\\b|dimension\\b|do\\b|elemental\\b|else\\b|elseif\\b|elsewhere\\b|end\\b|enddo\\b|endif\\b|enum\\b|equivalence\\b|error\\b|exit\\b|extends\\b|external\\b|final\\b|forall\\b|format\\b|function\\b|generic\\b|go\\b|if\\b|implicit\\b|import\\b|in\\b|include\\b|inout\\b|intent\\b|interface\\b|intrinsic\\b|module\\b|new\\b|none\\b|nopass\\b|null\\b|nullify\\b|only\\b|open\\b|operator\\b|optional\\b|out\\b|parameter\\b|pass\\b|pointer\\b|print\\b|private\\b|procedure\\b|program\\b|protected\\b|public\\b|pure\\b|read\\b|recursive\\b|return\\b|save\\b|select\\b|stop\\b|subroutine\\b|target\\b|then\\b|to\\b|type\\b|use\\b|wait\\b|where\\b|while\\b|write\\b",
       "textColor": "0xc586c0"
     },
     "Boolean": {
@@ -38,6 +38,7 @@
       "endRegex": "'",
       "multiLine": true,
       "otherTextInside": true,
+      "searchParentEndTokenLast": true,
       "textColor": "0xce9178",
       "nestedTokens": [
         "EscapedApostrophe"
@@ -49,6 +50,7 @@
       "endRegex": "\"",
       "multiLine": true,
       "otherTextInside": true,
+      "searchParentEndTokenLast": true,
       "textColor": "0xce9178",
       "nestedTokens": [
         "EscapedDoubleQuote"

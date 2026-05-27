@@ -40,7 +40,7 @@ func NewGreeter(name string) *Greeter {
 
 func (g *Greeter) Greet() string {
     var msg string
-    msg = "Hello, " + g.name + "!"
+    msg = "Hello, " + g.name + "!\n" // StringEscape here (\n)
     g.count++
     return msg
 }
@@ -53,6 +53,12 @@ func main() {
     raw := `line one
 line two`
     _ = raw
+
+    charVal := 'A' // SingleString here
+    escChar := '\t' // StringEscape in SingleString
+    _ = charVal
+    _ = escChar
+
     if true && result != "" {
         fmt.Println("done")
     }
@@ -70,7 +76,10 @@ line two`
     EXPECT_TRUE(found.contains("Boolean"));
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
+    EXPECT_TRUE(found.contains("CodeBlock"));
     EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("BacktickString"));
+    EXPECT_TRUE(found.contains("StringEscape"));
 }

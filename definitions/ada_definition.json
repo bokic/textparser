@@ -31,7 +31,7 @@
     },
     "DataType": {
       "type": "SimpleToken",
-      "startRegex": "integer\\b|float\\b|character\\b|boolean\\b|string\\b|natural\\b|positive\\b|long_integer\\b|long_float\\b|short_integer\\b|short_float\\b|wide_character\\b|wide_string\\b|duration\\b|address\\b|count\\b|float\\b|integer\\b",
+      "startRegex": "integer\\b|float\\b|character\\b|boolean\\b|string\\b|natural\\b|positive\\b|long_integer\\b|long_float\\b|short_integer\\b|short_float\\b|wide_character\\b|wide_string\\b|duration\\b|address\\b|count\\b",
       "textColor": "0x569cd6"
     },
     "Boolean": {
@@ -50,7 +50,16 @@
       "endRegex": "\"",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0xce9178"
+      "searchParentEndTokenLast": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "EscapedQuote"
+      ]
+    },
+    "EscapedQuote": {
+      "type": "SimpleToken",
+      "startRegex": "\"\"",
+      "textColor": "0xd7ba7d"
     },
     "Number": {
       "type": "SimpleToken",

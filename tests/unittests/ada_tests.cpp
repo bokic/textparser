@@ -7,9 +7,12 @@
 
 #include <ada_definition.json.h>
 
+#include <iostream>
+
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
         found.insert(item.type);
+        std::cout << "FOUND TOKEN: " << item.type << " (len: " << item.length << ", val: '" << item.value << "')" << std::endl;
     }
     for (size_t i = 0; i < item.children; ++i) {
         scan_tokens(item[i], found);
@@ -49,6 +52,10 @@ package body Math_Utils is
    end Length;
 
    function Internal_Check (V : Vector) return Boolean is
+      Char_Val   : Character := 'A';
+      Msg        : String := "Hello ""Ada"" World!";
+      Addr       : Address := Vector'Address;
+      Image_Val  : String := Float'Image(3.14);
    begin
       return True;
    end Internal_Check;
@@ -70,4 +77,8 @@ end Math_Utils;
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
     EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("CharLiteral"));
+    EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("EscapedQuote"));
+    EXPECT_TRUE(found.contains("Attribute"));
 }
