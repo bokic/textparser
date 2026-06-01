@@ -25,12 +25,12 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "(?:break|else|for|function|if|in|next|repeat|return|switch|while)(?![a-zA-Z0-9_.])",
+      "startRegex": "(?:break|else|for|function|if|in|next|repeat|return|switch|while)\\b(?!\\.)",
       "textColor": "0xc586c0"
     },
     "Boolean": {
       "type": "SimpleToken",
-      "startRegex": "(?:TRUE|FALSE|NULL|NA|Inf|NaN|NA_integer_|NA_real_|NA_complex_|NA_character_)(?![a-zA-Z0-9_.])",
+      "startRegex": "(?:TRUE|FALSE|NULL|NA|Inf|NaN|NA_integer_|NA_real_|NA_complex_|NA_character_)\\b(?!\\.)",
       "textColor": "0x088c54"
     },
     "SingleString": {
