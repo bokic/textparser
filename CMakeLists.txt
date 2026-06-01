@@ -59,6 +59,8 @@ include(GNUInstallDirs)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+option(BUILD_TESTS "Build tests" ON)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
@@ -81,14 +83,18 @@ add_custom_target(generated_definitions DEPENDS ${GENERATED_DEFINITIONS})
 add_subdirectory(src)
 add_subdirectory(cli)
 add_subdirectory(ccat)
-add_subdirectory(tests)
+if(BUILD_TESTS)
+  add_subdirectory(tests)
+endif()
 
 add_dependencies(textparser generated_definitions)
 add_dependencies(ccat generated_definitions)
-if(NOT APPLE)
-  add_dependencies(unittests generated_definitions)
+if(BUILD_TESTS)
+  if(NOT APPLE)
+    add_dependencies(unittests generated_definitions)
+  endif()
+  add_dependencies(cfml_validator generated_definitions)
 endif()
-add_dependencies(cfml_validator generated_definitions)
 
 # PkgConfig config
 configure_file(textparser.pc.in textparser.pc @ONLY)
