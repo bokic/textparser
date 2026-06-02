@@ -1,5 +1,6 @@
 {
   "name": "matlab",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": ["m"],

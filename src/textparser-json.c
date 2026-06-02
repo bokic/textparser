@@ -323,6 +323,13 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->other_text_inside = json_object_get_boolean(value);
     }
 
+    found = json_object_object_get_ex(root_obj, "signAmbiguityFix", &value);
+    if (found) {
+        (*definition)->sign_ambiguity_fix = json_object_get_boolean(value);
+    } else {
+        (*definition)->sign_ambiguity_fix = false;
+    }
+
     return 0;
 
 err:

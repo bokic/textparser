@@ -1,5 +1,6 @@
 {
   "name": "python",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": ["py"],

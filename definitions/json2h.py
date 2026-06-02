@@ -90,6 +90,11 @@ def main(args):
     if "otherTextInside" in root:
         text += "    .other_text_inside = " + python_bool_to_c_string(root["otherTextInside"]) + "," + os.linesep
 
+    if "signAmbiguityFix" in root:
+        text += "    .sign_ambiguity_fix = " + python_bool_to_c_string(root["signAmbiguityFix"]) + "," + os.linesep
+    else:
+        text += "    .sign_ambiguity_fix = false," + os.linesep
+
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:
         current_token = root["tokens"][token]

@@ -81,6 +81,7 @@ typedef struct {
     int default_text_encoding;
     int *starts_with;
     bool other_text_inside;
+    bool sign_ambiguity_fix;
     textparser_token *tokens;
     const char *error_string;
 } textparser_language_definition;

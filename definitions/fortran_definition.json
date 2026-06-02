@@ -1,5 +1,6 @@
 {
   "name": "fortran",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": false,
   "defaultFileExtensions": ["f90"],

@@ -1,5 +1,6 @@
 {
   "name": "ada",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": false,
   "defaultFileExtensions": ["ada"],

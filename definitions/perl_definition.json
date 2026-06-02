@@ -1,5 +1,6 @@
 {
   "name": "perl",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": ["pl"],

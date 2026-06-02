@@ -1,5 +1,6 @@
 {
   "name": "r",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": ["r"],
