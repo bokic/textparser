@@ -50,3 +50,37 @@ end
     EXPECT_TRUE(found.contains("Variable"));
     EXPECT_TRUE(found.contains("Operator"));
 }
+
+TEST(parse_MATLAB, unary_vs_binary_subtraction) {
+    {
+        auto tokens = TextParser("x-1", &matlab_definition);
+        ASSERT_EQ(tokens.count, 3);
+        EXPECT_STREQ(tokens[0].type, "Variable");
+        EXPECT_STREQ(tokens[0].value.c_str(), "x");
+        EXPECT_STREQ(tokens[1].type, "Operator");
+        EXPECT_STREQ(tokens[1].value.c_str(), "-");
+        EXPECT_STREQ(tokens[2].type, "Number");
+        EXPECT_STREQ(tokens[2].value.c_str(), "1");
+    }
+    {
+        auto tokens = TextParser("10-10", &matlab_definition);
+        ASSERT_EQ(tokens.count, 3);
+        EXPECT_STREQ(tokens[0].type, "Number");
+        EXPECT_STREQ(tokens[0].value.c_str(), "10");
+        EXPECT_STREQ(tokens[1].type, "Operator");
+        EXPECT_STREQ(tokens[1].value.c_str(), "-");
+        EXPECT_STREQ(tokens[2].type, "Number");
+        EXPECT_STREQ(tokens[2].value.c_str(), "10");
+    }
+    {
+        auto tokens = TextParser("x = -1", &matlab_definition);
+        ASSERT_EQ(tokens.count, 3);
+        EXPECT_STREQ(tokens[0].type, "Variable");
+        EXPECT_STREQ(tokens[0].value.c_str(), "x");
+        EXPECT_STREQ(tokens[1].type, "Operator");
+        EXPECT_STREQ(tokens[1].value.c_str(), "=");
+        EXPECT_STREQ(tokens[2].type, "Number");
+        EXPECT_STREQ(tokens[2].value.c_str(), "-1");
+    }
+}
+
