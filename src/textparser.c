@@ -75,6 +75,14 @@ typedef struct {
     size_t text_size;
     size_t no_lines;
     size_t *lines;
+    // Arena allocator fields
+    void **chunks;
+    size_t chunk_count;
+    size_t chunk_capacity;
+    size_t chunk_size; // size of chunk (for new allocations)
+    void *current_chunk;
+    size_t current_chunk_index;
+    size_t current_chunk_used;
 } textparser_handle;
 
 static size_t textparser_get_byte_offset(const textparser_handle *int_handle, size_t pos)
@@ -112,27 +120,70 @@ static size_t textparser_get_total_units(const textparser_handle *int_handle)
 
 static void free_item_tree(textparser_token_item *item)
 {
-    textparser_token_item *next = nullptr;
+    (void)item;
+}
 
-    if (item == nullptr) {
-        return;
+static size_t calculate_chunk_size(size_t filesize)
+{
+    size_t chunk_size = 4096; // 4KB minimum
+    while (chunk_size <= filesize && chunk_size < 16777216) {
+        chunk_size *= 2;
     }
+    return chunk_size;
+}
 
-    if (item->child)
+static void free_arena(textparser_handle *int_handle)
+{
+    if (int_handle->chunks) {
+        for (size_t i = 0; i < int_handle->chunk_count; i++) {
+            free(int_handle->chunks[i]);
+        }
+        free(int_handle->chunks);
+        int_handle->chunks = nullptr;
+    }
+    int_handle->chunk_count = 0;
+    int_handle->chunk_capacity = 0;
+    int_handle->current_chunk = nullptr;
+    int_handle->current_chunk_index = 0;
+    int_handle->current_chunk_used = 0;
+}
+
+static textparser_token_item *allocate_token(textparser_handle *int_handle)
+{
+    size_t token_size = sizeof(textparser_token_item);
+    if (int_handle->current_chunk == nullptr || 
+        int_handle->current_chunk_used + token_size > int_handle->chunk_size)
     {
-        free_item_tree(item->child);
-        item->child = nullptr;
+        void *new_chunk = malloc(int_handle->chunk_size);
+        if (new_chunk == nullptr) {
+            int_handle->error = "Can't allocate memory!";
+            return nullptr;
+        }
+        memset(new_chunk, 0, int_handle->chunk_size);
+
+        if (int_handle->chunk_count >= int_handle->chunk_capacity) {
+            size_t new_capacity = int_handle->chunk_capacity == 0 ? 4 : int_handle->chunk_capacity * 2;
+            void **new_chunks = realloc(int_handle->chunks, new_capacity * sizeof(void *));
+            if (new_chunks == nullptr) {
+                free(new_chunk);
+                int_handle->error = "Can't allocate memory!";
+                return nullptr;
+            }
+            int_handle->chunks = new_chunks;
+            int_handle->chunk_capacity = new_capacity;
+        }
+
+        int_handle->chunks[int_handle->chunk_count] = new_chunk;
+        int_handle->current_chunk = new_chunk;
+        int_handle->current_chunk_index = int_handle->chunk_count;
+        int_handle->chunk_count++;
+        int_handle->current_chunk_used = 0;
     }
 
-    next = item->next;
-    if (next)
-    {
-        free_item_tree(next);
-
-        item->next = nullptr;
-    }
-
-    free(item);
+    textparser_token_item *ret = (textparser_token_item *)((char *)int_handle->current_chunk + int_handle->current_chunk_used);
+    int_handle->current_chunk_used += token_size;
+    memset(ret, 0, token_size);
+    return ret;
 }
 
 static size_t textparser_skip_whitespace(const textparser_handle *int_handle, size_t pos)
@@ -354,13 +405,10 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
         exit_with_error("group_one_child token type nested_tokens list is empty!", offset);
     }
 
-    ret = malloc(sizeof(textparser_token_item));
+    ret = allocate_token(int_handle);
     if (ret == nullptr) {
-        int_handle->error = "Can't allocate memory!";
         return nullptr;
     }
-
-    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -428,13 +476,10 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         exit_with_error("nested_tokens list is empty!", offset);
     }
 
-    ret = malloc(sizeof(textparser_token_item));
+    ret = allocate_token(int_handle);
     if (ret == nullptr) {
-        int_handle->error = "Can't allocate memory!";
         return nullptr;
     }
-
-    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -580,13 +625,10 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
     int inner_token_id = token_def->nested_tokens[1];
     int end_token_id   = token_def->nested_tokens[2];
 
-    ret = malloc(sizeof(textparser_token_item));
+    ret = allocate_token(int_handle);
     if (ret == nullptr) {
-        int_handle->error = "Can't allocate memory!";
         return nullptr;
     }
-
-    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -689,12 +731,10 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
         exit_with_error("offset >= total units count!", offset);
     }
 
-    ret = malloc(sizeof(textparser_token_item));
+    ret = allocate_token(int_handle);
     if (ret == nullptr) {
         exit_with_error("Can't allocate memory!", offset);
     }
-
-    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -750,12 +790,10 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         exit_with_error("offset >= total units count!", offset);
     }
 
-    ret = malloc(sizeof(textparser_token_item));
+    ret = allocate_token(int_handle);
     if (ret == nullptr) {
         exit_with_error("Can't allocate memory!", offset);
     }
-
-    memset(ret, 0, sizeof(textparser_token_item));
 
     offset = textparser_skip_whitespace(int_handle, offset);
 
@@ -1246,6 +1284,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
     local_hnd.no_lines = 0;
     local_hnd.lines = nullptr;
+    local_hnd.chunk_size = calculate_chunk_size(local_hnd.text_size);
 
     switch(local_hnd.text_format) {
     case TEXTPARSER_ENCODING_LATIN1:
@@ -1292,6 +1331,7 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     ret->text_format = (enum textparser_encoding)text_format;
     ret->text_addr = text;
     ret->text_size = (size_t)len;
+    ret->chunk_size = calculate_chunk_size(ret->text_size);
 
     *handle = (textparser_t)ret;
     active_handle_count++;
@@ -1324,6 +1364,8 @@ void textparser_close(textparser_t handle)
         free_item_tree(item);
         item = nullptr;
     }
+
+    free_arena(int_handle);
 
     if (int_handle->lines) {
         free(int_handle->lines);
@@ -1363,10 +1405,8 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
     int_handle->error_offset = 0;
 
     // Free any previously parsed token tree to prevent leaks and AST corruption
-    if (int_handle->first_item) {
-        free_item_tree(int_handle->first_item);
-        int_handle->first_item = nullptr;
-    }
+    free_arena(int_handle);
+    int_handle->first_item = nullptr;
 
     textparser_token_item *prev_item = nullptr;
     size_t size = textparser_get_total_units(int_handle);
