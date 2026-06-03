@@ -1,5 +1,6 @@
 {
   "name": "javascript",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [

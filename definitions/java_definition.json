@@ -1,5 +1,6 @@
 {
   "name": "java",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [
@@ -104,7 +105,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "[-+]?(0[xX][0-9a-fA-F][0-9a-fA-F_]*[lL]*|0[bB][01][01_]*[lL]*|[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][-+]?[0-9_]+)?[fFdDlL]?)",
+      "startRegex": "[-+]?(?:0[xX][0-9a-fA-F][0-9a-fA-F_]*[lL]*|0[bB][01][01_]*[lL]*|[0-9][0-9_]*(?:\\.[0-9][0-9_]*)?(?:[eE][-+]?[0-9_]+)?[fFdDlL]?)",
       "textColor": "0xb5cea8"
     },
     "Boolean": {

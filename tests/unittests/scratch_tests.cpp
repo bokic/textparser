@@ -44,6 +44,6 @@ broadcast message1
     EXPECT_TRUE(found.contains("LineComment"));
     EXPECT_TRUE(found.contains("Keyword"));
     EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("RoundBlock"));
+    EXPECT_TRUE(found.contains("Parenthesis"));
     EXPECT_TRUE(found.contains("Variable"));
 }

@@ -1,5 +1,6 @@
 {
   "name": "cpp",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [
@@ -107,7 +108,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "[-+]?(0[xX][0-9a-fA-F]+[uUlL]*|0[bB][01]+[uUlL]*|[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?[fFdDlL]?)",
+      "startRegex": "[-+]?(?:0[xX][0-9a-fA-F]+[uUlL]*|0[bB][01]+[uUlL]*|[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?[fFdDlL]?)",
       "textColor": "0xb5cea8"
     },
     "Boolean": {

@@ -1,5 +1,6 @@
 {
   "name": "php",
+  "signAmbiguityFix": true,
   "version": 1.0,
   "emptySegmentLanguage": "html",
   "caseSensitivity": true,
