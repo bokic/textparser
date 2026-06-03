@@ -2,7 +2,11 @@
   "name": "javascript",
   "version": 1.0,
   "caseSensitivity": true,
-  "defaultFileExtensions": ["js", "mjs", "cjs"],
+  "defaultFileExtensions": [
+    "js",
+    "mjs",
+    "cjs"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
@@ -15,7 +19,9 @@
     "SingleString",
     "DoubleString",
     "TemplateString",
-    "Number"
+    "Number",
+    "Parenthesis",
+    "ArrayIndex"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -112,6 +118,52 @@
       "type": "SimpleToken",
       "startRegex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?",
       "textColor": "0xb5cea8"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "TemplateString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "TemplateString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
     }
   }
 }

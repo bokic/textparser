@@ -2,7 +2,9 @@
   "name": "java",
   "version": 1.0,
   "caseSensitivity": true,
-  "defaultFileExtensions": ["java"],
+  "defaultFileExtensions": [
+    "java"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
@@ -15,7 +17,9 @@
     "Operator",
     "SingleString",
     "DoubleString",
-    "Number"
+    "Number",
+    "Parenthesis",
+    "ArrayIndex"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -107,6 +111,52 @@
       "type": "SimpleToken",
       "startRegex": "true\\b|false\\b",
       "textColor": "0x088c54"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Annotation",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Annotation",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
     }
   }
 }

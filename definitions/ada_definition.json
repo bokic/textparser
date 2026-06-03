@@ -3,7 +3,9 @@
   "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": false,
-  "defaultFileExtensions": ["ada"],
+  "defaultFileExtensions": [
+    "ada"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
@@ -15,7 +17,10 @@
     "Number",
     "Variable",
     "Attribute",
-    "Operator"
+    "Operator",
+    "Parenthesis",
+    "ArrayIndex",
+    "CodeBlock"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -79,8 +84,77 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": ":=|=>|\\.\\.|<>|>=|<=|\\*\\*|/=|[=<>+\\-*/&.,;:()\\[\\]]",
+      "startRegex": ":=|=>|\\.\\.|<>|>=|<=|\\*\\*|/=|[=<>+\\-*/&.,;:]",
       "textColor": "0x35b2dd"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "CharLiteral",
+        "SingleString",
+        "Number",
+        "Variable",
+        "Attribute",
+        "Operator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "CharLiteral",
+        "SingleString",
+        "Number",
+        "Variable",
+        "Attribute",
+        "Operator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "CharLiteral",
+        "SingleString",
+        "Number",
+        "Variable",
+        "Attribute",
+        "Operator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
     }
   }
 }

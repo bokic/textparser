@@ -3,9 +3,17 @@
   "version": 1.0,
   "emptySegmentLanguage": "html",
   "caseSensitivity": true,
-  "defaultFileExtensions": ["php", "php5"],
+  "defaultFileExtensions": [
+    "php",
+    "php5"
+  ],
   "defaultTextEncoding": "latin1",
-  "startTokens": ["Tag"],
+  "startTokens": [
+    "Tag",
+    "Parenthesis",
+    "ArrayIndex",
+    "CodeBlock"
+  ],
   "otherTextInside": true,
   "tokens": {
     "Tag": {
@@ -26,7 +34,9 @@
         "DoubleString",
         "Number",
         "Boolean",
-        "Keyword"
+        "Keyword",
+        "Parenthesis",
+        "ArrayIndex"
       ]
     },
     "LineComment": {
@@ -104,7 +114,9 @@
       "nestedTokens": [
         "StringEscape",
         "Variable",
-        "CodeBlock"
+        "CodeBlock",
+        "Parenthesis",
+        "ArrayIndex"
       ]
     },
     "StringEscape": {
@@ -126,6 +138,56 @@
       "type": "SimpleToken",
       "startRegex": "echo\\b|print\\b|function\\b|class\\b|public\\b|private\\b|protected\\b|static\\b|if\\b|else\\b|elseif\\b|foreach\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|return\\b|require\\b|require_once\\b|include\\b|include_once\\b|new\\b|use\\b|namespace\\b|try\\b|catch\\b|throw\\b|finally\\b|global\\b|as\\b",
       "textColor": "0xc586c0"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "Tag",
+        "LineComment",
+        "BlockComment",
+        "ArrayKeyValue",
+        "MemberAccess",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Boolean",
+        "Keyword",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "Tag",
+        "LineComment",
+        "BlockComment",
+        "ArrayKeyValue",
+        "MemberAccess",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Boolean",
+        "Keyword",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
     }
   }
 }

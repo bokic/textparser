@@ -2,7 +2,9 @@
   "name": "sql",
   "version": 1.0,
   "caseSensitivity": false,
-  "defaultFileExtensions": ["sql"],
+  "defaultFileExtensions": [
+    "sql"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
@@ -16,7 +18,10 @@
     "Operator",
     "SingleString",
     "DoubleString",
-    "Number"
+    "Number",
+    "Parenthesis",
+    "ArrayIndex",
+    "CodeBlock"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -68,7 +73,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "<>|<=|>=|!=|:=|[-+*/%&|^~<>!=;.,|()=]",
+      "startRegex": "<>|<=|>=|!=|:=|[-+*/%&|^~<>!=;.,|=]",
       "textColor": "0x35b2dd"
     },
     "SingleString": {
@@ -102,6 +107,81 @@
       "type": "SimpleToken",
       "startRegex": "\\b[0-9]+(?:\\.[0-9]+)?\\b",
       "textColor": "0xb5cea8"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "BacktickIdentifier",
+        "BracketIdentifier",
+        "Variable",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "BacktickIdentifier",
+        "BracketIdentifier",
+        "Variable",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "BacktickIdentifier",
+        "BracketIdentifier",
+        "Variable",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
     }
   }
 }

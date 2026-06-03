@@ -2,7 +2,9 @@
   "name": "css",
   "version": 1.0,
   "caseSensitivity": false,
-  "defaultFileExtensions": ["css"],
+  "defaultFileExtensions": [
+    "css"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "BlockComment",
@@ -12,7 +14,9 @@
     "PseudoClass",
     "TagName",
     "Operator",
-    "CodeBlock"
+    "CodeBlock",
+    "Parenthesis",
+    "ArrayIndex"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -88,7 +92,10 @@
         "DoubleString",
         "Important",
         "Value",
-        "DeclOperator"
+        "DeclOperator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
       ]
     },
     "HexColor": {
@@ -145,6 +152,64 @@
       "type": "SimpleToken",
       "startRegex": "[,/!]",
       "textColor": "0x35b2dd"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "BlockComment",
+        "AtRule",
+        "ClassName",
+        "IdName",
+        "PseudoClass",
+        "TagName",
+        "Operator",
+        "CodeBlock",
+        "Declaration",
+        "HexColor",
+        "Number",
+        "FunctionCall",
+        "SingleString",
+        "DoubleString",
+        "Important",
+        "Value",
+        "DeclOperator",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "BlockComment",
+        "AtRule",
+        "ClassName",
+        "IdName",
+        "PseudoClass",
+        "TagName",
+        "Operator",
+        "CodeBlock",
+        "Declaration",
+        "HexColor",
+        "Number",
+        "FunctionCall",
+        "SingleString",
+        "DoubleString",
+        "Important",
+        "Value",
+        "DeclOperator",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
     }
   }
 }

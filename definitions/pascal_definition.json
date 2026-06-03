@@ -3,7 +3,9 @@
   "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": false,
-  "defaultFileExtensions": ["pas"],
+  "defaultFileExtensions": [
+    "pas"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
@@ -17,7 +19,10 @@
     "SingleString",
     "Number",
     "Variable",
-    "Operator"
+    "Operator",
+    "Parenthesis",
+    "ArrayIndex",
+    "CodeBlock"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -99,8 +104,83 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": ":=|==|<=|>=|<>|\\+=|\\-=|\\*=|\\/=|[@\\^.\\,:;\\(\\)\\[\\]\\+\\-\\*\\/=<>]",
+      "startRegex": ":=|==|<=|>=|<>|\\+=|\\-=|\\*=|\\/=|[@\\^.\\,:;\\+\\-\\*\\/=<>]",
       "textColor": "0x35b2dd"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "CompilerDirective",
+        "BlockCommentCurly",
+        "BlockCommentParen",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "CharLiteral",
+        "SingleString",
+        "Number",
+        "Variable",
+        "Operator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "CompilerDirective",
+        "BlockCommentCurly",
+        "BlockCommentParen",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "CharLiteral",
+        "SingleString",
+        "Number",
+        "Variable",
+        "Operator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "CompilerDirective",
+        "BlockCommentCurly",
+        "BlockCommentParen",
+        "Keyword",
+        "DataType",
+        "Boolean",
+        "CharLiteral",
+        "SingleString",
+        "Number",
+        "Variable",
+        "Operator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
     }
   }
 }

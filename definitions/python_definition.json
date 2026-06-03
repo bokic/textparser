@@ -3,7 +3,9 @@
   "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
-  "defaultFileExtensions": ["py"],
+  "defaultFileExtensions": [
+    "py"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
@@ -16,7 +18,10 @@
     "Keyword",
     "Number",
     "Variable",
-    "Operator"
+    "Operator",
+    "Parenthesis",
+    "ArrayIndex",
+    "CodeBlock"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -86,7 +91,10 @@
         "Boolean",
         "Number",
         "Variable",
-        "Operator"
+        "Operator",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
       ]
     },
     "StringEscape": {
@@ -116,8 +124,83 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": ":=|\\.\\.\\.|->|//|\\*\\*|<<|>>|==|!=|<=|>=|\\+=|\\-=|\\*=|\\/=|//=|%=|@=|&=|\\|=|\\^=|<<=|>>=|\\*\\*=|[=<>!&|^~+\\-*/%@.,;:()\\[\\]]",
+      "startRegex": ":=|\\.\\.\\.|->|//|\\*\\*|<<|>>|==|!=|<=|>=|\\+=|\\-=|\\*=|\\/=|//=|%=|@=|&=|\\|=|\\^=|<<=|>>=|\\*\\*=|[=<>!&|^~+\\-*/%@.,;:]",
       "textColor": "0x35b2dd"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "TripleSingleString",
+        "TripleDoubleString",
+        "SingleString",
+        "DoubleString",
+        "FString",
+        "Boolean",
+        "Keyword",
+        "Number",
+        "Variable",
+        "Operator",
+        "FStringInterpolation",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "TripleSingleString",
+        "TripleDoubleString",
+        "SingleString",
+        "DoubleString",
+        "FString",
+        "Boolean",
+        "Keyword",
+        "Number",
+        "Variable",
+        "Operator",
+        "FStringInterpolation",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "TripleSingleString",
+        "TripleDoubleString",
+        "SingleString",
+        "DoubleString",
+        "FString",
+        "Boolean",
+        "Keyword",
+        "Number",
+        "Variable",
+        "Operator",
+        "FStringInterpolation",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
+      ]
     }
   }
 }

@@ -4,6 +4,17 @@
 #include <textparser.h>
 
 #include <php_definition.json.h>
+#include <set>
+#include <string>
+
+static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
+    if (item.type) {
+        found.insert(item.type);
+    }
+    for (size_t i = 0; i < item.children; ++i) {
+        scan_tokens(item[i], found);
+    }
+}
 
 
 TEST(parse_PHP, simple_php_block) {
@@ -58,25 +69,15 @@ if (true) {
     ASSERT_EQ(tokens.count, 1);
     EXPECT_STREQ(tokens[0].type, "Tag");
     
-    // Tag children: $x (Variable), = (Operator), 42 (Number), ; (Operator), if (Keyword), true (Boolean), CodeBlock, ; (Operator) or similar.
-    // Let's verify variable and code block are present
-    bool found_variable = false;
-    bool found_code_block = false;
-    bool found_number = false;
-    bool found_boolean = false;
-
-    for (int i = 0; i < tokens[0].children; ++i) {
-        std::string type = tokens[0][i].type;
-        if (type == "Variable") found_variable = true;
-        if (type == "CodeBlock") found_code_block = true;
-        if (type == "Number") found_number = true;
-        if (type == "Boolean") found_boolean = true;
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found_variable);
-    EXPECT_TRUE(found_code_block);
-    EXPECT_TRUE(found_number);
-    EXPECT_TRUE(found_boolean);
+    EXPECT_TRUE(found.contains("Variable"));
+    EXPECT_TRUE(found.contains("CodeBlock"));
+    EXPECT_TRUE(found.contains("Number"));
+    EXPECT_TRUE(found.contains("Boolean"));
 }
 
 TEST(parse_PHP, double_string_interpolation) {
@@ -109,20 +110,14 @@ $obj->method();
     ASSERT_EQ(tokens.count, 1);
     EXPECT_STREQ(tokens[0].type, "Tag");
 
-    bool found_array_key_value = false;
-    bool found_member_access = false;
-    bool found_single_string = false;
-
-    for (int i = 0; i < tokens[0].children; ++i) {
-        std::string type = tokens[0][i].type;
-        if (type == "ArrayKeyValue") found_array_key_value = true;
-        if (type == "MemberAccess") found_member_access = true;
-        if (type == "SingleString") found_single_string = true;
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found_array_key_value);
-    EXPECT_TRUE(found_member_access);
-    EXPECT_TRUE(found_single_string);
+    EXPECT_TRUE(found.contains("ArrayKeyValue"));
+    EXPECT_TRUE(found.contains("MemberAccess"));
+    EXPECT_TRUE(found.contains("SingleString"));
 }
 
 TEST(parse_PHP, string_escapes) {

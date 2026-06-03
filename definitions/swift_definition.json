@@ -2,7 +2,9 @@
   "name": "swift",
   "version": 1.0,
   "caseSensitivity": true,
-  "defaultFileExtensions": ["swift"],
+  "defaultFileExtensions": [
+    "swift"
+  ],
   "defaultTextEncoding": "latin1",
   "startTokens": [
     "LineComment",
@@ -14,7 +16,9 @@
     "Operator",
     "MultiLineString",
     "DoubleString",
-    "Number"
+    "Number",
+    "Parenthesis",
+    "ArrayIndex"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -69,7 +73,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "\\?\\?|===|!==|\\.\\.<|\\.\\.\\.|->|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<<|>>|[=<>!&|^~+\\-*/%\\?:;.,()\\[\\]]",
+      "startRegex": "\\?\\?|===|!==|\\.\\.<|\\.\\.\\.|->|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<<|>>|[=<>!&|^~+\\-*/%\\?:;.,]",
       "textColor": "0x35b2dd"
     },
     "DoubleString": {
@@ -107,7 +111,10 @@
         "Keyword",
         "Variable",
         "Operator",
-        "Number"
+        "Number",
+        "Parenthesis",
+        "ArrayIndex",
+        "CodeBlock"
       ]
     },
     "StringEscape": {
@@ -119,6 +126,52 @@
       "type": "SimpleToken",
       "startRegex": "0[xX][0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?(?:[pP][-+]?[0-9]+)?\\b|0[oO][0-7]+\\b|0[bB][01]+\\b|[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?\\b",
       "textColor": "0xb5cea8"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "MultiLineString",
+        "DoubleString",
+        "Number",
+        "StringInterpolation",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "MultiLineString",
+        "DoubleString",
+        "Number",
+        "StringInterpolation",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
     }
   }
 }
