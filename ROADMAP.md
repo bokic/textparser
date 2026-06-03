@@ -1,15 +1,12 @@
 # Roadmap
 
 ## 0.9
-- Implement arena allocator for fast memory allocation/deallocations.
-
-## 1.0
 - Implement callback after each parsed token.
 
-## 1.1
+## 1.0
 - Implement code validator for each computer language.
 
-## 1.2
+## 1.1
 - AI regenerate parser to JavaScript/TypeScript language, so it can be used in Electron(VSCode plugin for example), Node.js, web applications, etc.
 - Implement bindings to other languages(Python, Rust,Java, Zig, C3, etc.).
 
