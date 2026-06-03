@@ -1,8 +1,5 @@
 # Roadmap
 
-## 0.8
-- Implement text encodings(ascii(one byte character), utf-8(multi byte character), UCS-2(two byte character)).
-
 ## 0.9
 - Implement arena allocator for fast memory allocation/deallocations.
 
