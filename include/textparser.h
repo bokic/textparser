@@ -106,6 +106,8 @@ EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textparser_t handle);
 EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
+EXPORT_TEXTPARSER uint16_t *textparser_get_token_text16(const textparser_t handle, const textparser_token_item *item);
+EXPORT_TEXTPARSER uint32_t *textparser_get_token_text32(const textparser_t handle, const textparser_token_item *item);
 EXPORT_TEXTPARSER const textparser_language_definition *textparser_get_language(const textparser_t handle);
 EXPORT_TEXTPARSER void textparser_free_language_definition(textparser_language_definition *definition);
 

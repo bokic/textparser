@@ -1519,6 +1519,44 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
     return ret;
 }
 
+uint16_t *textparser_get_token_text16(const textparser_t handle, const textparser_token_item *item)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+
+    if ((int_handle == nullptr)||(item == nullptr)||(item->len <= 0))
+        return nullptr;
+
+    if (int_handle->text_format != TEXTPARSER_ENCODING_UNICODE && int_handle->text_format != TEXTPARSER_ENCODING_UTF_16)
+        return nullptr;
+
+    uint16_t *ret = malloc((item->len + 1) * sizeof(uint16_t));
+    if (ret) {
+        const uint16_t *src = (const uint16_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+        memcpy(ret, src, item->len * sizeof(uint16_t));
+        ret[item->len] = 0;
+    }
+    return ret;
+}
+
+uint32_t *textparser_get_token_text32(const textparser_t handle, const textparser_token_item *item)
+{
+    const textparser_handle *int_handle = (const textparser_handle *)handle;
+
+    if ((int_handle == nullptr)||(item == nullptr)||(item->len <= 0))
+        return nullptr;
+
+    if (int_handle->text_format != TEXTPARSER_ENCODING_UTF_32)
+        return nullptr;
+
+    uint32_t *ret = malloc((item->len + 1) * sizeof(uint32_t));
+    if (ret) {
+        const uint32_t *src = (const uint32_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+        memcpy(ret, src, item->len * sizeof(uint32_t));
+        ret[item->len] = 0;
+    }
+    return ret;
+}
+
 const textparser_language_definition *textparser_get_language(const textparser_t handle)
 {
     const textparser_handle *int_handle = (textparser_handle *)handle;

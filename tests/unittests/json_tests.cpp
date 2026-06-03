@@ -138,3 +138,71 @@ TEST(parse_JSON, utf32_object) {
     
     textparser_close(handle);
 }
+
+TEST(parse_JSON, unicode_non_ascii) {
+    // String contains non-ASCII characters: Greek Omega 'Ω' (U+03A9) and Gothic '𐍈' (U+10348)
+    // UTF-16 representation of: {"Ω𐍈": "value"}
+    const char16_t text[] = u"{\"\u03A9\U00010348\": \"value\"}";
+    size_t byte_len = (sizeof(text) / sizeof(char16_t) - 1) * sizeof(char16_t);
+    
+    textparser_t handle = nullptr;
+    int err = textparser_openmem((const char *)text, byte_len, TEXTPARSER_ENCODING_UNICODE, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+    
+    err = textparser_parse(handle, &json_definition);
+    ASSERT_EQ(err, 0);
+    
+    textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    
+    textparser_token_item *child = first->child;
+    ASSERT_NE(child, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&json_definition, child), "Key");
+    
+    uint16_t *key_text = textparser_get_token_text16(handle, child);
+    ASSERT_NE(key_text, nullptr);
+    // Expected char16_t array is: { '"', 0x03A9, 0xD800, 0xDF48, '"', 0 }
+    EXPECT_EQ(key_text[0], '"');
+    EXPECT_EQ(key_text[1], 0x03A9);
+    EXPECT_EQ(key_text[2], 0xD800);
+    EXPECT_EQ(key_text[3], 0xDF48);
+    EXPECT_EQ(key_text[4], '"');
+    EXPECT_EQ(key_text[5], 0);
+    free(key_text);
+    
+    textparser_close(handle);
+}
+
+TEST(parse_JSON, utf32_non_ascii) {
+    // UTF-32 representation of: {"Ω𐍈": "value"}
+    const char32_t text[] = U"{\"\u03A9\U00010348\": \"value\"}";
+    size_t byte_len = (sizeof(text) / sizeof(char32_t) - 1) * sizeof(char32_t);
+    
+    textparser_t handle = nullptr;
+    int err = textparser_openmem((const char *)text, byte_len, TEXTPARSER_ENCODING_UTF_32, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+    
+    err = textparser_parse(handle, &json_definition);
+    ASSERT_EQ(err, 0);
+    
+    textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    
+    textparser_token_item *child = first->child;
+    ASSERT_NE(child, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&json_definition, child), "Key");
+    
+    uint32_t *key_text = textparser_get_token_text32(handle, child);
+    ASSERT_NE(key_text, nullptr);
+    // Expected char32_t array is: { '"', 0x03A9, 0x10348, '"', 0 }
+    EXPECT_EQ(key_text[0], '"');
+    EXPECT_EQ(key_text[1], 0x03A9);
+    EXPECT_EQ(key_text[2], 0x10348);
+    EXPECT_EQ(key_text[3], '"');
+    EXPECT_EQ(key_text[4], 0);
+    free(key_text);
+    
+    textparser_close(handle);
+}
