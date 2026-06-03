@@ -91,9 +91,46 @@ def main(args):
         text += "    .other_text_inside = " + python_bool_to_c_string(root["otherTextInside"]) + "," + os.linesep
 
     if "signAmbiguityFix" in root:
-        text += "    .sign_ambiguity_fix = " + python_bool_to_c_string(root["signAmbiguityFix"]) + "," + os.linesep
+        val = root["signAmbiguityFix"]
+        if isinstance(val, str):
+            if val.lower() == "true":
+                val = True
+            elif val.lower() == "false":
+                val = False
+            else:
+                print("signAmbiguityFix must be either true or false.")
+                exit(1)
+        elif not isinstance(val, bool):
+            print("signAmbiguityFix must be either true or false.")
+            exit(1)
+
+        text += "    .sign_ambiguity_fix = " + python_bool_to_c_string(val) + "," + os.linesep
+
+        if val is True:
+            number_token = None
+            operator_token = None
+            for token_name in root["tokens"]:
+                if token_name.lower() == "number":
+                    number_token = token_name
+                elif token_name.lower() == "operator":
+                    operator_token = token_name
+
+            if number_token is None:
+                print("Number token missing for signAmbiguityFix")
+                exit(1)
+            if operator_token is None:
+                print("Operator token missing for signAmbiguityFix")
+                exit(1)
+
+            text += "    .token_number_id = TextParser_" + name_lowercase + "_" + number_token + "," + os.linesep
+            text += "    .token_operator_id = TextParser_" + name_lowercase + "_" + operator_token + "," + os.linesep
+        else:
+            text += "    .token_number_id = -1," + os.linesep
+            text += "    .token_operator_id = -1," + os.linesep
     else:
         text += "    .sign_ambiguity_fix = false," + os.linesep
+        text += "    .token_number_id = -1," + os.linesep
+        text += "    .token_operator_id = -1," + os.linesep
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:
