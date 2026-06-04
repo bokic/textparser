@@ -585,7 +585,10 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
                 check_and_exit_on_fatal_parsing_error(offset);
             } else {
                 child->next = textparser_parse_token(int_handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
-                if (child->next) child->next->parent = ret;
+                if (child->next) {
+                    child->next->parent = ret;
+                    child->next->prev = child;
+                }
                 child = child->next;
                 check_and_exit_on_fatal_parsing_error(offset);
             }
@@ -690,7 +693,10 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
         ssize_t inner_pos = textparser_find_token(int_handle, inner_token_id, offset, definition->other_text_inside, ret, last_child);
         if (inner_pos == 0) {
             child = textparser_parse_token(int_handle, inner_token_id, end_token_id, TEXTPARSER_SEARCH_START_TOKEN, offset, ret, last_child);
-            if (child) child->parent = ret;
+            if (child) {
+                child->parent = ret;
+                child->prev = last_child;
+            }
             last_child->next = child;
             last_child = child;
             check_and_exit_on_fatal_parsing_error(offset);
@@ -712,7 +718,10 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
 
     offset = textparser_skip_whitespace(int_handle, offset);
     child = textparser_parse_token(int_handle, end_token_id, parent_token_id, parent_start_stop, offset, ret, last_child);
-    if (child) child->parent = ret;
+    if (child) {
+        child->parent = ret;
+        child->prev = last_child;
+    }
     last_child->next = child;
     check_and_exit_on_fatal_parsing_error(offset);
 
@@ -886,7 +895,12 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             if (child_token_id != TextParser_END)
             {
                 child = textparser_parse_token(int_handle, child_token_id, token_id, TEXTPARSER_SEARCH_END_TOKEN, offset, ret, current_prev);
-                if (child) child->parent = ret;
+                if (child) {
+                    child->parent = ret;
+                    if (last_child) {
+                        child->prev = last_child;
+                    }
+                }
                 if (ret->child == nullptr)
                     ret->child = child;
 
@@ -1013,19 +1027,27 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     offset = textparser_skip_whitespace(int_handle, offset);
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
+    textparser_token_item *ret = nullptr;
     switch(token_def->type)
     {
-        case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:             return parse_token_group_one_child_only(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling);
-        case TEXTPARSER_TOKEN_TYPE_GROUP:                            return parse_token_group(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling);
-        case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER: return parse_token_group_all_children_in_same_order(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling);
-        case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:                     return parse_token_simple_token(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling);
-        case TEXTPARSER_TOKEN_TYPE_START_STOP:                       return parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, true, parent_item, prev_sibling);
-        case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:                   return parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, false, parent_item, prev_sibling);
+        case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:             ret = parse_token_group_one_child_only(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_GROUP:                            ret = parse_token_group(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER: ret = parse_token_group_all_children_in_same_order(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:                     ret = parse_token_simple_token(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_START_STOP:                       ret = parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, true, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:                   ret = parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, false, parent_item, prev_sibling); break;
+        default:
+            parse_token_error_error(int_handle, "Unknown token type!", offset);
+            break;
     }
 
-    parse_token_error_error(int_handle, "Unknown token type!", offset);
+    if (ret) {
+        ret->text_color = token_def->text_color;
+        ret->text_background = token_def->text_background;
+        ret->text_flags = token_def->text_flags;
+    }
 
-    return nullptr;
+    return ret;
 }
 
 static void textparser_init_regex(textparser_handle *int_handle)
@@ -1429,8 +1451,10 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
             if (int_handle->first_item == nullptr)
                 int_handle->first_item = token_item;
 
-            if (prev_item)
+            if (prev_item) {
                 prev_item->next = token_item;
+                token_item->prev = prev_item;
+            }
 
             if ((int_handle->error)||(token_item->len <= 0))
                 return -1;
@@ -1618,6 +1642,14 @@ const textparser_token_item *textparser_get_token_next(const textparser_token_it
         return nullptr;
 
     return token->next;
+}
+
+const textparser_token_item *textparser_get_token_prev(const textparser_token_item *token)
+{
+    if (token == nullptr)
+        return nullptr;
+
+    return token->prev;
 }
 
 const char *textparser_get_token_type_str(const textparser_language_definition *language, const textparser_token_item *token)

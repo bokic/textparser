@@ -56,8 +56,9 @@ struct CallbackTestData {
 };
 
 static void test_callback(textparser_t handle, textparser_token_item *item, enum textparser_callback_type callback_type, void *user_data) {
-    /*if (!user_data) return;
-    user_data->token_count++;
+    if (!user_data) return;
+    CallbackTestData *data = (CallbackTestData *)user_data;
+    data->token_count++;
 
     const textparser_language_definition *lang = textparser_get_language(handle);
     const char *type_str = textparser_get_token_type_str(lang, item);
@@ -69,7 +70,7 @@ static void test_callback(textparser_t handle, textparser_token_item *item, enum
     if (text) {
         data->token_texts.push_back(text);
         free(text);
-    }*/
+    }
 }
 
 TEST(parse_Callback, basic_callback) {
@@ -99,6 +100,56 @@ TEST(parse_Callback, basic_callback) {
     textparser_token_item *first = textparser_get_first_token(handle);
     ASSERT_NE(first, nullptr);
     EXPECT_EQ(textparser_get_token_text_color(first), scratch_definition.tokens[first->token_id].text_color);
+
+    textparser_close(handle);
+}
+
+static void verify_prev_links_recursive(const textparser_token_item *token) {
+    if (!token) return;
+
+    const textparser_token_item *current = token;
+    const textparser_token_item *prev = nullptr;
+    while (current) {
+        EXPECT_EQ(textparser_get_token_prev(current), prev);
+        const textparser_token_item *child = textparser_get_token_child(current);
+        if (child) {
+            verify_prev_links_recursive(child);
+        }
+        prev = current;
+        current = textparser_get_token_next(current);
+    }
+}
+
+TEST(parse_Callback, verify_prev_pointers) {
+    textparser_t handle = nullptr;
+    const char *text = R"(
+# Scratch cat animation
+when green flag clicked
+set size to (100)
+show
+forever
+    move (10) steps
+    if touching (mouse-pointer) then
+        say Hello for 2 seconds
+    else
+        move (-10) steps
+    end
+    wait 0.5 seconds
+end
+
+when this sprite clicked
+broadcast message1
+)";
+    int err = textparser_openmem(text, strlen(text), scratch_definition.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+
+    err = textparser_parse(handle, &scratch_definition);
+    EXPECT_EQ(err, 0);
+
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+
+    verify_prev_links_recursive(first);
 
     textparser_close(handle);
 }

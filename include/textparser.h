@@ -48,6 +48,7 @@ typedef struct {
 } textparser_parser_state;
 
 typedef struct textparser_token_item {
+    struct textparser_token_item *prev;
     struct textparser_token_item *next;
     struct textparser_token_item *child;
     struct textparser_token_item *parent;
@@ -119,6 +120,7 @@ EXPORT_TEXTPARSER void textparser_free_language_definition(textparser_language_d
 EXPORT_TEXTPARSER size_t textparser_get_token_children_count(const textparser_token_item *token);
 EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_child(const textparser_token_item *token);
 EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_next(const textparser_token_item *token);
+EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_prev(const textparser_token_item *token);
 EXPORT_TEXTPARSER const char *textparser_get_token_type_str(const textparser_language_definition *language, const textparser_token_item *token);
 EXPORT_TEXTPARSER int textparser_get_token_type(const textparser_token_item *token);
 EXPORT_TEXTPARSER size_t textparser_get_token_position(const textparser_token_item *token);
