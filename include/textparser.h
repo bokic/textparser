@@ -25,6 +25,11 @@
 
 enum textparser_encoding { TEXTPARSER_ENCODING_ERROR, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
 
+enum textparser_callback_type {
+    TEXTPARSER_CALLBACK_TYPE_START,
+    TEXTPARSER_CALLBACK_TYPE_END,
+};
+
 enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_GROUP,
     TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER,
@@ -102,6 +107,7 @@ EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_lan
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle);
 
+EXPORT_TEXTPARSER void textparser_set_callback(textparser_t handle, void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data), void *user_data);
 EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textparser_t handle);

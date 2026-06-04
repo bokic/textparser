@@ -83,6 +83,8 @@ typedef struct {
     void *current_chunk;
     size_t current_chunk_index;
     size_t current_chunk_used;
+    void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data);
+    void *user_data;
 } textparser_handle;
 
 static size_t textparser_get_byte_offset(const textparser_handle *int_handle, size_t pos)
@@ -166,7 +168,7 @@ static void free_arena(textparser_handle *int_handle)
 static textparser_token_item *allocate_token(textparser_handle *int_handle)
 {
     size_t token_size = sizeof(textparser_token_item);
-    if (int_handle->current_chunk == nullptr || 
+    if (int_handle->current_chunk == nullptr ||
         int_handle->current_chunk_used + token_size > int_handle->chunk_size)
     {
         void *new_chunk = malloc(int_handle->chunk_size);
@@ -279,7 +281,7 @@ static void adjust_search_order(const textparser_handle *int_handle, const textp
 
         if (number_idx != -1 && operator_idx != -1) {
             bool prev_is_operator_or_first = (prev_sibling == nullptr) || (prev_sibling == parent_item) || (prev_sibling->token_id == definition->token_operator_id);
-            
+
             if (prev_is_operator_or_first) {
                 // Search number before operator
                 if (number_idx > operator_idx) {
@@ -331,7 +333,7 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
                 while (token->nested_tokens[nested_count] != TextParser_END) {
                     nested_count++;
                 }
-                
+
                 ssize_t closest_child_pos = SSIZE_MAX;
                 {
                     int adjusted_list[nested_count + 1];
@@ -469,6 +471,10 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
     ret->len = child->len;
     ret->child = child;
     check_and_exit_on_fatal_parsing_error(offset);
+
+    if (int_handle->callback) {
+        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    }
 
 exit:
     return ret;
@@ -714,6 +720,10 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
 
     ret->len = child->position + child->len - ret->position;
 
+    if (int_handle->callback) {
+        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    }
+
 exit:
     return ret;
 }
@@ -759,6 +769,10 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
     LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %zd", int_handle->language->tokens[ret->token_id].name, ret->position);
     ret->position = offset;
     ret->len = len;
+
+    if (int_handle->callback) {
+        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    }
 
 exit:
     return ret;
@@ -811,6 +825,10 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     ret->position = offset;
     offset = ret->position + len;
     ret->len = len; // Temporarily set len to start token length so it can be used for prev_sibling context
+
+    if (int_handle->callback) {
+        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_START, int_handle->user_data);
+    }
 
     if (offset > textparser_get_total_units(int_handle)) {
         exit_with_error("offset >= total units count!", offset);
@@ -939,6 +957,10 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         exit_with_error("offset != ret->position + ret->len!", offset);
     }
 
+    if (int_handle->callback) {
+        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    }
+
 exit:
     return ret;
 }
@@ -962,6 +984,10 @@ static textparser_token_item *parse_token_dual_start_and_stop(textparser_handle 
     exit_with_error("Not implemented(TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP)!", offset);
 
     // TODO: Implement TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
+
+    if (int_handle->callback) {
+        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    }
 
 exit:
     return ret;
@@ -1137,7 +1163,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
         int c = 0;
         while(definition->tokens[c].name != nullptr) {
             textparser_token *token = &definition->tokens[c];
-            
+
             if (token->name) {
                 free((void *)token->name);
             }
@@ -1150,7 +1176,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
             if (token->nested_tokens) {
                 free((void *)token->nested_tokens);
             }
-            
+
             c++;
         }
         free(definition->tokens);
@@ -1466,6 +1492,15 @@ size_t textparser_parse_error_position(textparser_t handle)
     const textparser_handle *int_handle = (const textparser_handle *)handle;
 
     return int_handle->error_offset;
+}
+
+void textparser_set_callback(textparser_t handle, void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data), void *user_data)
+{
+    textparser_handle *int_handle = (textparser_handle *)handle;
+    if (int_handle) {
+        int_handle->callback = callback;
+        int_handle->user_data = user_data;
+    }
 }
 
 const char *textparser_get_text(textparser_t handle)

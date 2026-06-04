@@ -47,3 +47,58 @@ broadcast message1
     EXPECT_TRUE(found.contains("Parenthesis"));
     EXPECT_TRUE(found.contains("Variable"));
 }
+
+struct CallbackTestData {
+    int token_count = 0;
+    std::vector<std::string> token_names;
+    std::vector<std::string> token_texts;
+    textparser_t handle;
+};
+
+static void test_callback(textparser_t handle, textparser_token_item *item, enum textparser_callback_type callback_type, void *user_data) {
+    /*if (!user_data) return;
+    user_data->token_count++;
+
+    const textparser_language_definition *lang = textparser_get_language(handle);
+    const char *type_str = textparser_get_token_type_str(lang, item);
+    if (type_str) {
+        data->token_names.push_back(type_str);
+    }
+
+    char *text = textparser_get_token_text(handle, item);
+    if (text) {
+        data->token_texts.push_back(text);
+        free(text);
+    }*/
+}
+
+TEST(parse_Callback, basic_callback) {
+    textparser_t handle = nullptr;
+    const char *text = "10 + 20";
+    int err = textparser_openmem(text, strlen(text), scratch_definition.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+
+    CallbackTestData data;
+    data.handle = handle;
+    textparser_set_callback(handle, test_callback, &data);
+
+    err = textparser_parse(handle, &scratch_definition);
+    EXPECT_EQ(err, 0);
+
+    EXPECT_EQ(data.token_count, 3);
+    ASSERT_EQ(data.token_names.size(), 3);
+    EXPECT_EQ(data.token_names[0], "Number");
+    EXPECT_EQ(data.token_names[1], "Operator");
+    EXPECT_EQ(data.token_names[2], "Number");
+
+    ASSERT_EQ(data.token_texts.size(), 3);
+    EXPECT_EQ(data.token_texts[0], "10");
+    EXPECT_EQ(data.token_texts[1], "+");
+    EXPECT_EQ(data.token_texts[2], "20");
+
+    textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(textparser_get_token_text_color(first), scratch_definition.tokens[first->token_id].text_color);
+
+    textparser_close(handle);
+}
