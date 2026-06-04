@@ -374,8 +374,6 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
             /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
-            /* fallthrough */
-        case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
             if (adv_regex_find_pattern(token->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, nullptr, !int_handle->language->case_sensitivity, true)) {
                 LOGI("found_at token type: [%s] at %zu",  int_handle->language->tokens[token_id].name, pos + found_at);
                 return (ssize_t)found_at;
@@ -965,34 +963,6 @@ exit:
     return ret;
 }
 
-static textparser_token_item *parse_token_dual_start_and_stop(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
-{
-    (void)token_id;
-    (void)parent_token_id;
-    (void)parent_start_stop;
-    (void)parent_item;
-    (void)prev_sibling;
-    textparser_token_item *ret = nullptr;
-
-    if (int_handle == nullptr)
-    {
-        LOGF("int_handle == nullptr");
-        return nullptr;
-    }
-
-    LOGF("enter TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP");
-    exit_with_error("Not implemented(TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP)!", offset);
-
-    // TODO: Implement TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP
-
-    if (int_handle->callback) {
-        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
-    }
-
-exit:
-    return ret;
-}
-
 static textparser_token_item *textparser_parse_token(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     if (int_handle == nullptr)
@@ -1051,7 +1021,6 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
         case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:                     return parse_token_simple_token(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling);
         case TEXTPARSER_TOKEN_TYPE_START_STOP:                       return parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, true, parent_item, prev_sibling);
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:                   return parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, false, parent_item, prev_sibling);
-        case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:              return parse_token_dual_start_and_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling);
     }
 
     parse_token_error_error(int_handle, "Unknown token type!", offset);

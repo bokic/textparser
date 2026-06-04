@@ -371,7 +371,7 @@ class TextParser:
                 return closestChildPos
             case "GroupAllChildrenInSameOrder":
                 return self.__findToken(text, pos, self.definition['tokens'][token['nestedTokens'][0]], otherTextInside)
-            case "SimpleToken" | "StartStop" | "StartOptStop" | "DualStartStop":
+            case "SimpleToken" | "StartStop" | "StartOptStop":
                 res = re.search(token["startRegex"], text[pos:], flags=re.IGNORECASE)
                 if (res is None):
                     return None
