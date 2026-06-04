@@ -322,6 +322,7 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
     {
         case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY");
+            /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_GROUP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP");
             if (token->nested_tokens)
@@ -365,10 +366,13 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
             break;
         case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
+            /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_START_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_STOP");
+            /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
+            /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_DUAL_START_AND_STOP:
             if (adv_regex_find_pattern(token->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, nullptr, !int_handle->language->case_sensitivity, true)) {
                 LOGI("found_at token type: [%s] at %zu",  int_handle->language->tokens[token_id].name, pos + found_at);
@@ -502,7 +506,6 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
 
-    size_t closest = SIZE_MAX;
     int current_token_id;
     while(1) {
         offset = textparser_skip_whitespace(int_handle, offset);
@@ -548,7 +551,6 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
             }
         }
 
-        closest = SIZE_MAX;
         current_token_id = TextParser_END;
 
         int count = 0;
@@ -564,7 +566,6 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
                 ssize_t current_closest = textparser_find_token(int_handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, current_prev);
                 if (current_closest == 0)
                 {
-                    closest = 0;
                     current_token_id = adjusted_list[c];
                     break;
                 }
@@ -577,12 +578,12 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
                 child = textparser_parse_token(int_handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
                 if (child) child->parent = ret;
                 ret->child = child;
-                check_and_exit_on_fatal_parsing_error(0);
+                check_and_exit_on_fatal_parsing_error(offset);
             } else {
                 child->next = textparser_parse_token(int_handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
                 if (child->next) child->next->parent = ret;
                 child = child->next;
-                check_and_exit_on_fatal_parsing_error(0);
+                check_and_exit_on_fatal_parsing_error(offset);
             }
 
             if (child->len == 0) {
