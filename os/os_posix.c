@@ -1,3 +1,7 @@
+#if !defined(_POSIX_C_SOURCE) && (defined(__unix__) || defined(__APPLE__))
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "os.h"
 #include <stdio.h>
 
