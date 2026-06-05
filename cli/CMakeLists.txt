@@ -34,14 +34,6 @@ if(WIN32)
     target_link_directories(textparser PRIVATE ../bin)
     target_link_libraries(textparser PRIVATE json-c.lib)
 else()
-    target_include_directories(textparser PRIVATE
-        json-c::json-c
-    )
-
-    target_link_directories(textparser PRIVATE
-        json-c::json-c
-    )
-
     target_link_libraries(textparser PRIVATE
         json-c::json-c
     )
