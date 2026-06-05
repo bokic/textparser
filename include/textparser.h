@@ -23,7 +23,7 @@
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
 #define textparser_parser_state_defer(var) textparser_parser_state *var __attribute__((cleanup(textparser_state_cleanup))) = nullptr
 
-enum textparser_encoding { TEXTPARSER_ENCODING_ERROR, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
+enum textparser_encoding { TEXTPARSER_ENCODING_NONE, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
 
 enum textparser_callback_type {
     TEXTPARSER_CALLBACK_TYPE_START,

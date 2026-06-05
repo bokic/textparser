@@ -1082,7 +1082,7 @@ static void textparser_init_regex(textparser_handle *int_handle)
 
 static void textparser_free_regex(textparser_handle *int_handle)
 {
-    enum textparser_encoding text_format = TEXTPARSER_ENCODING_ERROR;
+    enum textparser_encoding text_format = TEXTPARSER_ENCODING_NONE;
     int token_cnt = 0;
 
     if ((int_handle == nullptr)||((int_handle->start_regex == nullptr)&&(int_handle->end_regex == nullptr)))
