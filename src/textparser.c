@@ -22,18 +22,18 @@ static int active_handle_count = 0;
 
 #define exit_with_error(error_text, offset)           \
     LOGE("Error: %s at %zu", error_text, offset);     \
-    if(int_handle) int_handle->error = error_text;    \
-    if(int_handle) int_handle->error_offset = offset; \
+    if(handle) handle->error = error_text;    \
+    if(handle) handle->error_offset = offset; \
     goto exit;                                        \
 
-#define check_and_exit_on_fatal_parsing_error(offset)                                             \
-    if (int_handle->error) {                                                                      \
-        LOGW("Fatal error detected(%s) at offset %zu. exiting..", int_handle->error, offset);     \
-        goto exit;                                                                                \
-    }                                                                                             \
-    if (child->len == 0) {                                                                        \
-        LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", int_handle->error, offset); \
-        goto exit;                                                                                \
+#define check_and_exit_on_fatal_parsing_error(offset)                                         \
+    if (handle->error) {                                                                      \
+        LOGW("Fatal error detected(%s) at offset %zu. exiting..", handle->error, offset);     \
+        goto exit;                                                                            \
+    }                                                                                         \
+    if (child->len == 0) {                                                                    \
+        LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", handle->error, offset); \
+        goto exit;                                                                            \
     }
 
 enum textparser_bom {
@@ -60,7 +60,7 @@ enum parent_start_stop{
     TEXTPARSER_SEARCH_START_TOKEN,
 };
 
-typedef struct {
+struct textparser_handle {
     const textparser_language_definition *language;
     void *start_regex;
     void *end_regex;
@@ -85,11 +85,11 @@ typedef struct {
     size_t current_chunk_used;
     void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data);
     void *user_data;
-} textparser_handle;
+};
 
-static size_t textparser_get_byte_offset(const textparser_handle *int_handle, size_t pos)
+static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
 {
-    switch (int_handle->text_format)
+    switch (handle->text_format)
     {
     case TEXTPARSER_ENCODING_UNICODE:
     case TEXTPARSER_ENCODING_UTF_16:
@@ -101,30 +101,30 @@ static size_t textparser_get_byte_offset(const textparser_handle *int_handle, si
     }
 }
 
-static size_t textparser_get_byte_len(const textparser_handle *int_handle, size_t len)
+static size_t textparser_get_byte_len(const struct textparser_handle *handle, size_t len)
 {
-    return textparser_get_byte_offset(int_handle, len);
+    return textparser_get_byte_offset(handle, len);
 }
 
-static size_t textparser_get_total_units(const textparser_handle *int_handle)
+static size_t textparser_get_total_units(const struct textparser_handle *handle)
 {
-    switch (int_handle->text_format)
+    switch (handle->text_format)
     {
     case TEXTPARSER_ENCODING_UNICODE:
     case TEXTPARSER_ENCODING_UTF_16:
-        return int_handle->text_size / sizeof(uint16_t);
+        return handle->text_size / sizeof(uint16_t);
     case TEXTPARSER_ENCODING_UTF_32:
-        return int_handle->text_size / sizeof(uint32_t);
+        return handle->text_size / sizeof(uint32_t);
     default:
-        return int_handle->text_size;
+        return handle->text_size;
     }
 }
 
-static size_t textparser_char_len(const textparser_handle *int_handle, size_t pos)
+static size_t textparser_char_len(const struct textparser_handle *handle, size_t pos)
 {
-    if (int_handle->text_format == TEXTPARSER_ENCODING_UTF_8)
+    if (handle->text_format == TEXTPARSER_ENCODING_UTF_8)
     {
-        unsigned char c = (unsigned char)int_handle->text_addr[pos];
+        unsigned char c = (unsigned char)handle->text_addr[pos];
         if ((c & 0x80) == 0) return 1;
         if ((c & 0xE0) == 0xC0) return 2;
         if ((c & 0xF0) == 0xE0) return 3;
@@ -149,69 +149,69 @@ static size_t calculate_chunk_size(size_t filesize)
     return chunk_size;
 }
 
-static void free_arena(textparser_handle *int_handle)
+static void free_arena(struct textparser_handle *handle)
 {
-    if (int_handle->chunks) {
-        for (size_t i = 0; i < int_handle->chunk_count; i++) {
-            free(int_handle->chunks[i]);
+    if (handle->chunks) {
+        for (size_t i = 0; i < handle->chunk_count; i++) {
+            free(handle->chunks[i]);
         }
-        free(int_handle->chunks);
-        int_handle->chunks = nullptr;
+        free(handle->chunks);
+        handle->chunks = nullptr;
     }
-    int_handle->chunk_count = 0;
-    int_handle->chunk_capacity = 0;
-    int_handle->current_chunk = nullptr;
-    int_handle->current_chunk_index = 0;
-    int_handle->current_chunk_used = 0;
+    handle->chunk_count = 0;
+    handle->chunk_capacity = 0;
+    handle->current_chunk = nullptr;
+    handle->current_chunk_index = 0;
+    handle->current_chunk_used = 0;
 }
 
-static textparser_token_item *allocate_token(textparser_handle *int_handle)
+static textparser_token_item *allocate_token(struct textparser_handle *handle)
 {
     size_t token_size = sizeof(textparser_token_item);
-    if (int_handle->current_chunk == nullptr ||
-        int_handle->current_chunk_used + token_size > int_handle->chunk_size)
+    if (handle->current_chunk == nullptr ||
+        handle->current_chunk_used + token_size > handle->chunk_size)
     {
-        void *new_chunk = malloc(int_handle->chunk_size);
+        void *new_chunk = malloc(handle->chunk_size);
         if (new_chunk == nullptr) {
-            int_handle->error = "Can't allocate memory!";
+            handle->error = "Can't allocate memory!";
             return nullptr;
         }
-        memset(new_chunk, 0, int_handle->chunk_size);
+        memset(new_chunk, 0, handle->chunk_size);
 
-        if (int_handle->chunk_count >= int_handle->chunk_capacity) {
-            size_t new_capacity = int_handle->chunk_capacity == 0 ? 4 : int_handle->chunk_capacity * 2;
-            void **new_chunks = realloc(int_handle->chunks, new_capacity * sizeof(void *));
+        if (handle->chunk_count >= handle->chunk_capacity) {
+            size_t new_capacity = handle->chunk_capacity == 0 ? 4 : handle->chunk_capacity * 2;
+            void **new_chunks = realloc(handle->chunks, new_capacity * sizeof(void *));
             if (new_chunks == nullptr) {
                 free(new_chunk);
-                int_handle->error = "Can't allocate memory!";
+                handle->error = "Can't allocate memory!";
                 return nullptr;
             }
-            int_handle->chunks = new_chunks;
-            int_handle->chunk_capacity = new_capacity;
+            handle->chunks = new_chunks;
+            handle->chunk_capacity = new_capacity;
         }
 
-        int_handle->chunks[int_handle->chunk_count] = new_chunk;
-        int_handle->current_chunk = new_chunk;
-        int_handle->current_chunk_index = int_handle->chunk_count;
-        int_handle->chunk_count++;
-        int_handle->current_chunk_used = 0;
+        handle->chunks[handle->chunk_count] = new_chunk;
+        handle->current_chunk = new_chunk;
+        handle->current_chunk_index = handle->chunk_count;
+        handle->chunk_count++;
+        handle->current_chunk_used = 0;
     }
 
-    textparser_token_item *ret = (textparser_token_item *)((char *)int_handle->current_chunk + int_handle->current_chunk_used);
-    int_handle->current_chunk_used += token_size;
+    textparser_token_item *ret = (textparser_token_item *)((char *)handle->current_chunk + handle->current_chunk_used);
+    handle->current_chunk_used += token_size;
     memset(ret, 0, token_size);
     return ret;
 }
 
-static size_t textparser_skip_whitespace(const textparser_handle *int_handle, size_t pos)
+static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos)
 {
     size_t maxPos = 0;
 
-    if (int_handle->text_format == TEXTPARSER_ENCODING_UNICODE || int_handle->text_format == TEXTPARSER_ENCODING_UTF_16)
+    if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16)
     {
-        maxPos = int_handle->text_size / sizeof(uint16_t);
+        maxPos = handle->text_size / sizeof(uint16_t);
 
-        const uint16_t *text = (const uint16_t *)int_handle->text_addr;
+        const uint16_t *text = (const uint16_t *)handle->text_addr;
 
         for (size_t c = pos; c < maxPos; c++)
         {
@@ -223,11 +223,11 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
             }
         }
     }
-    else if (int_handle->text_format == TEXTPARSER_ENCODING_UTF_32)
+    else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32)
     {
-        maxPos = int_handle->text_size / sizeof(uint32_t);
+        maxPos = handle->text_size / sizeof(uint32_t);
 
-        const uint32_t *text = (const uint32_t *)int_handle->text_addr;
+        const uint32_t *text = (const uint32_t *)handle->text_addr;
 
         for (size_t c = pos; c < maxPos; c++)
         {
@@ -241,9 +241,9 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
     }
     else
     {
-        maxPos = int_handle->text_size;
+        maxPos = handle->text_size;
 
-        const char *text = int_handle->text_addr;
+        const char *text = handle->text_addr;
 
         for (size_t c = pos; c < maxPos; c++)
         {
@@ -258,7 +258,7 @@ static size_t textparser_skip_whitespace(const textparser_handle *int_handle, si
 
     return maxPos;
 }
-static void adjust_search_order(const textparser_handle *int_handle, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling, const int *original_list, int *adjusted_list)
+static void adjust_search_order(const struct textparser_handle *handle, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling, const int *original_list, int *adjusted_list)
 {
     int count = 0;
     while (original_list[count] != TextParser_END) {
@@ -267,7 +267,7 @@ static void adjust_search_order(const textparser_handle *int_handle, const textp
     }
     adjusted_list[count] = TextParser_END;
 
-    const textparser_language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = handle->language;
     if (definition->sign_ambiguity_fix) {
         int number_idx = -1;
         int operator_idx = -1;
@@ -301,9 +301,9 @@ static void adjust_search_order(const textparser_handle *int_handle, const textp
     }
 }
 
-static ssize_t textparser_find_token(const textparser_handle *int_handle, int token_id, size_t pos, bool other_text_inside, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
+static ssize_t textparser_find_token(const struct textparser_handle *handle, int token_id, size_t pos, bool other_text_inside, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
-    if (pos >= textparser_get_total_units(int_handle)) {
+    if (pos >= textparser_get_total_units(handle)) {
         return TOKEN_NOT_FOUND;
     }
 
@@ -313,10 +313,10 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
     size_t found_at = 0;
     size_t len = 0;
 
-    definition = int_handle->language;
+    definition = handle->language;
     token = &definition->tokens[token_id];
-    text = int_handle->text_addr + textparser_get_byte_offset(int_handle, pos);
-    len = textparser_get_total_units(int_handle) - pos;
+    text = handle->text_addr + textparser_get_byte_offset(handle, pos);
+    len = textparser_get_total_units(handle) - pos;
 
     LOGV("textparser_find_token token->type [%s] pos %zu", token->name, pos);
 
@@ -337,11 +337,11 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
                 ssize_t closest_child_pos = SSIZE_MAX;
                 {
                     int adjusted_list[nested_count + 1];
-                    adjust_search_order(int_handle, parent_item, prev_sibling, token->nested_tokens, adjusted_list);
+                    adjust_search_order(handle, parent_item, prev_sibling, token->nested_tokens, adjusted_list);
 
                     for(int c = 0; adjusted_list[c] != TextParser_END; c++)
                     {
-                        ssize_t child_token_pos = textparser_find_token(int_handle, adjusted_list[c], pos, token->other_text_inside, parent_item, prev_sibling);
+                        ssize_t child_token_pos = textparser_find_token(handle, adjusted_list[c], pos, token->other_text_inside, parent_item, prev_sibling);
                         if (child_token_pos == TOKEN_NOT_FOUND) continue;
                         if (child_token_pos == 0) {
                             closest_child_pos = 0;
@@ -362,7 +362,7 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
         case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER:
             if (token->nested_tokens) {
                 LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
-                return textparser_find_token(int_handle, token->nested_tokens[0], pos, other_text_inside, parent_item, prev_sibling);
+                return textparser_find_token(handle, token->nested_tokens[0], pos, other_text_inside, parent_item, prev_sibling);
             }
             LOGE("token->nested_tokens = nullptr for TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
             break;
@@ -374,8 +374,8 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
             /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
-            if (adv_regex_find_pattern(token->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, text, len, &found_at, nullptr, !int_handle->language->case_sensitivity, true)) {
-                LOGI("found_at token type: [%s] at %zu",  int_handle->language->tokens[token_id].name, pos + found_at);
+            if (adv_regex_find_pattern(token->start_regex, (void **)handle->start_regex + token_id, handle->text_format, text, len, &found_at, nullptr, !handle->language->case_sensitivity, true)) {
+                LOGI("found_at token type: [%s] at %zu",  handle->language->tokens[token_id].name, pos + found_at);
                 return (ssize_t)found_at;
             }
             break;
@@ -387,34 +387,34 @@ static ssize_t textparser_find_token(const textparser_handle *int_handle, int to
     return TOKEN_NOT_FOUND;
 }
 
-static  void parse_token_error_error(textparser_handle *int_handle, const char *error, size_t offset)
+static  void parse_token_error_error(struct textparser_handle *handle, const char *error, size_t offset)
 {
-    if (int_handle == nullptr)
+    if (handle == nullptr)
     {
-        LOGF("int_handle == nullptr");
+        LOGF("handle == nullptr");
         return;
     }
 
     LOGF("parse_token_error_error(). error %s.", error);
 
-    int_handle->error_offset = offset;
-    int_handle->error = error;
+    handle->error_offset = offset;
+    handle->error = error;
 }
 
-static textparser_token_item *textparser_parse_token(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling);
+static textparser_token_item *textparser_parse_token(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling);
 
-static textparser_token_item *parse_token_group_one_child_only(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
+static textparser_token_item *parse_token_group_one_child_only(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
     textparser_token_item *ret = nullptr;
 
-    if (int_handle == nullptr)
+    if (handle == nullptr)
     {
-        LOGF("int_handle == nullptr");
+        LOGF("handle == nullptr");
         return nullptr;
     }
 
-    const textparser_language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
 
@@ -423,12 +423,12 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
         exit_with_error("group_one_child token type nested_tokens list is empty!", offset);
     }
 
-    ret = allocate_token(int_handle);
+    ret = allocate_token(handle);
     if (ret == nullptr) {
         return nullptr;
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
+    offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
     ret->position = offset;
@@ -444,11 +444,11 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
     int current_token_id = TextParser_END;
     {
         int adjusted_list[count + 1];
-        adjust_search_order(int_handle, parent_item, prev_sibling, token_def->nested_tokens, adjusted_list);
+        adjust_search_order(handle, parent_item, prev_sibling, token_def->nested_tokens, adjusted_list);
 
         for (int c = 0; adjusted_list[c] != TextParser_END; c++)
         {
-            ssize_t current_closest = textparser_find_token(int_handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, prev_sibling);
+            ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, prev_sibling);
             if ((current_closest >= 0)&&((size_t)current_closest < closest))
             {
                 closest = (size_t)current_closest;
@@ -462,34 +462,34 @@ static textparser_token_item *parse_token_group_one_child_only(textparser_handle
         exit_with_error("Search for group_one_child token type failed. Can't find one child.", offset);
     }
 
-    child = textparser_parse_token(int_handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, prev_sibling);
+    child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, prev_sibling);
     if (child) child->parent = ret;
-    LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %zd", int_handle->language->tokens[child->token_id].name, child->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %zd", handle->language->tokens[child->token_id].name, child->position);
     ret->position = child->position;
     ret->len = child->len;
     ret->child = child;
     check_and_exit_on_fatal_parsing_error(offset);
 
-    if (int_handle->callback) {
-        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    if (handle->callback) {
+        handle->callback(handle, ret, TEXTPARSER_CALLBACK_TYPE_END, handle->user_data);
     }
 
 exit:
     return ret;
 }
 
-static textparser_token_item *parse_token_group(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
+static textparser_token_item *parse_token_group(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
     textparser_token_item *ret = nullptr;
 
-    if (int_handle == nullptr)
+    if (handle == nullptr)
     {
-        LOGF("int_handle == nullptr");
+        LOGF("handle == nullptr");
         return nullptr;
     }
 
-    const textparser_language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
 
@@ -498,12 +498,12 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         exit_with_error("nested_tokens list is empty!", offset);
     }
 
-    ret = allocate_token(int_handle);
+    ret = allocate_token(handle);
     if (ret == nullptr) {
         return nullptr;
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
+    offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
     ret->position = offset;
@@ -512,8 +512,8 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
 
     int current_token_id;
     while(1) {
-        offset = textparser_skip_whitespace(int_handle, offset);
-        if (offset >= textparser_get_total_units(int_handle))
+        offset = textparser_skip_whitespace(handle, offset);
+        if (offset >= textparser_get_total_units(handle))
         {
             if (child)
             {
@@ -533,11 +533,11 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
             {
             case TEXTPARSER_SEARCH_END_TOKEN:
                 parent_regex_pattern = definition->tokens[parent_token_id].end_regex;
-                parent_regex_compiled_ptr = (void **)int_handle->end_regex + parent_token_id;
+                parent_regex_compiled_ptr = (void **)handle->end_regex + parent_token_id;
                 break;
             case TEXTPARSER_SEARCH_START_TOKEN:
                 parent_regex_pattern = definition->tokens[parent_token_id].start_regex;
-                parent_regex_compiled_ptr = (void **)int_handle->start_regex + parent_token_id;
+                parent_regex_compiled_ptr = (void **)handle->start_regex + parent_token_id;
                 break;
             default:
                 exit_with_error("Unknown parent_start_stop value!", offset);
@@ -546,7 +546,7 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
 
         if (parent_regex_pattern) {
             size_t parent_match_len = 0;
-            bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, nullptr, &parent_match_len, !int_handle->language->case_sensitivity, true);
+            bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &parent_match_len, !handle->language->case_sensitivity, true);
 
             if (found_parent_token)
             {
@@ -563,11 +563,11 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         }
         {
             int adjusted_list[count + 1];
-            adjust_search_order(int_handle, parent_item, current_prev, token_def->nested_tokens, adjusted_list);
+            adjust_search_order(handle, parent_item, current_prev, token_def->nested_tokens, adjusted_list);
 
             for (int c = 0; adjusted_list[c] != TextParser_END; c++)
             {
-                ssize_t current_closest = textparser_find_token(int_handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, current_prev);
+                ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, current_prev);
                 if (current_closest == 0)
                 {
                     current_token_id = adjusted_list[c];
@@ -579,12 +579,12 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         if (current_token_id != TextParser_END)
         {
             if (child == nullptr) {
-                child = textparser_parse_token(int_handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
+                child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
                 if (child) child->parent = ret;
                 ret->child = child;
                 check_and_exit_on_fatal_parsing_error(offset);
             } else {
-                child->next = textparser_parse_token(int_handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
+                child->next = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
                 if (child->next) {
                     child->next->parent = ret;
                     child->next->prev = child;
@@ -602,9 +602,9 @@ static textparser_token_item *parse_token_group(textparser_handle *int_handle, i
         }
         else
         {
-            if (token_def->other_text_inside && offset < textparser_get_total_units(int_handle))
+            if (token_def->other_text_inside && offset < textparser_get_total_units(handle))
             {
-                offset += textparser_char_len(int_handle, offset);
+                offset += textparser_char_len(handle, offset);
             }
             else
             {
@@ -622,18 +622,18 @@ exit:
     return ret;
 }
 
-static textparser_token_item *parse_token_group_all_children_in_same_order(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
+static textparser_token_item *parse_token_group_all_children_in_same_order(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
     textparser_token_item *ret = nullptr;
 
-    if (int_handle == nullptr)
+    if (handle == nullptr)
     {
-        LOGF("int_handle == nullptr");
+        LOGF("handle == nullptr");
         return nullptr;
     }
 
-    const textparser_language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
     textparser_token_item *last_child = nullptr;
@@ -654,22 +654,22 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
     int inner_token_id = token_def->nested_tokens[1];
     int end_token_id   = token_def->nested_tokens[2];
 
-    ret = allocate_token(int_handle);
+    ret = allocate_token(handle);
     if (ret == nullptr) {
         return nullptr;
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
+    offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
     ret->position = offset;
 
-    ssize_t start_pos = textparser_find_token(int_handle, start_token_id, offset, definition->other_text_inside, parent_item, prev_sibling);
+    ssize_t start_pos = textparser_find_token(handle, start_token_id, offset, definition->other_text_inside, parent_item, prev_sibling);
     if (start_pos != 0) {
         exit_with_error("Expected start token!", offset);
     }
 
-    child = textparser_parse_token(int_handle, start_token_id, parent_token_id, parent_start_stop, offset, ret, prev_sibling);
+    child = textparser_parse_token(handle, start_token_id, parent_token_id, parent_start_stop, offset, ret, prev_sibling);
     if (child) child->parent = ret;
     check_and_exit_on_fatal_parsing_error(offset);
 
@@ -680,19 +680,19 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
 
     while(1)
     {
-        offset = textparser_skip_whitespace(int_handle, offset);
-        if (offset >= textparser_get_total_units(int_handle)) {
+        offset = textparser_skip_whitespace(handle, offset);
+        if (offset >= textparser_get_total_units(handle)) {
             exit_with_error("Expected end token, reached end of text!", offset);
         }
 
-        ssize_t end_pos   = textparser_find_token(int_handle, end_token_id,   offset, definition->other_text_inside, ret, last_child);
+        ssize_t end_pos   = textparser_find_token(handle, end_token_id,   offset, definition->other_text_inside, ret, last_child);
         if (end_pos == 0) {
             break;
         }
 
-        ssize_t inner_pos = textparser_find_token(int_handle, inner_token_id, offset, definition->other_text_inside, ret, last_child);
+        ssize_t inner_pos = textparser_find_token(handle, inner_token_id, offset, definition->other_text_inside, ret, last_child);
         if (inner_pos == 0) {
-            child = textparser_parse_token(int_handle, inner_token_id, end_token_id, TEXTPARSER_SEARCH_START_TOKEN, offset, ret, last_child);
+            child = textparser_parse_token(handle, inner_token_id, end_token_id, TEXTPARSER_SEARCH_START_TOKEN, offset, ret, last_child);
             if (child) {
                 child->parent = ret;
                 child->prev = last_child;
@@ -710,14 +710,14 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
         }
 
         if (definition->other_text_inside) {
-            offset += textparser_char_len(int_handle, offset);
+            offset += textparser_char_len(handle, offset);
         } else {
             exit_with_error("Expected inner or end token!", offset);
         }
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
-    child = textparser_parse_token(int_handle, end_token_id, parent_token_id, parent_start_stop, offset, ret, last_child);
+    offset = textparser_skip_whitespace(handle, offset);
+    child = textparser_parse_token(handle, end_token_id, parent_token_id, parent_start_stop, offset, ret, last_child);
     if (child) {
         child->parent = ret;
         child->prev = last_child;
@@ -727,15 +727,15 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(textp
 
     ret->len = child->position + child->len - ret->position;
 
-    if (int_handle->callback) {
-        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    if (handle->callback) {
+        handle->callback(handle, ret, TEXTPARSER_CALLBACK_TYPE_END, handle->user_data);
     }
 
 exit:
     return ret;
 }
 
-static textparser_token_item *parse_token_simple_token(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
+static textparser_token_item *parse_token_simple_token(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
     (void)prev_sibling;
@@ -743,49 +743,49 @@ static textparser_token_item *parse_token_simple_token(textparser_handle *int_ha
     (void)parent_token_id;
     textparser_token_item *ret = nullptr;
 
-    if (int_handle == nullptr)
+    if (handle == nullptr)
     {
-        LOGF("int_handle == nullptr");
+        LOGF("handle == nullptr");
         return nullptr;
     }
 
-    const textparser_language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
 
-    if (offset >= textparser_get_total_units(int_handle)) {
+    if (offset >= textparser_get_total_units(handle)) {
         exit_with_error("offset >= total units count!", offset);
     }
 
-    ret = allocate_token(int_handle);
+    ret = allocate_token(handle);
     if (ret == nullptr) {
         exit_with_error("Can't allocate memory!", offset);
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
+    offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
     ret->position = offset;
 
     size_t len = 0;
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, nullptr, &len, !int_handle->language->case_sensitivity, true)) {
+    if (!adv_regex_find_pattern(token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
         exit_with_error("Can't find start of the token!", offset);
     }
 
-    LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %zd", int_handle->language->tokens[ret->token_id].name, ret->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %zd", handle->language->tokens[ret->token_id].name, ret->position);
     ret->position = offset;
     ret->len = len;
 
-    if (int_handle->callback) {
-        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    if (handle->callback) {
+        handle->callback(handle, ret, TEXTPARSER_CALLBACK_TYPE_END, handle->user_data);
     }
 
 exit:
     return ret;
 }
 
-static textparser_token_item *parse_token_start_stop(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, bool stop_required, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
+static textparser_token_item *parse_token_start_stop(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, bool stop_required, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_start_stop;
     (void)parent_item;
@@ -793,11 +793,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     (void)parent_token_id;
     textparser_token_item *ret = nullptr;
 
-    if (int_handle == nullptr) {
-        exit_with_error("int_handle == nullptr!", offset);
+    if (handle == nullptr) {
+        exit_with_error("handle == nullptr!", offset);
     }
 
-    const textparser_language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
     textparser_token_item *child = nullptr;
 
@@ -810,22 +810,22 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         LOGV("enter TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
     }
 
-    if (offset >= textparser_get_total_units(int_handle)) {
+    if (offset >= textparser_get_total_units(handle)) {
         exit_with_error("offset >= total units count!", offset);
     }
 
-    ret = allocate_token(int_handle);
+    ret = allocate_token(handle);
     if (ret == nullptr) {
         exit_with_error("Can't allocate memory!", offset);
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
+    offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
     ret->position = offset;
 
     // Search for start token
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)int_handle->start_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, nullptr, &len, !int_handle->language->case_sensitivity, true)) {
+    if (!adv_regex_find_pattern(token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
         exit_with_error("Can't find start of the token!", offset);
     }
 
@@ -833,15 +833,15 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     offset = ret->position + len;
     ret->len = len; // Temporarily set len to start token length so it can be used for prev_sibling context
 
-    if (int_handle->callback) {
-        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_START, int_handle->user_data);
+    if (handle->callback) {
+        handle->callback(handle, ret, TEXTPARSER_CALLBACK_TYPE_START, handle->user_data);
     }
 
-    if (offset > textparser_get_total_units(int_handle)) {
+    if (offset > textparser_get_total_units(handle)) {
         exit_with_error("offset >= total units count!", offset);
     }
 
-    if (offset == textparser_get_total_units(int_handle)) {
+    if (offset == textparser_get_total_units(handle)) {
         exit_with_error("reached end of text!", offset);
     }
 
@@ -851,9 +851,9 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         const int *nested_tokens = definition->tokens[token_id].nested_tokens;
 
         while (1) {
-            offset = textparser_skip_whitespace(int_handle, offset);
+            offset = textparser_skip_whitespace(handle, offset);
 
-            if (offset >= textparser_get_total_units(int_handle))
+            if (offset >= textparser_get_total_units(handle))
             {
                 exit_with_error("Reached end of text before finding end token!", offset);
             }
@@ -862,7 +862,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             if (token_def->search_parent_end_token_last == false)
             {
                 size_t end_match_len = 0;
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, nullptr, &end_match_len, !int_handle->language->case_sensitivity, true);
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
                 if (found_end)
                 {
                     break;
@@ -879,11 +879,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             }
             {
                 int adjusted_list[nested_count + 1];
-                adjust_search_order(int_handle, ret, current_prev, nested_tokens, adjusted_list);
+                adjust_search_order(handle, ret, current_prev, nested_tokens, adjusted_list);
 
                 for(int c = 0; adjusted_list[c] != TextParser_END; c++)
                 {
-                    ssize_t pos = textparser_find_token(int_handle, adjusted_list[c], offset, token_def->other_text_inside, ret, current_prev);
+                    ssize_t pos = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, ret, current_prev);
                     if (pos == 0)
                     {
                         child_token_id = adjusted_list[c];
@@ -894,7 +894,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
             if (child_token_id != TextParser_END)
             {
-                child = textparser_parse_token(int_handle, child_token_id, token_id, TEXTPARSER_SEARCH_END_TOKEN, offset, ret, current_prev);
+                child = textparser_parse_token(handle, child_token_id, token_id, TEXTPARSER_SEARCH_END_TOKEN, offset, ret, current_prev);
                 if (child) {
                     child->parent = ret;
                     if (last_child) {
@@ -921,7 +921,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
             if (token_def->search_parent_end_token_last == true)
             {
                 size_t end_match_len = 0;
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, nullptr, &end_match_len, !int_handle->language->case_sensitivity, true);
+                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
                 if (found_end)
                 {
                     break;
@@ -930,16 +930,16 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
 
             // 4. Skip unrecognized text if allowed
             if (token_def->other_text_inside) {
-                offset += textparser_char_len(int_handle, offset);
+                offset += textparser_char_len(handle, offset);
             } else {
                 exit_with_error("Unexpected token inside start-stop block!", offset);
             }
         }
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
+    offset = textparser_skip_whitespace(handle, offset);
 
-    if (offset >= textparser_get_total_units(int_handle)) {
+    if (offset >= textparser_get_total_units(handle)) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
             exit_with_error("offset >= total units count!", offset);
         } else {
@@ -949,11 +949,11 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
     }
 
     size_t end_len = 0;
-    bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)int_handle->end_regex + token_id, int_handle->text_format, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset), textparser_get_total_units(int_handle) - offset, &token_end, &end_len, !int_handle->language->case_sensitivity, false);
+    bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, !handle->language->case_sensitivity, false);
 
     if (!found_end) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
-            LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, int_handle->text_addr + textparser_get_byte_offset(int_handle, offset));
+            LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, handle->text_addr + textparser_get_byte_offset(handle, offset));
             exit_with_error("Can't find end of the token!", offset);
         } else {
             ret->len = offset - ret->position;
@@ -961,7 +961,7 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         }
     }
 
-    LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %zd", int_handle->language->tokens[ret->token_id].name, ret->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %zd", handle->language->tokens[ret->token_id].name, ret->position);
     ret->len = offset + token_end + end_len - ret->position;
     offset += token_end + end_len;
 
@@ -969,23 +969,23 @@ static textparser_token_item *parse_token_start_stop(textparser_handle *int_hand
         exit_with_error("offset != ret->position + ret->len!", offset);
     }
 
-    if (int_handle->callback) {
-        int_handle->callback((textparser_t)int_handle, ret, TEXTPARSER_CALLBACK_TYPE_END, int_handle->user_data);
+    if (handle->callback) {
+        handle->callback(handle, ret, TEXTPARSER_CALLBACK_TYPE_END, handle->user_data);
     }
 
 exit:
     return ret;
 }
 
-static textparser_token_item *textparser_parse_token(textparser_handle *int_handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
+static textparser_token_item *textparser_parse_token(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
-    if (int_handle == nullptr)
+    if (handle == nullptr)
     {
-        LOGF("int_handle == nullptr");
+        LOGF("handle == nullptr");
         return nullptr;
     }
 
-    const textparser_language_definition *definition = int_handle->language;
+    const textparser_language_definition *definition = handle->language;
 
     if (definition == nullptr) {
         LOGE("definition == nullptr");
@@ -1002,8 +1002,8 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
         return nullptr;
     }
 
-    if (offset >= textparser_get_total_units(int_handle)) {
-        LOGE("offset >= textparser_get_total_units(int_handle)");
+    if (offset >= textparser_get_total_units(handle)) {
+        LOGE("offset >= textparser_get_total_units(handle)");
         return nullptr;
     }
 
@@ -1024,20 +1024,20 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
         parent_token_id = token_id;
     }
 
-    offset = textparser_skip_whitespace(int_handle, offset);
+    offset = textparser_skip_whitespace(handle, offset);
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
     textparser_token_item *ret = nullptr;
     switch(token_def->type)
     {
-        case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:             ret = parse_token_group_one_child_only(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
-        case TEXTPARSER_TOKEN_TYPE_GROUP:                            ret = parse_token_group(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
-        case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER: ret = parse_token_group_all_children_in_same_order(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
-        case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:                     ret = parse_token_simple_token(int_handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
-        case TEXTPARSER_TOKEN_TYPE_START_STOP:                       ret = parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, true, parent_item, prev_sibling); break;
-        case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:                   ret = parse_token_start_stop(int_handle, token_id, parent_token_id, parent_start_stop, offset, false, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:             ret = parse_token_group_one_child_only(handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_GROUP:                            ret = parse_token_group(handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER: ret = parse_token_group_all_children_in_same_order(handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:                     ret = parse_token_simple_token(handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_START_STOP:                       ret = parse_token_start_stop(handle, token_id, parent_token_id, parent_start_stop, offset, true, parent_item, prev_sibling); break;
+        case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:                   ret = parse_token_start_stop(handle, token_id, parent_token_id, parent_start_stop, offset, false, parent_item, prev_sibling); break;
         default:
-            parse_token_error_error(int_handle, "Unknown token type!", offset);
+            parse_token_error_error(handle, "Unknown token type!", offset);
             break;
     }
 
@@ -1050,76 +1050,76 @@ static textparser_token_item *textparser_parse_token(textparser_handle *int_hand
     return ret;
 }
 
-static void textparser_init_regex(textparser_handle *int_handle)
+static void textparser_init_regex(struct textparser_handle *handle)
 {
     int token_cnt = 0;
 
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return;
 
-    while(int_handle->language->tokens[token_cnt].name != nullptr)
+    while(handle->language->tokens[token_cnt].name != nullptr)
         token_cnt++;
 
     if (token_cnt > 0)
     {
         size_t malloc_size = (size_t)token_cnt * sizeof(void *);
 
-        int_handle->start_regex = malloc(malloc_size);
-        if (int_handle->start_regex == nullptr) {
+        handle->start_regex = malloc(malloc_size);
+        if (handle->start_regex == nullptr) {
             LOGE("malloc() failed for start_regex");
             return;
         }
-        memset(int_handle->start_regex, 0, malloc_size);
+        memset(handle->start_regex, 0, malloc_size);
 
-        int_handle->end_regex = malloc(malloc_size);
-        if (int_handle->end_regex == nullptr) {
+        handle->end_regex = malloc(malloc_size);
+        if (handle->end_regex == nullptr) {
             LOGE("malloc() failed for end_regex");
             return;
         }
-        memset(int_handle->end_regex, 0, malloc_size);
+        memset(handle->end_regex, 0, malloc_size);
     }
 }
 
-static void textparser_free_regex(textparser_handle *int_handle)
+static void textparser_free_regex(struct textparser_handle *handle)
 {
     enum textparser_encoding text_format = TEXTPARSER_ENCODING_NONE;
     int token_cnt = 0;
 
-    if ((int_handle == nullptr)||((int_handle->start_regex == nullptr)&&(int_handle->end_regex == nullptr)))
+    if ((handle == nullptr)||((handle->start_regex == nullptr)&&(handle->end_regex == nullptr)))
         return;
 
-    text_format = int_handle->text_format;
+    text_format = handle->text_format;
 
-    while(int_handle->language->tokens[token_cnt].name != nullptr) token_cnt++;
+    while(handle->language->tokens[token_cnt].name != nullptr) token_cnt++;
 
-    if (int_handle->start_regex)
+    if (handle->start_regex)
     {
         if (token_cnt > 0)
         {
-            void **regex = (void **)int_handle->start_regex;
+            void **regex = (void **)handle->start_regex;
 
             for(int c = 0; c < token_cnt; c++)
             {
                 adv_regex_free(&regex[c], text_format);
             }
         }
-        free(int_handle->start_regex);
-        int_handle->start_regex = nullptr;
+        free(handle->start_regex);
+        handle->start_regex = nullptr;
     }
 
-    if (int_handle->end_regex)
+    if (handle->end_regex)
     {
         if (token_cnt > 0)
         {
-            void **regex = (void **)int_handle->end_regex;
+            void **regex = (void **)handle->end_regex;
 
             for(int c = 0; c < token_cnt; c++)
             {
                 adv_regex_free(&regex[c], text_format);
             }
         }
-        free(int_handle->end_regex);
-        int_handle->end_regex = nullptr;
+        free(handle->end_regex);
+        handle->end_regex = nullptr;
     }
 }
 
@@ -1178,7 +1178,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
 
 int textparser_openfile(const char *pathname, int default_text_format, textparser_t *handle)
 {
-    textparser_handle local_hnd;
+    struct textparser_handle local_hnd;
     int err = 0;
 
     memset(&local_hnd, 0, sizeof(local_hnd));
@@ -1294,12 +1294,12 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         goto err;
     }
 
-    *handle = malloc(sizeof(textparser_handle));
+    *handle = malloc(sizeof(struct textparser_handle));
     if (*handle == nullptr) {
         err = 6;
         goto err;
     }
-    memcpy(*handle, &local_hnd, sizeof(textparser_handle));
+    memcpy(*handle, &local_hnd, sizeof(struct textparser_handle));
 
     active_handle_count++;
     return 0;
@@ -1315,14 +1315,14 @@ err:
 
 int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle)
 {
-    textparser_handle *ret = nullptr;
+    struct textparser_handle *ret = nullptr;
 
-    ret = malloc(sizeof(textparser_handle));
+    ret = malloc(sizeof(struct textparser_handle));
     if (ret == nullptr) {
         return 6;
     }
 
-    memset(ret, 0, sizeof(textparser_handle));
+    memset(ret, 0, sizeof(struct textparser_handle));
 
     ret->text_format = (enum textparser_encoding)text_format;
     ret->text_addr = text;
@@ -1337,35 +1337,34 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
 
 void textparser_close(textparser_t handle)
 {
-    textparser_handle *int_handle = (textparser_handle *)handle;
     textparser_token_item *item = nullptr;
     void *mmap_addr = nullptr;
     size_t mmap_size = 0;
 
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return;
 
-    textparser_free_regex(int_handle);
+    textparser_free_regex(handle);
 
-    mmap_addr = int_handle->mmap_addr;
-    mmap_size = int_handle->mmap_size;
+    mmap_addr = handle->mmap_addr;
+    mmap_size = handle->mmap_size;
 
     if (mmap_addr) {
         os_unmap(mmap_addr, mmap_size);
     }
 
-    item = int_handle->first_item;
+    item = handle->first_item;
     if (item)
     {
         free_item_tree(item);
         item = nullptr;
     }
 
-    free_arena(int_handle);
+    free_arena(handle);
 
-    if (int_handle->lines) {
-        free(int_handle->lines);
-        int_handle->lines = nullptr;
+    if (handle->lines) {
+        free(handle->lines);
+        handle->lines = nullptr;
     }
 
     free(handle);
@@ -1388,35 +1387,33 @@ void textparser_cleanup(textparser_t *handle)
 
 int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
 {
-    textparser_handle *int_handle = (textparser_handle *)handle;
-
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return -1;
 
     if (definition == nullptr)
         return -1;
 
     // Reset error state
-    int_handle->error = nullptr;
-    int_handle->error_offset = 0;
+    handle->error = nullptr;
+    handle->error_offset = 0;
 
     // Free any previously parsed token tree to prevent leaks and AST corruption
-    free_arena(int_handle);
-    int_handle->first_item = nullptr;
+    free_arena(handle);
+    handle->first_item = nullptr;
 
     textparser_token_item *prev_item = nullptr;
-    size_t size = textparser_get_total_units(int_handle);
+    size_t size = textparser_get_total_units(handle);
     size_t pos = 0;
 
-    if (int_handle->language != definition)
+    if (handle->language != definition)
     {
-        textparser_free_regex(int_handle);
-        int_handle->language = definition;
-        textparser_init_regex(int_handle);
+        textparser_free_regex(handle);
+        handle->language = definition;
+        textparser_init_regex(handle);
     }
 
     while(pos < size) {
-        pos = textparser_skip_whitespace((textparser_handle *)handle, pos);
+        pos = textparser_skip_whitespace(handle, pos);
         if (pos >= size)
             break;
 
@@ -1428,11 +1425,11 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
         }
         {
             int adjusted_list[count + 1];
-            adjust_search_order(int_handle, nullptr, prev_item, definition->starts_with, adjusted_list);
+            adjust_search_order(handle, nullptr, prev_item, definition->starts_with, adjusted_list);
 
             for (int c = 0; adjusted_list[c] != TextParser_END; c++) {
                 int token_id = adjusted_list[c];
-                ssize_t offset = textparser_find_token((textparser_handle *)handle, token_id, pos, definition->other_text_inside, nullptr, prev_item);
+                ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside, nullptr, prev_item);
                 if (offset == 0)
                 {
                     matched_token_id = token_id;
@@ -1442,28 +1439,28 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
         }
 
         if (matched_token_id != TextParser_END) {
-            textparser_token_item *token_item = textparser_parse_token((textparser_handle *)handle, matched_token_id, TextParser_END, TEXTPARSER_SEARCH_END_TOKEN, pos, nullptr, prev_item);
+            textparser_token_item *token_item = textparser_parse_token(handle, matched_token_id, TextParser_END, TEXTPARSER_SEARCH_END_TOKEN, pos, nullptr, prev_item);
             if (token_item == nullptr) {
                 LOGE("token_item == nullptr");
                 return -1;
             }
 
-            if (int_handle->first_item == nullptr)
-                int_handle->first_item = token_item;
+            if (handle->first_item == nullptr)
+                handle->first_item = token_item;
 
             if (prev_item) {
                 prev_item->next = token_item;
                 token_item->prev = prev_item;
             }
 
-            if ((int_handle->error)||(token_item->len <= 0))
+            if ((handle->error)||(token_item->len <= 0))
                 return -1;
 
             pos = token_item->position + token_item->len;
             prev_item = token_item;
         } else {
             if (definition->other_text_inside) {
-                pos += textparser_char_len(int_handle, pos);
+                pos += textparser_char_len(handle, pos);
             } else {
                 break;
             }
@@ -1475,89 +1472,76 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
 
 const char *textparser_parse_error(textparser_t handle)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    return int_handle->error;
+    return handle->error;
 }
 
 size_t textparser_parse_error_position(textparser_t handle)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    return int_handle->error_offset;
+    return handle->error_offset;
 }
 
 void textparser_set_callback(textparser_t handle, void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data), void *user_data)
 {
-    textparser_handle *int_handle = (textparser_handle *)handle;
-    if (int_handle) {
-        int_handle->callback = callback;
-        int_handle->user_data = user_data;
+    if (handle) {
+        handle->callback = callback;
+        handle->user_data = user_data;
     }
 }
 
 const char *textparser_get_text(textparser_t handle)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return nullptr;
 
-    return int_handle->text_addr;
+    return handle->text_addr;
 }
 
 size_t textparser_get_text_size(textparser_t handle)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return 0;
 
-    return int_handle->text_size;
+    return handle->text_size;
 }
 
 textparser_token_item *textparser_get_first_token(const textparser_t handle)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return nullptr;
 
-    return int_handle->first_item;
+    return handle->first_item;
 }
 
 char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item)
 {
     char *ret = nullptr;
 
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    if ((int_handle == nullptr)||(item == nullptr)||(item->len <= 0))
+    if ((handle == nullptr)||(item == nullptr)||(item->len <= 0))
         return nullptr;
 
-    if (int_handle->text_format == TEXTPARSER_ENCODING_UNICODE || int_handle->text_format == TEXTPARSER_ENCODING_UTF_16) {
+    if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16) {
         ret = malloc(item->len + 1);
         if (ret) {
-            const uint16_t *src = (const uint16_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+            const uint16_t *src = (const uint16_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
             for (size_t i = 0; i < item->len; i++) {
                 ret[i] = (src[i] < 256) ? (char)src[i] : '?';
             }
             ret[item->len] = '\0';
         }
-    } else if (int_handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
+    } else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
         ret = malloc(item->len + 1);
         if (ret) {
-            const uint32_t *src = (const uint32_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+            const uint32_t *src = (const uint32_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
             for (size_t i = 0; i < item->len; i++) {
                 ret[i] = (src[i] < 256) ? (char)src[i] : '?';
             }
             ret[item->len] = '\0';
         }
     } else {
-        size_t byte_len = textparser_get_byte_len(int_handle, item->len);
+        size_t byte_len = textparser_get_byte_len(handle, item->len);
         ret = malloc(byte_len + 1);
         if (ret) {
-            memcpy(ret, int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position), byte_len);
+            memcpy(ret, handle->text_addr + textparser_get_byte_offset(handle, item->position), byte_len);
             ret[byte_len] = '\0';
         }
     }
@@ -1567,17 +1551,15 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
 
 uint16_t *textparser_get_token_text16(const textparser_t handle, const textparser_token_item *item)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    if ((int_handle == nullptr)||(item == nullptr)||(item->len <= 0))
+    if ((handle == nullptr)||(item == nullptr)||(item->len <= 0))
         return nullptr;
 
-    if (int_handle->text_format != TEXTPARSER_ENCODING_UNICODE && int_handle->text_format != TEXTPARSER_ENCODING_UTF_16)
+    if (handle->text_format != TEXTPARSER_ENCODING_UNICODE && handle->text_format != TEXTPARSER_ENCODING_UTF_16)
         return nullptr;
 
     uint16_t *ret = malloc((item->len + 1) * sizeof(uint16_t));
     if (ret) {
-        const uint16_t *src = (const uint16_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+        const uint16_t *src = (const uint16_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
         memcpy(ret, src, item->len * sizeof(uint16_t));
         ret[item->len] = 0;
     }
@@ -1586,17 +1568,15 @@ uint16_t *textparser_get_token_text16(const textparser_t handle, const textparse
 
 uint32_t *textparser_get_token_text32(const textparser_t handle, const textparser_token_item *item)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-
-    if ((int_handle == nullptr)||(item == nullptr)||(item->len <= 0))
+    if ((handle == nullptr)||(item == nullptr)||(item->len <= 0))
         return nullptr;
 
-    if (int_handle->text_format != TEXTPARSER_ENCODING_UTF_32)
+    if (handle->text_format != TEXTPARSER_ENCODING_UTF_32)
         return nullptr;
 
     uint32_t *ret = malloc((item->len + 1) * sizeof(uint32_t));
     if (ret) {
-        const uint32_t *src = (const uint32_t *)(int_handle->text_addr + textparser_get_byte_offset(int_handle, item->position));
+        const uint32_t *src = (const uint32_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
         memcpy(ret, src, item->len * sizeof(uint32_t));
         ret[item->len] = 0;
     }
@@ -1605,12 +1585,10 @@ uint32_t *textparser_get_token_text32(const textparser_t handle, const textparse
 
 const textparser_language_definition *textparser_get_language(const textparser_t handle)
 {
-    const textparser_handle *int_handle = (textparser_handle *)handle;
-
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return nullptr;
 
-    return int_handle->language;
+    return handle->language;
 }
 
 size_t textparser_get_token_children_count(const textparser_token_item *token)
@@ -1759,13 +1737,12 @@ static void textparser_parse_state_recursively_fill(const textparser_token_item 
 
 textparser_parser_state *textparser_state_new(const textparser_t handle)
 {
-    const textparser_handle *int_handle = (textparser_handle *)handle;
     textparser_parser_state *ret = nullptr;
     size_t to_allocate = 0;
     size_t allocated = 0;
     size_t size = 0;
 
-    size = textparser_get_total_units(int_handle);
+    size = textparser_get_total_units(handle);
 
     if (size >= MAX_PARSE_SIZE)
         return nullptr;
@@ -1779,7 +1756,7 @@ textparser_parser_state *textparser_state_new(const textparser_t handle)
         ret->len = (int)size;
         memset(ret->state, 0, allocated);
 
-        textparser_parse_state_recursively_fill(int_handle->first_item, ret->state);
+        textparser_parse_state_recursively_fill(handle->first_item, ret->state);
     }
 
     return ret;
@@ -1804,25 +1781,24 @@ void textparser_state_cleanup(textparser_parser_state **state)
 
 int textparser_build_line_map(textparser_t handle)
 {
-    textparser_handle *int_handle = (textparser_handle *)handle;
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return -1;
 
-    if (int_handle->lines) {
-        free(int_handle->lines);
-        int_handle->lines = nullptr;
+    if (handle->lines) {
+        free(handle->lines);
+        handle->lines = nullptr;
     }
-    int_handle->no_lines = 0;
+    handle->no_lines = 0;
 
     size_t count = 0;
-    size_t text_size = int_handle->text_size;
-    const char *text_addr = int_handle->text_addr;
+    size_t text_size = handle->text_size;
+    const char *text_addr = handle->text_addr;
 
     if (text_addr == nullptr || text_size == 0) {
         return 0;
     }
 
-    switch (int_handle->text_format)
+    switch (handle->text_format)
     {
     case TEXTPARSER_ENCODING_LATIN1:
     case TEXTPARSER_ENCODING_UTF_8:
@@ -1861,21 +1837,21 @@ int textparser_build_line_map(textparser_t handle)
         return 0;
     }
 
-    int_handle->lines = malloc(sizeof(size_t) * count);
-    if (int_handle->lines == nullptr) {
+    handle->lines = malloc(sizeof(size_t) * count);
+    if (handle->lines == nullptr) {
         return -1;
     }
-    int_handle->no_lines = count;
+    handle->no_lines = count;
 
     size_t cur_line_pos = 0;
 
-    switch (int_handle->text_format)
+    switch (handle->text_format)
     {
     case TEXTPARSER_ENCODING_LATIN1:
     case TEXTPARSER_ENCODING_UTF_8:
         for (size_t ch = 0; ch < text_size; ch++) {
             if (text_addr[ch] == '\n') {
-                int_handle->lines[cur_line_pos++] = ch;
+                handle->lines[cur_line_pos++] = ch;
             }
         }
         break;
@@ -1885,7 +1861,7 @@ int textparser_build_line_map(textparser_t handle)
         size_t units16 = text_size / sizeof(uint16_t);
         for (size_t ch = 0; ch < units16; ch++) {
             if (text16[ch] == '\n') {
-                int_handle->lines[cur_line_pos++] = ch;
+                handle->lines[cur_line_pos++] = ch;
             }
         }
         break;
@@ -1895,7 +1871,7 @@ int textparser_build_line_map(textparser_t handle)
         size_t units32 = text_size / sizeof(uint32_t);
         for (size_t ch = 0; ch < units32; ch++) {
             if (text32[ch] == '\n') {
-                int_handle->lines[cur_line_pos++] = ch;
+                handle->lines[cur_line_pos++] = ch;
             }
         }
         break;
@@ -1909,44 +1885,41 @@ int textparser_build_line_map(textparser_t handle)
 
 size_t textparser_get_line_count(const textparser_t handle)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return 0;
 
-    if (int_handle->text_addr == nullptr || int_handle->text_size == 0)
+    if (handle->text_addr == nullptr || handle->text_size == 0)
         return 0;
 
-    return int_handle->no_lines + 1;
+    return handle->no_lines + 1;
 }
 
 size_t textparser_get_line_start_position(const textparser_t handle, size_t line_index)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-    if (int_handle == nullptr)
+    if (handle == nullptr)
         return 0;
 
     if (line_index == 0)
         return 0;
 
-    if (line_index > int_handle->no_lines) {
-        return textparser_get_total_units(int_handle);
+    if (line_index > handle->no_lines) {
+        return textparser_get_total_units(handle);
     }
 
-    return int_handle->lines[line_index - 1] + 1;
+    return handle->lines[line_index - 1] + 1;
 }
 
 size_t textparser_get_line_number_at_position(const textparser_t handle, size_t position)
 {
-    const textparser_handle *int_handle = (const textparser_handle *)handle;
-    if (int_handle == nullptr || int_handle->no_lines == 0 || int_handle->lines == nullptr)
+    if (handle == nullptr || handle->no_lines == 0 || handle->lines == nullptr)
         return 0;
 
     size_t low = 0;
-    size_t high = int_handle->no_lines;
+    size_t high = handle->no_lines;
 
     while (low < high) {
         size_t mid = low + (high - low) / 2;
-        if (int_handle->lines[mid] >= position) {
+        if (handle->lines[mid] >= position) {
             high = mid;
         } else {
             low = mid + 1;
