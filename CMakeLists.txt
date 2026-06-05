@@ -93,7 +93,6 @@ if(BUILD_TESTS)
   if(NOT APPLE)
     add_dependencies(unittests generated_definitions)
   endif()
-  add_dependencies(cfml_validator generated_definitions)
 endif()
 
 # PkgConfig config

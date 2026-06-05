@@ -4,5 +4,4 @@ if (NOT APPLE)
     add_subdirectory(unittests)
 endif()
 
-add_subdirectory(cfml_validator)
 #add_subdirectory(qscintilla)
