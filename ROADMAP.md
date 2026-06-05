@@ -1,9 +1,5 @@
 # Roadmap
 
-## 0.9
-
-- Implement callback after each parsed token.
-
 ## 1.0
 
 - Implement code validator for each computer language.
