@@ -25,6 +25,12 @@
 
 enum textparser_encoding { TEXTPARSER_ENCODING_NONE, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
 
+enum textparser_validation_item_type {
+    TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR,
+    TEXTPARSER_VALIDATION_ITEM_TYPE_WARNING,
+    TEXTPARSER_VALIDATION_ITEM_TYPE_INFO,
+};
+
 enum textparser_callback_type {
     TEXTPARSER_CALLBACK_TYPE_START,
     TEXTPARSER_CALLBACK_TYPE_END,
@@ -92,6 +98,19 @@ typedef struct {
     textparser_token *tokens;
     const char *error_string;
 } textparser_language_definition;
+
+
+typedef struct {
+    enum textparser_validation_item_type type;
+    int position;
+    int length;
+    char *text;
+} textparser_validation_item;
+
+typedef struct {
+    int len;
+    textparser_validation_item *items[];
+} textparser_validation;
 
 #ifdef __cplusplus
 extern "C"

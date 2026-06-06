@@ -5,6 +5,8 @@ project(libtextparser LANGUAGES C)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+add_subdirectory(validation)
+
 if(WIN32)
     set(OS_FILES ../os/os_win.c ../os/os.h)
 else()
