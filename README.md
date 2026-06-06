@@ -8,6 +8,7 @@ The project currently provides support for:
 - **bash**
 - **c**
 - **c++**
+- **c3**
 - **cfml**
 - **csharp**
 - **css**

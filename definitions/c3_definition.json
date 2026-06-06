@@ -1,0 +1,191 @@
+{
+  "name": "c3",
+  "signAmbiguityFix": true,
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "c3",
+    "c3i",
+    "c3t"
+  ],
+  "defaultTextEncoding": "utf-8",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "DocComment",
+    "Directive",
+    "Annotation",
+    "Boolean",
+    "Keyword",
+    "Variable",
+    "CodeBlock",
+    "Operator",
+    "DoubleString",
+    "SingleString",
+    "Number",
+    "Parenthesis",
+    "ArrayIndex"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "DocComment": {
+      "type": "StartStop",
+      "startRegex": "\\<\\*",
+      "endRegex": "\\*\\>",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Directive": {
+      "type": "SimpleToken",
+      "startRegex": "\\$[a-zA-Z_][a-zA-Z0-9_]*\\b",
+      "textColor": "0xd7ba7d"
+    },
+    "Annotation": {
+      "type": "SimpleToken",
+      "startRegex": "@[a-zA-Z_][a-zA-Z0-9_]*\\b",
+      "textColor": "0xd7ba7d"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "break\\b|case\\b|continue\\b|default\\b|defer\\b|do\\b|else\\b|for\\b|foreach\\b|foreach_r\\b|if\\b|nextcase\\b|return\\b|switch\\b|while\\b|assert\\b|asm\\b|catch\\b|inline\\b|import\\b|module\\b|interface\\b|try\\b|var\\b|const\\b|extern\\b|static\\b|tlocal\\b|fn\\b|typedef\\b|struct\\b|union\\b|enum\\b|faultdef\\b|attrdef\\b|constdef\\b|void\\b|bool\\b|char\\b|double\\b|float\\b|float16\\b|bfloat\\b|int128\\b|ichar\\b|int\\b|iptr\\b|isz\\b|sz\\b|long\\b|short\\b|uint128\\b|uint\\b|ulong\\b|uptr\\b|ushort\\b|usz\\b|float128\\b|any\\b|fault\\b|typeid\\b|untypedlist\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b|null\\b",
+      "textColor": "0x088c54"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "DocComment",
+        "Directive",
+        "Annotation",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "SingleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "::|:=|:|===|==|!=|<=|>=|&&|\\|\\||\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|->|<<|>>|\\.\\.|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "textColor": "0x35b2dd"
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-fA-F]{4}|\\\\x[0-9a-fA-F]{2}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F_]+\\b|0[bB][01_]+\\b|0[oO][0-7_]+\\b|[-+]?[0-9_]*\\.?[0-9_]+(?:[eE][-+]?[0-9_]+)?\\b",
+      "textColor": "0xb5cea8"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "DocComment",
+        "Directive",
+        "Annotation",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "SingleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "DocComment",
+        "Directive",
+        "Annotation",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "SingleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    }
+  }
+}

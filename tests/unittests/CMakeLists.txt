@@ -46,6 +46,7 @@ add_executable( unittests
   scratch_tests.cpp
   python_tests.cpp
   jai_tests.cpp
+  c3_tests.cpp
   subtraction_tests.cpp
 
   tokenparser.hpp
