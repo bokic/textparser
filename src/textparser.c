@@ -20,11 +20,11 @@ static int active_handle_count = 0;
 
 #define TOKEN_NOT_FOUND -1
 
-#define exit_with_error(error_text, offset)           \
-    LOGE("Error: %s at %zu", error_text, offset);     \
-    if(handle) handle->error = error_text;    \
-    if(handle) handle->error_offset = offset; \
-    goto exit;                                        \
+#define exit_with_error(error_text, offset)       \
+    LOGE("Error: %s at %zu", error_text, offset); \
+    if(handle) handle->error = error_text;        \
+    if(handle) handle->error_offset = offset;     \
+    goto exit;                                    \
 
 #define check_and_exit_on_fatal_parsing_error(offset)                                         \
     if (handle->error) {                                                                      \
