@@ -30,6 +30,7 @@ The project currently provides support for:
 - **swift**
 - **typescript**
 - **vb**
+- **zig**
 - and because it has a flexible architecture, it's easy to add new language.
 
 ## Features
