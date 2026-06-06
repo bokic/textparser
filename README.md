@@ -25,6 +25,7 @@ The project currently provides support for:
 - **php**
 - **python**
 - **r**
+- **rust**
 - **scratch**
 - **sql**
 - **swift**

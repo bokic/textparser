@@ -1,0 +1,194 @@
+{
+  "name": "rust",
+  "signAmbiguityFix": true,
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "rs"
+  ],
+  "defaultTextEncoding": "utf-8",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Attribute",
+    "Macro",
+    "Boolean",
+    "Keyword",
+    "CharLiteral",
+    "Lifetime",
+    "Variable",
+    "CodeBlock",
+    "Operator",
+    "DoubleString",
+    "Number",
+    "Parenthesis",
+    "ArrayIndex"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Attribute": {
+      "type": "StartStop",
+      "startRegex": "#!?\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xd7ba7d",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "Operator",
+        "DoubleString",
+        "Number",
+        "Parenthesis"
+      ]
+    },
+    "Macro": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*!",
+      "textColor": "0xd7ba7d"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "as\\b|async\\b|await\\b|break\\b|const\\b|continue\\b|crate\\b|dyn\\b|else\\b|enum\\b|extern\\b|fn\\b|for\\b|if\\b|impl\\b|in\\b|let\\b|loop\\b|match\\b|mod\\b|move\\b|mut\\b|pub\\b|ref\\b|return\\b|Self\\b|self\\b|static\\b|struct\\b|super\\b|trait\\b|type\\b|unsafe\\b|use\\b|where\\b|while\\b|yield\\b|macro\\b|bool\\b|char\\b|str\\b|i8\\b|u8\\b|i16\\b|u16\\b|i32\\b|u32\\b|i64\\b|u64\\b|i128\\b|u128\\b|isize\\b|usize\\b|f32\\b|f64\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b|Some\\b|None\\b|Ok\\b|Err\\b",
+      "textColor": "0x088c54"
+    },
+    "CharLiteral": {
+      "type": "SimpleToken",
+      "startRegex": "'(?:[^\\\\']|\\\\\\\\.)'",
+      "textColor": "0xce9178"
+    },
+    "Lifetime": {
+      "type": "SimpleToken",
+      "startRegex": "'[a-zA-Z_][a-zA-Z0-9_]*\\b",
+      "textColor": "0x9cdcfe"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Attribute",
+        "Macro",
+        "Boolean",
+        "Keyword",
+        "CharLiteral",
+        "Lifetime",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "::|:=|:|===|==|!=|<=|>=|&&|\\|\\||\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|->|<<|>>|=>|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "textColor": "0x35b2dd"
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u\\{[0-9a-fA-F]{1,6}\\}|\\\\x[0-9a-fA-F]{2}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F_]+\\b|0[bB][01_]+\\b|0[oO][0-7_]+\\b|[-+]?[0-9_]*\\.?[0-9_]+(?:[eE][-+]?[0-9_]+)?\\b",
+      "textColor": "0xb5cea8"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Attribute",
+        "Macro",
+        "Boolean",
+        "Keyword",
+        "CharLiteral",
+        "Lifetime",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Attribute",
+        "Macro",
+        "Boolean",
+        "Keyword",
+        "CharLiteral",
+        "Lifetime",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    }
+  }
+}

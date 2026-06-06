@@ -48,6 +48,7 @@ add_executable( unittests
   jai_tests.cpp
   c3_tests.cpp
   zig_tests.cpp
+  rust_tests.cpp
   subtraction_tests.cpp
 
   tokenparser.hpp
