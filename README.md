@@ -182,6 +182,27 @@ The `python/` directory contains tools for verifying the parser's correctness, p
 python3 python/validate_cfml.py /path/to/cfml/files
 ```
 
+## Build
+> `git clone https://github.com/bokic/cfrds.git`
+> 
+> `cd cfrds`
+> 
+> `cmake -B build`
+> 
+> `cmake --build build`
+> 
+> `bin/cfrds`
+
+## Installation
+* Linux
+  * arch
+    > `yay -S textparser`
+  * Ubuntu [TODO!]
+* Windows
+    > See project [releases](https://github.com/bokic/textparser/releases) page.
+* MacOS
+  * homebrew [TODO!]
+
 ## License
 
 See `LICENSE` file for details.
