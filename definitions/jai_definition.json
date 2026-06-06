@@ -1,0 +1,153 @@
+{
+  "name": "jai",
+  "signAmbiguityFix": true,
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "jai"
+  ],
+  "defaultTextEncoding": "utf-8",
+  "startTokens": [
+    "LineComment",
+    "BlockComment",
+    "Directive",
+    "Boolean",
+    "Keyword",
+    "Variable",
+    "CodeBlock",
+    "Operator",
+    "DoubleString",
+    "Number",
+    "Parenthesis",
+    "ArrayIndex"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "LineComment": {
+      "type": "SimpleToken",
+      "startRegex": "\\/\\/[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "BlockComment": {
+      "type": "StartStop",
+      "startRegex": "\\/\\*",
+      "endRegex": "\\*\\/",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "Directive": {
+      "type": "SimpleToken",
+      "startRegex": "#(?:import|add_context|align|as|assert|bake_arguments|bake_constants|bake|bytes|caller_code|caller_location|char|code|compile_time|complete|dump|elsewhere|expand|file|filepath|ifx|if|insert|intrinsic|modify|module_parameters|must|no_abc|no_alias|no_padding|no_reset|place|placeholder|procedure_name|procedure_of_call|program_export|run|specified|symmetric|this|through|type_info|type|unshared|scope_export|scope_file|scope_module|string)\\b",
+      "textColor": "0xd7ba7d"
+    },
+    "Keyword": {
+      "type": "SimpleToken",
+      "startRegex": "if\\b|ifx\\b|then\\b|else\\b|case\\b|return\\b|break\\b|continue\\b|while\\b|for\\b|remove\\b|defer\\b|context\\b|push_context\\b|using\\b|temp\\b|struct\\b|enum\\b|union\\b|cast\\b|trunc\\b|no_check\\b|xx\\b|inline\\b|int\\b|u8\\b|u16\\b|u32\\b|u64\\b|s8\\b|s16\\b|s32\\b|s64\\b|float\\b|float32\\b|float64\\b|bool\\b|string\\b|void\\b|Code\\b|Type\\b",
+      "textColor": "0xc586c0"
+    },
+    "Boolean": {
+      "type": "SimpleToken",
+      "startRegex": "true\\b|false\\b|null\\b",
+      "textColor": "0x088c54"
+    },
+    "Variable": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x9cdcfe"
+    },
+    "CodeBlock": {
+      "type": "StartStop",
+      "startRegex": "\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Directive",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "Operator": {
+      "type": "SimpleToken",
+      "startRegex": "::|:=|:|===|==|!=|<=|>=|&&|\\|\\||\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|->|<<|>>|[=<>!&|^~+\\-*/%\\?:;.,]",
+      "textColor": "0x35b2dd"
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape"
+      ]
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-fA-F]{4}|\\\\x[0-9a-fA-F]{2}",
+      "textColor": "0xd7ba7d"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "0[xX][0-9a-fA-F_]+\\b|0[bB][01_]+\\b|0[hH][0-9a-fA-F_]+\\b|[-+]?[0-9_]*\\.?[0-9_]+(?:[eE][-+]?[0-9_]+)?\\b",
+      "textColor": "0xb5cea8"
+    },
+    "Parenthesis": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Directive",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    },
+    "ArrayIndex": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Directive",
+        "Boolean",
+        "Keyword",
+        "Variable",
+        "CodeBlock",
+        "Operator",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
+    }
+  }
+}

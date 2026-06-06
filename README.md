@@ -14,6 +14,7 @@ The project currently provides support for:
 - **fortran**
 - **go**
 - **html**
+- **jai**
 - **java**
 - **javascript**
 - **json**
