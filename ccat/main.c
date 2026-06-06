@@ -1,17 +1,34 @@
 #include <textparser.h>
 #include <os.h>
-#include <cfml_definition.json.h>
-#include <json_definition.json.h>
-#include <php_definition.json.h>
-#include <java_definition.json.h>
+#include <ada_definition.json.h>
+#include <asm_definition.json.h>
+#include <bash_definition.json.h>
+#include <c3_definition.json.h>
 #include <c_definition.json.h>
+#include <cfml_definition.json.h>
 #include <cpp_definition.json.h>
 #include <csharp_definition.json.h>
-#include <javascript_definition.json.h>
 #include <css_definition.json.h>
+#include <fortran_definition.json.h>
+#include <go_definition.json.h>
 #include <html_definition.json.h>
-#include <bash_definition.json.h>
+#include <jai_definition.json.h>
+#include <java_definition.json.h>
+#include <javascript_definition.json.h>
+#include <json_definition.json.h>
+#include <matlab_definition.json.h>
+#include <pascal_definition.json.h>
+#include <perl_definition.json.h>
+#include <php_definition.json.h>
+#include <python_definition.json.h>
+#include <r_definition.json.h>
+#include <rust_definition.json.h>
+#include <scratch_definition.json.h>
 #include <sql_definition.json.h>
+#include <swift_definition.json.h>
+#include <typescript_definition.json.h>
+#include <vb_definition.json.h>
+#include <zig_definition.json.h>
 
 #include <string.h>
 #include <stddef.h>
@@ -25,7 +42,38 @@
 #define GB * 1024 MB
 #define MAX_PARSE_SIZE (4 MB)
 
-const textparser_language_definition *definitions[] = {&cfml_definition, &json_definition, &php_definition, &java_definition, &c_definition, &cpp_definition, &csharp_definition, &javascript_definition, &css_definition, &html_definition, &bash_definition, &sql_definition, nullptr};
+const textparser_language_definition *definitions[] = {
+    &ada_definition,
+    &asm_definition,
+    &bash_definition,
+    &c3_definition,
+    &c_definition,
+    &cfml_definition,
+    &cpp_definition,
+    &csharp_definition,
+    &css_definition,
+    &fortran_definition,
+    &go_definition,
+    &html_definition,
+    &jai_definition,
+    &java_definition,
+    &javascript_definition,
+    &json_definition,
+    &matlab_definition,
+    &pascal_definition,
+    &perl_definition,
+    &php_definition,
+    &python_definition,
+    &r_definition,
+    &rust_definition,
+    &scratch_definition,
+    &sql_definition,
+    &swift_definition,
+    &typescript_definition,
+    &vb_definition,
+    &zig_definition,
+    nullptr
+};
 
 static const textparser_language_definition *get_language_definition_by_filename(const char *filename)
 {
@@ -154,15 +202,15 @@ int main(int argc, const char *argv[])
 
     filename = argv[1];
 
-    res = textparser_openfile(filename, TEXTPARSER_ENCODING_LATIN1, &handle);
-    if (res) {
-        fprintf(stderr, "Error opening file.\n");
-        return EXIT_FAILURE;
-    }
-
     language_def = get_language_definition_by_filename(filename);
     if (language_def == nullptr) {
         fprintf(stderr, "Unsupported file extension for file %s\n", filename);
+        return EXIT_FAILURE;
+    }
+
+    res = textparser_openfile(filename, language_def->default_text_encoding, &handle);
+    if (res) {
+        fprintf(stderr, "Error opening file.\n");
         return EXIT_FAILURE;
     }
 
