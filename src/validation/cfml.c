@@ -8,194 +8,347 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-// TODO: Full CFML list of cftags
+
 typedef enum {
     CFML_END_TAG_REQUIRED, // must have ending tag </...
     CFML_END_TAG_OPTIONAL, // can have ending tag, or can be self-closing
     CFML_END_TAG_FORBIDDEN // should not have ending tag
 } cfml_end_tag_type;
 
+typedef enum {
+    CFML_PARAMS_NONE,        // cftags that do not have any parameters
+    CFML_PARAMS_KEY_VALUE,   // e.g. <cfmail to="foo">
+    CFML_PARAMS_EXPRESSION   // e.g. <cfif condition>, <cfset x = 1>
+} cfml_params_type;
+
+typedef enum {
+    CFML_ATTR_TYPE_ANY,
+    CFML_ATTR_TYPE_STRING,
+    CFML_ATTR_TYPE_NUMBER,
+    CFML_ATTR_TYPE_BOOLEAN
+} cfml_attr_type;
+
+typedef enum {
+    CFML_MASK_LITERAL = 1 << 0,
+    CFML_MASK_VARIABLE = 1 << 1,
+    CFML_MASK_EXPRESSION = 1 << 2,
+    CFML_MASK_ALL = CFML_MASK_LITERAL | CFML_MASK_VARIABLE | CFML_MASK_EXPRESSION
+} cfml_mask_type;
+
+typedef struct {
+    const char *name;
+    bool required;
+    cfml_attr_type type;
+    const char *value;
+    int mask_kind;
+} cfml_attribute_info;
+
+typedef struct {
+    const cfml_attribute_info *attributes;
+} cfml_attribute_combo;
+
 typedef struct {
     const char *name;
     cfml_end_tag_type end_tag_type;
+    cfml_params_type params_type;
+    const cfml_attribute_combo *attribute_combos;
 } cfml_tag_info;
 
+static const cfml_attribute_info cfloop_index_attrs[] = {
+    {"index", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
+    {"from", true, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {"to", true, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {"step", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_info cfloop_cond_attrs[] = {
+    {"condition", true, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_EXPRESSION},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_info cfloop_query_attrs[] = {
+    {"query", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"startrow", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {"endrow", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {"group", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"groupcasesensitive", false, CFML_ATTR_TYPE_BOOLEAN, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_info cfloop_list_attrs[] = {
+    {"list", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"index", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
+    {"delimiters", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_info cfloop_array_attrs[] = {
+    {"array", true, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_ALL},
+    {"index", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
+    {"item", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_info cfloop_collection_attrs[] = {
+    {"collection", true, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_ALL},
+    {"item", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
+    {"index", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_info cfloop_file_attrs[] = {
+    {"file", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"index", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
+    {"charset", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"characters", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_combo cfloop_combos[] = {
+    {cfloop_index_attrs},
+    {cfloop_cond_attrs},
+    {cfloop_query_attrs},
+    {cfloop_list_attrs},
+    {cfloop_array_attrs},
+    {cfloop_collection_attrs},
+    {cfloop_file_attrs},
+    {nullptr}
+};
+
+static const cfml_attribute_info cfabort_attrs[] = {
+    {"showerror", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_combo cfabort_combos[] = {
+    {cfabort_attrs},
+    {nullptr}
+};
+
+static const cfml_attribute_info cfinclude_attrs[] = {
+    {"template", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"runonce", false, CFML_ATTR_TYPE_BOOLEAN, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_combo cfinclude_combos[] = {
+    {cfinclude_attrs},
+    {nullptr}
+};
+
+static const cfml_attribute_info cfparam_attrs[] = {
+    {"name", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"type", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"default", false, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_ALL},
+    {"max", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {"min", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {"pattern", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_combo cfparam_combos[] = {
+    {cfparam_attrs},
+    {nullptr}
+};
+
+static const cfml_attribute_info cfmail_attrs[] = {
+    {"to", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"from", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"subject", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"cc", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"bcc", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"type", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"charset", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"server", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"port", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {"username", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"password", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
+    {"timeout", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
+    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
+};
+
+static const cfml_attribute_combo cfmail_combos[] = {
+    {cfmail_attrs},
+    {nullptr}
+};
+
 const cfml_tag_info cfml_tags[] = {
-    {"cf_socialplugin", CFML_END_TAG_OPTIONAL},
-    {"cfabort", CFML_END_TAG_FORBIDDEN},
-    {"cfadmin", CFML_END_TAG_FORBIDDEN},
-    {"cfajaximport", CFML_END_TAG_FORBIDDEN},
-    {"cfajaxproxy", CFML_END_TAG_FORBIDDEN},
-    {"cfapplet", CFML_END_TAG_FORBIDDEN},
-    {"cfapplication", CFML_END_TAG_OPTIONAL},
-    {"cfargument", CFML_END_TAG_FORBIDDEN},
-    {"cfassociate", CFML_END_TAG_FORBIDDEN},
-    {"cfauthenticate", CFML_END_TAG_FORBIDDEN},
-    {"cfbreak", CFML_END_TAG_FORBIDDEN},
-    {"cfcache", CFML_END_TAG_FORBIDDEN},
-    {"cfcalendar", CFML_END_TAG_FORBIDDEN},
-    {"cfcase", CFML_END_TAG_REQUIRED},
-    {"cfcatch", CFML_END_TAG_REQUIRED},
-    {"cfchart", CFML_END_TAG_REQUIRED},
-    {"cfchartdata", CFML_END_TAG_FORBIDDEN},
-    {"cfchartseries", CFML_END_TAG_OPTIONAL},
-    {"cfchartset", CFML_END_TAG_REQUIRED},
-    {"cfclient", CFML_END_TAG_REQUIRED},
-    {"cfclientsettings", CFML_END_TAG_FORBIDDEN},
-    {"cfcol", CFML_END_TAG_FORBIDDEN},
-    {"cfcollection", CFML_END_TAG_FORBIDDEN},
-    {"cfcomponent", CFML_END_TAG_REQUIRED},
-    {"cfcontent", CFML_END_TAG_FORBIDDEN},
-    {"cfcontinue", CFML_END_TAG_FORBIDDEN},
-    {"cfcookie", CFML_END_TAG_FORBIDDEN},
-    {"cfdbinfo", CFML_END_TAG_FORBIDDEN},
-    {"cfdefaultcase", CFML_END_TAG_REQUIRED},
-    {"cfdirectory", CFML_END_TAG_FORBIDDEN},
-    {"cfdiv", CFML_END_TAG_OPTIONAL},
-    {"cfdocument", CFML_END_TAG_REQUIRED},
-    {"cfdocumentitem", CFML_END_TAG_REQUIRED},
-    {"cfdocumentsection", CFML_END_TAG_REQUIRED},
-    {"cfdump", CFML_END_TAG_FORBIDDEN},
-    {"cfelse", CFML_END_TAG_FORBIDDEN},
-    {"cfelseif", CFML_END_TAG_FORBIDDEN},
-    {"cferror", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangecalendar", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangeconnection", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangecontact", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangeconversation", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangefilter", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangefolder", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangemail", CFML_END_TAG_FORBIDDEN},
-    {"cfexchangetask", CFML_END_TAG_FORBIDDEN},
-    {"cfexecute", CFML_END_TAG_OPTIONAL},
-    {"cfexit", CFML_END_TAG_FORBIDDEN},
-    {"cffeed", CFML_END_TAG_FORBIDDEN},
-    {"cffile", CFML_END_TAG_FORBIDDEN},
-    {"cffileupload", CFML_END_TAG_FORBIDDEN},
-    {"cffinally", CFML_END_TAG_REQUIRED},
-    {"cfflush", CFML_END_TAG_FORBIDDEN},
-    {"cfform", CFML_END_TAG_REQUIRED},
-    {"cfformgroup", CFML_END_TAG_REQUIRED},
-    {"cfformitem", CFML_END_TAG_OPTIONAL},
-    {"cfforward", CFML_END_TAG_FORBIDDEN},
-    {"cfftp", CFML_END_TAG_FORBIDDEN},
-    {"cffunction", CFML_END_TAG_REQUIRED},
-    {"cfgraph", CFML_END_TAG_OPTIONAL},
-    {"cfgraphdata", CFML_END_TAG_FORBIDDEN},
-    {"cfgrid", CFML_END_TAG_OPTIONAL},
-    {"cfgridcolumn", CFML_END_TAG_FORBIDDEN},
-    {"cfgridrow", CFML_END_TAG_FORBIDDEN},
-    {"cfgridupdate", CFML_END_TAG_FORBIDDEN},
-    {"cfheader", CFML_END_TAG_FORBIDDEN},
-    {"cfhtmlbody", CFML_END_TAG_OPTIONAL},
-    {"cfhtmlhead", CFML_END_TAG_OPTIONAL},
-    {"cfhtmltopdf", CFML_END_TAG_REQUIRED},
-    {"cfhtmltopdfitem", CFML_END_TAG_REQUIRED},
-    {"cfhttp", CFML_END_TAG_OPTIONAL},
-    {"cfhttpparam", CFML_END_TAG_FORBIDDEN},
-    {"cfif", CFML_END_TAG_REQUIRED},
-    {"cfimage", CFML_END_TAG_FORBIDDEN},
-    {"cfimap", CFML_END_TAG_FORBIDDEN},
-    {"cfimapfilter", CFML_END_TAG_FORBIDDEN},
-    {"cfimpersonate", CFML_END_TAG_REQUIRED},
-    {"cfimport", CFML_END_TAG_FORBIDDEN},
-    {"cfinclude", CFML_END_TAG_FORBIDDEN},
-    {"cfindex", CFML_END_TAG_FORBIDDEN},
-    {"cfinput", CFML_END_TAG_FORBIDDEN},
-    {"cfinsert", CFML_END_TAG_FORBIDDEN},
-    {"cfinterface", CFML_END_TAG_REQUIRED},
-    {"cfinvoke", CFML_END_TAG_OPTIONAL},
-    {"cfinvokeargument", CFML_END_TAG_FORBIDDEN},
-    {"cfjava", CFML_END_TAG_REQUIRED},
-    {"cflayout", CFML_END_TAG_REQUIRED},
-    {"cflayoutarea", CFML_END_TAG_REQUIRED},
-    {"cfldap", CFML_END_TAG_FORBIDDEN},
-    {"cflocation", CFML_END_TAG_FORBIDDEN},
-    {"cflock", CFML_END_TAG_REQUIRED},
-    {"cflog", CFML_END_TAG_FORBIDDEN},
-    {"cflogin", CFML_END_TAG_REQUIRED},
-    {"cfloginuser", CFML_END_TAG_FORBIDDEN},
-    {"cflogout", CFML_END_TAG_FORBIDDEN},
-    {"cfloop", CFML_END_TAG_REQUIRED},
-    {"cfmail", CFML_END_TAG_REQUIRED},
-    {"cfmailparam", CFML_END_TAG_FORBIDDEN},
-    {"cfmailpart", CFML_END_TAG_REQUIRED},
-    {"cfmap", CFML_END_TAG_OPTIONAL},
-    {"cfmapitem", CFML_END_TAG_FORBIDDEN},
-    {"cfmediaplayer", CFML_END_TAG_OPTIONAL},
-    {"cfmenu", CFML_END_TAG_REQUIRED},
-    {"cfmenuitem", CFML_END_TAG_FORBIDDEN},
-    {"cfmessagebox", CFML_END_TAG_FORBIDDEN},
-    {"cfmodule", CFML_END_TAG_OPTIONAL},
-    {"cfntauthenticate", CFML_END_TAG_FORBIDDEN},
-    {"cfoauth", CFML_END_TAG_FORBIDDEN},
-    {"cfobject", CFML_END_TAG_FORBIDDEN},
-    {"cfobjectcache", CFML_END_TAG_FORBIDDEN},
-    {"cfoutput", CFML_END_TAG_REQUIRED},
-    {"cfpageencoding", CFML_END_TAG_FORBIDDEN},
-    {"cfparam", CFML_END_TAG_FORBIDDEN},
-    {"cfpdf", CFML_END_TAG_OPTIONAL},
-    {"cfpdfform", CFML_END_TAG_OPTIONAL},
-    {"cfpdfformparam", CFML_END_TAG_FORBIDDEN},
-    {"cfpdfparam", CFML_END_TAG_FORBIDDEN},
-    {"cfpdfsubform", CFML_END_TAG_OPTIONAL},
-    {"cfpod", CFML_END_TAG_OPTIONAL},
-    {"cfpop", CFML_END_TAG_FORBIDDEN},
-    {"cfpresentation", CFML_END_TAG_REQUIRED},
-    {"cfpresentationslide", CFML_END_TAG_REQUIRED},
-    {"cfpresenter", CFML_END_TAG_FORBIDDEN},
-    {"cfprint", CFML_END_TAG_FORBIDDEN},
-    {"cfprocessingdirective", CFML_END_TAG_OPTIONAL},
-    {"cfprocparam", CFML_END_TAG_FORBIDDEN},
-    {"cfprocresult", CFML_END_TAG_FORBIDDEN},
-    {"cfprogressbar", CFML_END_TAG_FORBIDDEN},
-    {"cfproperty", CFML_END_TAG_FORBIDDEN},
-    {"cfquery", CFML_END_TAG_REQUIRED},
-    {"cfqueryparam", CFML_END_TAG_FORBIDDEN},
-    {"cfregistry", CFML_END_TAG_FORBIDDEN},
-    {"cfreport", CFML_END_TAG_OPTIONAL},
-    {"cfreportparam", CFML_END_TAG_FORBIDDEN},
-    {"cfrethrow", CFML_END_TAG_FORBIDDEN},
-    {"cfretry", CFML_END_TAG_FORBIDDEN},
-    {"cfreturn", CFML_END_TAG_FORBIDDEN},
-    {"cfsavecontent", CFML_END_TAG_REQUIRED},
-    {"cfschedule", CFML_END_TAG_FORBIDDEN},
-    {"cfscript", CFML_END_TAG_REQUIRED},
-    {"cfsearch", CFML_END_TAG_FORBIDDEN},
-    {"cfselect", CFML_END_TAG_OPTIONAL},
-    {"cfservlet", CFML_END_TAG_OPTIONAL},
-    {"cfservletparam", CFML_END_TAG_FORBIDDEN},
-    {"cfset", CFML_END_TAG_FORBIDDEN},
-    {"cfsetting", CFML_END_TAG_FORBIDDEN},
-    {"cfsharepoint", CFML_END_TAG_OPTIONAL},
-    {"cfsilent", CFML_END_TAG_REQUIRED},
-    {"cfsleep", CFML_END_TAG_FORBIDDEN},
-    {"cfslider", CFML_END_TAG_FORBIDDEN},
-    {"cfspreadsheet", CFML_END_TAG_FORBIDDEN},
-    {"cfsprydataset", CFML_END_TAG_FORBIDDEN},
-    {"cfstopwatch", CFML_END_TAG_REQUIRED},
-    {"cfstoredproc", CFML_END_TAG_OPTIONAL},
-    {"cfswitch", CFML_END_TAG_REQUIRED},
-    {"cftable", CFML_END_TAG_REQUIRED},
-    {"cftextarea", CFML_END_TAG_OPTIONAL},
-    {"cftextinput", CFML_END_TAG_FORBIDDEN},
-    {"cfthread", CFML_END_TAG_REQUIRED},
-    {"cfthrow", CFML_END_TAG_FORBIDDEN},
-    {"cftimer", CFML_END_TAG_REQUIRED},
-    {"cftooltip", CFML_END_TAG_REQUIRED},
-    {"cftrace", CFML_END_TAG_OPTIONAL},
-    {"cftransaction", CFML_END_TAG_REQUIRED},
-    {"cftree", CFML_END_TAG_REQUIRED},
-    {"cftreeitem", CFML_END_TAG_FORBIDDEN},
-    {"cftry", CFML_END_TAG_REQUIRED},
-    {"cfupdate", CFML_END_TAG_FORBIDDEN},
-    {"cfwddx", CFML_END_TAG_FORBIDDEN},
-    {"cfwebsocket", CFML_END_TAG_OPTIONAL},
-    {"cfwhile", CFML_END_TAG_REQUIRED},
-    {"cfwindow", CFML_END_TAG_OPTIONAL},
-    {"cfxml", CFML_END_TAG_REQUIRED},
-    {"cfzip", CFML_END_TAG_OPTIONAL},
-    {"cfzipparam", CFML_END_TAG_FORBIDDEN}
+    {"cf_socialplugin", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfabort", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, cfabort_combos},
+    {"cfadmin", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfajaximport", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfajaxproxy", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfapplet", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfapplication", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfargument", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfassociate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfauthenticate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfbreak", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
+    {"cfcache", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcalendar", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcase", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcatch", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfchart", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfchartdata", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfchartseries", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfchartset", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfclient", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfclientsettings", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcol", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcollection", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcomponent", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcontent", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfcontinue", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
+    {"cfcookie", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfdbinfo", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfdefaultcase", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
+    {"cfdirectory", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfdiv", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfdocument", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfdocumentitem", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfdocumentsection", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfdump", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfelse", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
+    {"cfelseif", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_EXPRESSION, nullptr},
+    {"cferror", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangecalendar", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangeconnection", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangecontact", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangeconversation", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangefilter", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangefolder", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangemail", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexchangetask", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexecute", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfexit", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cffeed", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cffile", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cffileupload", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cffinally", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
+    {"cfflush", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfform", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfformgroup", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfformitem", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfforward", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfftp", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cffunction", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfgraph", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfgraphdata", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfgrid", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfgridcolumn", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfgridrow", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfgridupdate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfheader", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfhtmlbody", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfhtmlhead", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfhtmltopdf", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfhtmltopdfitem", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfhttp", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfhttpparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfif", CFML_END_TAG_REQUIRED, CFML_PARAMS_EXPRESSION, nullptr},
+    {"cfimage", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfimap", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfimapfilter", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfimpersonate", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfimport", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfinclude", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, cfinclude_combos},
+    {"cfindex", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfinput", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfinsert", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfinterface", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfinvoke", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfinvokeargument", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfjava", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cflayout", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cflayoutarea", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfldap", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cflocation", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cflock", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cflog", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cflogin", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfloginuser", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cflogout", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
+    {"cfloop", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, cfloop_combos},
+    {"cfmail", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, cfmail_combos},
+    {"cfmailparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmailpart", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmap", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmapitem", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmediaplayer", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmenu", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmenuitem", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmessagebox", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfmodule", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfntauthenticate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfoauth", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfobject", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfobjectcache", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
+    {"cfoutput", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpageencoding", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, cfparam_combos},
+    {"cfpdf", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpdfform", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpdfformparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpdfparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpdfsubform", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpod", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpop", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpresentation", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpresentationslide", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfpresenter", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfprint", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfprocessingdirective", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfprocparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfprocresult", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfprogressbar", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfproperty", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfquery", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfqueryparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfregistry", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfreport", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfreportparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfrethrow", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
+    {"cfretry", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
+    {"cfreturn", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_EXPRESSION, nullptr},
+    {"cfsavecontent", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfschedule", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfscript", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
+    {"cfsearch", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfselect", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfservlet", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfservletparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfset", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_EXPRESSION, nullptr},
+    {"cfsetting", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfsharepoint", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfsilent", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
+    {"cfsleep", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfslider", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfspreadsheet", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfsprydataset", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfstopwatch", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfstoredproc", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfswitch", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftable", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftextarea", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftextinput", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfthread", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfthrow", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftimer", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftooltip", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftrace", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftransaction", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftree", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftreeitem", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cftry", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
+    {"cfupdate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfwddx", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfwebsocket", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfwhile", CFML_END_TAG_REQUIRED, CFML_PARAMS_EXPRESSION, nullptr},
+    {"cfwindow", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfxml", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfzip", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
+    {"cfzipparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr}
 };
 const int cfml_tag_count = sizeof(cfml_tags) / sizeof(cfml_tags[0]);
 
