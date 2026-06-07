@@ -1,3 +1,5 @@
+set(CMAKE_C_STANDARD 23)
+
 add_library(cfml SHARED
     cfml.c
 )
@@ -5,6 +7,10 @@ add_library(cfml SHARED
 target_include_directories(cfml PRIVATE
     ../../include
     ../../definitions
+)
+
+target_link_libraries(cfml PRIVATE
+    libtextparser
 )
 
 set_target_properties(cfml PROPERTIES
