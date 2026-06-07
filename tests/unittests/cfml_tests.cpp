@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <cfml_definition.json.h>
+#include <cfml.h>
 
 
 TEST(parse_CFML, crash_cfset) {
@@ -421,4 +422,87 @@ TEST(parse_CFML, expr_numbers) {
     printf("DEBUG numbers -.45 tree:\n%s", dump_all_tokens(tokens2).c_str());
     printf("DEBUG numbers 123. tree:\n%s", dump_all_tokens(tokens3).c_str());
 }
+
+TEST(parse_CFML, validation_closing_tags) {
+    // 1. Valid closed component
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfcomponent></cfcomponent>", 28, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+    
+    // 2. Missing closing tag for cfcomponent
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfcomponent>", 13, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "CFML tag [cfcomponent] requires a closing tag </cfcomponent>");
+        
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 3. Forbidden end tag cfabort
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfabort></cfabort>", 19, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Ending tag </cfabort> is forbidden");
+        
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 4. End tag without start tag
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("</cfcomponent>", 14, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Ending tag </cfcomponent> has no matching start tag");
+        
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 5. Self-closing start tag
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfcomponent />", 15, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+}
+
 

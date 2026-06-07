@@ -56,9 +56,11 @@ add_executable( unittests
 target_include_directories( unittests PRIVATE
     ../../include
     ../../definitions
+    ../../src/validation
 )
 target_link_libraries( unittests
   libtextparser
+  cfml
   GTest::gtest_main
 )
 

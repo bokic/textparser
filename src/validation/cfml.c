@@ -413,39 +413,147 @@ void textparser_validation_clear(textparser_validation *validation)
     }
 }
 
+static bool is_start_tag_token(int token_id) {
+    return token_id == TextParser_cfml_StartTag ||
+           token_id == TextParser_cfml_LoopStartTag ||
+           token_id == TextParser_cfml_QueryStartTag ||
+           token_id == TextParser_cfml_OutputStartTag ||
+           token_id == TextParser_cfml_ScriptStartTag;
+}
+
+static bool is_end_tag_token(int token_id) {
+    return token_id == TextParser_cfml_EndTag ||
+           token_id == TextParser_cfml_LoopEndTag ||
+           token_id == TextParser_cfml_QueryEndTag ||
+           token_id == TextParser_cfml_OutputEndTag ||
+           token_id == TextParser_cfml_ScriptEndTag;
+}
+
+static bool is_token_self_closing(const char *text, textparser_token_item *token) {
+    if (token->len >= 2) {
+        const char *end = text + token->position + token->len;
+        while (end > text + token->position && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r' || end[-1] == '\n')) {
+            end--;
+        }
+        if (end - (text + token->position) >= 2 && end[-2] == '/' && end[-1] == '>') {
+            return true;
+        }
+    }
+    return false;
+}
+
+static const cfml_tag_info *find_tag_info(const char *tag_name, size_t tag_len) {
+    for (int i = 0; i < cfml_tag_count; i++) {
+        if (strncmp(tag_name, cfml_tags[i].name, tag_len) == 0 && cfml_tags[i].name[tag_len] == '\0') {
+            return &cfml_tags[i];
+        }
+    }
+    return nullptr;
+}
+
+static bool has_matching_end_tag(const char *text, textparser_token_item *start_token, const char *tag_name, size_t tag_len) {
+    int nesting = 1;
+    textparser_token_item *curr = start_token->next;
+    while (curr != nullptr) {
+        if (is_start_tag_token(curr->token_id)) {
+            const char *curr_name = text + curr->position + 1;
+            size_t curr_len = 0;
+            while (curr_name[curr_len] && 
+                   ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
+                    (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
+                    (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
+                    curr_name[curr_len] == '_')) {
+                curr_len++;
+            }
+            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+                if (!is_token_self_closing(text, curr)) {
+                    nesting++;
+                }
+            }
+        }
+        else if (is_end_tag_token(curr->token_id)) {
+            const char *curr_name = text + curr->position + 2;
+            size_t curr_len = 0;
+            while (curr_name[curr_len] && 
+                   ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
+                    (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
+                    (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
+                    curr_name[curr_len] == '_')) {
+                curr_len++;
+            }
+            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+                nesting--;
+                if (nesting == 0) {
+                    return true;
+                }
+            }
+        }
+        curr = curr->next;
+    }
+    return false;
+}
+
+static bool has_matching_start_tag(const char *text, textparser_token_item *end_token, const char *tag_name, size_t tag_len) {
+    int nesting = 1;
+    textparser_token_item *curr = end_token->prev;
+    while (curr != nullptr) {
+        if (is_end_tag_token(curr->token_id)) {
+            const char *curr_name = text + curr->position + 2;
+            size_t curr_len = 0;
+            while (curr_name[curr_len] && 
+                   ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
+                    (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
+                    (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
+                    curr_name[curr_len] == '_')) {
+                curr_len++;
+            }
+            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+                nesting++;
+            }
+        }
+        else if (is_start_tag_token(curr->token_id)) {
+            const char *curr_name = text + curr->position + 1;
+            size_t curr_len = 0;
+            while (curr_name[curr_len] && 
+                   ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
+                    (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
+                    (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
+                    curr_name[curr_len] == '_')) {
+                curr_len++;
+            }
+            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+                if (!is_token_self_closing(text, curr)) {
+                    nesting--;
+                    if (nesting == 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+        curr = curr->prev;
+    }
+    return false;
+}
+
 static void textparser_validate_cfml_token(textparser_validation **ret, textparser_t handle, textparser_token_item *token)
 {
     const char *text = textparser_get_text(handle);
-    //size_t text_size = textparser_get_text_size(handle);
 
-    // Check if token is tag
-    if(token->token_id == TextParser_cfml_StartTag) {
-
-        // TODO: Check if tag exists in the cfml_tags list
-        int tag_exists = 0;
-
+    if (is_start_tag_token(token->token_id)) {
         // Get tag name and length
         const char *tag_name = text + token->position + 1;
-        size_t tag_len = token->len - 1;
-        for(size_t i = 0; i < tag_len; i++) {
-            if (
-                (tag_name[i] < 'A' || tag_name[i] > 'Z') &&
-                (tag_name[i] < 'a' || tag_name[i] > 'z') &&
-                (tag_name[i] < '0' || tag_name[i] > '9')
-            ) {
-                tag_len = i;
-                break;
-            }
+        size_t tag_len = 0;
+        while (tag_name[tag_len] && 
+               ((tag_name[tag_len] >= 'a' && tag_name[tag_len] <= 'z') ||
+                (tag_name[tag_len] >= 'A' && tag_name[tag_len] <= 'Z') ||
+                (tag_name[tag_len] >= '0' && tag_name[tag_len] <= '9') ||
+                tag_name[tag_len] == '_')) {
+            tag_len++;
         }
 
         // Check if tag exists in the cfml_tags list
-        for(int i = 0; i < cfml_tag_count; i++) {
-            if(strncmp(tag_name, cfml_tags[i].name, tag_len) == 0) {
-                tag_exists = 1;
-                break;
-            }
-        }
-        if(!tag_exists) {
+        const cfml_tag_info *info = find_tag_info(tag_name, tag_len);
+        if (info == nullptr) {
             char *token_name = alloca(tag_len + 1);
             strncpy(token_name, tag_name, tag_len);
             token_name[tag_len] = '\0';
@@ -455,15 +563,53 @@ static void textparser_validate_cfml_token(textparser_validation **ret, textpars
             return;
         }
 
-        // TODO: Check if needs closing tag
-
-        // TODO: Check if is opening tag, and it has correct attributes/expression
+        // Check if needs closing tag
+        if (info->end_tag_type == CFML_END_TAG_REQUIRED) {
+            if (!is_token_self_closing(text, token)) {
+                if (!has_matching_end_tag(text, token, tag_name, tag_len)) {
+                    char *token_name = alloca(tag_len + 1);
+                    strncpy(token_name, tag_name, tag_len);
+                    token_name[tag_len] = '\0';
+                    char *str = dynamic_printf("CFML tag [%s] requires a closing tag </%s>", token_name, token_name);
+                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+                }
+            }
+        }
     }
+    else if (is_end_tag_token(token->token_id)) {
+        // Get tag name and length (skipping </)
+        const char *tag_name = text + token->position + 2;
+        size_t tag_len = 0;
+        while (tag_name[tag_len] && 
+               ((tag_name[tag_len] >= 'a' && tag_name[tag_len] <= 'z') ||
+                (tag_name[tag_len] >= 'A' && tag_name[tag_len] <= 'Z') ||
+                (tag_name[tag_len] >= '0' && tag_name[tag_len] <= '9') ||
+                tag_name[tag_len] == '_')) {
+            tag_len++;
+        }
 
-    // TODO: Check if end tag has it's own corresponding start tag
+        const cfml_tag_info *info = find_tag_info(tag_name, tag_len);
+        if (info != nullptr) {
+            // Check if ending tag is forbidden
+            if (info->end_tag_type == CFML_END_TAG_FORBIDDEN) {
+                char *token_name = alloca(tag_len + 1);
+                strncpy(token_name, tag_name, tag_len);
+                token_name[tag_len] = '\0';
+                char *str = dynamic_printf("Ending tag </%s> is forbidden", token_name);
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+                return;
+            }
+        }
 
-    // TODO: Check if token is function
-    // Check if function has correct arguments, and return value
+        // Check if end tag has its own corresponding start tag
+        if (!has_matching_start_tag(text, token, tag_name, tag_len)) {
+            char *token_name = alloca(tag_len + 1);
+            strncpy(token_name, tag_name, tag_len);
+            token_name[tag_len] = '\0';
+            char *str = dynamic_printf("Ending tag </%s> has no matching start tag", token_name);
+            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+        }
+    }
 }
 
 enum textparser_encoding textparser_get_encoding_cfml(textparser_t handle) {
