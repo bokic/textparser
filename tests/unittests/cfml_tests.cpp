@@ -505,4 +505,122 @@ TEST(parse_CFML, validation_closing_tags) {
     }
 }
 
+TEST(parse_CFML, validation_functions) {
+    // 1. Valid CFML function call
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfset x = acos(0.5) />", 23, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+    
+    // 2. Unknown CFML function call
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfset x = nonExistingFunc() />", 31, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Unknown CFML function: [nonExistingFunc]");
+        
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 3. CFML function call with insufficient arguments
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfset x = acos() />", 20, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Function [acos] requires at least 1 arguments, but 0 were provided");
+        
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 4. CFML function call with excessive arguments
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfset x = acos(0.5, 0.6) />", 28, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Function [acos] takes at most 1 arguments, but 2 were provided");
+        
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 5. Valid nested CFML function call
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<cfset x = acos(sin(0.5)) />", 28, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+}
+
+TEST(parse_CFML, validation_cfprocessingdirective_position) {
+    // 1. Within first 4096 bytes (valid)
+    {
+        std::string content = std::string(3000, ' ') + "<cfprocessingdirective pageEncoding=\"utf-8\" />";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(content.c_str(), content.length(), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // 2. Starts/ends > 4096 bytes (invalid)
+    {
+        std::string content = std::string(4090, ' ') + "<cfprocessingdirective pageEncoding=\"utf-8\" />";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(content.c_str(), content.length(), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "cfprocessingdirective should be located within first 4096 bytes of the file");
+
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+}
+
+
 

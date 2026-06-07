@@ -1,4 +1,8 @@
 #include "cfml.h"
+#include "cfml_common.h"
+#include "cfml_functions.h"
+#include "cfml_tags.h"
+
 #include <textparser.h>
 #include <cfml_definition.json.h>
 
@@ -8,349 +12,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-
-typedef enum {
-    CFML_END_TAG_REQUIRED, // must have ending tag </...
-    CFML_END_TAG_OPTIONAL, // can have ending tag, or can be self-closing
-    CFML_END_TAG_FORBIDDEN // should not have ending tag
-} cfml_end_tag_type;
-
-typedef enum {
-    CFML_PARAMS_NONE,        // cftags that do not have any parameters
-    CFML_PARAMS_KEY_VALUE,   // e.g. <cfmail to="foo">
-    CFML_PARAMS_EXPRESSION   // e.g. <cfif condition>, <cfset x = 1>
-} cfml_params_type;
-
-typedef enum {
-    CFML_ATTR_TYPE_ANY,
-    CFML_ATTR_TYPE_STRING,
-    CFML_ATTR_TYPE_NUMBER,
-    CFML_ATTR_TYPE_BOOLEAN
-} cfml_attr_type;
-
-typedef enum {
-    CFML_MASK_LITERAL = 1 << 0,
-    CFML_MASK_VARIABLE = 1 << 1,
-    CFML_MASK_EXPRESSION = 1 << 2,
-    CFML_MASK_ALL = CFML_MASK_LITERAL | CFML_MASK_VARIABLE | CFML_MASK_EXPRESSION
-} cfml_mask_type;
-
-typedef struct {
-    const char *name;
-    bool required;
-    cfml_attr_type type;
-    const char *value;
-    int mask_kind;
-} cfml_attribute_info;
-
-typedef struct {
-    const cfml_attribute_info *attributes;
-} cfml_attribute_combo;
-
-typedef struct {
-    const char *name;
-    cfml_end_tag_type end_tag_type;
-    cfml_params_type params_type;
-    const cfml_attribute_combo *attribute_combos;
-} cfml_tag_info;
-
-static const cfml_attribute_info cfloop_index_attrs[] = {
-    {"index", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
-    {"from", true, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {"to", true, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {"step", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_info cfloop_cond_attrs[] = {
-    {"condition", true, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_EXPRESSION},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_info cfloop_query_attrs[] = {
-    {"query", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"startrow", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {"endrow", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {"group", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"groupcasesensitive", false, CFML_ATTR_TYPE_BOOLEAN, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_info cfloop_list_attrs[] = {
-    {"list", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"index", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
-    {"delimiters", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_info cfloop_array_attrs[] = {
-    {"array", true, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_ALL},
-    {"index", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
-    {"item", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_info cfloop_collection_attrs[] = {
-    {"collection", true, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_ALL},
-    {"item", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
-    {"index", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_info cfloop_file_attrs[] = {
-    {"file", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"index", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_VARIABLE},
-    {"charset", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"characters", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_combo cfloop_combos[] = {
-    {cfloop_index_attrs},
-    {cfloop_cond_attrs},
-    {cfloop_query_attrs},
-    {cfloop_list_attrs},
-    {cfloop_array_attrs},
-    {cfloop_collection_attrs},
-    {cfloop_file_attrs},
-    {nullptr}
-};
-
-static const cfml_attribute_info cfabort_attrs[] = {
-    {"showerror", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_combo cfabort_combos[] = {
-    {cfabort_attrs},
-    {nullptr}
-};
-
-static const cfml_attribute_info cfinclude_attrs[] = {
-    {"template", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"runonce", false, CFML_ATTR_TYPE_BOOLEAN, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_combo cfinclude_combos[] = {
-    {cfinclude_attrs},
-    {nullptr}
-};
-
-static const cfml_attribute_info cfparam_attrs[] = {
-    {"name", true, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"type", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"default", false, CFML_ATTR_TYPE_ANY, nullptr, CFML_MASK_ALL},
-    {"max", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {"min", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {"pattern", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_combo cfparam_combos[] = {
-    {cfparam_attrs},
-    {nullptr}
-};
-
-static const cfml_attribute_info cfmail_attrs[] = {
-    {"to", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"from", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"subject", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"cc", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"bcc", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"type", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"charset", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"server", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"port", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {"username", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"password", false, CFML_ATTR_TYPE_STRING, nullptr, CFML_MASK_ALL},
-    {"timeout", false, CFML_ATTR_TYPE_NUMBER, nullptr, CFML_MASK_ALL},
-    {nullptr, false, CFML_ATTR_TYPE_ANY, nullptr, 0}
-};
-
-static const cfml_attribute_combo cfmail_combos[] = {
-    {cfmail_attrs},
-    {nullptr}
-};
-
-const cfml_tag_info cfml_tags[] = {
-    {"cf_socialplugin", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfabort", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, cfabort_combos},
-    {"cfadmin", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfajaximport", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfajaxproxy", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfapplet", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfapplication", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfargument", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfassociate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfauthenticate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfbreak", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
-    {"cfcache", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcalendar", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcase", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcatch", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfchart", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfchartdata", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfchartseries", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfchartset", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfclient", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfclientsettings", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcol", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcollection", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcomponent", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcontent", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfcontinue", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
-    {"cfcookie", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfdbinfo", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfdefaultcase", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
-    {"cfdirectory", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfdiv", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfdocument", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfdocumentitem", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfdocumentsection", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfdump", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfelse", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
-    {"cfelseif", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_EXPRESSION, nullptr},
-    {"cferror", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangecalendar", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangeconnection", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangecontact", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangeconversation", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangefilter", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangefolder", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangemail", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexchangetask", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexecute", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfexit", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cffeed", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cffile", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cffileupload", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cffinally", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
-    {"cfflush", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfform", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfformgroup", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfformitem", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfforward", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfftp", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cffunction", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfgraph", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfgraphdata", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfgrid", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfgridcolumn", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfgridrow", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfgridupdate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfheader", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfhtmlbody", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfhtmlhead", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfhtmltopdf", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfhtmltopdfitem", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfhttp", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfhttpparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfif", CFML_END_TAG_REQUIRED, CFML_PARAMS_EXPRESSION, nullptr},
-    {"cfimage", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfimap", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfimapfilter", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfimpersonate", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfimport", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfinclude", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, cfinclude_combos},
-    {"cfindex", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfinput", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfinsert", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfinterface", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfinvoke", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfinvokeargument", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfjava", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cflayout", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cflayoutarea", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfldap", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cflocation", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cflock", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cflog", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cflogin", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfloginuser", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cflogout", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
-    {"cfloop", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, cfloop_combos},
-    {"cfmail", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, cfmail_combos},
-    {"cfmailparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmailpart", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmap", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmapitem", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmediaplayer", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmenu", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmenuitem", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmessagebox", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfmodule", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfntauthenticate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfoauth", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfobject", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfobjectcache", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
-    {"cfoutput", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpageencoding", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, cfparam_combos},
-    {"cfpdf", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpdfform", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpdfformparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpdfparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpdfsubform", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpod", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpop", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpresentation", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpresentationslide", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfpresenter", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfprint", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfprocessingdirective", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfprocparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfprocresult", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfprogressbar", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfproperty", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfquery", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfqueryparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfregistry", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfreport", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfreportparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfrethrow", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
-    {"cfretry", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_NONE, nullptr},
-    {"cfreturn", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_EXPRESSION, nullptr},
-    {"cfsavecontent", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfschedule", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfscript", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
-    {"cfsearch", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfselect", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfservlet", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfservletparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfset", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_EXPRESSION, nullptr},
-    {"cfsetting", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfsharepoint", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfsilent", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
-    {"cfsleep", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfslider", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfspreadsheet", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfsprydataset", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfstopwatch", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfstoredproc", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfswitch", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftable", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftextarea", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftextinput", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfthread", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfthrow", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftimer", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftooltip", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftrace", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftransaction", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftree", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftreeitem", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cftry", CFML_END_TAG_REQUIRED, CFML_PARAMS_NONE, nullptr},
-    {"cfupdate", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfwddx", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfwebsocket", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfwhile", CFML_END_TAG_REQUIRED, CFML_PARAMS_EXPRESSION, nullptr},
-    {"cfwindow", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfxml", CFML_END_TAG_REQUIRED, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfzip", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
-    {"cfzipparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr}
-};
-const int cfml_tag_count = sizeof(cfml_tags) / sizeof(cfml_tags[0]);
 
 static char *dynamic_printf(const char *format, ...) {
     va_list args1, args2;
@@ -458,7 +119,7 @@ static bool has_matching_end_tag(const char *text, textparser_token_item *start_
         if (is_start_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 1;
             size_t curr_len = 0;
-            while (curr_name[curr_len] && 
+            while (curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -474,7 +135,7 @@ static bool has_matching_end_tag(const char *text, textparser_token_item *start_
         else if (is_end_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 2;
             size_t curr_len = 0;
-            while (curr_name[curr_len] && 
+            while (curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -500,7 +161,7 @@ static bool has_matching_start_tag(const char *text, textparser_token_item *end_
         if (is_end_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 2;
             size_t curr_len = 0;
-            while (curr_name[curr_len] && 
+            while (curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -514,7 +175,7 @@ static bool has_matching_start_tag(const char *text, textparser_token_item *end_
         else if (is_start_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 1;
             size_t curr_len = 0;
-            while (curr_name[curr_len] && 
+            while (curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -535,6 +196,15 @@ static bool has_matching_start_tag(const char *text, textparser_token_item *end_
     return false;
 }
 
+static const cfml_function_info *find_function_info(const char *func_name, size_t func_len) {
+    for (int i = 0; i < cfml_function_count; i++) {
+        if (strncasecmp(func_name, cfml_functions[i].name, func_len) == 0 && cfml_functions[i].name[func_len] == '\0') {
+            return &cfml_functions[i];
+        }
+    }
+    return nullptr;
+}
+
 static void textparser_validate_cfml_token(textparser_validation **ret, textparser_t handle, textparser_token_item *token)
 {
     const char *text = textparser_get_text(handle);
@@ -543,12 +213,19 @@ static void textparser_validate_cfml_token(textparser_validation **ret, textpars
         // Get tag name and length
         const char *tag_name = text + token->position + 1;
         size_t tag_len = 0;
-        while (tag_name[tag_len] && 
+        while (tag_name[tag_len] &&
                ((tag_name[tag_len] >= 'a' && tag_name[tag_len] <= 'z') ||
                 (tag_name[tag_len] >= 'A' && tag_name[tag_len] <= 'Z') ||
                 (tag_name[tag_len] >= '0' && tag_name[tag_len] <= '9') ||
                 tag_name[tag_len] == '_')) {
             tag_len++;
+        }
+
+        if (tag_len == 21 && strncasecmp(tag_name, "cfprocessingdirective", 21) == 0) {
+            if (token->position > 4096 || (token->position + token->len) > 4096) {
+                char *str = dynamic_printf("cfprocessingdirective should be located within first 4096 bytes of the file");
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+            }
         }
 
         // Check if tag exists in the cfml_tags list
@@ -580,12 +257,19 @@ static void textparser_validate_cfml_token(textparser_validation **ret, textpars
         // Get tag name and length (skipping </)
         const char *tag_name = text + token->position + 2;
         size_t tag_len = 0;
-        while (tag_name[tag_len] && 
+        while (tag_name[tag_len] &&
                ((tag_name[tag_len] >= 'a' && tag_name[tag_len] <= 'z') ||
                 (tag_name[tag_len] >= 'A' && tag_name[tag_len] <= 'Z') ||
                 (tag_name[tag_len] >= '0' && tag_name[tag_len] <= '9') ||
                 tag_name[tag_len] == '_')) {
             tag_len++;
+        }
+
+        if (tag_len == 21 && strncasecmp(tag_name, "cfprocessingdirective", 21) == 0) {
+            if (token->position > 4096 || (token->position + token->len) > 4096) {
+                char *str = dynamic_printf("cfprocessingdirective should be located within first 4096 bytes of the file");
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+            }
         }
 
         const cfml_tag_info *info = find_tag_info(tag_name, tag_len);
@@ -610,33 +294,138 @@ static void textparser_validate_cfml_token(textparser_validation **ret, textpars
             textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
         }
     }
+    else if (token->token_id == TextParser_cfml_Function) {
+        // Validate function name
+        const char *func_name = text + token->position;
+        size_t func_len = 0;
+        while (func_len < token->len &&
+               ((func_name[func_len] >= 'a' && func_name[func_len] <= 'z') ||
+                (func_name[func_len] >= 'A' && func_name[func_len] <= 'Z') ||
+                (func_name[func_len] >= '0' && func_name[func_len] <= '9') ||
+                func_name[func_len] == '_')) {
+            func_len++;
+        }
+
+        const cfml_function_info *fn_info = find_function_info(func_name, func_len);
+        if (fn_info == nullptr) {
+            char *token_name = alloca(func_len + 1);
+            strncpy(token_name, func_name, func_len);
+            token_name[func_len] = '\0';
+            char *str = dynamic_printf("Unknown CFML function: [%s]", token_name);
+            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, func_len);
+        } else {
+            // Find the Parenthesis token following this function name
+            textparser_token_item *paren_token = token->next;
+            while (paren_token != nullptr &&
+                   (paren_token->token_id == TextParser_cfml_ScriptLineComment ||
+                    paren_token->token_id == TextParser_cfml_ScriptBlockComment)) {
+                paren_token = paren_token->next;
+            }
+
+            if (paren_token != nullptr && paren_token->token_id == TextParser_cfml_Parenthesis) {
+                int arg_count = 0;
+                textparser_token_item *paren_child = paren_token->child;
+                if (paren_child != nullptr) {
+                    if (paren_child->token_id == TextParser_cfml_Expression ||
+                        paren_child->token_id == TextParser_cfml_ScriptExpression) {
+                        textparser_token_item *arg_item = paren_child->child;
+                        bool has_non_comment_children = false;
+                        int separator_count = 0;
+                        while (arg_item != nullptr) {
+                            if (arg_item->token_id == TextParser_cfml_Separator) {
+                                separator_count++;
+                            } else if (arg_item->token_id != TextParser_cfml_ScriptLineComment &&
+                                       arg_item->token_id != TextParser_cfml_ScriptBlockComment) {
+                                has_non_comment_children = true;
+                            }
+                            arg_item = arg_item->next;
+                        }
+                        if (has_non_comment_children) {
+                            arg_count = separator_count + 1;
+                        }
+                    } else {
+                        if (paren_child->token_id != TextParser_cfml_ScriptLineComment &&
+                            paren_child->token_id != TextParser_cfml_ScriptBlockComment) {
+                            arg_count = 1;
+                        }
+                    }
+                }
+
+                // Count total and required parameters
+                int min_params = 0;
+                int max_params = 0;
+                if (fn_info->parameters != nullptr) {
+                    const cfml_function_parameter_info *param = fn_info->parameters;
+                    while (param->name != nullptr) {
+                        max_params++;
+                        if (param->required) {
+                            min_params++;
+                        }
+                        param++;
+                    }
+                }
+
+                if (arg_count < min_params) {
+                    char *token_name = alloca(func_len + 1);
+                    strncpy(token_name, func_name, func_len);
+                    token_name[func_len] = '\0';
+                    char *str = dynamic_printf("Function [%s] requires at least %d arguments, but %d were provided", token_name, min_params, arg_count);
+                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, func_len);
+                } else if (arg_count > max_params) {
+                    char *token_name = alloca(func_len + 1);
+                    strncpy(token_name, func_name, func_len);
+                    token_name[func_len] = '\0';
+                    char *str = dynamic_printf("Function [%s] takes at most %d arguments, but %d were provided", token_name, max_params, arg_count);
+                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, func_len);
+                }
+            }
+        }
+    }
 }
 
 enum textparser_encoding textparser_get_encoding_cfml(textparser_t handle) {
     // https://helpx.adobe.com/coldfusion/cfml-reference/coldfusion-tags/tags-p-q/cfprocessingdirective.html
-    // Parse first 4096 bytes of the file to check for cfprocessingdirective cf tag
-
+    //
+    // Implementation Logic for Encoding Detection:
+    // NOTE: BOM detection (for UTF-8, UTF-16, UTF-32) is already handled in
+    // textparser_openfile when loading the file into memory.
+    // 
+    // ASCII-compatible Scan for <cfprocessingdirective pageEncoding="...">:
+    // - If there is no BOM, the parser assumes the file is in an ASCII-compatible encoding
+    //   (like UTF-8, Latin-1/ISO-8859-1, Big5, Shift-JIS, GBK).
+    // - In all ASCII-compatible encodings, the bytes representing English letters and tags
+    //   are identical to standard ASCII (values below 0x80).
+    // - Thus, the parser scans the first 4KB of the raw file byte-by-byte looking for the
+    //   case-insensitive string "cfprocessingdirective" and extracts the "pageEncoding" value.
+    // - Once resolved, the parser resets and re-reads the file in that encoding.
+    //
+    // BOM Requirement for Non-ASCII Encodings:
+    // If the file is in a non-ASCII-compatible encoding (like UTF-16 or UTF-32) but lacks a BOM,
+    // it will fail to be decoded correctly before reaching this check because a UTF-16/32
+    // tag like <cfprocessingdirective> would contain interleaved null bytes and fail to match
+    // during the initial ASCII-compatible scan. A BOM is required for the file-loader
+    // (textparser_openfile) to decode it before searching for the tag.
 
     const char *text = textparser_get_text(handle);
 
-
-    //const char *text_addr;
-    //size_t text_size;
+    // TODO: implement cfprocessingdirective pageEncoding scan logic.
 
     return TEXTPARSER_ENCODING_UNICODE;
 }
 
-textparser_validation *textparser_validate_cfml(textparser_t handle) {
-    textparser_validation *ret = nullptr;
-    textparser_token_item *token = nullptr;
-
-    token = textparser_get_first_token(handle);
+static void textparser_validate_cfml_tree(textparser_validation **ret, textparser_t handle, textparser_token_item *token) {
     while (token != nullptr) {
-
-        textparser_validate_cfml_token(&ret, handle, token);
-
+        textparser_validate_cfml_token(ret, handle, token);
+        if (token->child != nullptr) {
+            textparser_validate_cfml_tree(ret, handle, token->child);
+        }
         token = token->next;
     }
+}
 
+textparser_validation *textparser_validate_cfml(textparser_t handle) {
+    textparser_validation *ret = nullptr;
+    textparser_token_item *token = textparser_get_first_token(handle);
+    textparser_validate_cfml_tree(&ret, handle, token);
     return ret;
 }
