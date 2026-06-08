@@ -71,6 +71,7 @@ struct textparser_handle {
     textparser_token_item *first_item;
     size_t error_offset;
     const char *error;
+    size_t token_count;
     const char *text_addr;
     size_t text_size;
     size_t no_lines;
@@ -314,14 +315,8 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
     size_t len = 0;
 
     definition = handle->language;
-    if (definition == nullptr || definition->tokens == nullptr || token_id < 0) {
+    if (definition == nullptr || definition->tokens == nullptr || token_id < 0 || (size_t)token_id >= handle->token_count) {
         return TOKEN_NOT_FOUND;
-    }
-
-    for (int i = 0; i <= token_id; i++) {
-        if (definition->tokens[i].name == nullptr) {
-            return TOKEN_NOT_FOUND;
-        }
     }
 
     token = &definition->tokens[token_id];
@@ -1012,13 +1007,13 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         return nullptr;
     }
 
-    if (token_id < TextParser_START) {
-        LOGE("token_id < TextParser_START");
+    if (token_id < TextParser_START || (size_t)token_id >= handle->token_count) {
+        LOGE("token_id out of bounds");
         return nullptr;
     }
 
-    if (parent_token_id < TextParser_END) {
-        LOGE("parent_token_id < TextParser_END");
+    if (parent_token_id < TextParser_END || (parent_token_id != TextParser_END && (size_t)parent_token_id >= handle->token_count)) {
+        LOGE("parent_token_id out of bounds");
         return nullptr;
     }
 
@@ -1080,6 +1075,8 @@ static void textparser_init_regex(struct textparser_handle *handle)
     while(handle->language->tokens[token_cnt].name != nullptr)
         token_cnt++;
 
+    handle->token_count = (size_t)token_cnt;
+
     if (token_cnt > 0)
     {
         size_t malloc_size = (size_t)token_cnt * sizeof(void *);
@@ -1105,14 +1102,13 @@ static void textparser_init_regex(struct textparser_handle *handle)
 static void textparser_free_regex(struct textparser_handle *handle)
 {
     enum textparser_encoding text_format = TEXTPARSER_ENCODING_NONE;
-    int token_cnt = 0;
 
     if ((handle == nullptr)||((handle->start_regex == nullptr)&&(handle->end_regex == nullptr)))
         return;
 
     text_format = handle->text_format;
 
-    while(handle->language->tokens[token_cnt].name != nullptr) token_cnt++;
+    size_t token_cnt = handle->token_count;
 
     if (handle->start_regex)
     {
