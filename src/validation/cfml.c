@@ -47,7 +47,7 @@ static char *dynamic_printf(const char *format, ...) {
     return buffer;
 }
 
-static void textparser_validation_item_add(enum textparser_validation_item_type type, textparser_validation **validation, char *text, int position, int length) {
+static void textparser_validation_item_add(enum textparser_validation_item_type type, textparser_validation **validation, char *text, size_t position, size_t length) {
     if (*validation == nullptr) {
         textparser_validation *new_val = malloc(offsetof(textparser_validation, items));
         if (new_val == nullptr) {

@@ -102,8 +102,8 @@ typedef struct {
 
 typedef struct {
     enum textparser_validation_item_type type;
-    int position;
-    int length;
+    size_t position;
+    size_t length;
     char *text;
 } textparser_validation_item;
 
