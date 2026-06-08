@@ -172,12 +172,12 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             struct json_object *key_value = nullptr;
             const char *str_val = nullptr;
 
-            // Use the key as the name if "name" field is missing?
-            // The JSON definition usually includes "name" inside.
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "name", &key_value);
             str_val = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].name = strdup(str_val ? str_val : key);
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "type", &key_value);
             str_val = json_object_get_string(key_value);
             if (str_val) {
@@ -196,35 +196,45 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                 goto err;
             }
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "start_regex", &key_value);
             str_val = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].start_regex = str_val ? strdup(str_val) : nullptr;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "end_regex", &key_value);
             str_val = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].end_regex = str_val ? strdup(str_val) : nullptr;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "other_text_inside", &key_value);
             (*definition)->tokens[token_idx].other_text_inside = key_value ? json_object_get_boolean(key_value) : false;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "delete_if_only_one_child", &key_value);
             (*definition)->tokens[token_idx].delete_if_only_one_child = key_value ? json_object_get_boolean(key_value) : false;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "must_have_one_child", &key_value);
             (*definition)->tokens[token_idx].must_have_one_child = key_value ? json_object_get_boolean(key_value) : false;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "multi_line", &key_value);
             (*definition)->tokens[token_idx].multi_line = key_value ? json_object_get_boolean(key_value) : false;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "search_parent_end_token_last", &key_value);
             (*definition)->tokens[token_idx].search_parent_end_token_last = key_value ? json_object_get_boolean(key_value) : false;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "text_color", &key_value);
             (*definition)->tokens[token_idx].text_color = key_value ? ((uint32_t)json_object_get_int64(key_value)) : TEXTPARSER_NOCOLOR;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "text_background", &key_value);
             (*definition)->tokens[token_idx].text_background = key_value ? ((uint32_t)json_object_get_int64(key_value)) : TEXTPARSER_NOCOLOR;
 
+            key_value = nullptr;
             json_object_object_get_ex(token_item, "text_flags", &key_value);
             (*definition)->tokens[token_idx].text_flags = key_value ? ((uint32_t)json_object_get_int64(key_value)) : 0;
 
