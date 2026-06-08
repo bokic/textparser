@@ -1094,6 +1094,8 @@ static void textparser_init_regex(struct textparser_handle *handle)
         handle->end_regex = malloc(malloc_size);
         if (handle->end_regex == nullptr) {
             LOGE("malloc() failed for end_regex");
+            free(handle->start_regex);
+            handle->start_regex = nullptr;
             return;
         }
         memset(handle->end_regex, 0, malloc_size);
