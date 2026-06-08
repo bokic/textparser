@@ -72,17 +72,17 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
     if (colored)
     {
         if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
-            printf("type: \033[48;5;4m%s\033[0m, position: %zd, length: %zd, text: \033[48;5;5m%s\033[0m\n", token_name, item->position, item->len, token_text);
+            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu, text: \033[48;5;5m%s\033[0m\n", token_name, item->position, item->len, token_text);
         } else {
-            printf("type: \033[48;5;4m%s\033[0m, position: %zd, length: %zd\n", token_name, item->position, item->len);
+            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu\n", token_name, item->position, item->len);
         }
     }
     else
     {
         if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
-            printf("type: %s, position: %zd, length: %zd, text: %s\n", token_name, item->position, item->len, token_text);
+            printf("type: %s, position: %zu, length: %zu, text: %s\n", token_name, item->position, item->len, token_text);
         } else {
-            printf("type: %s, position: %zd, length: %zd\n", token_name, item->position, item->len);
+            printf("type: %s, position: %zu, length: %zu\n", token_name, item->position, item->len);
         }
     }
 
