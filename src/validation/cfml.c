@@ -12,6 +12,12 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#ifdef _WIN32
+#define strncasecmp _strnicmp
+#else
+#include <strings.h>
+#endif
+
 
 static char *dynamic_printf(const char *format, ...) {
     va_list args1, args2;
