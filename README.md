@@ -187,15 +187,15 @@ python3 python/validate_cfml.py /path/to/cfml/files
 ```
 
 ## Build
-> `git clone https://github.com/bokic/cfrds.git`
+> `git clone https://github.com/bokic/textparser.git`
 > 
-> `cd cfrds`
+> `cd textparser`
 > 
 > `cmake -B build`
 > 
 > `cmake --build build`
 > 
-> `bin/cfrds`
+> `bin/textparser`
 
 ## Installation
 * Linux
@@ -205,7 +205,12 @@ python3 python/validate_cfml.py /path/to/cfml/files
 * Windows
     > See project [releases](https://github.com/bokic/textparser/releases) page.
 * MacOS
-  * homebrew [TODO!]
+  * homebrew
+    > `git clone https://github.com/bokic/textparser.git`
+    >.
+    > `cd textparser`
+    >.
+    > `brew install --build-from-source ./MacOS/textparser.rb`
 
 ## License
 
