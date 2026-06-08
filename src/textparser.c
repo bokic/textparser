@@ -1541,6 +1541,10 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
     if ((handle == nullptr)||(item == nullptr)||(item->len <= 0))
         return nullptr;
 
+    size_t total_units = textparser_get_total_units(handle);
+    if (item->len > total_units || item->position > total_units - item->len)
+        return nullptr;
+
     if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16) {
         ret = malloc(item->len + 1);
         if (ret) {
@@ -1579,6 +1583,10 @@ uint16_t *textparser_get_token_text16(const textparser_t handle, const textparse
     if (handle->text_format != TEXTPARSER_ENCODING_UNICODE && handle->text_format != TEXTPARSER_ENCODING_UTF_16)
         return nullptr;
 
+    size_t total_units = textparser_get_total_units(handle);
+    if (item->len > total_units || item->position > total_units - item->len)
+        return nullptr;
+
     uint16_t *ret = malloc((item->len + 1) * sizeof(uint16_t));
     if (ret) {
         const uint16_t *src = (const uint16_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
@@ -1594,6 +1602,10 @@ uint32_t *textparser_get_token_text32(const textparser_t handle, const textparse
         return nullptr;
 
     if (handle->text_format != TEXTPARSER_ENCODING_UTF_32)
+        return nullptr;
+
+    size_t total_units = textparser_get_total_units(handle);
+    if (item->len > total_units || item->position > total_units - item->len)
         return nullptr;
 
     uint32_t *ret = malloc((item->len + 1) * sizeof(uint32_t));

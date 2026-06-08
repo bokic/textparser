@@ -104,6 +104,29 @@ TEST(parse_Callback, basic_callback) {
     textparser_close(handle);
 }
 
+TEST(parse_Callback, get_token_text_overflow_protection) {
+    textparser_t handle = nullptr;
+    const char *text = "10";
+    int err = textparser_openmem(text, strlen(text), scratch_definition.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+
+    textparser_token_item item;
+    memset(&item, 0, sizeof(item));
+    item.position = 0;
+    item.len = SIZE_MAX;
+
+    char *txt = textparser_get_token_text(handle, &item);
+    EXPECT_EQ(txt, nullptr);
+
+    uint16_t *txt16 = textparser_get_token_text16(handle, &item);
+    EXPECT_EQ(txt16, nullptr);
+
+    uint32_t *txt32 = textparser_get_token_text32(handle, &item);
+    EXPECT_EQ(txt32, nullptr);
+
+    textparser_close(handle);
+}
+
 static void verify_prev_links_recursive(const textparser_token_item *token) {
     if (!token) return;
 
