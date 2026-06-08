@@ -49,18 +49,34 @@ static char *dynamic_printf(const char *format, ...) {
 
 static void textparser_validation_item_add(enum textparser_validation_item_type type, textparser_validation **validation, char *text, int position, int length) {
     if (*validation == nullptr) {
-        *validation = malloc(offsetof(textparser_validation, items));
+        textparser_validation *new_val = malloc(offsetof(textparser_validation, items));
+        if (new_val == nullptr) {
+            free(text);
+            return;
+        }
+        *validation = new_val;
         (*validation)->len = 0;
     } else {
-        *validation = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item) * ((*validation)->len + 1));
+        textparser_validation *new_val = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * ((*validation)->len + 1));
+        if (new_val == nullptr) {
+            free(text);
+            return;
+        }
+        *validation = new_val;
     }
 
+    textparser_validation_item *item = malloc(sizeof(textparser_validation_item));
+    if (item == nullptr) {
+        free(text);
+        return;
+    }
+    item->type = type;
+    item->position = position;
+    item->length = length;
+    item->text = text;
+
+    (*validation)->items[(*validation)->len] = item;
     (*validation)->len++;
-    (*validation)->items[(*validation)->len - 1] = malloc(sizeof(textparser_validation_item));
-    (*validation)->items[(*validation)->len - 1]->type = type;
-    (*validation)->items[(*validation)->len - 1]->position = position;
-    (*validation)->items[(*validation)->len - 1]->length = length;
-    (*validation)->items[(*validation)->len - 1]->text = text;
 }
 
 void textparser_validation_clear(textparser_validation *validation)
