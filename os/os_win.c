@@ -44,12 +44,17 @@ void* os_map(const char *pathname, size_t* size)
         return NULL;
     }
 
-    *size = (size_t)fileSize.QuadPart;
-
-    if (*size == 0) {
+    if (fileSize.QuadPart <= 0) {
         CloseHandle(hnd);
         return NULL;
     }
+
+    if ((ULONGLONG)fileSize.QuadPart > (ULONGLONG)(size_t)-1) {
+        CloseHandle(hnd);
+        return NULL;
+    }
+
+    *size = (size_t)fileSize.QuadPart;
 
     HANDLE map_hnd = CreateFileMapping(hnd, NULL, PAGE_READONLY, 0, 0, NULL);
     if (map_hnd == NULL) {
