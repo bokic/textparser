@@ -1337,6 +1337,10 @@ err:
 
 int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle)
 {
+    if (len < 0 || handle == nullptr || text == nullptr) {
+        return -1;
+    }
+
     struct textparser_handle *ret = nullptr;
 
     ret = malloc(sizeof(struct textparser_handle));

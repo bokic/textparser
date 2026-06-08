@@ -658,6 +658,24 @@ TEST(parse_CFML, validation_tag_at_eof) {
     }
 }
 
+TEST(parse_CFML, openmem_invalid_params) {
+    textparser_t handle = nullptr;
+    // 1. Negative length
+    int res = textparser_openmem("test", -1, TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(res, -1);
+    ASSERT_EQ(handle, nullptr);
+
+    // 2. nullptr handle
+    res = textparser_openmem("test", 4, TEXTPARSER_ENCODING_LATIN1, nullptr);
+    ASSERT_EQ(res, -1);
+
+    // 3. nullptr text
+    res = textparser_openmem(nullptr, 4, TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(res, -1);
+    ASSERT_EQ(handle, nullptr);
+}
+
+
 
 
 
