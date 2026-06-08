@@ -32,7 +32,7 @@ static int active_handle_count = 0;
         goto exit;                                                                            \
     }                                                                                         \
     if (child->len == 0) {                                                                    \
-        LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", handle->error, offset); \
+        LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", handle->error ? handle->error : "none", offset); \
         goto exit;                                                                            \
     }
 
