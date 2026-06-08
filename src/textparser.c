@@ -1764,21 +1764,22 @@ const char *textparser_get_token_error(const textparser_token_item *token)
 
 static void textparser_parse_state_recursively_fill(const textparser_token_item *token, const textparser_token_item **state)
 {
-    if (token == nullptr)
+    while (token != nullptr)
     {
-        return;
+        size_t pos = token->position;
+        size_t len = token->len;
+
+        for (size_t c = 0; c < len; c++)
+        {
+            state[pos + c] = token;
+        }
+
+        if (token->child != nullptr)
+        {
+            textparser_parse_state_recursively_fill(token->child, state);
+        }
+        token = token->next;
     }
-
-    size_t pos = token->position;
-    size_t len = token->len;
-
-    for(size_t c = 0; c < len; c++)
-    {
-        state[pos + c] = token;
-    }
-
-    textparser_parse_state_recursively_fill(token->child, state);
-    textparser_parse_state_recursively_fill(token->next, state);
 }
 
 textparser_parser_state *textparser_state_new(const textparser_t handle)
