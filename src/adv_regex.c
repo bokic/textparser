@@ -239,7 +239,7 @@ static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **rege
 
     int rc = pcre2_match_16(
         *regex,                                // the compiled pattern
-        (PCRE2_SPTR16)start,                   // the subject string
+        (PCRE2_SPTR16)(const void *)start,     // the subject string
         max_len,                               // the length of the subject
         0,                                     // start at offset 0 in the subject
         only_at_start?PCRE2_ANCHORED:0,        // default options
@@ -321,7 +321,7 @@ static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **rege
 
     int rc = pcre2_match_32(
         *regex,                                // the compiled pattern
-        (PCRE2_SPTR32)start,                   // the subject string
+        (PCRE2_SPTR32)(const void *)start,     // the subject string
         max_len,                               // the length of the subject
         0,                                     // start at offset 0 in the subject
         only_at_start?PCRE2_ANCHORED:0, // default options
