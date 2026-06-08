@@ -463,7 +463,10 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
     }
 
     child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, prev_sibling);
-    if (child) child->parent = ret;
+    if (child == nullptr) {
+        exit_with_error("Search for group_one_child token type failed. Child token parsing failed.", offset);
+    }
+    child->parent = ret;
     LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %zd", handle->language->tokens[child->token_id].name, child->position);
     ret->position = child->position;
     ret->len = child->len;
@@ -580,16 +583,21 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
         {
             if (child == nullptr) {
                 child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
-                if (child) child->parent = ret;
+                if (child == nullptr) {
+                    exit_with_error("Parsing child token failed", offset);
+                }
+                child->parent = ret;
                 ret->child = child;
                 check_and_exit_on_fatal_parsing_error(offset);
             } else {
-                child->next = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
-                if (child->next) {
-                    child->next->parent = ret;
-                    child->next->prev = child;
+                textparser_token_item *next_child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
+                if (next_child == nullptr) {
+                    exit_with_error("Parsing child token failed", offset);
                 }
-                child = child->next;
+                next_child->parent = ret;
+                next_child->prev = child;
+                child->next = next_child;
+                child = next_child;
                 check_and_exit_on_fatal_parsing_error(offset);
             }
 
@@ -718,10 +726,11 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
 
     offset = textparser_skip_whitespace(handle, offset);
     child = textparser_parse_token(handle, end_token_id, parent_token_id, parent_start_stop, offset, ret, last_child);
-    if (child) {
-        child->parent = ret;
-        child->prev = last_child;
+    if (child == nullptr) {
+        exit_with_error("Parsing end token failed", offset);
     }
+    child->parent = ret;
+    child->prev = last_child;
     last_child->next = child;
     check_and_exit_on_fatal_parsing_error(offset);
 
@@ -895,11 +904,12 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             if (child_token_id != TextParser_END)
             {
                 child = textparser_parse_token(handle, child_token_id, token_id, TEXTPARSER_SEARCH_END_TOKEN, offset, ret, current_prev);
-                if (child) {
-                    child->parent = ret;
-                    if (last_child) {
-                        child->prev = last_child;
-                    }
+                if (child == nullptr) {
+                    exit_with_error("Parsing nested child token failed", offset);
+                }
+                child->parent = ret;
+                if (last_child) {
+                    child->prev = last_child;
                 }
                 if (ret->child == nullptr)
                     ret->child = child;
