@@ -1194,7 +1194,15 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     local_hnd.text_addr = local_hnd.mmap_addr;
     local_hnd.text_size = local_hnd.mmap_size;
 
-    if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xef')&&(local_hnd.text_addr[1] == '\xbb')&&(local_hnd.text_addr[2] == '\xbf')) {
+    if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x00')&&(local_hnd.text_addr[1] == '\x00')&&(local_hnd.text_addr[2] == '\xfe')&&(local_hnd.text_addr[3] == '\xff')) {
+        local_hnd.text_addr += 4;
+        local_hnd.text_size -= 4;
+        local_hnd.bom = BOM_UTF_32_BE;
+    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xff')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\x00')&&(local_hnd.text_addr[3] == '\x00')) {
+        local_hnd.text_addr += 4;
+        local_hnd.text_size -= 4;
+        local_hnd.bom = BOM_UTF_32_LE;
+    } else if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xef')&&(local_hnd.text_addr[1] == '\xbb')&&(local_hnd.text_addr[2] == '\xbf')) {
         local_hnd.text_addr += 3;
         local_hnd.text_size -= 3;
         local_hnd.bom = BOM_UTF_8;
@@ -1206,14 +1214,6 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         local_hnd.text_addr += 2;
         local_hnd.text_size -= 2;
         local_hnd.bom = BOM_UTF_16_LE;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x00')&&(local_hnd.text_addr[1] == '\x00')&&(local_hnd.text_addr[2] == '\xfe')&&(local_hnd.text_addr[3] == '\xff')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_32_BE;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xff')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\x00')&&(local_hnd.text_addr[3] == '\x00')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_32_LE;
     } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
