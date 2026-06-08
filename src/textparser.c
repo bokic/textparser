@@ -314,6 +314,16 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
     size_t len = 0;
 
     definition = handle->language;
+    if (definition == nullptr || definition->tokens == nullptr || token_id < 0) {
+        return TOKEN_NOT_FOUND;
+    }
+
+    for (int i = 0; i <= token_id; i++) {
+        if (definition->tokens[i].name == nullptr) {
+            return TOKEN_NOT_FOUND;
+        }
+    }
+
     token = &definition->tokens[token_id];
     text = handle->text_addr + textparser_get_byte_offset(handle, pos);
     len = textparser_get_total_units(handle) - pos;
