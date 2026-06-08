@@ -1212,6 +1212,11 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     local_hnd.text_addr = local_hnd.mmap_addr;
     local_hnd.text_size = local_hnd.mmap_size;
 
+    if (local_hnd.text_size >= MAX_PARSE_SIZE) {
+        err = 8;
+        goto err;
+    }
+
     if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x00')&&(local_hnd.text_addr[1] == '\x00')&&(local_hnd.text_addr[2] == '\xfe')&&(local_hnd.text_addr[3] == '\xff')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
@@ -1337,6 +1342,10 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
         return -1;
     }
 
+    if ((size_t)len >= MAX_PARSE_SIZE) {
+        return -1;
+    }
+
     struct textparser_handle *ret = nullptr;
 
     ret = malloc(sizeof(struct textparser_handle));
@@ -1413,6 +1422,9 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
         return -1;
 
     if (definition == nullptr)
+        return -1;
+
+    if (handle->text_size >= MAX_PARSE_SIZE)
         return -1;
 
     // Reset error state
