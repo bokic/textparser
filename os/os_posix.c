@@ -32,6 +32,8 @@ ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
     return write(hnd_fd, buffer, len);
 }
 
+#include <stdint.h>
+
 void* os_map(const char *pathname, size_t* size)
 {
     void* ret = nullptr;
@@ -48,7 +50,10 @@ void* os_map(const char *pathname, size_t* size)
     if (stat.st_size <= 0)
         return nullptr;
 
-    ret = mmap(nullptr, (unsigned)stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if ((uintmax_t)stat.st_size > (uintmax_t)SIZE_MAX)
+        return nullptr;
+
+    ret = mmap(nullptr, (size_t)stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (ret == MAP_FAILED)
         return nullptr;
 
