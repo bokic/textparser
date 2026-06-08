@@ -59,7 +59,13 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         goto err;
     }
 
-    (*definition)->name = strdup(json_object_get_string(value));
+    const char *name_str = json_object_get_string(value);
+    if (name_str == nullptr) {
+        (*definition)->error_string = "Mandatory field `name` is null!";
+        ret_code = TEXTPARSER_JSON_NAME_NOT_FOUND;
+        goto err;
+    }
+    (*definition)->name = strdup(name_str);
 
     found = json_object_object_get_ex(root_obj, "version", &value);
     if (found)
@@ -68,8 +74,10 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->version = 0.;
 
     found = json_object_object_get_ex(root_obj, "emptySegmentLanguage", &value);
-    if (found)
-        (*definition)->empty_segment_language = strdup(json_object_get_string(value));
+    if (found) {
+        const char *empty_lang = json_object_get_string(value);
+        (*definition)->empty_segment_language = empty_lang ? strdup(empty_lang) : nullptr;
+    }
 
     found = json_object_object_get_ex(root_obj, "caseSensitivity", &value);
     if (!found) {
@@ -98,7 +106,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
         for(size_t i = 0; i < array_length; i++) {
             json_object *array_item = json_object_array_get_idx(value, i);
-            (*definition)->default_file_extensions[i] = strdup(json_object_get_string(array_item));
+            const char *ext_str = json_object_get_string(array_item);
+            (*definition)->default_file_extensions[i] = ext_str ? strdup(ext_str) : nullptr;
         }
 
         (*definition)->default_file_extensions[array_length] = nullptr;
