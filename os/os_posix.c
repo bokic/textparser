@@ -4,6 +4,7 @@
 
 #include "os.h"
 #include <stdio.h>
+#include <errno.h>
 
 
 #ifndef _POSIX_C_SOURCE
@@ -29,7 +30,24 @@ void os_file_close(file_hnd_fd hnd_fd)
 
 ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 {
-    return write(hnd_fd, buffer, len);
+    size_t total_written = 0;
+    const char *ptr = (const char *)buffer;
+
+    while (total_written < len) {
+        ssize_t written = write(hnd_fd, ptr + total_written, len - total_written);
+        if (written < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return -1;
+        }
+        if (written == 0) {
+            break;
+        }
+        total_written += written;
+    }
+
+    return (ssize_t)total_written;
 }
 
 #include <stdint.h>
@@ -69,7 +87,24 @@ void os_unmap(void* addr, size_t size)
 
 ssize_t os_write_to_terminal(const void *buffer, size_t len)
 {
-    return write(STDOUT_FILENO, buffer, len);
+    size_t total_written = 0;
+    const char *ptr = (const char *)buffer;
+
+    while (total_written < len) {
+        ssize_t written = write(STDOUT_FILENO, ptr + total_written, len - total_written);
+        if (written < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return -1;
+        }
+        if (written == 0) {
+            break;
+        }
+        total_written += written;
+    }
+
+    return (ssize_t)total_written;
 }
 
 void os_file_cleanup(void *fd) {
