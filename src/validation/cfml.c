@@ -134,8 +134,9 @@ static bool has_matching_end_tag(const char *text, textparser_token_item *start_
     while (curr != nullptr) {
         if (is_start_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 1;
+            size_t max_len = curr->len > 1 ? curr->len - 1 : 0;
             size_t curr_len = 0;
-            while (curr_name[curr_len] &&
+            while (curr_len < max_len && curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -150,8 +151,9 @@ static bool has_matching_end_tag(const char *text, textparser_token_item *start_
         }
         else if (is_end_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 2;
+            size_t max_len = curr->len > 2 ? curr->len - 2 : 0;
             size_t curr_len = 0;
-            while (curr_name[curr_len] &&
+            while (curr_len < max_len && curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -176,8 +178,9 @@ static bool has_matching_start_tag(const char *text, textparser_token_item *end_
     while (curr != nullptr) {
         if (is_end_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 2;
+            size_t max_len = curr->len > 2 ? curr->len - 2 : 0;
             size_t curr_len = 0;
-            while (curr_name[curr_len] &&
+            while (curr_len < max_len && curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -190,8 +193,9 @@ static bool has_matching_start_tag(const char *text, textparser_token_item *end_
         }
         else if (is_start_tag_token(curr->token_id)) {
             const char *curr_name = text + curr->position + 1;
+            size_t max_len = curr->len > 1 ? curr->len - 1 : 0;
             size_t curr_len = 0;
-            while (curr_name[curr_len] &&
+            while (curr_len < max_len && curr_name[curr_len] &&
                    ((curr_name[curr_len] >= 'a' && curr_name[curr_len] <= 'z') ||
                     (curr_name[curr_len] >= 'A' && curr_name[curr_len] <= 'Z') ||
                     (curr_name[curr_len] >= '0' && curr_name[curr_len] <= '9') ||
@@ -228,8 +232,9 @@ static void textparser_validate_cfml_token(textparser_validation **ret, textpars
     if (is_start_tag_token(token->token_id)) {
         // Get tag name and length
         const char *tag_name = text + token->position + 1;
+        size_t max_len = token->len > 1 ? token->len - 1 : 0;
         size_t tag_len = 0;
-        while (tag_name[tag_len] &&
+        while (tag_len < max_len && tag_name[tag_len] &&
                ((tag_name[tag_len] >= 'a' && tag_name[tag_len] <= 'z') ||
                 (tag_name[tag_len] >= 'A' && tag_name[tag_len] <= 'Z') ||
                 (tag_name[tag_len] >= '0' && tag_name[tag_len] <= '9') ||
@@ -272,8 +277,9 @@ static void textparser_validate_cfml_token(textparser_validation **ret, textpars
     else if (is_end_tag_token(token->token_id)) {
         // Get tag name and length (skipping </)
         const char *tag_name = text + token->position + 2;
+        size_t max_len = token->len > 2 ? token->len - 2 : 0;
         size_t tag_len = 0;
-        while (tag_name[tag_len] &&
+        while (tag_len < max_len && tag_name[tag_len] &&
                ((tag_name[tag_len] >= 'a' && tag_name[tag_len] <= 'z') ||
                 (tag_name[tag_len] >= 'A' && tag_name[tag_len] <= 'Z') ||
                 (tag_name[tag_len] >= '0' && tag_name[tag_len] <= '9') ||

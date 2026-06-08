@@ -622,5 +622,42 @@ TEST(parse_CFML, validation_cfprocessingdirective_position) {
     }
 }
 
+TEST(parse_CFML, validation_tag_at_eof) {
+    // 1. Start tag at EOF
+    {
+        const char *input = "<cfoutput";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(input, strlen(input), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, -1);
+        ASSERT_NE(textparser_get_first_token(handle), nullptr);
+
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        if (validation) {
+            textparser_validation_clear(validation);
+        }
+        textparser_close(handle);
+    }
+
+    // 2. End tag at EOF
+    {
+        const char *input = "</cfcomponent";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(input, strlen(input), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, -1);
+        ASSERT_NE(textparser_get_first_token(handle), nullptr);
+
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        if (validation) {
+            textparser_validation_clear(validation);
+        }
+        textparser_close(handle);
+    }
+}
+
+
 
 
