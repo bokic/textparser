@@ -60,6 +60,7 @@ target_include_directories( unittests PRIVATE
 )
 target_link_libraries( unittests
   libtextparser
+  libtextparser-json
   cfml
   GTest::gtest_main
 )

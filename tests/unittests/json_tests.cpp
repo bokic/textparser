@@ -206,3 +206,50 @@ TEST(parse_JSON, utf32_non_ascii) {
     
     textparser_close(handle);
 }
+
+#include <textparser-json.h>
+
+TEST(parse_JSON, runtime_load_definition_from_string) {
+    const char *json_def_str = R"({
+        "name": "test_lang",
+        "version": 2.5,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["MyToken"],
+        "otherTextInside": true,
+        "tokens": {
+            "MyToken": {
+                "type": "SimpleToken",
+                "startRegex": "hello",
+                "textColor": "0x123456",
+                "textBackground": "0x789abc",
+                "textFlags": "3"
+            }
+        }
+    })";
+
+    textparser_language_definition *definition = nullptr;
+    int err = textparser_json_load_language_definition_from_string(json_def_str, &definition);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(definition, nullptr);
+
+    EXPECT_STREQ(definition->name, "test_lang");
+    EXPECT_DOUBLE_EQ(definition->version, 2.5);
+    EXPECT_TRUE(definition->case_sensitivity);
+    ASSERT_NE(definition->default_file_extensions, nullptr);
+    EXPECT_STREQ(definition->default_file_extensions[0], "txt");
+    EXPECT_EQ(definition->default_text_encoding, TEXTPARSER_ENCODING_UTF_8);
+    EXPECT_TRUE(definition->other_text_inside);
+
+    ASSERT_NE(definition->tokens, nullptr);
+    EXPECT_STREQ(definition->tokens[0].name, "MyToken");
+    EXPECT_EQ(definition->tokens[0].type, TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN);
+    EXPECT_STREQ(definition->tokens[0].start_regex, "hello");
+    EXPECT_EQ(definition->tokens[0].text_color, 0x123456);
+    EXPECT_EQ(definition->tokens[0].text_background, 0x789abc);
+    EXPECT_EQ(definition->tokens[0].text_flags, 3);
+
+    textparser_free_language_definition(definition);
+}
+

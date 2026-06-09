@@ -26,6 +26,20 @@ static void json_object_cleanup(struct json_object **handle)
     }
 }
 
+static uint32_t get_color_or_flag_value(struct json_object *obj, uint32_t default_val)
+{
+    if (obj == nullptr) {
+        return default_val;
+    }
+    if (json_object_get_type(obj) == json_type_string) {
+        const char *str = json_object_get_string(obj);
+        if (str) {
+            return (uint32_t)strtoul(str, nullptr, 0);
+        }
+    }
+    return (uint32_t)json_object_get_int64(obj);
+}
+
 static int textparser_json_load_language_definition_internal(struct json_object *root_obj, textparser_language_definition **definition)
 {
     size_t array_length = 0;
@@ -118,12 +132,16 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         const char *encoding = json_object_get_string(value);
         if(strcmp(encoding, "latin1") == 0)
             (*definition)->default_text_encoding = TEXTPARSER_ENCODING_LATIN1;
-        else if(strcmp(encoding, "utf8") == 0)
+        else if(strcmp(encoding, "utf8") == 0 || strcmp(encoding, "utf-8") == 0)
             (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UTF_8;
         else if(strcmp(encoding, "unicode") == 0)
             (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UNICODE;
+        else if(strcmp(encoding, "utf16") == 0 || strcmp(encoding, "utf-16") == 0)
+            (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UTF_16;
+        else if(strcmp(encoding, "utf32") == 0 || strcmp(encoding, "utf-32") == 0)
+            (*definition)->default_text_encoding = TEXTPARSER_ENCODING_UTF_32;
         else {
-            (*definition)->error_string = "Invalid `defaultTextEncoding` encoding! Should be one of the following: latin1, utf8, unicode.";
+            (*definition)->error_string = "Invalid `defaultTextEncoding` encoding! Should be one of the following: latin1, utf8, unicode, utf16, utf32.";
             ret_code = TEXTPARSER_JSON_ENCODING_NOT_FOUND;
             goto err;
         }
@@ -206,46 +224,68 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             }
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "start_regex", &key_value);
+            if (!json_object_object_get_ex(token_item, "startRegex", &key_value)) {
+                if (!json_object_object_get_ex(token_item, "regex", &key_value)) {
+                    json_object_object_get_ex(token_item, "start_regex", &key_value);
+                }
+            }
             str_val = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].start_regex = str_val ? strdup(str_val) : nullptr;
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "end_regex", &key_value);
+            if (!json_object_object_get_ex(token_item, "endRegex", &key_value)) {
+                json_object_object_get_ex(token_item, "end_regex", &key_value);
+            }
             str_val = json_object_get_string(key_value);
             (*definition)->tokens[token_idx].end_regex = str_val ? strdup(str_val) : nullptr;
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "other_text_inside", &key_value);
+            if (!json_object_object_get_ex(token_item, "otherTextInside", &key_value)) {
+                json_object_object_get_ex(token_item, "other_text_inside", &key_value);
+            }
             (*definition)->tokens[token_idx].other_text_inside = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "delete_if_only_one_child", &key_value);
+            if (!json_object_object_get_ex(token_item, "deleteIfOnlyOneChild", &key_value)) {
+                json_object_object_get_ex(token_item, "delete_if_only_one_child", &key_value);
+            }
             (*definition)->tokens[token_idx].delete_if_only_one_child = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "must_have_one_child", &key_value);
+            if (!json_object_object_get_ex(token_item, "mustHaveOneChild", &key_value)) {
+                json_object_object_get_ex(token_item, "must_have_one_child", &key_value);
+            }
             (*definition)->tokens[token_idx].must_have_one_child = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "multi_line", &key_value);
+            if (!json_object_object_get_ex(token_item, "multiLine", &key_value)) {
+                json_object_object_get_ex(token_item, "multi_line", &key_value);
+            }
             (*definition)->tokens[token_idx].multi_line = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "search_parent_end_token_last", &key_value);
+            if (!json_object_object_get_ex(token_item, "searchParentEndTokenLast", &key_value)) {
+                json_object_object_get_ex(token_item, "search_parent_end_token_last", &key_value);
+            }
             (*definition)->tokens[token_idx].search_parent_end_token_last = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "text_color", &key_value);
-            (*definition)->tokens[token_idx].text_color = key_value ? ((uint32_t)json_object_get_int64(key_value)) : TEXTPARSER_NOCOLOR;
+            if (!json_object_object_get_ex(token_item, "textColor", &key_value)) {
+                json_object_object_get_ex(token_item, "text_color", &key_value);
+            }
+            (*definition)->tokens[token_idx].text_color = get_color_or_flag_value(key_value, TEXTPARSER_NOCOLOR);
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "text_background", &key_value);
-            (*definition)->tokens[token_idx].text_background = key_value ? ((uint32_t)json_object_get_int64(key_value)) : TEXTPARSER_NOCOLOR;
+            if (!json_object_object_get_ex(token_item, "textBackground", &key_value)) {
+                json_object_object_get_ex(token_item, "text_background", &key_value);
+            }
+            (*definition)->tokens[token_idx].text_background = get_color_or_flag_value(key_value, TEXTPARSER_NOCOLOR);
 
             key_value = nullptr;
-            json_object_object_get_ex(token_item, "text_flags", &key_value);
-            (*definition)->tokens[token_idx].text_flags = key_value ? ((uint32_t)json_object_get_int64(key_value)) : 0;
+            if (!json_object_object_get_ex(token_item, "textFlags", &key_value)) {
+                json_object_object_get_ex(token_item, "text_flags", &key_value);
+            }
+            (*definition)->tokens[token_idx].text_flags = get_color_or_flag_value(key_value, 0);
 
             token_idx++;
         }
@@ -259,20 +299,20 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             struct json_object *nested_tokens_json = nullptr;
             (void)key;
 
-            json_object_object_get_ex(token_item, "nested_tokens", &nested_tokens_json);
+            nested_tokens_json = nullptr;
+            if (!json_object_object_get_ex(token_item, "nestedTokens", &nested_tokens_json)) {
+                json_object_object_get_ex(token_item, "nested_tokens", &nested_tokens_json);
+            }
             if (nested_tokens_json) {
                 if (!json_object_is_type(nested_tokens_json, json_type_array)) {
-                    (*definition)->error_string = "`nested_tokens` is not array!";
+                    (*definition)->error_string = "`nestedTokens` is not array!";
                     ret_code = TEXTPARSER_JSON_NESTED_TOKENS_NOT_ARRAY;
                     goto err;
                 }
 
                 size_t nested_cnt = json_object_array_length(nested_tokens_json);
-                // Allow empty array? Existing code checked if empty.
-                // Assuming empty is fine, but code returned TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY.
-                // We keep original behavior for error code, but maybe empty array is valid (just no children).
                 if (nested_cnt == 0) {
-                     (*definition)->error_string = "`nested_tokens` array is empty!";
+                     (*definition)->error_string = "`nestedTokens` array is empty!";
                      ret_code = TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY;
                      goto err;
                 }
@@ -291,8 +331,8 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                      int found_idx = TextParser_END;
                      for(size_t j = 0; j < tokens_cnt; j++) {
                           if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
-                              found_idx = (int)j;
-                              break;
+                               found_idx = (int)j;
+                               break;
                           }
                      }
                      (*definition)->tokens[token_idx].nested_tokens[i] = found_idx;
