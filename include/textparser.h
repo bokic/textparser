@@ -123,6 +123,7 @@ EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
 EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_language_definition *definition);
+EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos);
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle);
 
@@ -155,6 +156,7 @@ EXPORT_TEXTPARSER size_t textparser_get_line_start_position(const textparser_t h
 EXPORT_TEXTPARSER size_t textparser_get_line_number_at_position(const textparser_t handle, size_t position);
 
 EXPORT_TEXTPARSER textparser_parser_state *textparser_state_new(const textparser_t handle);
+EXPORT_TEXTPARSER textparser_parser_state *textparser_state_generate(const textparser_t handle, size_t position);
 EXPORT_TEXTPARSER void textparser_state_free(textparser_parser_state *state);
 EXPORT_TEXTPARSER void textparser_state_cleanup(textparser_parser_state **state);
 

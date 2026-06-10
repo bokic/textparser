@@ -675,6 +675,64 @@ TEST(parse_CFML, openmem_invalid_params) {
     ASSERT_EQ(handle, nullptr);
 }
 
+TEST(parse_CFML, incremental_parsing_with_generated_state) {
+    const char *initial_input = "<cfset a = 12>";
+    textparser_t handle = nullptr;
+    int res = textparser_openmem(initial_input, strlen(initial_input), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(res, 0);
+    res = textparser_parse(handle, &cfml_definition);
+    ASSERT_EQ(res, 0);
+
+    // Generate parser state directly from the AST at position 11
+    textparser_parser_state *state = textparser_state_generate(handle, 11);
+    ASSERT_NE(state, nullptr);
+
+    // Modify the document: insert "34" at position 13 -> "<cfset a = 1234>"
+    const char *new_input = "<cfset a = 1234>";
+    
+    textparser_t handle2 = nullptr;
+    res = textparser_openmem(new_input, strlen(new_input), TEXTPARSER_ENCODING_LATIN1, &handle2);
+    ASSERT_EQ(res, 0);
+
+    // Set callback to collect highlight tokens
+    struct LocalCallbackData {
+        int count = 0;
+        std::vector<std::string> tokens;
+    } cb_data;
+
+    textparser_set_callback(handle2, [](textparser_t h, textparser_token_item *item, enum textparser_callback_type type, void *user_data) {
+        LocalCallbackData *data = (LocalCallbackData *)user_data;
+        if (type == TEXTPARSER_CALLBACK_TYPE_END) {
+            char *txt = textparser_get_token_text(h, item);
+            if (txt) {
+                data->tokens.push_back(txt);
+                free(txt);
+            }
+            data->count++;
+        }
+    }, &cb_data);
+
+    // Run incremental parse on the modified section [11, 15] using the generated state
+    res = textparser_parse_incremental(handle2, &cfml_definition, state, 11, 15);
+    ASSERT_EQ(res, 0);
+
+    // We expect the callback to be called for the new/modified Number token "1234"
+    EXPECT_GT(cb_data.count, 0);
+    bool found_number = false;
+    for (const auto &token_text : cb_data.tokens) {
+        if (token_text == "1234") {
+            found_number = true;
+        }
+    }
+    EXPECT_TRUE(found_number);
+    
+    // Cleanup
+    textparser_state_free(state);
+    textparser_close(handle);
+    textparser_close(handle2);
+}
+
+
 
 
 
