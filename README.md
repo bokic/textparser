@@ -176,6 +176,29 @@ Here is a simplified example of what a JSON definition might look like (based on
 }
 ```
 
+## Generating Definition Headers
+
+To use a JSON language definition in C code at compile time, it must be converted into a C header file. This project includes a Python utility [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py) to perform this generation.
+
+### Generating a Specific Header
+
+Run the [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py) script located in the `definitions/` directory, passing the path to your JSON definition file as an argument:
+
+```bash
+python3 definitions/json2h.py definitions/your_definition.json
+```
+
+This will create a new C header file (e.g., `definitions/your_definition.json.h`) containing the C struct and tags enum for your language definition.
+
+### Regenerating All Headers
+
+You can also run the provided helper script [regenerate.sh](file:///home/boris/projects/textparser/definitions/regenerate.sh) from the `definitions/` directory to regenerate header files for all JSON definitions:
+
+```bash
+cd definitions
+./regenerate.sh
+```
+
 ## Development and Verification
 
 The `python/` directory contains tools for verifying the parser's correctness, particularly for CFML.
