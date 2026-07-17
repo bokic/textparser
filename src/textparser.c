@@ -472,7 +472,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
         exit_with_error(handle, "Search for group_one_child token type failed. Child token parsing failed.", offset);
     }
     child->parent = ret;
-    LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %zd", handle->language->tokens[child->token_id].name, child->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY - Found [%s] at %zu", handle->language->tokens[child->token_id].name, child->position);
     ret->position = child->position;
     ret->len = child->len;
     ret->child = child;
@@ -791,7 +791,7 @@ static textparser_token_item *parse_token_simple_token(struct textparser_handle 
         exit_with_error(handle, "Can't find start of the token!", offset);
     }
 
-    LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %zd", handle->language->tokens[ret->token_id].name, ret->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s] at %zu", handle->language->tokens[ret->token_id].name, ret->position);
     ret->position = offset;
     ret->len = len;
 
@@ -972,7 +972,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
 
     if (!found_end) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
-            LOGE("Can't find [%s] at %zd. Text: [%s]", token_def->end_regex, offset, handle->text_addr + textparser_get_byte_offset(handle, offset));
+            LOGE("Can't find [%s] at %zu. Text: [%s]", token_def->end_regex, offset, handle->text_addr + textparser_get_byte_offset(handle, offset));
             exit_with_error(handle, "Can't find end of the token!", offset);
         } else {
             ret->len = offset - ret->position;
@@ -980,7 +980,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
         }
     }
 
-    LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %zd", handle->language->tokens[ret->token_id].name, ret->position);
+    LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s] at %zu", handle->language->tokens[ret->token_id].name, ret->position);
     ret->len = offset + token_end + end_len - ret->position;
     offset += token_end + end_len;
 
