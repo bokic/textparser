@@ -1603,6 +1603,8 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
         return nullptr;
 
     if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16) {
+        if (item->len > SIZE_MAX - 1)
+            return nullptr;
         ret = malloc(item->len + 1);
         if (ret) {
             const uint16_t *src = (const uint16_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
@@ -1612,6 +1614,8 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
             ret[item->len] = '\0';
         }
     } else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
+        if (item->len > SIZE_MAX - 1)
+            return nullptr;
         ret = malloc(item->len + 1);
         if (ret) {
             const uint32_t *src = (const uint32_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
@@ -1622,6 +1626,8 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
         }
     } else {
         size_t byte_len = textparser_get_byte_len(handle, item->len);
+        if (byte_len > SIZE_MAX - 1)
+            return nullptr;
         ret = malloc(byte_len + 1);
         if (ret) {
             memcpy(ret, handle->text_addr + textparser_get_byte_offset(handle, item->position), byte_len);
@@ -1644,6 +1650,9 @@ uint16_t *textparser_get_token_text16(const textparser_t handle, const textparse
     if (item->len > total_units || item->position > total_units - item->len)
         return nullptr;
 
+    if (item->len > (SIZE_MAX / sizeof(uint16_t)) - 1)
+        return nullptr;
+
     uint16_t *ret = malloc((item->len + 1) * sizeof(uint16_t));
     if (ret) {
         const uint16_t *src = (const uint16_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
@@ -1663,6 +1672,9 @@ uint32_t *textparser_get_token_text32(const textparser_t handle, const textparse
 
     size_t total_units = textparser_get_total_units(handle);
     if (item->len > total_units || item->position > total_units - item->len)
+        return nullptr;
+
+    if (item->len > (SIZE_MAX / sizeof(uint32_t)) - 1)
         return nullptr;
 
     uint32_t *ret = malloc((item->len + 1) * sizeof(uint32_t));
