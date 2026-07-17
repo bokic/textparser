@@ -49,7 +49,7 @@ typedef struct textparser_handle *textparser_t;
 typedef struct textparser_token_item_s *textparser_token_item_t;
 
 typedef struct {
-    int len;
+    size_t len;
     const struct textparser_token_item *state[];
 } textparser_parser_state;
 
