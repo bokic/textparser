@@ -1340,6 +1340,18 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         goto err;
     }
 
+    if (local_hnd.text_format == TEXTPARSER_ENCODING_UTF_16 || local_hnd.text_format == TEXTPARSER_ENCODING_UNICODE) {
+        if (local_hnd.text_size % sizeof(uint16_t) != 0) {
+            err = 9;
+            goto err;
+        }
+    } else if (local_hnd.text_format == TEXTPARSER_ENCODING_UTF_32) {
+        if (local_hnd.text_size % sizeof(uint32_t) != 0) {
+            err = 10;
+            goto err;
+        }
+    }
+
     *handle = malloc(sizeof(struct textparser_handle));
     if (*handle == nullptr) {
         err = 6;
@@ -1367,6 +1379,16 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
 
     if ((size_t)len >= MAX_PARSE_SIZE) {
         return -1;
+    }
+
+    if (text_format == TEXTPARSER_ENCODING_UTF_16 || text_format == TEXTPARSER_ENCODING_UNICODE) {
+        if ((size_t)len % sizeof(uint16_t) != 0) {
+            return -1;
+        }
+    } else if (text_format == TEXTPARSER_ENCODING_UTF_32) {
+        if ((size_t)len % sizeof(uint32_t) != 0) {
+            return -1;
+        }
     }
 
     struct textparser_handle *ret = nullptr;
