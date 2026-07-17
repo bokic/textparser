@@ -33,8 +33,17 @@ static int active_handle_count = 0;
     }                                                                                         \
     if ((child)->len == 0) {                                                                  \
         LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", (handle)->error ? (handle)->error : "none", offset); \
+        exit_with_error(handle, "infinite loop due to 0-length token", offset);               \
+    }
+
+#define check_and_exit_on_fatal_parsing_error_start_stop(handle, child, offset)                \
+    if ((handle)->error) {                                                                    \
+        LOGW("Fatal error detected(%s) at offset %zu. exiting..", (handle)->error, offset);   \
         goto exit;                                                                            \
     }
+
+static size_t calculate_chunk_size(size_t text_size);
+static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos);
 
 enum textparser_bom {
     NO_BOM,
@@ -86,6 +95,7 @@ struct textparser_handle {
     size_t current_chunk_used;
     void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data);
     void *user_data;
+    int recursion_depth;
 };
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -1026,6 +1036,14 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         return nullptr;
     }
 
+    if (handle->recursion_depth >= MAX_RECURSION_DEPTH) {
+        LOGE("Maximum recursion depth exceeded during parsing!");
+        handle->error = "Maximum recursion depth exceeded during parsing!";
+        handle->error_offset = offset;
+        return nullptr;
+    }
+    handle->recursion_depth++;
+
     const textparser_token *token_def = &definition->tokens[token_id];
 
     if (parent_token_id != TextParser_END) {
@@ -1066,6 +1084,7 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         ret->text_flags = token_def->text_flags;
     }
 
+    handle->recursion_depth--;
     return ret;
 }
 
@@ -1766,8 +1785,11 @@ const char *textparser_get_token_error(const textparser_token_item *token)
     return token->error;
 }
 
-static void textparser_parse_state_recursively_fill(const textparser_token_item *token, const textparser_token_item **state)
+static void textparser_parse_state_recursively_fill_internal(const textparser_token_item *token, const textparser_token_item **state, int depth)
 {
+    if (depth >= MAX_RECURSION_DEPTH) {
+        return;
+    }
     while (token != nullptr)
     {
         size_t pos = token->position;
@@ -1780,10 +1802,15 @@ static void textparser_parse_state_recursively_fill(const textparser_token_item 
 
         if (token->child != nullptr)
         {
-            textparser_parse_state_recursively_fill(token->child, state);
+            textparser_parse_state_recursively_fill_internal(token->child, state, depth + 1);
         }
         token = token->next;
     }
+}
+
+static void textparser_parse_state_recursively_fill(const textparser_token_item *token, const textparser_token_item **state)
+{
+    textparser_parse_state_recursively_fill_internal(token, state, 0);
 }
 
 textparser_parser_state *textparser_state_new(const textparser_t handle)

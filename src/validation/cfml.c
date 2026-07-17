@@ -498,11 +498,14 @@ enum textparser_encoding textparser_get_encoding_cfml(textparser_t handle) {
     return TEXTPARSER_ENCODING_UNICODE;
 }
 
-static void textparser_validate_cfml_tree(const cfml_dynamic_token_ids *ids, textparser_validation **ret, textparser_t handle, textparser_token_item *token) {
+static void textparser_validate_cfml_tree(const cfml_dynamic_token_ids *ids, textparser_validation **ret, textparser_t handle, textparser_token_item *token, int depth) {
+    if (depth >= MAX_RECURSION_DEPTH) {
+        return;
+    }
     while (token != nullptr) {
         textparser_validate_cfml_token(ids, ret, handle, token);
         if (token->child != nullptr) {
-            textparser_validate_cfml_tree(ids, ret, handle, token->child);
+            textparser_validate_cfml_tree(ids, ret, handle, token->child, depth + 1);
         }
         token = token->next;
     }
@@ -514,6 +517,6 @@ textparser_validation *textparser_validate_cfml(textparser_t handle) {
 
     textparser_validation *ret = nullptr;
     textparser_token_item *token = textparser_get_first_token(handle);
-    textparser_validate_cfml_tree(&ids, &ret, handle, token);
+    textparser_validate_cfml_tree(&ids, &ret, handle, token, 0);
     return ret;
 }
