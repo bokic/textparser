@@ -310,7 +310,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                     goto err;
                 }
 
-                size_t nested_cnt = json_object_array_length(nested_tokens_json);
+                int nested_cnt = json_object_array_length(nested_tokens_json);
                 if (nested_cnt == 0) {
                      (*definition)->error_string = "`nestedTokens` array is empty!";
                      ret_code = TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY;
@@ -324,14 +324,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                     goto err;
                 }
 
-                for(size_t i = 0; i < nested_cnt; i++) {
+                for(int i = 0; i < nested_cnt; i++) {
                      json_object *item = json_object_array_get_idx(nested_tokens_json, i);
                      const char *name = json_object_get_string(item);
 
                      int found_idx = TextParser_END;
-                     for(size_t j = 0; j < tokens_cnt; j++) {
+                     for(int j = 0; j < (int)tokens_cnt; j++) {
                           if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
-                               found_idx = (int)j;
+                               found_idx = j;
                                break;
                           }
                      }
@@ -347,7 +347,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     (*definition)->tokens[tokens_cnt].name = nullptr; // Sentinel
 
     // Process startTokens (now that tokens are loaded)
-    size_t starts_with_cnt = json_object_array_length(start_tokens_arr);
+    int starts_with_cnt = (int)json_object_array_length(start_tokens_arr);
     if (starts_with_cnt == 0) {
         (*definition)->error_string = "`startTokens` array is empty!";
         ret_code = TEXTPARSER_JSON_STARTS_WITH_IS_EMPTY;
@@ -361,14 +361,14 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         goto err;
     }
 
-    for(size_t i = 0; i < starts_with_cnt; i++) {
+    for(int i = 0; i < starts_with_cnt; i++) {
         json_object *item = json_object_array_get_idx(start_tokens_arr, i);
         const char *name = json_object_get_string(item);
 
         int found_idx = TextParser_END;
-        for(size_t j = 0; j < tokens_cnt; j++) {
+        for(int j = 0; j < tokens_cnt; j++) {
              if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
-                 found_idx = (int)j;
+                 found_idx = j;
                  break;
              }
         }
