@@ -54,21 +54,15 @@ static char *dynamic_printf(const char *format, ...) {
 }
 
 static void textparser_validation_item_add(enum textparser_validation_item_type type, textparser_validation **validation, char *text, size_t position, size_t length) {
-    if (*validation == nullptr) {
-        textparser_validation *new_val = malloc(offsetof(textparser_validation, items));
-        if (new_val == nullptr) {
-            free(text);
-            return;
-        }
-        *validation = new_val;
+    int current_len = *validation ? (*validation)->len : 0;
+    textparser_validation *new_val = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * (current_len + 1));
+    if (new_val == nullptr) {
+        free(text);
+        return;
+    }
+    *validation = new_val;
+    if (current_len == 0) {
         (*validation)->len = 0;
-    } else {
-        textparser_validation *new_val = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * ((*validation)->len + 1));
-        if (new_val == nullptr) {
-            free(text);
-            return;
-        }
-        *validation = new_val;
     }
 
     textparser_validation_item *item = malloc(sizeof(textparser_validation_item));
