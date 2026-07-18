@@ -62,6 +62,7 @@ target_link_libraries( unittests
   libtextparser
   libtextparser-json
   cfml
+  php
   GTest::gtest_main
 )
 

@@ -4,6 +4,7 @@
 #include <textparser.h>
 
 #include <php_definition.json.h>
+#include <php.h>
 #include <set>
 #include <string>
 
@@ -158,4 +159,70 @@ $s2 = "escaped \" \$ \\ \n \r \t string";
     }
     EXPECT_EQ(escape_count, 6);
 }
+
+TEST(validate_PHP, built_in_functions) {
+    // 1. Valid call to strlen
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<?php strlen('hello'); ?>", 25, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &php_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_php(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // 2. Invalid call to strlen (0 arguments instead of 1)
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<?php strlen(); ?>", 18, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &php_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_php(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Function [strlen] requires at least 1 arguments, but 0 were provided");
+
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 3. Unknown function call
+    {
+        textparser_t handle = nullptr;
+        int res = textparser_openmem("<?php nonexistent_function(); ?>", 32, TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &php_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_php(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Unknown PHP function: [nonexistent_function]");
+
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 4. User defined function call should not raise error
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<?php function custom_func() {} custom_func(); ?>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &php_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_php(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+}
+
 
