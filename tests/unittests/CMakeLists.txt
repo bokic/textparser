@@ -64,6 +64,7 @@ target_link_libraries( unittests
   cfml
   php
   html
+  css
   GTest::gtest_main
 )
 

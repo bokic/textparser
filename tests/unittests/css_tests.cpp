@@ -6,6 +6,7 @@
 #include <string>
 
 #include <css_definition.json.h>
+#include <css.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -59,3 +60,77 @@ TEST(parse_CSS, basic_css_program) {
     EXPECT_TRUE(found.contains("Value"));
     EXPECT_TRUE(found.contains("DeclOperator"));
 }
+
+TEST(validate_CSS, properties_and_rules) {
+    // 1. Correct CSS
+    {
+        textparser_t handle = nullptr;
+        const char *code = "@media (max-width: 768px) { body { margin: 0; padding: 10px; --my-var: red; -webkit-transform: rotate(45deg); } } a:hover { color: blue; }";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &css_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_css(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // 2. Unknown Property
+    {
+        textparser_t handle = nullptr;
+        const char *code = "div { invalidpropertyname: 12px; }";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &css_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_css(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Unknown CSS property: [invalidpropertyname]");
+
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 3. Unknown Pseudo-class
+    {
+        textparser_t handle = nullptr;
+        const char *code = "a:invalidpseudoclass { color: red; }";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &css_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_css(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Unknown CSS pseudo-class: [:invalidpseudoclass]");
+
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 4. Unknown At-Rule
+    {
+        textparser_t handle = nullptr;
+        const char *code = "@invalidatrule { body { margin: 0; } }";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &css_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_css(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Unknown CSS At-Rule: [@invalidatrule]");
+
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+}
+

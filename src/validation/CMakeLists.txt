@@ -122,3 +122,44 @@ set_target_properties(html_test PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     OUTPUT_NAME "html_validation_test"
 )
+
+add_library(css SHARED
+    css.c
+)
+
+target_include_directories(css PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(css PRIVATE
+    libtextparser
+)
+
+set_target_properties(css PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION TRUE
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_css"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(css_test
+    test_css.c
+    css.c
+)
+
+target_include_directories(css_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(css_test PRIVATE
+    libtextparser
+    css
+)
+
+set_target_properties(css_test PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION TRUE
+    OUTPUT_NAME "css_validation_test"
+)
