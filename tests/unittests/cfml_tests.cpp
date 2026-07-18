@@ -149,7 +149,6 @@ TEST(parse_CFML, comments_nested) {
     EXPECT_EQ(tokens.count, 1);
     if (tokens.count > 0) {
         EXPECT_STREQ(tokens[0].type, "Comment");
-        printf("DEBUG nested comments tree:\n%s", dump_all_tokens(tokens).c_str());
     }
 }
 
@@ -158,7 +157,6 @@ TEST(parse_CFML, comments_unclosed) {
     auto tokens = TextParser(R"(<!--- unclosed comment)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG unclosed HTML comment tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 TEST(parse_CFML, comments_script) {
@@ -170,7 +168,6 @@ TEST(parse_CFML, comments_script) {
     </cfscript>)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG script comments tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "ScriptBlockComment"));
     EXPECT_TRUE(has_token_type(tokens, "ScriptLineComment"));
 }
@@ -184,7 +181,6 @@ TEST(parse_CFML, string_double_escaped) {
     auto tokens = TextParser(R"(<cfset x = "hello ""world""!" />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG double escaped string tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "DoubleChar")); // "" should be recognized
 }
 
@@ -193,7 +189,6 @@ TEST(parse_CFML, string_single_escaped) {
     auto tokens = TextParser(R"(<cfset x = 'hello ''world''!' />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG single escaped string tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "SingleChar")); // '' should be recognized
 }
 
@@ -203,8 +198,6 @@ TEST(parse_CFML, string_mixed_quotes) {
     auto tokens2 = TextParser(R"(<cfset x = 'hello "world"!' />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG mixed quotes 1 tree:\n%s", dump_all_tokens(tokens1).c_str());
-    printf("DEBUG mixed quotes 2 tree:\n%s", dump_all_tokens(tokens2).c_str());
     
     EXPECT_TRUE(has_token_type(tokens1, "DoubleString"));
     EXPECT_TRUE(has_token_type(tokens2, "SingleString"));
@@ -215,7 +208,6 @@ TEST(parse_CFML, string_unclosed) {
     auto tokens = TextParser(R"(<cfset x = "unclosed string />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG unclosed string tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 // -------------------------------------------------------------
@@ -227,7 +219,6 @@ TEST(parse_CFML, sharp_in_double_string) {
     auto tokens = TextParser(R"(<cfset x = "hello #name#" />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG sharp in double string tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
 }
 
@@ -236,7 +227,6 @@ TEST(parse_CFML, sharp_in_single_string) {
     auto tokens = TextParser(R"(<cfset x = 'hello #name#' />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG sharp in single string tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
 }
 
@@ -245,7 +235,6 @@ TEST(parse_CFML, sharp_escaped) {
     auto tokens = TextParser(R"(<cfset x = "hello ##name##" />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG escaped sharp tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "SharpChar")); // Should be recognized as ##
 }
 
@@ -254,7 +243,6 @@ TEST(parse_CFML, sharp_outside_string) {
     auto tokens = TextParser(R"(<cfset x = #myVar# />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG sharp outside string tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
 }
 
@@ -263,7 +251,6 @@ TEST(parse_CFML, sharp_unclosed) {
     auto tokens = TextParser(R"(<cfset x = "hello #unclosed" />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG unclosed sharp tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 TEST(parse_CFML, sharp_nested_expression) {
@@ -271,7 +258,6 @@ TEST(parse_CFML, sharp_nested_expression) {
     auto tokens = TextParser(R"(<cfset x = "#func(arg1, "#nested#")#" />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG nested sharp tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 // -------------------------------------------------------------
@@ -286,7 +272,6 @@ TEST(parse_CFML, cfscript_basic) {
     </cfscript>)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG basic cfscript tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_EQ(tokens.count, 1);
     EXPECT_TRUE(has_token_type(tokens, "ScriptStartTag"));
     EXPECT_TRUE(has_token_type(tokens, "ScriptEndTag"));
@@ -301,7 +286,6 @@ TEST(parse_CFML, cfscript_complex) {
     </cfscript>)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG complex cfscript tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 TEST(parse_CFML, cfscript_operators) {
@@ -313,7 +297,6 @@ TEST(parse_CFML, cfscript_operators) {
     </cfscript>)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG cfscript operators tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 // -------------------------------------------------------------
@@ -325,7 +308,6 @@ TEST(parse_CFML, tag_nested_cfoutput) {
     auto tokens = TextParser(R"(<cfoutput>outer <cfoutput>inner #var#</cfoutput> end</cfoutput>)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG nested cfoutput tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 TEST(parse_CFML, tag_nested_cfloop) {
@@ -333,7 +315,6 @@ TEST(parse_CFML, tag_nested_cfloop) {
     auto tokens = TextParser(R"(<cfloop>outer <cfloop>inner</cfloop> end</cfloop>)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG nested cfloop tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 TEST(parse_CFML, tag_nested_cfquery) {
@@ -341,7 +322,6 @@ TEST(parse_CFML, tag_nested_cfquery) {
     auto tokens = TextParser(R"(<cfquery name="q">SELECT * FROM t WHERE id = #id#</cfquery>)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG nested cfquery tree:\n%s", dump_all_tokens(tokens).c_str());
     EXPECT_TRUE(has_token_type(tokens, "QueryStartTag"));
     EXPECT_TRUE(has_token_type(tokens, "QueryEndTag"));
     EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
@@ -353,8 +333,6 @@ TEST(parse_CFML, tag_custom_tags) {
     auto tokens2 = TextParser(R"(<cf_mycustomtag attr="val" />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG custom tag tree:\n%s", dump_all_tokens(tokens1).c_str());
-    printf("DEBUG self-closing custom tag tree:\n%s", dump_all_tokens(tokens2).c_str());
     
     EXPECT_TRUE(has_token_type(tokens1, "StartTag"));
     EXPECT_TRUE(has_token_type(tokens1, "EndTag"));
@@ -366,7 +344,6 @@ TEST(parse_CFML, tag_unclosed) {
     auto tokens = TextParser(R"(<cf_mycustomtag attr="val">)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG unclosed tag tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 // -------------------------------------------------------------
@@ -380,9 +357,6 @@ TEST(parse_CFML, expr_word_operators) {
     auto tokens3 = TextParser(R"(<cfset x = a greater than or equal to b />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG word operator 'is not' tree:\n%s", dump_all_tokens(tokens1).c_str());
-    printf("DEBUG word operator 'contains' tree:\n%s", dump_all_tokens(tokens2).c_str());
-    printf("DEBUG word operator 'greater than or equal to' tree:\n%s", dump_all_tokens(tokens3).c_str());
 }
 
 TEST(parse_CFML, expr_arithmetic_precedence) {
@@ -390,7 +364,6 @@ TEST(parse_CFML, expr_arithmetic_precedence) {
     auto tokens = TextParser(R"(<cfset x = a + b * c - d / e />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG arithmetic precedence tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 TEST(parse_CFML, expr_function_calls) {
@@ -398,7 +371,6 @@ TEST(parse_CFML, expr_function_calls) {
     auto tokens = TextParser(R"(<cfset x = func1(func2(a, b), c) />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG function calls tree:\n%s", dump_all_tokens(tokens).c_str());
 }
 
 TEST(parse_CFML, expr_array_struct_access) {
@@ -407,8 +379,6 @@ TEST(parse_CFML, expr_array_struct_access) {
     auto tokens2 = TextParser(R"(<cfset x = struct.member />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG array access tree:\n%s", dump_all_tokens(tokens1).c_str());
-    printf("DEBUG struct member access tree:\n%s", dump_all_tokens(tokens2).c_str());
 }
 
 TEST(parse_CFML, expr_numbers) {
@@ -418,9 +388,6 @@ TEST(parse_CFML, expr_numbers) {
     auto tokens3 = TextParser(R"(<cfset x = 123. />)", &cfml_definition);
     textparser_suppress_errors() = false;
     
-    printf("DEBUG numbers +1.23 tree:\n%s", dump_all_tokens(tokens1).c_str());
-    printf("DEBUG numbers -.45 tree:\n%s", dump_all_tokens(tokens2).c_str());
-    printf("DEBUG numbers 123. tree:\n%s", dump_all_tokens(tokens3).c_str());
 }
 
 TEST(parse_CFML, validation_closing_tags) {

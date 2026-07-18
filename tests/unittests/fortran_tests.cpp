@@ -66,17 +66,7 @@ program test_prog
 end program test_prog
 )", &fortran_definition);
 
-    std::cout << "DETAILED TOKENS:\n";
-    for (size_t i = 0; i < tokens.count; ++i) {
-        auto item = tokens[i];
-        std::cout << "Token[" << i << "]: type=" << (item.type ? item.type : "null")
-                  << ", val='" << item.value << "', children=" << item.children << "\n";
-        for (size_t j = 0; j < item.children; ++j) {
-            auto child = item[j];
-            std::cout << "  Child[" << j << "]: type=" << (child.type ? child.type : "null")
-                      << ", val='" << child.value << "', children=" << child.children << "\n";
-        }
-    }
+
 
     std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {

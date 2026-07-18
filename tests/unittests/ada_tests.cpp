@@ -12,7 +12,6 @@
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
         found.insert(item.type);
-        std::cout << "FOUND TOKEN: " << item.type << " (len: " << item.length << ", val: '" << item.value << "')" << std::endl;
     }
     for (size_t i = 0; i < item.children; ++i) {
         scan_tokens(item[i], found);
