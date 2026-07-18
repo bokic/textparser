@@ -22,7 +22,7 @@ set_target_properties(cfml PROPERTIES
 )
 
 add_executable(cfml_test
-    test.c
+    test_cfml.c
     cfml.c
 )
 
