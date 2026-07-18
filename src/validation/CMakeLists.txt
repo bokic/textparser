@@ -81,3 +81,44 @@ set_target_properties(php_test PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     OUTPUT_NAME "php_validation_test"
 )
+
+add_library(html SHARED
+    html.c
+)
+
+target_include_directories(html PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(html PRIVATE
+    libtextparser
+)
+
+set_target_properties(html PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION TRUE
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_html"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(html_test
+    test_html.c
+    html.c
+)
+
+target_include_directories(html_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(html_test PRIVATE
+    libtextparser
+    html
+)
+
+set_target_properties(html_test PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION TRUE
+    OUTPUT_NAME "html_validation_test"
+)
