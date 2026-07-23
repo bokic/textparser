@@ -366,7 +366,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         const char *name = json_object_get_string(item);
 
         int found_idx = TextParser_END;
-        for(int j = 0; j < tokens_cnt; j++) {
+        for(size_t j = 0; j < tokens_cnt; j++) {
              if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
                  found_idx = j;
                  break;

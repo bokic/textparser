@@ -128,14 +128,6 @@ static std::string dump_tokens(const TokenParserItem &item, int indent = 0) {
     return result;
 }
 
-static std::string dump_all_tokens(const TextParser &tokens) {
-    std::string result;
-    for (size_t i = 0; i < tokens.count; ++i) {
-        result += dump_tokens(tokens[i]);
-    }
-    return result;
-}
-
 // -------------------------------------------------------------
 // 1. COMMENT CORNER CASES
 // -------------------------------------------------------------

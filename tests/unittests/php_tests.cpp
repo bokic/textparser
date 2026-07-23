@@ -88,7 +88,7 @@ TEST(parse_PHP, double_string_interpolation) {
 
     // Let's find DoubleString
     int double_str_idx = -1;
-    for (int i = 0; i < tokens[0].children; ++i) {
+    for (size_t i = 0; i < tokens[0].children; ++i) {
         if (std::string(tokens[0][i].type) == "DoubleString") {
             double_str_idx = i;
             break;
@@ -132,7 +132,7 @@ $s2 = "escaped \" \$ \\ \n \r \t string";
     // Find s1 and s2 strings
     int single_str_idx = -1;
     int double_str_idx = -1;
-    for (int i = 0; i < tokens[0].children; ++i) {
+    for (size_t i = 0; i < tokens[0].children; ++i) {
         if (std::string(tokens[0][i].type) == "SingleString") {
             single_str_idx = i;
         }
@@ -152,7 +152,7 @@ $s2 = "escaped \" \$ \\ \n \r \t string";
     auto double_str = tokens[0][double_str_idx];
     // DoubleString should have 6 children of type StringEscape ( \", \$, \\, \n, \r, \t )
     int escape_count = 0;
-    for (int i = 0; i < double_str.children; ++i) {
+    for (size_t i = 0; i < double_str.children; ++i) {
         if (std::string(double_str[i].type) == "StringEscape") {
             escape_count++;
         }

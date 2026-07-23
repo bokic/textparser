@@ -1139,7 +1139,7 @@ static void textparser_free_regex(struct textparser_handle *handle)
         {
             void **regex = (void **)handle->start_regex;
 
-            for(int c = 0; c < token_cnt; c++)
+            for(size_t c = 0; c < token_cnt; c++)
             {
                 adv_regex_free(&regex[c], text_format);
             }
@@ -1154,7 +1154,7 @@ static void textparser_free_regex(struct textparser_handle *handle)
         {
             void **regex = (void **)handle->end_regex;
 
-            for(int c = 0; c < token_cnt; c++)
+            for(size_t c = 0; c < token_cnt; c++)
             {
                 adv_regex_free(&regex[c], text_format);
             }

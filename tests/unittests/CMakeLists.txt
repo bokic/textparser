@@ -58,6 +58,9 @@ target_include_directories( unittests PRIVATE
     ../../definitions
     ../../src/validation
 )
+if(NOT MSVC)
+  target_compile_options(unittests PRIVATE -Wno-pedantic)
+endif()
 target_link_libraries( unittests
   libtextparser
   libtextparser-json

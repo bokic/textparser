@@ -67,6 +67,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(MSVC)
+    add_compile_options(/W4 /GS)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic -Wstack-protector -fstack-protector-strong)
+endif()
+
 set(GENERATED_DEFINITIONS "")
 foreach(DEF ada asm bash c cpp cfml csharp css fortran go html java javascript json matlab pascal perl php python r scratch sql swift typescript vb)
   list(APPEND GENERATED_DEFINITIONS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json.h)

@@ -27,7 +27,6 @@ export class Calculator {
     // Root should find: Keywords (import, from, export, class), Variable (helper, Calculator, utils), CodeBlock, Operator, etc.
     bool found_import_keyword = false;
     bool found_export_keyword = false;
-    bool found_class_keyword = false;
     bool found_code_block = false;
 
     for (size_t i = 0; i < tokens.count; ++i) {

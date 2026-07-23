@@ -1,8 +1,13 @@
 #pragma once
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include <textparser.h>
+#pragma GCC diagnostic pop
+
 
 #include <cstring>
+
 #include <print>
 #include <string>
 

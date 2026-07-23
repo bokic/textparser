@@ -36,7 +36,6 @@ int main(void) {
     // Root should find: Preprocessor (#include), BlockComment, Keyword (int, void, return), Variable (main, printf), CodeBlock, etc.
     bool found_preprocessor = false;
     bool found_block_comment = false;
-    bool found_keyword = false;
     bool found_code_block = false;
 
     for (size_t i = 0; i < tokens.count; ++i) {

@@ -56,6 +56,7 @@ struct CallbackTestData {
 };
 
 static void test_callback(textparser_t handle, textparser_token_item *item, enum textparser_callback_type callback_type, void *user_data) {
+    (void)callback_type;
     if (!user_data) return;
     CallbackTestData *data = (CallbackTestData *)user_data;
     data->token_count++;
