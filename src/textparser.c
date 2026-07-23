@@ -1140,6 +1140,12 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         if (token_def->must_have_one_child && textparser_get_token_children_count(ret) != 1) {
             exit_with_error(handle, "Token must have exactly one child token!", ret->position);
         }
+
+        if (token_def->delete_if_only_one_child && textparser_get_token_children_count(ret) == 1) {
+            textparser_token_item *only_child = ret->child;
+            only_child->parent = ret->parent;
+            ret = only_child;
+        }
     }
 
 exit:

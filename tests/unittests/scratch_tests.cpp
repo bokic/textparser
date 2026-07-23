@@ -275,3 +275,56 @@ TEST(parse_MustHaveOneChild, token_must_have_one_child_validation) {
     textparser_close(handle);
 }
 
+TEST(parse_DeleteIfOnlyOneChild, token_delete_if_only_one_child_validation) {
+    textparser_token tokens[3] = {};
+    tokens[0].name = "ChildToken";
+    tokens[0].type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN;
+    tokens[0].start_regex = "abc";
+
+    tokens[1].name = "ParentGroup";
+    tokens[1].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
+    tokens[1].start_regex = "\\(";
+    tokens[1].end_regex = "\\)";
+    tokens[1].other_text_inside = true;
+    tokens[1].delete_if_only_one_child = true;
+    tokens[1].multi_line = true;
+    static const int parent_nested[] = { 0, TextParser_END };
+    tokens[1].nested_tokens = (int *)parent_nested;
+
+    static const int start_tokens[] = { 1, TextParser_END };
+    textparser_language_definition lang = {};
+    lang.name = "test_delete_if_only_one_child";
+    lang.version = 1.0;
+    lang.case_sensitivity = true;
+    lang.default_text_encoding = TEXTPARSER_ENCODING_UTF_8;
+    lang.starts_with = (int *)start_tokens;
+    lang.tokens = tokens;
+
+    // Single child: ParentGroup token deletes itself and child is returned as top-level token
+    const char *one_child_text = "(abc)";
+    textparser_t handle = nullptr;
+    int err = textparser_openmem(one_child_text, strlen(one_child_text), lang.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+    err = textparser_parse(handle, &lang);
+    EXPECT_EQ(err, 0);
+
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&lang, first), "ChildToken");
+    EXPECT_EQ(first->parent, nullptr);
+    textparser_close(handle);
+
+    // Multiple children: ParentGroup token is kept
+    const char *two_children_text = "(abcabc)";
+    err = textparser_openmem(two_children_text, strlen(two_children_text), lang.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+    err = textparser_parse(handle, &lang);
+    EXPECT_EQ(err, 0);
+
+    first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&lang, first), "ParentGroup");
+    EXPECT_EQ(textparser_get_token_children_count(first), 2);
+    textparser_close(handle);
+}
+
