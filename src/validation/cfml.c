@@ -486,10 +486,87 @@ enum textparser_encoding textparser_get_encoding_cfml(textparser_t handle) {
     // (textparser_openfile) to decode it before searching for the tag.
 
     const char *text = textparser_get_text(handle);
+    size_t text_size = textparser_get_text_size(handle);
+    if (!text || text_size == 0) {
+        return TEXTPARSER_ENCODING_UTF_8;
+    }
 
-    // TODO: implement cfprocessingdirective pageEncoding scan logic.
+    size_t limit = text_size < 4096 ? text_size : 4096;
+    const char *directive_tag = "cfprocessingdirective";
+    size_t tag_len = strlen(directive_tag);
 
-    return TEXTPARSER_ENCODING_UNICODE;
+    for (size_t i = 0; i < limit; i++) {
+        if (text[i] == '<') {
+            size_t pos = i + 1;
+            while (pos < limit && (text[pos] == ' ' || text[pos] == '\t' || text[pos] == '\r' || text[pos] == '\n')) {
+                pos++;
+            }
+            if (pos + tag_len <= limit && strncasecmp(&text[pos], directive_tag, tag_len) == 0) {
+                pos += tag_len;
+                // Ensure tag name boundary
+                if (pos < limit && (text[pos] == ' ' || text[pos] == '\t' || text[pos] == '\r' || text[pos] == '\n' || text[pos] == '>' || text[pos] == '/')) {
+                    // Search within tag attributes until '>' or end of scan limit
+                    while (pos < limit && text[pos] != '>') {
+                        const char *attr_name = "pageencoding";
+                        size_t attr_len = strlen(attr_name);
+                        if (pos + attr_len <= limit && strncasecmp(&text[pos], attr_name, attr_len) == 0) {
+                            size_t eq_pos = pos + attr_len;
+                            while (eq_pos < limit && (text[eq_pos] == ' ' || text[eq_pos] == '\t' || text[eq_pos] == '\r' || text[eq_pos] == '\n')) {
+                                eq_pos++;
+                            }
+                            if (eq_pos < limit && text[eq_pos] == '=') {
+                                size_t val_pos = eq_pos + 1;
+                                while (val_pos < limit && (text[val_pos] == ' ' || text[val_pos] == '\t' || text[val_pos] == '\r' || text[val_pos] == '\n')) {
+                                    val_pos++;
+                                }
+                                if (val_pos < limit) {
+                                    char quote = '\0';
+                                    if (text[val_pos] == '"' || text[val_pos] == '\'') {
+                                        quote = text[val_pos];
+                                        val_pos++;
+                                    }
+                                    size_t val_start = val_pos;
+                                    size_t val_end = val_start;
+                                    if (quote != '\0') {
+                                        while (val_end < limit && text[val_end] != quote && text[val_end] != '>' && text[val_end] != '\r' && text[val_end] != '\n') {
+                                            val_end++;
+                                        }
+                                    } else {
+                                        while (val_end < limit && text[val_end] != ' ' && text[val_end] != '\t' && text[val_end] != '\r' && text[val_end] != '\n' && text[val_end] != '>' && text[val_end] != '/') {
+                                            val_end++;
+                                        }
+                                    }
+
+                                    size_t enc_len = val_end - val_start;
+                                    if (enc_len > 0) {
+                                        char enc_buf[64];
+                                        if (enc_len >= sizeof(enc_buf)) {
+                                            enc_len = sizeof(enc_buf) - 1;
+                                        }
+                                        memcpy(enc_buf, &text[val_start], enc_len);
+                                        enc_buf[enc_len] = '\0';
+
+                                        if (strcasecmp(enc_buf, "utf-8") == 0 || strcasecmp(enc_buf, "utf8") == 0) {
+                                            return TEXTPARSER_ENCODING_UTF_8;
+                                        } else if (strcasecmp(enc_buf, "utf-16") == 0 || strcasecmp(enc_buf, "utf16") == 0 || strcasecmp(enc_buf, "utf-16le") == 0 || strcasecmp(enc_buf, "utf-16be") == 0) {
+                                            return TEXTPARSER_ENCODING_UTF_16;
+                                        } else if (strcasecmp(enc_buf, "utf-32") == 0 || strcasecmp(enc_buf, "utf32") == 0 || strcasecmp(enc_buf, "utf-32le") == 0 || strcasecmp(enc_buf, "utf-32be") == 0) {
+                                            return TEXTPARSER_ENCODING_UTF_32;
+                                        } else if (strcasecmp(enc_buf, "iso-8859-1") == 0 || strcasecmp(enc_buf, "latin1") == 0 || strcasecmp(enc_buf, "latin-1") == 0 || strcasecmp(enc_buf, "us-ascii") == 0 || strcasecmp(enc_buf, "ascii") == 0) {
+                                            return TEXTPARSER_ENCODING_LATIN1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        pos++;
+                    }
+                }
+            }
+        }
+    }
+
+    return TEXTPARSER_ENCODING_UTF_8;
 }
 
 static void textparser_validate_cfml_tree(const cfml_dynamic_token_ids *ids, textparser_validation **ret, textparser_t handle, textparser_token_item *token, int depth) {

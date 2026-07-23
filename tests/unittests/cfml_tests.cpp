@@ -581,6 +581,52 @@ TEST(parse_CFML, validation_cfprocessingdirective_position) {
     }
 }
 
+TEST(parse_CFML, get_encoding_cfprocessingdirective) {
+    // 1. utf-8 pageEncoding
+    {
+        const char *content = "  <cfprocessingdirective pageEncoding=\"utf-8\" />";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(content, strlen(content), TEXTPARSER_ENCODING_UTF_8, &handle);
+        ASSERT_EQ(res, 0);
+        enum textparser_encoding enc = textparser_get_encoding_cfml(handle);
+        EXPECT_EQ(enc, TEXTPARSER_ENCODING_UTF_8);
+        textparser_close(handle);
+    }
+
+    // 2. utf-16 pageEncoding
+    {
+        const char *content = "<cfprocessingdirective pageEncoding='utf-16' />";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(content, strlen(content), TEXTPARSER_ENCODING_UTF_8, &handle);
+        ASSERT_EQ(res, 0);
+        enum textparser_encoding enc = textparser_get_encoding_cfml(handle);
+        EXPECT_EQ(enc, TEXTPARSER_ENCODING_UTF_16);
+        textparser_close(handle);
+    }
+
+    // 3. iso-8859-1 pageEncoding
+    {
+        const char *content = "<cfprocessingdirective pageencoding=\"iso-8859-1\">";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(content, strlen(content), TEXTPARSER_ENCODING_UTF_8, &handle);
+        ASSERT_EQ(res, 0);
+        enum textparser_encoding enc = textparser_get_encoding_cfml(handle);
+        EXPECT_EQ(enc, TEXTPARSER_ENCODING_LATIN1);
+        textparser_close(handle);
+    }
+
+    // 4. Default fallback when tag not present or past 4096 bytes
+    {
+        std::string content = std::string(4100, ' ') + "<cfprocessingdirective pageEncoding=\"utf-16\" />";
+        textparser_t handle = nullptr;
+        int res = textparser_openmem(content.c_str(), content.length(), TEXTPARSER_ENCODING_UTF_8, &handle);
+        ASSERT_EQ(res, 0);
+        enum textparser_encoding enc = textparser_get_encoding_cfml(handle);
+        EXPECT_EQ(enc, TEXTPARSER_ENCODING_UTF_8);
+        textparser_close(handle);
+    }
+}
+
 TEST(parse_CFML, validation_tag_at_eof) {
     // 1. Start tag at EOF
     {
