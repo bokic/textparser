@@ -244,3 +244,43 @@ TEST(parse_JSON, runtime_load_definition_from_string) {
     textparser_free_language_definition(definition);
 }
 
+TEST(parse_JSON, recursive_group_find_token_depth_limit) {
+    const char *json_def_str = R"({
+        "name": "recursive_lang",
+        "version": 1.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["Value"],
+        "otherTextInside": false,
+        "tokens": {
+            "Value": {
+                "type": "Group",
+                "nestedTokens": ["Value"]
+            }
+        }
+    })";
+
+    textparser_language_definition *definition = nullptr;
+    int err = textparser_json_load_language_definition_from_string(json_def_str, &definition);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(definition, nullptr);
+
+    textparser_t handle = nullptr;
+    const char *text = "test input";
+    err = textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+
+    // Parsing should complete safely without stack overflow and yield no matched tokens
+    err = textparser_parse(handle, definition);
+    EXPECT_EQ(err, 0);
+    EXPECT_EQ(textparser_get_first_token(handle), nullptr);
+
+    textparser_close(handle);
+    textparser_free_language_definition(definition);
+}
+
+
+
+

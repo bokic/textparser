@@ -318,6 +318,10 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
         return TOKEN_NOT_FOUND;
     }
 
+    if (handle == nullptr || handle->recursion_depth >= MAX_RECURSION_DEPTH) {
+        return TOKEN_NOT_FOUND;
+    }
+
     const textparser_language_definition *definition = nullptr;
     const textparser_token *token = nullptr;
     const char *text = nullptr;
@@ -334,6 +338,9 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
     len = textparser_get_total_units(handle) - pos;
 
     LOGV("textparser_find_token token->type [%s] pos %zu", token->name, pos);
+
+    ((struct textparser_handle *)handle)->recursion_depth++;
+    ssize_t result = TOKEN_NOT_FOUND;
 
     switch(token->type)
     {
@@ -370,16 +377,17 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
                 }
 
                 if (closest_child_pos < SSIZE_MAX) {
-                    return closest_child_pos;
+                    result = closest_child_pos;
                 }
             }
             break;
         case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER:
             if (token->nested_tokens) {
                 LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
-                return textparser_find_token(handle, token->nested_tokens[0], pos, other_text_inside, parent_item, prev_sibling);
+                result = textparser_find_token(handle, token->nested_tokens[0], pos, other_text_inside, parent_item, prev_sibling);
+            } else {
+                LOGE("token->nested_tokens = nullptr for TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
             }
-            LOGE("token->nested_tokens = nullptr for TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
             break;
         case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
@@ -391,7 +399,7 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
             if (adv_regex_find_pattern(token->start_regex, (void **)handle->start_regex + token_id, handle->text_format, text, len, &found_at, nullptr, !handle->language->case_sensitivity, true)) {
                 LOGI("found_at token type: [%s] at %zu",  handle->language->tokens[token_id].name, pos + found_at);
-                return (ssize_t)found_at;
+                result = (ssize_t)found_at;
             }
             break;
         default:
@@ -399,7 +407,8 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
             break;
     }
 
-    return TOKEN_NOT_FOUND;
+    ((struct textparser_handle *)handle)->recursion_depth--;
+    return result;
 }
 
 static  void parse_token_error_error(struct textparser_handle *handle, const char *error, size_t offset)
