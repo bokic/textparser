@@ -1097,12 +1097,12 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
     return ret;
 }
 
-static void textparser_init_regex(struct textparser_handle *handle)
+static int textparser_init_regex(struct textparser_handle *handle)
 {
     int token_cnt = 0;
 
     if (handle == nullptr)
-        return;
+        return -1;
 
     while(handle->language->tokens[token_cnt].name != nullptr)
         token_cnt++;
@@ -1116,7 +1116,8 @@ static void textparser_init_regex(struct textparser_handle *handle)
         handle->start_regex = malloc(malloc_size);
         if (handle->start_regex == nullptr) {
             LOGE("malloc() failed for start_regex");
-            return;
+            handle->error = "Can't allocate memory!";
+            return -1;
         }
         memset(handle->start_regex, 0, malloc_size);
 
@@ -1125,10 +1126,12 @@ static void textparser_init_regex(struct textparser_handle *handle)
             LOGE("malloc() failed for end_regex");
             free(handle->start_regex);
             handle->start_regex = nullptr;
-            return;
+            handle->error = "Can't allocate memory!";
+            return -1;
         }
         memset(handle->end_regex, 0, malloc_size);
     }
+    return 0;
 }
 
 static void textparser_free_regex(struct textparser_handle *handle)
@@ -1497,7 +1500,8 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
     {
         textparser_free_regex(handle);
         handle->language = definition;
-        textparser_init_regex(handle);
+        if (textparser_init_regex(handle) != 0)
+            return -1;
     }
 
     while(pos < size) {
