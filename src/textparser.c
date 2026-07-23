@@ -131,6 +131,20 @@ static size_t textparser_get_total_units(const struct textparser_handle *handle)
     }
 }
 
+static uint32_t textparser_get_unit_at(const struct textparser_handle *handle, size_t pos)
+{
+    switch (handle->text_format)
+    {
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16:
+        return ((const uint16_t *)handle->text_addr)[pos];
+    case TEXTPARSER_ENCODING_UTF_32:
+        return ((const uint32_t *)handle->text_addr)[pos];
+    default:
+        return (unsigned char)handle->text_addr[pos];
+    }
+}
+
 static size_t textparser_char_len(const struct textparser_handle *handle, size_t pos)
 {
     if (handle->text_format == TEXTPARSER_ENCODING_UTF_8)
@@ -218,38 +232,13 @@ static bool textparser_has_newline(const struct textparser_handle *handle, size_
 {
     if (handle == nullptr || len == 0) return false;
 
-    if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16)
+    size_t max_units = textparser_get_total_units(handle);
+    if (pos >= max_units) return false;
+    size_t end = (pos + len > max_units) ? max_units : pos + len;
+    for (size_t c = pos; c < end; c++)
     {
-        size_t max_units = handle->text_size / sizeof(uint16_t);
-        if (pos >= max_units) return false;
-        size_t end = (pos + len > max_units) ? max_units : pos + len;
-        const uint16_t *text = (const uint16_t *)handle->text_addr;
-        for (size_t c = pos; c < end; c++)
-        {
-            if (text[c] == '\n' || text[c] == '\r') return true;
-        }
-    }
-    else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32)
-    {
-        size_t max_units = handle->text_size / sizeof(uint32_t);
-        if (pos >= max_units) return false;
-        size_t end = (pos + len > max_units) ? max_units : pos + len;
-        const uint32_t *text = (const uint32_t *)handle->text_addr;
-        for (size_t c = pos; c < end; c++)
-        {
-            if (text[c] == '\n' || text[c] == '\r') return true;
-        }
-    }
-    else
-    {
-        size_t max_units = handle->text_size;
-        if (pos >= max_units) return false;
-        size_t end = (pos + len > max_units) ? max_units : pos + len;
-        const char *text = handle->text_addr;
-        for (size_t c = pos; c < end; c++)
-        {
-            if (text[c] == '\n' || text[c] == '\r') return true;
-        }
+        uint32_t ch = textparser_get_unit_at(handle, c);
+        if (ch == '\n' || ch == '\r') return true;
     }
 
     return false;
@@ -257,54 +246,15 @@ static bool textparser_has_newline(const struct textparser_handle *handle, size_
 
 static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos)
 {
-    size_t maxPos = 0;
+    size_t maxPos = textparser_get_total_units(handle);
 
-    if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16)
+    for (size_t c = pos; c < maxPos; c++)
     {
-        maxPos = handle->text_size / sizeof(uint16_t);
+        uint32_t ch = textparser_get_unit_at(handle, c);
 
-        const uint16_t *text = (const uint16_t *)handle->text_addr;
-
-        for (size_t c = pos; c < maxPos; c++)
+        if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
         {
-            uint16_t ch = text[c];
-
-            if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
-            {
-                return c;
-            }
-        }
-    }
-    else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32)
-    {
-        maxPos = handle->text_size / sizeof(uint32_t);
-
-        const uint32_t *text = (const uint32_t *)handle->text_addr;
-
-        for (size_t c = pos; c < maxPos; c++)
-        {
-            uint32_t ch = text[c];
-
-            if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
-            {
-                return c;
-            }
-        }
-    }
-    else
-    {
-        maxPos = handle->text_size;
-
-        const char *text = handle->text_addr;
-
-        for (size_t c = pos; c < maxPos; c++)
-        {
-            char ch = text[c];
-
-            if ((ch != ' ') && (ch != '\t') && (ch != '\n') && (ch != '\r'))
-            {
-                return c;
-            }
+            return c;
         }
     }
 
@@ -1996,47 +1946,17 @@ int textparser_build_line_map(textparser_t handle)
     }
     handle->no_lines = 0;
 
-    size_t count = 0;
-    size_t text_size = handle->text_size;
-    const char *text_addr = handle->text_addr;
-
-    if (text_addr == nullptr || text_size == 0) {
+    if (handle->text_addr == nullptr || handle->text_size == 0) {
         return 0;
     }
 
-    switch (handle->text_format)
-    {
-    case TEXTPARSER_ENCODING_LATIN1:
-    case TEXTPARSER_ENCODING_UTF_8:
-        for (size_t ch = 0; ch < text_size; ch++) {
-            if (text_addr[ch] == '\n') {
-                count++;
-            }
+    size_t total_units = textparser_get_total_units(handle);
+    size_t count = 0;
+
+    for (size_t ch = 0; ch < total_units; ch++) {
+        if (textparser_get_unit_at(handle, ch) == '\n') {
+            count++;
         }
-        break;
-    case TEXTPARSER_ENCODING_UNICODE:
-    case TEXTPARSER_ENCODING_UTF_16: {
-        const uint16_t *text16 = (const uint16_t *)text_addr;
-        size_t units16 = text_size / sizeof(uint16_t);
-        for (size_t ch = 0; ch < units16; ch++) {
-            if (text16[ch] == '\n') {
-                count++;
-            }
-        }
-        break;
-    }
-    case TEXTPARSER_ENCODING_UTF_32: {
-        const uint32_t *text32 = (const uint32_t *)text_addr;
-        size_t units32 = text_size / sizeof(uint32_t);
-        for (size_t ch = 0; ch < units32; ch++) {
-            if (text32[ch] == '\n') {
-                count++;
-            }
-        }
-        break;
-    }
-    default:
-        return -1;
     }
 
     if (count == 0) {
@@ -2051,39 +1971,10 @@ int textparser_build_line_map(textparser_t handle)
 
     size_t cur_line_pos = 0;
 
-    switch (handle->text_format)
-    {
-    case TEXTPARSER_ENCODING_LATIN1:
-    case TEXTPARSER_ENCODING_UTF_8:
-        for (size_t ch = 0; ch < text_size; ch++) {
-            if (text_addr[ch] == '\n') {
-                handle->lines[cur_line_pos++] = ch;
-            }
+    for (size_t ch = 0; ch < total_units; ch++) {
+        if (textparser_get_unit_at(handle, ch) == '\n') {
+            handle->lines[cur_line_pos++] = ch;
         }
-        break;
-    case TEXTPARSER_ENCODING_UNICODE:
-    case TEXTPARSER_ENCODING_UTF_16: {
-        const uint16_t *text16 = (const uint16_t *)text_addr;
-        size_t units16 = text_size / sizeof(uint16_t);
-        for (size_t ch = 0; ch < units16; ch++) {
-            if (text16[ch] == '\n') {
-                handle->lines[cur_line_pos++] = ch;
-            }
-        }
-        break;
-    }
-    case TEXTPARSER_ENCODING_UTF_32: {
-        const uint32_t *text32 = (const uint32_t *)text_addr;
-        size_t units32 = text_size / sizeof(uint32_t);
-        for (size_t ch = 0; ch < units32; ch++) {
-            if (text32[ch] == '\n') {
-                handle->lines[cur_line_pos++] = ch;
-            }
-        }
-        break;
-    }
-    default:
-        break;
     }
 
     return 0;

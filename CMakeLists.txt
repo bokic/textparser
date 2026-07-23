@@ -73,14 +73,17 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic -Wstack-protector -fstack-protector-strong)
 endif()
 
+file(GLOB DEF_FILES "${CMAKE_CURRENT_SOURCE_DIR}/definitions/*_definition.json")
 set(GENERATED_DEFINITIONS "")
-foreach(DEF ada asm bash c cpp cfml csharp css fortran go html java javascript json matlab pascal perl php python r scratch sql swift typescript vb)
-  list(APPEND GENERATED_DEFINITIONS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json.h)
+foreach(DEF_FILE ${DEF_FILES})
+  get_filename_component(DEF_NAME "${DEF_FILE}" NAME)
+  set(HEADER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF_NAME}.h")
+  list(APPEND GENERATED_DEFINITIONS "${HEADER_FILE}")
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json.h
-    COMMAND ${Python3_EXECUTABLE} ./json2h.py ${DEF}_definition.json
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/definitions/${DEF}_definition.json
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/definitions
+    OUTPUT "${HEADER_FILE}"
+    COMMAND ${Python3_EXECUTABLE} ./json2h.py "${DEF_NAME}"
+    DEPENDS "${DEF_FILE}"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/definitions"
   )
 endforeach()
 

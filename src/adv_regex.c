@@ -102,249 +102,100 @@ static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
 }
 
 
-static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start)
-{
-    bool ret = false;
-
-    PCRE2_SIZE error_offset = 0;
-    int error_number = 0;
-    pcre2_match_data_8 *match_data = nullptr;
-    PCRE2_SIZE *ovector = nullptr;
-
-    if (ccontext8 == nullptr)
-    {
-        ccontext8 = pcre2_compile_context_create_8(nullptr);
-        pcre2_set_newline_8(ccontext8, PCRE2_NEWLINE_ANY);
-    }
-
-    if (*regex == nullptr)
-    {
-        uint32_t options = 0;
-        if (is_utf) options |= PCRE2_UTF;
-        if (is_caseless) options |= PCRE2_CASELESS;
-        *regex = pcre2_compile_8((PCRE2_SPTR8)regex_str, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext8);
-        if (*regex == nullptr)
-        {
-            PCRE2_UCHAR8 buffer[256];
-            pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            fprintf(stderr, "PCRE2 compilation_8 failed at offset %zu: %s\n", error_offset, buffer);
-            return false;
-        }
-
-        pcre2_jit_compile_8(*regex, PCRE2_JIT_COMPLETE);
-    }
-
-    match_data = pcre2_match_data_create_from_pattern_8(*regex, nullptr);
-
-    int rc = pcre2_match_8(
-        *regex,                                // the compiled pattern
-        (PCRE2_SPTR8)start,                    // the subject string
-        max_len,                               // the length of the subject
-        0,                                     // start at offset 0 in the subject
-        only_at_start?PCRE2_ANCHORED:0,        // default options
-        match_data,                            // block for storing the result
-        nullptr);                              // use default match context
-    // rc == 1: No capturing groups present. Use ovector[0]/[1] (overall match).
-    if (rc == 1)
-    {
-        ovector = pcre2_get_ovector_pointer_8(match_data);
-        if ((ovector)&&(ovector[1] > 0))
-        {
-            if (offset)
-                *offset = ovector[0];
-
-            if (length)
-                *length = ovector[1] - ovector[0];
-
-            ret = true;
-        }
-    }
-    // rc >= 2: Regex contains capturing groups. By convention, capture group 1
-    // (ovector[2]/[3]) specifies the target token slice rather than the full regex match.
-    else if (rc >= 2)
-    {
-        ovector = pcre2_get_ovector_pointer_8(match_data);
-        if (ovector && ovector[2] != PCRE2_UNSET && ovector[3] != PCRE2_UNSET && ovector[3] > ovector[2])
-        {
-            if (offset)
-                *offset = ovector[2];
-
-            if (length)
-                *length = ovector[3] - ovector[2];
-
-            ret = true;
-        }
-    }
-
-    if (match_data)
-        pcre2_match_data_free_8(match_data);
-
-    return ret;
+#define DEFINE_ADV_REGEX_FIND_PATTERN(bits) \
+static bool adv_regex_find_pattern##bits(const char *regex_str, pcre2_code_##bits **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start) \
+{ \
+    bool ret = false; \
+ \
+    PCRE2_SIZE error_offset = 0; \
+    int error_number = 0; \
+    pcre2_match_data_##bits *match_data = nullptr; \
+    PCRE2_SIZE *ovector = nullptr; \
+ \
+    if (ccontext##bits == nullptr) \
+    { \
+        ccontext##bits = pcre2_compile_context_create_##bits(nullptr); \
+        pcre2_set_newline_##bits(ccontext##bits, PCRE2_NEWLINE_ANY); \
+    } \
+ \
+    if (*regex == nullptr) \
+    { \
+        uint32_t options = 0; \
+        if (is_utf) options |= PCRE2_UTF; \
+        if (is_caseless) options |= PCRE2_CASELESS; \
+        uint##bits##_t *pattern_conv = nullptr; \
+        void *compile_pattern = (void *)regex_str; \
+        if (bits == 16) { \
+            pattern_conv = (uint##bits##_t *)(uint16_t *)utf8_to_utf16(regex_str, nullptr); \
+            if (pattern_conv == nullptr) return false; \
+            compile_pattern = pattern_conv; \
+        } else if (bits == 32) { \
+            pattern_conv = (uint##bits##_t *)(uint32_t *)utf8_to_utf32(regex_str, nullptr); \
+            if (pattern_conv == nullptr) return false; \
+            compile_pattern = pattern_conv; \
+        } \
+        *regex = pcre2_compile_##bits((PCRE2_SPTR##bits)compile_pattern, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext##bits); \
+        if (pattern_conv) free(pattern_conv); \
+        if (*regex == nullptr) \
+        { \
+            PCRE2_UCHAR8 buffer[256]; \
+            pcre2_get_error_message_8(error_number, buffer, sizeof(buffer)); \
+            fprintf(stderr, "PCRE2 compilation_" #bits " failed at offset %zu: %s\n", error_offset, buffer); \
+            return false; \
+        } \
+ \
+        pcre2_jit_compile_##bits(*regex, PCRE2_JIT_COMPLETE); \
+    } \
+ \
+    match_data = pcre2_match_data_create_from_pattern_##bits(*regex, nullptr); \
+ \
+    int rc = pcre2_match_##bits( \
+        *regex, \
+        (PCRE2_SPTR##bits)(const void *)start, \
+        max_len, \
+        0, \
+        only_at_start ? PCRE2_ANCHORED : 0, \
+        match_data, \
+        nullptr); \
+    if (rc == 1) \
+    { \
+        ovector = pcre2_get_ovector_pointer_##bits(match_data); \
+        if ((ovector) && (ovector[1] > 0)) \
+        { \
+            if (offset) \
+                *offset = ovector[0]; \
+ \
+            if (length) \
+                *length = ovector[1] - ovector[0]; \
+ \
+            ret = true; \
+        } \
+    } \
+    else if (rc >= 2) \
+    { \
+        ovector = pcre2_get_ovector_pointer_##bits(match_data); \
+        if (ovector && ovector[2] != PCRE2_UNSET && ovector[3] != PCRE2_UNSET && ovector[3] > ovector[2]) \
+        { \
+            if (offset) \
+                *offset = ovector[2]; \
+ \
+            if (length) \
+                *length = ovector[3] - ovector[2]; \
+ \
+            ret = true; \
+        } \
+    } \
+ \
+    if (match_data) \
+        pcre2_match_data_free_##bits(match_data); \
+ \
+    return ret; \
 }
 
-static bool adv_regex_find_pattern16(const char *regex_str, pcre2_code_16 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start)
-{
-    bool ret = false;
-
-    PCRE2_SIZE error_offset = 0;
-    int error_number = 0;
-    pcre2_match_data_16 *match_data = nullptr;
-    PCRE2_SIZE *ovector = nullptr;
-
-    if (ccontext16 == nullptr)
-    {
-        ccontext16 = pcre2_compile_context_create_16(nullptr);
-        pcre2_set_newline_16(ccontext16, PCRE2_NEWLINE_ANY);
-    }
-
-    if (*regex == nullptr)
-    {
-        uint32_t options = 0;
-        if (is_utf) options |= PCRE2_UTF;
-        if (is_caseless) options |= PCRE2_CASELESS;
-        uint16_t *pattern16 = utf8_to_utf16(regex_str, nullptr);
-        if (pattern16 == nullptr) {
-            return false;
-        }
-        *regex = pcre2_compile_16((PCRE2_SPTR16)pattern16, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext16);
-        free(pattern16);
-        if (*regex == nullptr)
-        {
-            PCRE2_UCHAR8 buffer[256];
-            pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            fprintf(stderr, "PCRE2 compilation_16 failed at offset %zu: %s\n", error_offset, buffer);
-            return false;
-        }
-
-        pcre2_jit_compile_16(*regex, PCRE2_JIT_COMPLETE);
-    }
-
-    match_data = pcre2_match_data_create_from_pattern_16(*regex, nullptr);
-
-    int rc = pcre2_match_16(
-        *regex,                                // the compiled pattern
-        (PCRE2_SPTR16)(const void *)start,     // the subject string
-        max_len,                               // the length of the subject
-        0,                                     // start at offset 0 in the subject
-        only_at_start?PCRE2_ANCHORED:0,        // default options
-        match_data,                            // block for storing the result
-        nullptr);                              // use default match context
-    if (rc == 1)
-    {
-        ovector = pcre2_get_ovector_pointer_16(match_data);
-        if ((ovector)&&(ovector[1] > 0))
-        {
-            if (offset)
-                *offset = ovector[0];
-
-            if (length)
-                *length = ovector[1] - ovector[0];
-
-            ret = true;
-        }
-    }
-    else if (rc >= 2)
-    {
-        ovector = pcre2_get_ovector_pointer_16(match_data);
-        if (ovector && ovector[2] != PCRE2_UNSET && ovector[3] != PCRE2_UNSET && ovector[3] > ovector[2])
-        {
-            if (offset)
-                *offset = ovector[2];
-
-            if (length)
-                *length = ovector[3] - ovector[2];
-
-            ret = true;
-        }
-    }
-
-    if (match_data)
-        pcre2_match_data_free_16(match_data);
-
-    return ret;
-}
-
-static bool adv_regex_find_pattern32(const char *regex_str, pcre2_code_32 **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start)
-{
-    bool ret = false;
-
-    PCRE2_SIZE error_offset = 0;
-    int error_number = 0;
-    pcre2_match_data_32 *match_data = nullptr;
-    PCRE2_SIZE *ovector = nullptr;
-
-    if (ccontext32 == nullptr)
-    {
-        ccontext32 = pcre2_compile_context_create_32(nullptr);
-        pcre2_set_newline_32(ccontext32, PCRE2_NEWLINE_ANY);
-    }
-
-    if (*regex == nullptr)
-    {
-        uint32_t options = 0;
-        if (is_utf) options |= PCRE2_UTF;
-        if (is_caseless) options |= PCRE2_CASELESS;
-        uint32_t *pattern32 = utf8_to_utf32(regex_str, nullptr);
-        if (pattern32 == nullptr) {
-            return false;
-        }
-        *regex = pcre2_compile_32((PCRE2_SPTR32)pattern32, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext32);
-        free(pattern32);
-        if (*regex == nullptr)
-        {
-            PCRE2_UCHAR8 buffer[256];
-            pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            fprintf(stderr, "PCRE2 compilation_32 failed at offset %zu: %s\n", error_offset, buffer);
-            return false;
-        }
-
-        pcre2_jit_compile_32(*regex, PCRE2_JIT_COMPLETE);
-    }
-
-    match_data = pcre2_match_data_create_from_pattern_32(*regex, nullptr);
-
-    int rc = pcre2_match_32(
-        *regex,                                // the compiled pattern
-        (PCRE2_SPTR32)(const void *)start,     // the subject string
-        max_len,                               // the length of the subject
-        0,                                     // start at offset 0 in the subject
-        only_at_start?PCRE2_ANCHORED:0, // default options
-        match_data,                            // block for storing the result
-        nullptr);                              // use default match context
-    if (rc == 1)
-    {
-        ovector = pcre2_get_ovector_pointer_32(match_data);
-        if ((ovector)&&(ovector[1] > 0))
-        {
-            if (offset)
-                *offset = ovector[0];
-
-            if (length)
-                *length = ovector[1] - ovector[0];
-
-            ret = true;
-        }
-    }
-    else if (rc >= 2)
-    {
-        ovector = pcre2_get_ovector_pointer_32(match_data);
-        if (ovector && ovector[2] != PCRE2_UNSET && ovector[3] != PCRE2_UNSET && ovector[3] > ovector[2])
-        {
-            if (offset)
-                *offset = ovector[2];
-
-            if (length)
-                *length = ovector[3] - ovector[2];
-
-            ret = true;
-        }
-    }
-
-    if (match_data)
-        pcre2_match_data_free_32(match_data);
-
-    return ret;
-}
+DEFINE_ADV_REGEX_FIND_PATTERN(8)
+DEFINE_ADV_REGEX_FIND_PATTERN(16)
+DEFINE_ADV_REGEX_FIND_PATTERN(32)
+#undef DEFINE_ADV_REGEX_FIND_PATTERN
 
 bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
