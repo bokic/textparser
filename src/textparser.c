@@ -1136,6 +1136,10 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         if (!token_def->multi_line && textparser_has_newline(handle, ret->position, ret->len)) {
             exit_with_error(handle, "Token spans multiple lines but multi_line flag is not set!", ret->position);
         }
+
+        if (token_def->must_have_one_child && textparser_get_token_children_count(ret) != 1) {
+            exit_with_error(handle, "Token must have exactly one child token!", ret->position);
+        }
     }
 
 exit:

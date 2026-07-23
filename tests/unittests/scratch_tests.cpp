@@ -218,3 +218,60 @@ TEST(parse_MultiLine, token_multiline_validation) {
     textparser_close(handle);
 }
 
+TEST(parse_MustHaveOneChild, token_must_have_one_child_validation) {
+    // Child token definition
+    textparser_token tokens[3] = {};
+    tokens[0].name = "ChildToken";
+    tokens[0].type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN;
+    tokens[0].start_regex = "abc";
+
+    // Parent group token requiring exactly one child
+    tokens[1].name = "ParentGroup";
+    tokens[1].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
+    tokens[1].start_regex = "\\(";
+    tokens[1].end_regex = "\\)";
+    tokens[1].other_text_inside = true;
+    tokens[1].must_have_one_child = true;
+    tokens[1].multi_line = true;
+    static const int parent_nested[] = { 0, TextParser_END };
+    tokens[1].nested_tokens = (int *)parent_nested;
+
+    static const int start_tokens[] = { 1, TextParser_END };
+    textparser_language_definition lang = {};
+    lang.name = "test_must_have_one_child";
+    lang.version = 1.0;
+    lang.case_sensitivity = true;
+    lang.default_text_encoding = TEXTPARSER_ENCODING_UTF_8;
+    lang.starts_with = (int *)start_tokens;
+    lang.tokens = tokens;
+
+    // 0 children should fail
+    const char *no_child_text = "()";
+    textparser_t handle = nullptr;
+    int err = textparser_openmem(no_child_text, strlen(no_child_text), lang.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+    err = textparser_parse(handle, &lang);
+    EXPECT_NE(err, 0);
+    EXPECT_STREQ(textparser_parse_error(handle), "Token must have exactly one child token!");
+    EXPECT_EQ(textparser_parse_error_position(handle), 0);
+    textparser_close(handle);
+
+    // 2 children should fail
+    const char *two_children_text = "(abcabc)";
+    err = textparser_openmem(two_children_text, strlen(two_children_text), lang.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+    err = textparser_parse(handle, &lang);
+    EXPECT_NE(err, 0);
+    EXPECT_STREQ(textparser_parse_error(handle), "Token must have exactly one child token!");
+    EXPECT_EQ(textparser_parse_error_position(handle), 0);
+    textparser_close(handle);
+
+    // Exactly 1 child should succeed
+    const char *one_child_text = "(abc)";
+    err = textparser_openmem(one_child_text, strlen(one_child_text), lang.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+    err = textparser_parse(handle, &lang);
+    EXPECT_EQ(err, 0);
+    textparser_close(handle);
+}
+
