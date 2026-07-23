@@ -14,7 +14,6 @@ target_link_libraries(cfml PRIVATE
 )
 
 set_target_properties(cfml PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser_cfml"
     VERSION "${TEXTPARSER_VERSION_TAG}"
@@ -37,7 +36,6 @@ target_link_libraries(cfml_test PRIVATE
 )
 
 set_target_properties(cfml_test PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     OUTPUT_NAME "validation_test"
 )
 
@@ -55,7 +53,6 @@ target_link_libraries(php PRIVATE
 )
 
 set_target_properties(php PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser_php"
     VERSION "${TEXTPARSER_VERSION_TAG}"
@@ -78,7 +75,6 @@ target_link_libraries(php_test PRIVATE
 )
 
 set_target_properties(php_test PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     OUTPUT_NAME "php_validation_test"
 )
 
@@ -96,7 +92,6 @@ target_link_libraries(html PRIVATE
 )
 
 set_target_properties(html PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser_html"
     VERSION "${TEXTPARSER_VERSION_TAG}"
@@ -119,7 +114,6 @@ target_link_libraries(html_test PRIVATE
 )
 
 set_target_properties(html_test PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     OUTPUT_NAME "html_validation_test"
 )
 
@@ -137,7 +131,6 @@ target_link_libraries(css PRIVATE
 )
 
 set_target_properties(css PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser_css"
     VERSION "${TEXTPARSER_VERSION_TAG}"
@@ -160,6 +153,5 @@ target_link_libraries(css_test PRIVATE
 )
 
 set_target_properties(css_test PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     OUTPUT_NAME "css_validation_test"
 )

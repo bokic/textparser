@@ -12,28 +12,25 @@ if(NOT TEXTPARSER_VERSION_TAG)
             execute_process(
                 COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                OUTPUT_VARIABLE TEXTPARSER_VERSION_TAG
-                OUTPUT_STRIP_TRAILING_WHITESPACE # Removes trailing newline/whitespace
+                OUTPUT_VARIABLE GIT_TAG_OUTPUT
+                OUTPUT_STRIP_TRAILING_WHITESPACE
                 RESULT_VARIABLE GIT_DESCRIBE_RESULT
                 ERROR_QUIET
             )
-            execute_process(
-                COMMAND ${GIT_EXECUTABLE} rev-list ${TEXTPARSER_VERSION_TAG}..HEAD --count
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                OUTPUT_VARIABLE GIT_REVISION
-                OUTPUT_STRIP_TRAILING_WHITESPACE # Removes trailing newline/whitespace
-                RESULT_VARIABLE GIT_REV_LIST_RESULT
-                ERROR_QUIET
-            )
-            execute_process(
-                COMMAND ${GIT_EXECUTABLE} describe --tags --dirty
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                OUTPUT_VARIABLE GIT_COMMIT_NAME
-                OUTPUT_STRIP_TRAILING_WHITESPACE # Removes trailing newline/whitespace
-                RESULT_VARIABLE GIT_DESCRIBE_RESULT
-                ERROR_QUIET
-            )
-            set(REVISION ${GIT_REVISION})
+            if(GIT_DESCRIBE_RESULT EQUAL 0 AND GIT_TAG_OUTPUT)
+                set(TEXTPARSER_VERSION_TAG "${GIT_TAG_OUTPUT}")
+                execute_process(
+                    COMMAND ${GIT_EXECUTABLE} rev-list ${TEXTPARSER_VERSION_TAG}..HEAD --count
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    OUTPUT_VARIABLE GIT_REVISION
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    RESULT_VARIABLE GIT_REV_LIST_RESULT
+                    ERROR_QUIET
+                )
+                if(GIT_REV_LIST_RESULT EQUAL 0 AND GIT_REVISION)
+                    set(REVISION ${GIT_REVISION})
+                endif()
+            endif()
         endif()
     endif()
 endif()
@@ -56,6 +53,13 @@ string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*$" "\\1" TEXTPARSER_VERSION_TAG_SHO
 project(textparser)
 
 include(GNUInstallDirs)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+if(IPO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(STATUS "IPO / LTO is not supported: ${IPO_ERROR}")
+endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
@@ -82,7 +86,7 @@ foreach(DEF_FILE ${DEF_FILES})
   add_custom_command(
     OUTPUT "${HEADER_FILE}"
     COMMAND ${Python3_EXECUTABLE} ./json2h.py "${DEF_NAME}"
-    DEPENDS "${DEF_FILE}"
+    DEPENDS "${DEF_FILE}" "${CMAKE_CURRENT_SOURCE_DIR}/definitions/json2h.py"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/definitions"
   )
 endforeach()

@@ -19,9 +19,9 @@ if(NOT WIN32)
     find_package(json-c CONFIG REQUIRED)
     find_package(PkgConfig)
 
-    pkg_search_module(libpcre2-8 REQUIRED IMPORTED_TARGET libpcre2-8>=10.42)
-    pkg_search_module(libpcre2-16 REQUIRED IMPORTED_TARGET libpcre2-16>=10.42)
-    pkg_search_module(libpcre2-32 REQUIRED IMPORTED_TARGET libpcre2-32>=10.42)
+    foreach(width 8 16 32)
+        pkg_search_module(libpcre2-${width} REQUIRED IMPORTED_TARGET libpcre2-${width}>=10.42)
+    endforeach()
 endif()
 
 add_library(libtextparser SHARED
@@ -59,7 +59,6 @@ endif()
 
 set_target_properties(libtextparser PROPERTIES
     PUBLIC_HEADER "../include/textparser.h"
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser"
     VERSION "${TEXTPARSER_VERSION_TAG}"
@@ -91,7 +90,7 @@ if(WIN32)
     )
 endif()
 
-target_link_libraries(libtextparser-json PRIVATE libtextparser)
+target_link_libraries(libtextparser-json PUBLIC libtextparser)
 
 if(WIN32)
     target_link_directories(libtextparser-json PRIVATE ../bin)
@@ -104,7 +103,6 @@ endif()
 
 set_target_properties(libtextparser-json PROPERTIES
     PUBLIC_HEADER "../include/textparser-json.h"
-    INTERPROCEDURAL_OPTIMIZATION TRUE
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser-json"
     VERSION "${TEXTPARSER_VERSION_TAG}"
