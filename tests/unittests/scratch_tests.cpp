@@ -328,3 +328,30 @@ TEST(parse_DeleteIfOnlyOneChild, token_delete_if_only_one_child_validation) {
     textparser_close(handle);
 }
 
+TEST(parse_Consistency, defensive_checks) {
+    // 1. Check null handle in textparser_parse_error and textparser_parse_error_position
+    EXPECT_EQ(textparser_parse_error(nullptr), nullptr);
+    EXPECT_EQ(textparser_parse_error_position(nullptr), 0);
+
+    // 2. Check null token in textparser_get_token_children_count
+    EXPECT_EQ(textparser_get_token_children_count(nullptr), 0);
+
+    // 3. Check invalid encoding validation in textparser_openmem
+    textparser_t handle = nullptr;
+    const char *text = "hello";
+    EXPECT_NE(textparser_openmem(text, strlen(text), 9999, &handle), 0);
+
+    // 4. Check textparser_free_token_text wrapper
+    int err = textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle);
+    ASSERT_EQ(err, 0);
+    textparser_token_item item = {};
+    item.position = 0;
+    item.len = 5;
+    char *buf = textparser_get_token_text(handle, &item);
+    ASSERT_NE(buf, nullptr);
+    EXPECT_STREQ(buf, "hello");
+    textparser_free_token_text(buf);
+    textparser_free_token_text(nullptr); // safely handles null
+    textparser_close(handle);
+}
+

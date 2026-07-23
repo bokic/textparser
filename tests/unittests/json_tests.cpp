@@ -94,7 +94,7 @@ TEST(parse_JSON, unicode_object) {
     char *key_text = textparser_get_token_text(handle, child);
     ASSERT_NE(key_text, nullptr);
     EXPECT_STREQ(key_text, "\"key\"");
-    free(key_text);
+    textparser_free_token_text(key_text);
     
     textparser_close(handle);
 }
@@ -125,7 +125,7 @@ TEST(parse_JSON, utf32_object) {
     char *key_text = textparser_get_token_text(handle, child);
     ASSERT_NE(key_text, nullptr);
     EXPECT_STREQ(key_text, "\"key\"");
-    free(key_text);
+    textparser_free_token_text(key_text);
     
     textparser_close(handle);
 }
@@ -160,7 +160,7 @@ TEST(parse_JSON, unicode_non_ascii) {
     EXPECT_EQ(key_text[3], 0xDF48);
     EXPECT_EQ(key_text[4], '"');
     EXPECT_EQ(key_text[5], 0);
-    free(key_text);
+    textparser_free_token_text(key_text);
     
     textparser_close(handle);
 }
@@ -193,7 +193,7 @@ TEST(parse_JSON, utf32_non_ascii) {
     EXPECT_EQ(key_text[2], 0x10348);
     EXPECT_EQ(key_text[3], '"');
     EXPECT_EQ(key_text[4], 0);
-    free(key_text);
+    textparser_free_token_text(key_text);
     
     textparser_close(handle);
 }

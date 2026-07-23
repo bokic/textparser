@@ -1449,6 +1449,17 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
         return -1;
     }
 
+    switch (text_format) {
+    case TEXTPARSER_ENCODING_LATIN1:
+    case TEXTPARSER_ENCODING_UTF_8:
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16:
+    case TEXTPARSER_ENCODING_UTF_32:
+        break;
+    default:
+        return -1;
+    }
+
     if (text_format == TEXTPARSER_ENCODING_UTF_16 || text_format == TEXTPARSER_ENCODING_UNICODE) {
         if ((size_t)len % sizeof(uint16_t) != 0) {
             return -1;
@@ -1620,11 +1631,17 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
 
 const char *textparser_parse_error(textparser_t handle)
 {
+    if (handle == nullptr)
+        return nullptr;
+
     return handle->error;
 }
 
 size_t textparser_parse_error_position(textparser_t handle)
 {
+    if (handle == nullptr)
+        return 0;
+
     return handle->error_offset;
 }
 
@@ -1755,6 +1772,13 @@ uint32_t *textparser_get_token_text32(const textparser_t handle, const textparse
     return ret;
 }
 
+void textparser_free_token_text(void *text)
+{
+    if (text) {
+        free(text);
+    }
+}
+
 const textparser_language_definition *textparser_get_language(const textparser_t handle)
 {
     if (handle == nullptr)
@@ -1765,6 +1789,9 @@ const textparser_language_definition *textparser_get_language(const textparser_t
 
 size_t textparser_get_token_children_count(const textparser_token_item *token)
 {
+    if (token == nullptr)
+        return 0;
+
     size_t ret = 0;
 
     const struct textparser_token_item * child = token->child;

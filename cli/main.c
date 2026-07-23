@@ -86,7 +86,7 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
         }
     }
 
-    free(token_text);
+    textparser_free_token_text(token_text);
 
     struct textparser_token_item *child = item->child;
     while(child)

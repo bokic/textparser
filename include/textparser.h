@@ -134,6 +134,7 @@ EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textpa
 EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
 EXPORT_TEXTPARSER uint16_t *textparser_get_token_text16(const textparser_t handle, const textparser_token_item *item);
 EXPORT_TEXTPARSER uint32_t *textparser_get_token_text32(const textparser_t handle, const textparser_token_item *item);
+EXPORT_TEXTPARSER void textparser_free_token_text(void *text);
 EXPORT_TEXTPARSER const textparser_language_definition *textparser_get_language(const textparser_t handle);
 EXPORT_TEXTPARSER void textparser_free_language_definition(textparser_language_definition *definition);
 

@@ -69,7 +69,7 @@ public:
                 if (txt)
                 {
                     value = txt;
-                    free(txt);
+                    textparser_free_token_text(txt);
                 }
             }
         }
