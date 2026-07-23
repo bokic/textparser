@@ -8,8 +8,11 @@
 typedef HANDLE file_hnd_fd;
 #define FILE_HND_FD_NULL NULL
 #define ERROR_FILE_HND_FD NULL
-typedef SIZE_T size_t;
+#if !defined(_SSIZE_T_DEFINED) && !defined(__ssize_t_defined) && !defined(_SSIZE_T_)
 typedef SSIZE_T ssize_t;
+#define _SSIZE_T_DEFINED
+#define _SSIZE_T_
+#endif
 #else
 #include <unistd.h>
 typedef int file_hnd_fd;
