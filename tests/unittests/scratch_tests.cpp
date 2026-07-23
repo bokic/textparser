@@ -177,3 +177,44 @@ broadcast message1
 
     textparser_close(handle);
 }
+
+TEST(parse_MultiLine, token_multiline_validation) {
+    // SingleLineToken non-multiline token fails on newline
+    textparser_token tokens[2] = {};
+    tokens[0].name = "SingleLineToken";
+    tokens[0].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
+    tokens[0].start_regex = "'";
+    tokens[0].end_regex = "'";
+    tokens[0].other_text_inside = true;
+    tokens[0].multi_line = false;
+
+    static const int start_tokens[] = { 0, TextParser_END };
+    textparser_language_definition lang = {};
+    lang.name = "test_multiline";
+    lang.version = 1.0;
+    lang.case_sensitivity = true;
+    lang.default_text_encoding = TEXTPARSER_ENCODING_UTF_8;
+    lang.starts_with = (int *)start_tokens;
+    lang.tokens = tokens;
+
+    const char *invalid_text = "'first line\nsecond line'";
+    textparser_t handle = nullptr;
+    int err = textparser_openmem(invalid_text, strlen(invalid_text), lang.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+
+    err = textparser_parse(handle, &lang);
+    EXPECT_NE(err, 0);
+    EXPECT_STREQ(textparser_parse_error(handle), "Token spans multiple lines but multi_line flag is not set!");
+    EXPECT_EQ(textparser_parse_error_position(handle), 0);
+    textparser_close(handle);
+
+    // MultiLineToken allowed on newline
+    tokens[0].multi_line = true;
+    err = textparser_openmem(invalid_text, strlen(invalid_text), lang.default_text_encoding, &handle);
+    ASSERT_EQ(err, 0);
+
+    err = textparser_parse(handle, &lang);
+    EXPECT_EQ(err, 0);
+    textparser_close(handle);
+}
+

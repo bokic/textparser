@@ -214,6 +214,47 @@ static textparser_token_item *allocate_token(struct textparser_handle *handle)
     return ret;
 }
 
+static bool textparser_has_newline(const struct textparser_handle *handle, size_t pos, size_t len)
+{
+    if (handle == nullptr || len == 0) return false;
+
+    if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16)
+    {
+        size_t max_units = handle->text_size / sizeof(uint16_t);
+        if (pos >= max_units) return false;
+        size_t end = (pos + len > max_units) ? max_units : pos + len;
+        const uint16_t *text = (const uint16_t *)handle->text_addr;
+        for (size_t c = pos; c < end; c++)
+        {
+            if (text[c] == '\n' || text[c] == '\r') return true;
+        }
+    }
+    else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32)
+    {
+        size_t max_units = handle->text_size / sizeof(uint32_t);
+        if (pos >= max_units) return false;
+        size_t end = (pos + len > max_units) ? max_units : pos + len;
+        const uint32_t *text = (const uint32_t *)handle->text_addr;
+        for (size_t c = pos; c < end; c++)
+        {
+            if (text[c] == '\n' || text[c] == '\r') return true;
+        }
+    }
+    else
+    {
+        size_t max_units = handle->text_size;
+        if (pos >= max_units) return false;
+        size_t end = (pos + len > max_units) ? max_units : pos + len;
+        const char *text = handle->text_addr;
+        for (size_t c = pos; c < end; c++)
+        {
+            if (text[c] == '\n' || text[c] == '\r') return true;
+        }
+    }
+
+    return false;
+}
+
 static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos)
 {
     size_t maxPos = 0;
@@ -1091,8 +1132,13 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         ret->text_color = token_def->text_color;
         ret->text_background = token_def->text_background;
         ret->text_flags = token_def->text_flags;
+
+        if (!token_def->multi_line && textparser_has_newline(handle, ret->position, ret->len)) {
+            exit_with_error(handle, "Token spans multiple lines but multi_line flag is not set!", ret->position);
+        }
     }
 
+exit:
     handle->recursion_depth--;
     return ret;
 }
