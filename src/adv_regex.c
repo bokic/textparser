@@ -11,25 +11,49 @@ static pcre2_compile_context_8 *ccontext8 = nullptr;
 static pcre2_compile_context_16 *ccontext16 = nullptr;
 static pcre2_compile_context_32 *ccontext32 = nullptr;
 
+static uint32_t decode_one_utf8_codepoint(const unsigned char **p)
+{
+    const unsigned char *s = *p;
+    if (!*s) return 0;
+
+    uint32_t cp = 0;
+    if (*s < 0x80) {
+        cp = *s++;
+    } else if (*s < 0xE0) {
+        cp = (*s++ & 0x1F) << 6;
+        if ((*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
+    } else if (*s < 0xF0) {
+        cp = (*s++ & 0x0F) << 12;
+        if ((*s & 0xC0) == 0x80) {
+            cp |= (*s++ & 0x3F) << 6;
+            if ((*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
+        }
+    } else {
+        cp = (*s++ & 0x07) << 18;
+        if ((*s & 0xC0) == 0x80) {
+            cp |= (*s++ & 0x3F) << 12;
+            if ((*s & 0xC0) == 0x80) {
+                cp |= (*s++ & 0x3F) << 6;
+                if ((*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
+            }
+        }
+    }
+    *p = s;
+    return cp;
+}
+
 static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
 {
+    if (!utf8) return nullptr;
+
     size_t len = 0;
     const unsigned char *p = (const unsigned char *)utf8;
     while (*p) {
-        if (*p < 0x80) {
-            len++; p++;
-        } else if (*p < 0xE0) {
-            len++; p++;
-            if (*p) p++;
-        } else if (*p < 0xF0) {
-            len++; p++;
-            if (*p) p++;
-            if (*p) p++;
+        uint32_t cp = decode_one_utf8_codepoint(&p);
+        if (cp < 0x10000) {
+            len++;
         } else {
-            len += 2; p++;
-            if (*p) p++;
-            if (*p) p++;
-            if (*p) p++;
+            len += 2;
         }
     }
     
@@ -39,23 +63,7 @@ static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
     size_t idx = 0;
     p = (const unsigned char *)utf8;
     while (*p) {
-        uint32_t cp = 0;
-        if (*p < 0x80) {
-            cp = *p++;
-        } else if (*p < 0xE0) {
-            cp = (*p & 0x1F) << 6; p++;
-            if (*p) { cp |= (*p & 0x3F); p++; }
-        } else if (*p < 0xF0) {
-            cp = (*p & 0x0F) << 12; p++;
-            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
-            if (*p) { cp |= (*p & 0x3F); p++; }
-        } else {
-            cp = (*p & 0x07) << 18; p++;
-            if (*p) { cp |= (*p & 0x3F) << 12; p++; }
-            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
-            if (*p) { cp |= (*p & 0x3F); p++; }
-        }
-        
+        uint32_t cp = decode_one_utf8_codepoint(&p);
         if (cp < 0x10000) {
             utf16[idx++] = (uint16_t)cp;
         } else {
@@ -71,24 +79,13 @@ static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
 
 static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
 {
+    if (!utf8) return nullptr;
+
     size_t len = 0;
     const unsigned char *p = (const unsigned char *)utf8;
     while (*p) {
-        if (*p < 0x80) {
-            len++; p++;
-        } else if (*p < 0xE0) {
-            len++; p++;
-            if (*p) p++;
-        } else if (*p < 0xF0) {
-            len++; p++;
-            if (*p) p++;
-            if (*p) p++;
-        } else {
-            len++; p++;
-            if (*p) p++;
-            if (*p) p++;
-            if (*p) p++;
-        }
+        decode_one_utf8_codepoint(&p);
+        len++;
     }
     
     uint32_t *utf32 = malloc((len + 1) * sizeof(uint32_t));
@@ -97,23 +94,7 @@ static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
     size_t idx = 0;
     p = (const unsigned char *)utf8;
     while (*p) {
-        uint32_t cp = 0;
-        if (*p < 0x80) {
-            cp = *p++;
-        } else if (*p < 0xE0) {
-            cp = (*p & 0x1F) << 6; p++;
-            if (*p) { cp |= (*p & 0x3F); p++; }
-        } else if (*p < 0xF0) {
-            cp = (*p & 0x0F) << 12; p++;
-            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
-            if (*p) { cp |= (*p & 0x3F); p++; }
-        } else {
-            cp = (*p & 0x07) << 18; p++;
-            if (*p) { cp |= (*p & 0x3F) << 12; p++; }
-            if (*p) { cp |= (*p & 0x3F) << 6; p++; }
-            if (*p) { cp |= (*p & 0x3F); p++; }
-        }
-        utf32[idx++] = cp;
+        utf32[idx++] = decode_one_utf8_codepoint(&p);
     }
     utf32[idx] = 0;
     if (out_len) *out_len = idx;
@@ -146,7 +127,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
         {
             PCRE2_UCHAR8 buffer[256];
             pcre2_get_error_message_8(error_number, buffer, sizeof(buffer));
-            fprintf(stderr, "PCRE2 compilation_8 failed for regex [%s]\n", regex_str);
+            fprintf(stderr, "PCRE2 compilation_8 failed at offset %zu: %s\n", error_offset, buffer);
             return false;
         }
 
@@ -163,6 +144,7 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
         only_at_start?PCRE2_ANCHORED:0,        // default options
         match_data,                            // block for storing the result
         nullptr);                              // use default match context
+    // rc == 1: No capturing groups present. Use ovector[0]/[1] (overall match).
     if (rc == 1)
     {
         ovector = pcre2_get_ovector_pointer_8(match_data);
@@ -177,6 +159,8 @@ static bool adv_regex_find_pattern8(const char *regex_str, pcre2_code_8 **regex,
             ret = true;
         }
     }
+    // rc >= 2: Regex contains capturing groups. By convention, capture group 1
+    // (ovector[2]/[3]) specifies the target token slice rather than the full regex match.
     else if (rc >= 2)
     {
         ovector = pcre2_get_ovector_pointer_8(match_data);
