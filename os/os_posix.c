@@ -54,28 +54,34 @@ ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 
 void* os_map(const char *pathname, size_t* size)
 {
-    void* ret = nullptr;
-    struct stat stat;
+    if (size) *size = 0;
+
+    struct stat statbuf;
     os_file_defer(fd);
 
     fd = open(pathname, O_RDONLY);
     if (fd == -1)
-        return nullptr;
+        return NULL;
 
-    if (fstat(fd, &stat))
-        return nullptr;
+    if (fstat(fd, &statbuf))
+        return NULL;
 
-    if (stat.st_size <= 0)
-        return nullptr;
+    if (statbuf.st_size < 0)
+        return NULL;
 
-    if ((uintmax_t)stat.st_size > (uintmax_t)SIZE_MAX)
-        return nullptr;
+    if (statbuf.st_size == 0) {
+        if (size) *size = 0;
+        return NULL;
+    }
 
-    ret = mmap(nullptr, (size_t)stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if ((uintmax_t)statbuf.st_size > (uintmax_t)SIZE_MAX)
+        return NULL;
+
+    void *ret = mmap(NULL, (size_t)statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (ret == MAP_FAILED)
-        return nullptr;
+        return NULL;
 
-    *size = (size_t)stat.st_size;
+    if (size) *size = (size_t)statbuf.st_size;
 
     return ret;
 }

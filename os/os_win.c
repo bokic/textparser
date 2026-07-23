@@ -60,7 +60,8 @@ ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 
 void* os_map(const char *pathname, size_t* size)
 {
-    void* ret = NULL;
+    if (size) *size = 0;
+
     LARGE_INTEGER fileSize;
 
     wchar_t* wpath = utf8_to_wchar(pathname);
@@ -86,18 +87,20 @@ void* os_map(const char *pathname, size_t* size)
         return NULL;
     }
 
-    *size = (size_t)fileSize.QuadPart;
-
     HANDLE map_hnd = CreateFileMapping(hnd, NULL, PAGE_READONLY, 0, 0, NULL);
     if (map_hnd == NULL) {
         CloseHandle(hnd);
         return NULL;
     }
 
-    ret = MapViewOfFile(map_hnd, FILE_MAP_READ, 0, 0, 0);
+    void *ret = MapViewOfFile(map_hnd, FILE_MAP_READ, 0, 0, 0);
 
     CloseHandle(map_hnd);
     CloseHandle(hnd);
+
+    if (ret && size) {
+        *size = (size_t)fileSize.QuadPart;
+    }
 
     return ret;
 }

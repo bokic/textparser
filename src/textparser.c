@@ -1292,10 +1292,8 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
 
     memset(&local_hnd, 0, sizeof(local_hnd));
 
-    local_hnd.mmap_size = SIZE_MAX;
-
     local_hnd.mmap_addr = os_map(pathname, &local_hnd.mmap_size);
-    if ((local_hnd.mmap_addr == nullptr)&&(local_hnd.mmap_size > 0)) {
+    if (!local_hnd.mmap_addr && local_hnd.mmap_size != 0) {
         err = 1;
         goto err;
     }
