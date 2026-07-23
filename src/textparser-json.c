@@ -326,6 +326,11 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
                 for(int i = 0; i < nested_cnt; i++) {
                      json_object *item = json_object_array_get_idx(nested_tokens_json, i);
+                     if (!item || !json_object_is_type(item, json_type_string)) {
+                         (*definition)->error_string = "`nestedTokens` array element is not a string!";
+                         ret_code = TEXTPARSER_JSON_NESTED_TOKENS_ELEMENT_NOT_STRING;
+                         goto err;
+                     }
                      const char *name = json_object_get_string(item);
 
                      int found_idx = TextParser_END;
@@ -363,6 +368,11 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
     for(int i = 0; i < starts_with_cnt; i++) {
         json_object *item = json_object_array_get_idx(start_tokens_arr, i);
+        if (!item || !json_object_is_type(item, json_type_string)) {
+            (*definition)->error_string = "`startTokens` array element is not a string!";
+            ret_code = TEXTPARSER_JSON_STARTS_WITH_ELEMENT_NOT_STRING;
+            goto err;
+        }
         const char *name = json_object_get_string(item);
 
         int found_idx = TextParser_END;

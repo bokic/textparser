@@ -281,6 +281,53 @@ TEST(parse_JSON, recursive_group_find_token_depth_limit) {
     textparser_free_language_definition(definition);
 }
 
+TEST(parse_JSON, non_string_start_tokens_element) {
+    const char *json_def_str = R"({
+        "name": "test_lang",
+        "version": 1.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": [123],
+        "otherTextInside": true,
+        "tokens": {
+            "MyToken": {
+                "type": "SimpleToken",
+                "startRegex": "hello"
+            }
+        }
+    })";
+
+    textparser_language_definition *definition = nullptr;
+    int err = textparser_json_load_language_definition_from_string(json_def_str, &definition);
+    EXPECT_EQ(err, TEXTPARSER_JSON_STARTS_WITH_ELEMENT_NOT_STRING);
+    EXPECT_EQ(definition, nullptr);
+}
+
+TEST(parse_JSON, non_string_nested_tokens_element) {
+    const char *json_def_str = R"({
+        "name": "test_lang",
+        "version": 1.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["MyToken"],
+        "otherTextInside": true,
+        "tokens": {
+            "MyToken": {
+                "type": "Group",
+                "nestedTokens": [null]
+            }
+        }
+    })";
+
+    textparser_language_definition *definition = nullptr;
+    int err = textparser_json_load_language_definition_from_string(json_def_str, &definition);
+    EXPECT_EQ(err, TEXTPARSER_JSON_NESTED_TOKENS_ELEMENT_NOT_STRING);
+    EXPECT_EQ(definition, nullptr);
+}
+
+
 
 
 
