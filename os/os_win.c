@@ -8,10 +8,27 @@
 #include <Winbase.h>
 #include <Fileapi.h>
 
+static wchar_t* utf8_to_wchar(const char* utf8)
+{
+    if (!utf8) return NULL;
+    int req_len = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
+    if (req_len <= 0) return NULL;
+    wchar_t* wstr = (wchar_t*)HeapAlloc(GetProcessHeap(), 0, (size_t)req_len * sizeof(wchar_t));
+    if (!wstr) return NULL;
+    if (MultiByteToWideChar(CP_UTF8, 0, utf8, -1, wstr, req_len) <= 0) {
+        HeapFree(GetProcessHeap(), 0, wstr);
+        return NULL;
+    }
+    return wstr;
+}
 
 file_hnd_fd os_creat_file(const char* pathname)
 {
-    return CreateFileA(pathname, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, 0, NULL);
+    wchar_t* wpath = utf8_to_wchar(pathname);
+    if (!wpath) return INVALID_HANDLE_VALUE;
+    HANDLE hnd = CreateFileW(wpath, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, 0, NULL);
+    HeapFree(GetProcessHeap(), 0, wpath);
+    return hnd;
 }
 
 void os_file_close(file_hnd_fd hnd_fd)
@@ -21,13 +38,24 @@ void os_file_close(file_hnd_fd hnd_fd)
 
 ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 {
-    ssize_t ret = 0;
-    DWORD written = 0;
+    size_t total_written = 0;
+    const char *ptr = (const char *)buffer;
 
-    if (WriteFile(hnd_fd, buffer, len, &written, NULL))
-        ret = written;
+    while (total_written < len) {
+        DWORD chunk = 0;
+        size_t remaining = len - total_written;
+        DWORD to_write = (remaining > MAXDWORD) ? MAXDWORD : (DWORD)remaining;
 
-    return ret;
+        if (!WriteFile(hnd_fd, ptr + total_written, to_write, &chunk, NULL)) {
+            return -1;
+        }
+        if (chunk == 0) {
+            break;
+        }
+        total_written += chunk;
+    }
+
+    return (ssize_t)total_written;
 }
 
 void* os_map(const char *pathname, size_t* size)
@@ -35,7 +63,11 @@ void* os_map(const char *pathname, size_t* size)
     void* ret = NULL;
     LARGE_INTEGER fileSize;
 
-    HANDLE hnd = CreateFileA(pathname, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    wchar_t* wpath = utf8_to_wchar(pathname);
+    if (!wpath) return NULL;
+
+    HANDLE hnd = CreateFileW(wpath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    HeapFree(GetProcessHeap(), 0, wpath);
     if (hnd == INVALID_HANDLE_VALUE)
         return NULL;
 
@@ -72,19 +104,26 @@ void* os_map(const char *pathname, size_t* size)
 
 void os_unmap(void* addr, size_t size)
 {
+    (void)size;
     UnmapViewOfFile(addr);
 }
 
 ssize_t os_write_to_terminal(const void *buffer, size_t len)
 {
-    DWORD written = 0;
-
     HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hnd != INVALID_HANDLE_VALUE) {
-        WriteConsole(hnd, buffer, len, &written, NULL);
+    if (hnd == INVALID_HANDLE_VALUE || hnd == NULL) {
+        return -1;
     }
 
-    return written;
+    DWORD mode;
+    if (GetConsoleMode(hnd, &mode)) {
+        DWORD written = 0;
+        if (WriteConsole(hnd, buffer, (DWORD)len, &written, NULL)) {
+            return (ssize_t)written;
+        }
+    }
+
+    return os_write(hnd, buffer, len);
 }
 
 void os_file_cleanup(void *fd) {
@@ -94,3 +133,4 @@ void os_file_cleanup(void *fd) {
         *hnd = 0;
     }
 }
+
