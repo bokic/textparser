@@ -1471,7 +1471,6 @@ void textparser_close(textparser_t handle)
     }
 
     free(handle);
-    handle = nullptr;
 
     active_handle_count--;
     if (active_handle_count == 0) {
