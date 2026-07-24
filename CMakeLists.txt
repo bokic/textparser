@@ -77,6 +77,10 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic -Wstack-protector -fstack-protector-strong)
 endif()
 
+if(WIN32)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
+endif()
+
 file(GLOB DEF_FILES "${CMAKE_CURRENT_SOURCE_DIR}/definitions/*_definition.json")
 set(GENERATED_DEFINITIONS "")
 foreach(DEF_FILE ${DEF_FILES})

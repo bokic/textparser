@@ -17,6 +17,12 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Suppress warnings from googletest sources
+if(NOT MSVC)
+  target_compile_options(gtest PRIVATE -Wno-character-conversion -Wno-language-extension-token)
+  target_compile_options(gmock PRIVATE -Wno-character-conversion -Wno-language-extension-token)
+endif()
+
 enable_testing()
 
 add_executable( unittests

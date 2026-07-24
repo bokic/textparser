@@ -114,6 +114,13 @@ static bool has_token_type(const TextParser &tokens, const std::string &target_t
 }
 
 // Dump helper for visual debugging and validation
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 static std::string dump_tokens(const TokenParserItem &item, int indent = 0) {
     if (!item.type) return "";
     std::string spaces(indent * 2, ' ');
@@ -127,6 +134,11 @@ static std::string dump_tokens(const TokenParserItem &item, int indent = 0) {
     }
     return result;
 }
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 // -------------------------------------------------------------
 // 1. COMMENT CORNER CASES
