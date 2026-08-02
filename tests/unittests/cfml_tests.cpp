@@ -382,6 +382,34 @@ TEST(parse_CFML, symbolic_logical_sharp_expression) {
     EXPECT_TRUE(has_token_value(tokens, "Operator", "||"));
 }
 
+TEST(parse_CFML, sharp_leading_string_with_interpolation) {
+    // A leading '#' that cannot close as a #...# expression is treated as
+    // literal text; the string's #...# interpolation still tokenizes.
+    textparser_suppress_errors() = true;
+    auto tokens = TextParser(R"(<cfoutput>#"x #a#"</cfoutput>)", &cfml_definition);
+    textparser_suppress_errors() = false;
+
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_STREQ(tokens[0].type, "OutputTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "OutputStartTag"));
+    EXPECT_TRUE(has_token_type(tokens, "OutputEndTag"));
+    EXPECT_TRUE(has_token_value(tokens, "SharpExpression", "#a#"));
+}
+
+TEST(parse_CFML, sharp_wrapped_string_with_interpolation) {
+    // A closed #"..."# expression wrapping a string still parses as a
+    // SharpExpression containing a DoubleString with a nested interpolation.
+    textparser_suppress_errors() = true;
+    auto tokens = TextParser(R"(<cfoutput>#"x #a#"#</cfoutput>)", &cfml_definition);
+    textparser_suppress_errors() = false;
+
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_STREQ(tokens[0].type, "OutputTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+    EXPECT_TRUE(has_token_type(tokens, "DoubleString"));
+    EXPECT_TRUE(has_token_value(tokens, "SharpExpression", "#a#"));
+}
+
 // -------------------------------------------------------------
 // 5. CFML TAG CORNER CASES
 // -------------------------------------------------------------

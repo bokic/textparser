@@ -596,24 +596,32 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
 
         if (current_token_id != TextParser_END)
         {
-            if (child == nullptr) {
-                child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
-                if (child == nullptr) {
-                    exit_with_error(handle, "Parsing child token failed", offset);
+            textparser_token_item *new_child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
+            if (new_child == nullptr) {
+                exit_with_error(handle, "Parsing child token failed", offset);
+            }
+            if (handle->error) {
+                // A token matched at this offset but failed to parse completely.
+                // When the group allows arbitrary text, treat it as other text
+                // instead of aborting the whole parse.
+                if (token_def->other_text_inside && offset < textparser_get_total_units(handle)) {
+                    handle->error = nullptr;
+                    handle->error_offset = 0;
+                    offset += textparser_char_len(handle, offset);
+                    continue;
                 }
+                goto exit;
+            }
+
+            if (child == nullptr) {
+                child = new_child;
                 child->parent = ret;
                 ret->child = child;
-                check_and_exit_on_fatal_parsing_error(handle, child, offset);
             } else {
-                textparser_token_item *next_child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, current_prev);
-                if (next_child == nullptr) {
-                    exit_with_error(handle, "Parsing child token failed", offset);
-                }
-                next_child->parent = ret;
-                next_child->prev = child;
-                child->next = next_child;
-                child = next_child;
-                check_and_exit_on_fatal_parsing_error(handle, child, offset);
+                new_child->parent = ret;
+                new_child->prev = child;
+                child->next = new_child;
+                child = new_child;
             }
 
             if (child->len == 0) {
@@ -922,10 +930,24 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
 
             if (child_token_id != TextParser_END)
             {
-                child = textparser_parse_token(handle, child_token_id, token_id, TEXTPARSER_SEARCH_END_TOKEN, offset, ret, current_prev);
-                if (child == nullptr) {
+                textparser_token_item *new_child = textparser_parse_token(handle, child_token_id, token_id, TEXTPARSER_SEARCH_END_TOKEN, offset, ret, current_prev);
+                if (new_child == nullptr) {
                     exit_with_error(handle, "Parsing nested child token failed", offset);
                 }
+                if (handle->error) {
+                    // A nested token matched at this offset but failed to parse
+                    // completely. When this token allows arbitrary text, treat it
+                    // as other text instead of aborting the whole parse.
+                    if (token_def->other_text_inside && offset < textparser_get_total_units(handle)) {
+                        handle->error = nullptr;
+                        handle->error_offset = 0;
+                        offset += textparser_char_len(handle, offset);
+                        continue;
+                    }
+                    goto exit;
+                }
+
+                child = new_child;
                 child->parent = ret;
                 if (last_child) {
                     child->prev = last_child;
