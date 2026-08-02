@@ -303,6 +303,85 @@ TEST(parse_CFML, cfscript_operators) {
     
 }
 
+static void find_token_value(const TokenParserItem &item, const std::string &target_type, const std::string &target_value, bool &found) {
+    if (item.type && target_type == item.type && target_value == item.value) {
+        found = true;
+    }
+    for (size_t i = 0; i < item.children; ++i) {
+        find_token_value(item[i], target_type, target_value, found);
+    }
+}
+
+static bool has_token_value(const TextParser &tokens, const std::string &target_type, const std::string &target_value) {
+    bool found = false;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        find_token_value(tokens[i], target_type, target_value, found);
+    }
+    return found;
+}
+
+TEST(parse_CFML, symbolic_and_operator) {
+    textparser_suppress_errors() = true;
+    auto tokens = TextParser(R"(<cfscript>writeOutput(1 && 3);</cfscript>)", &cfml_definition);
+    textparser_suppress_errors() = false;
+
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_STREQ(tokens[0].type, "ScriptTagPair");
+    ASSERT_EQ(tokens[0].children, 3);
+    ASSERT_STREQ(tokens[0][1].type, "ScriptExpression");
+
+    // ScriptExpression: [0] Function, [1] Parenthesis, [2] ExpressionEnd
+    ASSERT_STREQ(tokens[0][1][0].type, "Function");
+    ASSERT_STREQ(tokens[0][1][1].type, "Parenthesis");
+    ASSERT_STREQ(tokens[0][1][2].type, "ExpressionEnd");
+
+    // Parenthesis: [0] ScriptExpression: Number Operator Number
+    ASSERT_STREQ(tokens[0][1][1][0].type, "ScriptExpression");
+    ASSERT_EQ(tokens[0][1][1][0].children, 3);
+    ASSERT_STREQ(tokens[0][1][1][0][0].type, "Number");
+    ASSERT_STREQ(tokens[0][1][1][0][1].type, "Operator");
+    EXPECT_EQ(tokens[0][1][1][0][1].length, 2);
+    EXPECT_STREQ(tokens[0][1][1][0][1].value.c_str(), "&&");
+    ASSERT_STREQ(tokens[0][1][1][0][2].type, "Number");
+
+    EXPECT_TRUE(has_token_value(tokens, "Operator", "&&"));
+    EXPECT_FALSE(has_token_value(tokens, "Operator", "&"));
+}
+
+TEST(parse_CFML, symbolic_or_operator) {
+    textparser_suppress_errors() = true;
+    auto tokens = TextParser(R"(<cfscript>writeOutput(0 || 3);</cfscript>)", &cfml_definition);
+    textparser_suppress_errors() = false;
+
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_STREQ(tokens[0].type, "ScriptTagPair");
+    ASSERT_EQ(tokens[0].children, 3);
+    ASSERT_STREQ(tokens[0][1].type, "ScriptExpression");
+
+    // Parenthesis: [0] ScriptExpression: Number Operator Number
+    ASSERT_STREQ(tokens[0][1][1].type, "Parenthesis");
+    ASSERT_STREQ(tokens[0][1][1][0].type, "ScriptExpression");
+    ASSERT_EQ(tokens[0][1][1][0].children, 3);
+    ASSERT_STREQ(tokens[0][1][1][0][0].type, "Number");
+    ASSERT_STREQ(tokens[0][1][1][0][1].type, "Operator");
+    EXPECT_EQ(tokens[0][1][1][0][1].length, 2);
+    EXPECT_STREQ(tokens[0][1][1][0][1].value.c_str(), "||");
+    ASSERT_STREQ(tokens[0][1][1][0][2].type, "Number");
+
+    EXPECT_TRUE(has_token_value(tokens, "Operator", "||"));
+}
+
+TEST(parse_CFML, symbolic_logical_sharp_expression) {
+    textparser_suppress_errors() = true;
+    auto tokens = TextParser(R"(<cfoutput>#0 || 3#</cfoutput>)", &cfml_definition);
+    textparser_suppress_errors() = false;
+
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_STREQ(tokens[0].type, "OutputTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+    EXPECT_TRUE(has_token_value(tokens, "Operator", "||"));
+}
+
 // -------------------------------------------------------------
 // 5. CFML TAG CORNER CASES
 // -------------------------------------------------------------
