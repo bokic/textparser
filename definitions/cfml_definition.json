@@ -16,10 +16,7 @@
     "LoopTagPair",
     "StartTag",
     "EndTag",
-    "Comment",
-    "Parenthesis",
-    "ArrayIndex",
-    "CodeBlock"
+    "Comment"
   ],
   "tokens": {
     "ScriptTagPair": {
