@@ -292,9 +292,28 @@
         "LoopTagPair",
         "StartTag",
         "EndTag",
-        "Comment",
-        "SharpChar",
-        "SharpExpression"
+        "Comment"
+      ],
+      "contextNestedTokens": [
+        {
+          "whenParentIn": [
+            "OutputExpression",
+            "QueryExpression",
+            "OutputTagPair",
+            "QueryTagPair"
+          ],
+          "nestedTokens": [
+            "ScriptTagPair",
+            "OutputTagPair",
+            "QueryTagPair",
+            "LoopTagPair",
+            "StartTag",
+            "EndTag",
+            "Comment",
+            "SharpChar",
+            "SharpExpression"
+          ]
+        }
       ]
     },
     "ScriptBlockComment": {
@@ -348,6 +367,7 @@
       "type": "StartStop",
       "startRegex": "\\{",
       "endRegex": "\\}",
+      "multiLine": true,
       "textColor": "0xffd700",
       "nestedTokens": [
         "ScriptExpression"

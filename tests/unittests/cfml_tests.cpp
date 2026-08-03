@@ -1,5 +1,6 @@
 #include "tokenparser.hpp"
 #include <textparser.h>
+#include <textparser-json.h>
 
 #include <gtest/gtest.h>
 
@@ -97,12 +98,20 @@ TEST(parse_CFML, line_mapping_subsystem) {
 
 // Helper function to scan tokens and check if a specific token type exists
 static void scan_tokens_for_type(const TokenParserItem &item, const std::string &target_type, bool &found) {
+    if (found) return;
     if (item.type && target_type == item.type) {
         found = true;
+        return;
     }
     for (size_t i = 0; i < item.children; ++i) {
         scan_tokens_for_type(item[i], target_type, found);
     }
+}
+
+static bool item_has_token_type(const TokenParserItem &item, const std::string &target_type) {
+    bool found = false;
+    scan_tokens_for_type(item, target_type, found);
+    return found;
 }
 
 static bool has_token_type(const TextParser &tokens, const std::string &target_type) {
@@ -798,6 +807,152 @@ TEST(parse_CFML, openmem_invalid_params) {
     ASSERT_EQ(res, -1);
     ASSERT_EQ(handle, nullptr);
 }
+
+TEST(parse_CFML, context_nested_tokens_cfloop_top_level) {
+    // At top level, cfloop body hash should NOT parse as SharpExpression
+    auto tokens = TextParser(R"(<cfloop from="1" to="2" index="i">#i#</cfloop>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "LoopTagPair");
+    EXPECT_FALSE(has_token_type(tokens, "SharpExpression"));
+}
+
+TEST(parse_CFML, context_nested_tokens_cfloop_under_cfoutput) {
+    // Under cfoutput, cfloop body hash SHOULD parse as SharpExpression
+    auto tokens = TextParser(R"(<cfoutput><cfloop from="1" to="2" index="i">#i#</cfloop></cfoutput>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "OutputTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+}
+
+TEST(parse_CFML, context_nested_tokens_cfloop_under_cfquery) {
+    // Under cfquery, cfloop body hash SHOULD parse as SharpExpression
+    auto tokens = TextParser(R"(<cfquery name="q"><cfloop from="1" to="2" index="i">#i#</cfloop></cfquery>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "QueryTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+}
+
+// -------------------------------------------------------------
+// CORNER CASES & EDGE CONDITIONS FOR contextNestedTokens
+// -------------------------------------------------------------
+
+TEST(parse_CFML, context_nested_tokens_deeply_nested_loops) {
+    // Deeply nested cfloop inside cfoutput: SharpExpression must propagate through multi-level ancestors
+    auto tokens = TextParser(R"(<cfoutput><cfloop index="a" from="1" to="2"><cfloop index="b" from="1" to="2">#a#_#b#</cfloop></cfloop></cfoutput>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "OutputTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+}
+
+TEST(parse_CFML, context_nested_tokens_escaped_hash_in_cfloop) {
+    // Escaped hash ## inside cfloop under cfoutput vs top-level
+    auto tokens_top = TextParser(R"(<cfloop index="i" from="1" to="2">##i##</cfloop>)", &cfml_definition);
+    EXPECT_FALSE(has_token_type(tokens_top, "SharpChar"));
+
+    auto tokens_out = TextParser(R"(<cfoutput><cfloop index="i" from="1" to="2">##i##</cfloop></cfoutput>)", &cfml_definition);
+    EXPECT_TRUE(has_token_type(tokens_out, "SharpChar"));
+}
+
+TEST(parse_CFML, context_nested_tokens_attribute_hashes_always_active) {
+    // Hashes in tag attributes (e.g. to="#max#") are parsed as SharpExpression inside Expression even at top-level
+    auto tokens = TextParser(R"(<cfloop from="1" to="#max#" index="i">literal_body_#i#</cfloop>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+
+    // LoopStartTag -> Expression -> SharpExpression for to="#max#"
+    EXPECT_TRUE(item_has_token_type(tokens[0][0], "SharpExpression"));
+
+    // LoopExpression (body) should NOT contain SharpExpression at top-level
+    EXPECT_FALSE(item_has_token_type(tokens[0][1], "SharpExpression"));
+}
+
+TEST(parse_CFML, context_nested_tokens_runtime_json_load) {
+    // Test that contextNestedTokens parsed from runtime JSON string behaves identically
+    const char *custom_json = R"json({
+        "name": "custom_cf",
+        "caseSensitivity": false,
+        "otherTextInside": true,
+        "defaultFileExtensions": ["cfm"],
+        "startTokens": ["OutputTagPair", "LoopTagPair"],
+        "tokens": {
+            "OutputTagPair": {
+                "type": "GroupAllChildrenInSameOrder",
+                "otherTextInside": true,
+                "multiLine": true,
+                "nestedTokens": ["OutputStartTag", "OutputExpr", "OutputEndTag"]
+            },
+            "OutputStartTag": { "type": "StartStop", "startRegex": "<cfoutput(?=[>\\s])", "endRegex": "/?>", "multiLine": true },
+            "OutputEndTag": { "type": "SimpleToken", "startRegex": "</cfoutput>" },
+            "OutputExpr": {
+                "type": "Group",
+                "otherTextInside": true,
+                "multiLine": true,
+                "nestedTokens": ["LoopTagPair", "SharpExpr"]
+            },
+            "LoopTagPair": {
+                "type": "GroupAllChildrenInSameOrder",
+                "otherTextInside": true,
+                "multiLine": true,
+                "nestedTokens": ["LoopStartTag", "LoopExpr", "LoopEndTag"]
+            },
+            "LoopStartTag": { "type": "StartStop", "startRegex": "<cfloop(?=[>\\s])", "endRegex": "/?>", "multiLine": true },
+            "LoopEndTag": { "type": "SimpleToken", "startRegex": "</cfloop>" },
+            "LoopExpr": {
+                "type": "Group",
+                "otherTextInside": true,
+                "multiLine": true,
+                "nestedTokens": ["CommentToken"],
+                "contextNestedTokens": [
+                    {
+                        "whenParentIn": ["OutputExpr", "OutputTagPair"],
+                        "nestedTokens": ["CommentToken", "SharpExpr"]
+                    }
+                ]
+            },
+            "CommentToken": { "type": "SimpleToken", "startRegex": "<!--.*?-->" },
+            "SharpExpr": {
+                "type": "StartStop",
+                "startRegex": "#",
+                "endRegex": "#",
+                "multiLine": true
+            }
+        }
+    })json";
+
+    textparser_language_definition *runtime_def = nullptr;
+    int err = textparser_json_load_language_definition_from_string(custom_json, &runtime_def);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(runtime_def, nullptr);
+
+    // Test 1: Top-level cfloop body hash with runtime def -> no SharpExpr
+    {
+        textparser_t h = nullptr;
+        const char *code = "<cfloop>#x#</cfloop>";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &h), 0);
+        int parse_err = textparser_parse(h, runtime_def);
+        if (parse_err != 0) {
+            std::cout << "Parse Error: " << textparser_parse_error(h) << " at " << textparser_parse_error_position(h) << std::endl;
+        }
+        ASSERT_EQ(parse_err, 0);
+        TextParser tp_wrap(code, runtime_def);
+        EXPECT_FALSE(has_token_type(tp_wrap, "SharpExpr"));
+        textparser_close(h);
+    }
+
+    // Test 2: Enclosed in cfoutput with runtime def -> SharpExpr parsed
+    {
+        textparser_t h = nullptr;
+        const char *code = "<cfoutput><cfloop>#x#</cfloop></cfoutput>";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &h), 0);
+        ASSERT_EQ(textparser_parse(h, runtime_def), 0);
+        TextParser tp_wrap(code, runtime_def);
+        EXPECT_TRUE(has_token_type(tp_wrap, "SharpExpr"));
+        textparser_close(h);
+    }
+
+    textparser_free_language_definition(runtime_def);
+}
+
+
 
 
 

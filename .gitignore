@@ -9,3 +9,4 @@ include/pcre2.h
 *.json.h
 CMakeLists.txt.user
 compile_commands.json
+tmp/

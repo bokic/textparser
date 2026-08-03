@@ -346,6 +346,80 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             } else {
                  (*definition)->tokens[token_idx].nested_tokens = nullptr;
             }
+
+            // Resolve contextNestedTokens
+            struct json_object *cnt_json = nullptr;
+            if (!json_object_object_get_ex(token_item, "contextNestedTokens", &cnt_json)) {
+                json_object_object_get_ex(token_item, "context_nested_tokens", &cnt_json);
+            }
+            if (cnt_json && json_object_is_type(cnt_json, json_type_array)) {
+                int rule_cnt = json_object_array_length(cnt_json);
+                if (rule_cnt > 0) {
+                    (*definition)->tokens[token_idx].context_nested_tokens = malloc(sizeof(textparser_context_nested_tokens) * (rule_cnt + 1));
+                    if (!(*definition)->tokens[token_idx].context_nested_tokens) {
+                        (*definition)->error_string = "malloc for context_nested_tokens FAILED!";
+                        ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                        goto err;
+                    }
+                    memset((*definition)->tokens[token_idx].context_nested_tokens, 0, sizeof(textparser_context_nested_tokens) * (rule_cnt + 1));
+
+                    for (int r = 0; r < rule_cnt; r++) {
+                        json_object *rule_obj = json_object_array_get_idx(cnt_json, r);
+                        if (!rule_obj || !json_object_is_type(rule_obj, json_type_object)) continue;
+
+                        json_object *wpi_arr = nullptr;
+                        if (!json_object_object_get_ex(rule_obj, "whenParentIn", &wpi_arr)) {
+                            json_object_object_get_ex(rule_obj, "when_parent_in", &wpi_arr);
+                        }
+
+                        json_object *nt_arr = nullptr;
+                        if (!json_object_object_get_ex(rule_obj, "nestedTokens", &nt_arr)) {
+                            json_object_object_get_ex(rule_obj, "nested_tokens", &nt_arr);
+                        }
+
+                        if (wpi_arr && json_object_is_type(wpi_arr, json_type_array)) {
+                            int wpi_len = json_object_array_length(wpi_arr);
+                            int *wpi_ids = malloc(sizeof(int) * (wpi_len + 1));
+                            for (int w = 0; w < wpi_len; w++) {
+                                const char *pname = json_object_get_string(json_object_array_get_idx(wpi_arr, w));
+                                int fidx = TextParser_END;
+                                for (size_t j = 0; j < tokens_cnt; j++) {
+                                    if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, pname) == 0) {
+                                        fidx = (int)j;
+                                        break;
+                                    }
+                                }
+                                wpi_ids[w] = fidx;
+                            }
+                            wpi_ids[wpi_len] = TextParser_END;
+                            (*definition)->tokens[token_idx].context_nested_tokens[r].when_parent_in = wpi_ids;
+                        }
+
+                        if (nt_arr && json_object_is_type(nt_arr, json_type_array)) {
+                            int nt_len = json_object_array_length(nt_arr);
+                            int *nt_ids = malloc(sizeof(int) * (nt_len + 1));
+                            for (int n = 0; n < nt_len; n++) {
+                                const char *tname = json_object_get_string(json_object_array_get_idx(nt_arr, n));
+                                int fidx = TextParser_END;
+                                for (size_t j = 0; j < tokens_cnt; j++) {
+                                    if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, tname) == 0) {
+                                        fidx = (int)j;
+                                        break;
+                                    }
+                                }
+                                nt_ids[n] = fidx;
+                            }
+                            nt_ids[nt_len] = TextParser_END;
+                            (*definition)->tokens[token_idx].context_nested_tokens[r].nested_tokens = nt_ids;
+                        }
+                    }
+                    (*definition)->tokens[token_idx].context_nested_tokens[rule_cnt].when_parent_in = nullptr;
+                    (*definition)->tokens[token_idx].context_nested_tokens[rule_cnt].nested_tokens = nullptr;
+                }
+            } else {
+                (*definition)->tokens[token_idx].context_nested_tokens = nullptr;
+            }
+
             token_idx++;
         }
     }

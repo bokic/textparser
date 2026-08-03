@@ -149,6 +149,19 @@ public:
         return TokenParserItem(token, m_definition, m_handle);
     }
 
+    TokenParserItem at(size_t index) const
+    {
+        const textparser_token_item *token = textparser_get_first_token(m_handle);
+
+        for(size_t c = 0; c < index; c++)
+        {
+            if (token == nullptr) break;
+            token = token->next;
+        }
+
+        return TokenParserItem(token, m_definition, m_handle);
+    }
+
     size_t count = 0;
 
 private:

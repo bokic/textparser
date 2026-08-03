@@ -260,6 +260,30 @@ static size_t textparser_skip_whitespace(const struct textparser_handle *handle,
 
     return maxPos;
 }
+static const int *get_effective_nested_tokens(const struct textparser_handle *handle, int token_id, const textparser_token_item *parent_item)
+{
+    const textparser_language_definition *definition = handle->language;
+    const textparser_token *token = &definition->tokens[token_id];
+
+    if (token->context_nested_tokens != nullptr) {
+        for (int i = 0; token->context_nested_tokens[i].when_parent_in != nullptr; i++) {
+            const int *when_parents = token->context_nested_tokens[i].when_parent_in;
+            const textparser_token_item *curr = parent_item;
+            while (curr != nullptr) {
+                int curr_token_id = curr->token_id;
+                for (int p = 0; when_parents[p] != TextParser_END; p++) {
+                    if (when_parents[p] == curr_token_id) {
+                        return token->context_nested_tokens[i].nested_tokens;
+                    }
+                }
+                curr = curr->parent;
+            }
+        }
+    }
+
+    return token->nested_tokens;
+}
+
 static void adjust_search_order(const struct textparser_handle *handle, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling, const int *original_list, int *adjusted_list)
 {
     int count = 0;
@@ -340,44 +364,50 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
             /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_GROUP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP");
-            if (token->nested_tokens)
             {
-                int nested_count = 0;
-                while (token->nested_tokens[nested_count] != TextParser_END) {
-                    nested_count++;
-                }
-
-                ssize_t closest_child_pos = SSIZE_MAX;
+                const int *effective_nested = get_effective_nested_tokens(handle, token_id, parent_item);
+                if (effective_nested)
                 {
-                    int adjusted_list[nested_count + 1];
-                    adjust_search_order(handle, parent_item, prev_sibling, token->nested_tokens, adjusted_list);
+                    int nested_count = 0;
+                    while (effective_nested[nested_count] != TextParser_END) {
+                        nested_count++;
+                    }
 
-                    for(int c = 0; adjusted_list[c] != TextParser_END; c++)
+                    ssize_t closest_child_pos = SSIZE_MAX;
                     {
-                        ssize_t child_token_pos = textparser_find_token(handle, adjusted_list[c], pos, token->other_text_inside, parent_item, prev_sibling);
-                        if (child_token_pos == TOKEN_NOT_FOUND) continue;
-                        if (child_token_pos == 0) {
-                            closest_child_pos = 0;
-                            break;
-                        }
+                        int adjusted_list[nested_count + 1];
+                        adjust_search_order(handle, parent_item, prev_sibling, effective_nested, adjusted_list);
 
-                        if (child_token_pos < closest_child_pos) {
-                            closest_child_pos = child_token_pos;
+                        for(int c = 0; adjusted_list[c] != TextParser_END; c++)
+                        {
+                            ssize_t child_token_pos = textparser_find_token(handle, adjusted_list[c], pos, token->other_text_inside, parent_item, prev_sibling);
+                            if (child_token_pos == TOKEN_NOT_FOUND) continue;
+                            if (child_token_pos == 0) {
+                                closest_child_pos = 0;
+                                break;
+                            }
+
+                            if (child_token_pos < closest_child_pos) {
+                                closest_child_pos = child_token_pos;
+                            }
                         }
                     }
-                }
 
-                if (closest_child_pos < SSIZE_MAX) {
-                    result = closest_child_pos;
+                    if (closest_child_pos < SSIZE_MAX) {
+                        result = closest_child_pos;
+                    }
                 }
             }
             break;
         case TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER:
-            if (token->nested_tokens) {
-                LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
-                result = textparser_find_token(handle, token->nested_tokens[0], pos, other_text_inside, parent_item, prev_sibling);
-            } else {
-                LOGE("token->nested_tokens = nullptr for TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
+            LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
+            {
+                const int *effective_nested = get_effective_nested_tokens(handle, token_id, parent_item);
+                if (effective_nested) {
+                    result = textparser_find_token(handle, effective_nested[0], pos, other_text_inside, parent_item, prev_sibling);
+                } else {
+                    LOGE("nested_tokens = nullptr for TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
+                }
             }
             break;
         case TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN:
@@ -434,7 +464,8 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
     textparser_token_item *child = nullptr;
 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY");
-    if (!token_def->nested_tokens) {
+    const int *effective_nested = get_effective_nested_tokens(handle, token_id, parent_item);
+    if (!effective_nested) {
         exit_with_error(handle, "group_one_child token type nested_tokens list is empty!", offset);
     }
 
@@ -443,6 +474,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
         return nullptr;
     }
 
+    ret->parent = (textparser_token_item *)parent_item;
     offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
@@ -451,7 +483,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
 
     int count = 0;
-    while (token_def->nested_tokens[count] != TextParser_END) {
+    while (effective_nested[count] != TextParser_END) {
         count++;
     }
 
@@ -459,7 +491,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
     int current_token_id = TextParser_END;
     {
         int adjusted_list[count + 1];
-        adjust_search_order(handle, parent_item, prev_sibling, token_def->nested_tokens, adjusted_list);
+        adjust_search_order(handle, parent_item, prev_sibling, effective_nested, adjusted_list);
 
         for (int c = 0; adjusted_list[c] != TextParser_END; c++)
         {
@@ -512,7 +544,8 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
     textparser_token_item *child = nullptr;
 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_GROUP");
-    if (!token_def->nested_tokens) {
+    const int *effective_nested = get_effective_nested_tokens(handle, token_id, parent_item);
+    if (!effective_nested) {
         exit_with_error(handle, "nested_tokens list is empty!", offset);
     }
 
@@ -521,6 +554,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
         return nullptr;
     }
 
+    ret->parent = (textparser_token_item *)parent_item;
     offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
@@ -575,17 +609,18 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
 
         current_token_id = TextParser_END;
 
+        const int *loop_effective_nested = get_effective_nested_tokens(handle, token_id, ret);
         int count = 0;
-        while (token_def->nested_tokens[count] != TextParser_END) {
+        while (loop_effective_nested[count] != TextParser_END) {
             count++;
         }
         {
             int adjusted_list[count + 1];
-            adjust_search_order(handle, parent_item, current_prev, token_def->nested_tokens, adjusted_list);
+            adjust_search_order(handle, ret, current_prev, loop_effective_nested, adjusted_list);
 
             for (int c = 0; adjusted_list[c] != TextParser_END; c++)
             {
-                ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, current_prev);
+                ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, ret, current_prev);
                 if (current_closest == 0)
                 {
                     current_token_id = adjusted_list[c];
@@ -690,12 +725,13 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
         return nullptr;
     }
 
+    ret->parent = (textparser_token_item *)parent_item;
     offset = textparser_skip_whitespace(handle, offset);
 
     ret->token_id = token_id;
     ret->position = offset;
 
-    ssize_t start_pos = textparser_find_token(handle, start_token_id, offset, definition->other_text_inside, parent_item, prev_sibling);
+    ssize_t start_pos = textparser_find_token(handle, start_token_id, offset, definition->other_text_inside, ret, prev_sibling);
     if (start_pos != 0) {
         exit_with_error(handle, "Expected start token!", offset);
     }
@@ -881,10 +917,11 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
         exit_with_error(handle, "reached end of text!", offset);
     }
 
-    if (token_def->nested_tokens)
+    const int *effective_nested = get_effective_nested_tokens(handle, token_id, ret);
+    if (effective_nested)
     {
         textparser_token_item *last_child = nullptr;
-        const int *nested_tokens = definition->tokens[token_id].nested_tokens;
+        const int *nested_tokens = effective_nested;
 
         while (1) {
             offset = textparser_skip_whitespace(handle, offset);
@@ -1247,6 +1284,17 @@ void textparser_free_language_definition(textparser_language_definition *definit
             }
             if (token->nested_tokens) {
                 free((void *)token->nested_tokens);
+            }
+            if (token->context_nested_tokens) {
+                for (int r = 0; token->context_nested_tokens[r].when_parent_in != nullptr; r++) {
+                    if (token->context_nested_tokens[r].when_parent_in) {
+                        free((void *)token->context_nested_tokens[r].when_parent_in);
+                    }
+                    if (token->context_nested_tokens[r].nested_tokens) {
+                        free((void *)token->context_nested_tokens[r].nested_tokens);
+                    }
+                }
+                free((void *)token->context_nested_tokens);
             }
 
             c++;

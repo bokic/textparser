@@ -69,6 +69,11 @@ typedef struct textparser_token_item {
 } textparser_token_item;
 
  typedef struct {
+    int *when_parent_in;
+    int *nested_tokens;
+} textparser_context_nested_tokens;
+
+typedef struct {
     const char *name;
     enum textparser_token_type type;
     const char *start_regex;
@@ -82,6 +87,7 @@ typedef struct textparser_token_item {
     uint32_t text_background;
     uint32_t text_flags;
     int *nested_tokens;
+    textparser_context_nested_tokens *context_nested_tokens;
 } textparser_token;
 
 typedef struct {

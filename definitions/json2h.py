@@ -226,9 +226,30 @@ def main(args):
             for token_name in current_token["nestedTokens"]:
                 text += "                TextParser_" + name_lowercase + "_" + token_name + "," + os.linesep
             text += "                TextParser_END" + os.linesep
-            text += "            }" + os.linesep
+            text += "            }," + os.linesep
         else:
             text += "            .nested_tokens = NULL," + os.linesep
+
+        # context_nested_tokens
+        if "contextNestedTokens" in current_token and isinstance(current_token["contextNestedTokens"], list) and len(current_token["contextNestedTokens"]) > 0:
+            text += "            .context_nested_tokens = (textparser_context_nested_tokens []) {" + os.linesep
+            for rule in current_token["contextNestedTokens"]:
+                text += "                {" + os.linesep
+                text += "                    .when_parent_in = (int []) {" + os.linesep
+                for parent_name in rule.get("whenParentIn", []):
+                    text += "                        TextParser_" + name_lowercase + "_" + parent_name + "," + os.linesep
+                text += "                        TextParser_END" + os.linesep
+                text += "                    }," + os.linesep
+                text += "                    .nested_tokens = (int []) {" + os.linesep
+                for token_name in rule.get("nestedTokens", []):
+                    text += "                        TextParser_" + name_lowercase + "_" + token_name + "," + os.linesep
+                text += "                        TextParser_END" + os.linesep
+                text += "                    }" + os.linesep
+                text += "                }," + os.linesep
+            text += "                { .when_parent_in = NULL, .nested_tokens = NULL }" + os.linesep
+            text += "            }" + os.linesep
+        else:
+            text += "            .context_nested_tokens = NULL" + os.linesep
 
         text += "        }," + os.linesep
 
@@ -246,6 +267,7 @@ def main(args):
     text += "            .text_background = 0," + os.linesep
     text += "            .text_flags = 0," + os.linesep
     text += "            .nested_tokens = NULL," + os.linesep
+    text += "            .context_nested_tokens = NULL," + os.linesep
     text += "        }," + os.linesep
 
     text += "    }," + os.linesep
