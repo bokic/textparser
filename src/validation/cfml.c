@@ -108,6 +108,9 @@ typedef struct {
     int Parenthesis;
     int Expression;
     int ScriptExpression;
+    int OutputExpression;
+    int SharpExpression;
+    int SharpQuoteError;
     int Separator;
 } cfml_dynamic_token_ids;
 
@@ -143,6 +146,9 @@ static void resolve_cfml_token_ids(textparser_t handle, cfml_dynamic_token_ids *
     ids->Parenthesis = find_token_id_by_name(handle, "Parenthesis");
     ids->Expression = find_token_id_by_name(handle, "Expression");
     ids->ScriptExpression = find_token_id_by_name(handle, "ScriptExpression");
+    ids->OutputExpression = find_token_id_by_name(handle, "OutputExpression");
+    ids->SharpExpression = find_token_id_by_name(handle, "SharpExpression");
+    ids->SharpQuoteError = find_token_id_by_name(handle, "SharpQuoteError");
     ids->Separator = find_token_id_by_name(handle, "Separator");
 }
 
@@ -458,6 +464,17 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
                     char *str = dynamic_printf("Function [%s] takes at most %d arguments, but %d were provided", token_name, max_params, arg_count);
                     textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, func_len);
                 }
+            }
+        }
+    }
+    else if (token->token_id != TextParser_END && (token->token_id == ids->OutputExpression || token->token_id == TextParser_cfml_OutputExpression)) {
+        const char *expr_text = text + token->position;
+        size_t limit = token->len;
+        for (size_t i = 0; i < limit; i++) {
+            if (expr_text[i] == '#' && (i + 1 < limit) && expr_text[i + 1] == '"') {
+                char *str = dynamic_printf("Syntax error: malformed leading '#\"' expression in <cfoutput> body");
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position + i, 2);
+                break;
             }
         }
     }

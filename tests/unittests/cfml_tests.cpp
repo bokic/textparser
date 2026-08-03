@@ -951,10 +951,88 @@ TEST(parse_CFML, context_nested_tokens_runtime_json_load) {
 
     textparser_free_language_definition(runtime_def);
 }
+TEST(parse_CFML, parser_error_leading_sharp_quote) {
+    // 1. Basic malformed leading #" inside cfoutput
+    {
+        const char *code = "<cfoutput>#\"x #a#\"</cfoutput>";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_validation *val = textparser_validate_cfml(handle);
+        ASSERT_NE(val, nullptr);
+        bool found_error = false;
+        for (int i = 0; i < val->len; i++) {
+            if (val->items[i]->type == TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR) {
+                found_error = true;
+                break;
+            }
+        }
+        EXPECT_TRUE(found_error);
+        textparser_validation_clear(val);
+        textparser_close(handle);
+    }
 
+    // 2. Multiple sharp quotes inside cfoutput
+    {
+        const char *code = "<cfoutput>text #\"a# more #\"b#</cfoutput>";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_validation *val = textparser_validate_cfml(handle);
+        ASSERT_NE(val, nullptr);
+        bool found_error = false;
+        for (int i = 0; i < val->len; i++) {
+            if (val->items[i]->type == TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR) {
+                found_error = true;
+                break;
+            }
+        }
+        EXPECT_TRUE(found_error);
+        textparser_validation_clear(val);
+        textparser_close(handle);
+    }
 
+    // 3. Valid sharp expression inside cfoutput should pass without validation errors
+    {
+        const char *code = "<cfoutput>#a#</cfoutput>";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_validation *val = textparser_validate_cfml(handle);
+        bool found_error = false;
+        if (val != nullptr) {
+            for (int i = 0; i < val->len; i++) {
+                if (val->items[i]->type == TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR) {
+                    found_error = true;
+                    break;
+                }
+            }
+            textparser_validation_clear(val);
+        }
+        EXPECT_FALSE(found_error);
+        textparser_close(handle);
+    }
 
-
-
+    // 4. Valid sharp expression containing string quotes should pass
+    {
+        const char *code = "<cfoutput># UCase(\"hello\") #</cfoutput>";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_validation *val = textparser_validate_cfml(handle);
+        bool found_error = false;
+        if (val != nullptr) {
+            for (int i = 0; i < val->len; i++) {
+                if (val->items[i]->type == TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR) {
+                    found_error = true;
+                    break;
+                }
+            }
+            textparser_validation_clear(val);
+        }
+        EXPECT_FALSE(found_error);
+        textparser_close(handle);
+    }
+}
 
 
