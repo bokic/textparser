@@ -54,7 +54,7 @@ ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 
 void* os_map(const char *pathname, size_t* size)
 {
-    if (size) *size = 0;
+    if (size) *size = (size_t)-1;
 
     struct stat statbuf;
     os_file_defer(fd);

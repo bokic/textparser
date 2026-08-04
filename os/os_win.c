@@ -60,7 +60,7 @@ ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
 
 void* os_map(const char *pathname, size_t* size)
 {
-    if (size) *size = 0;
+    if (size) *size = (size_t)-1;
 
     LARGE_INTEGER fileSize;
 
@@ -79,6 +79,7 @@ void* os_map(const char *pathname, size_t* size)
 
     if (fileSize.QuadPart <= 0) {
         CloseHandle(hnd);
+        if (size) *size = 0;
         return NULL;
     }
 

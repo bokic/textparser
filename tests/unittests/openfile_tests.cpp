@@ -194,6 +194,22 @@ TEST(openfile_bom_mask, plain_text_no_bom) {
     textparser_close(handle);
 }
 
+TEST(openfile_bom_mask, nonexistent_file_returns_error) {
+    std::filesystem::path dir(TEXTPARSER_TEST_TMP_DIR);
+    std::filesystem::create_directories(dir);
+
+    std::string path = (dir / "nonexistent_should_not_exist.txt").string();
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+    ASSERT_FALSE(std::filesystem::exists(path));
+
+    textparser_t handle = nullptr;
+    int err = textparser_openfile(path.c_str(), TEXTPARSER_ENCODING_LATIN1, 0, &handle);
+    EXPECT_EQ(err, 1);
+    EXPECT_EQ(handle, nullptr);
+    textparser_close(handle);
+}
+
 TEST(openfile_bom_mask, empty_file_no_bom) {
     std::string path = write_temp_file("empty_file.txt", {});
     ASSERT_FALSE(path.empty());
