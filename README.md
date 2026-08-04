@@ -120,7 +120,7 @@ int main() {
     textparser_defer(handle); // Auto-cleanup
 
     // Open a file
-    int err = textparser_openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, &handle);
+    int err = textparser_openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_ALL, &handle);
     if (err) {
         fprintf(stderr, "Failed to open file\n");
         return 1;
@@ -141,6 +141,35 @@ int main() {
     return 0;
 }
 ```
+
+**BOM detection (`bom_mask`):**
+
+`textparser_openfile()` takes a `bom_mask` parameter that controls which byte-order marks (BOMs) are detected and stripped from the start of the file:
+
+```c
+// Detect all BOMs (old behavior preserved):
+int err = textparser_openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_ALL, &handle);
+
+// Only detect UTF-8 BOMs; UTF-16/32 BOM bytes are kept as content:
+int err = textparser_openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_UTF_8, &handle);
+
+// Detect no BOMs; the file is always read with `default_text_format`:
+int err = textparser_openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, 0, &handle);
+```
+
+`bom_mask` is a bitwise OR of the `TEXTPARSER_BOM_*` flags:
+
+| Flag | BOM bytes | Encoding |
+|------|-----------|----------|
+| `TEXTPARSER_BOM_UTF_8` | `EF BB BF` | UTF-8 |
+| `TEXTPARSER_BOM_UTF_16_BE` | `FE FF` | UTF-16 BE (unsupported, returns error) |
+| `TEXTPARSER_BOM_UTF_16_LE` | `FF FE` | UTF-16 LE |
+| `TEXTPARSER_BOM_UTF_32_BE` | `00 00 FE FF` | UTF-32 BE (unsupported, returns error) |
+| `TEXTPARSER_BOM_UTF_32_LE` | `FF FE 00 00` | UTF-32 LE |
+| `TEXTPARSER_BOM_UTF_7_1..5`, `TEXTPARSER_BOM_UTF_1`, `TEXTPARSER_BOM_UTF_EBCDIC`, `TEXTPARSER_BOM_UTF_SCSU`, `TEXTPARSER_BOM_UTF_BOCU1`, `TEXTPARSER_BOM_UTF_GB_18030` | various | unsupported, returns error |
+| `TEXTPARSER_BOM_ALL` | - | all of the above |
+
+Only BOMs whose flag is present in `bom_mask` are recognized. A `bom_mask` of `0` disables BOM detection entirely; the file is then decoded with `default_text_format`. A detected BOM overrides `default_text_format` only for the supported encodings (UTF-8, UTF-16 LE, UTF-32 LE); recognized-but-unsupported BOMs make the call return error code `5`.
 
 ## Language Definition Example
 

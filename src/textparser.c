@@ -46,25 +46,6 @@ static _Atomic int active_handle_count = 0;
 static size_t calculate_chunk_size(size_t text_size);
 static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos);
 
-enum textparser_bom {
-    NO_BOM,
-    BOM_UTF_8,
-    BOM_UTF_16_BE,
-    BOM_UTF_16_LE,
-    BOM_UTF_32_BE,
-    BOM_UTF_32_LE,
-    BOM_UTF_7_1,
-    BOM_UTF_7_2,
-    BOM_UTF_7_3,
-    BOM_UTF_7_4,
-    BOM_UTF_7_5,
-    BOM_UTF_1,
-    BOM_UTF_EBCDIC,
-    BOM_UTF_SCSU,
-    BOM_UTF_BOCU1,
-    BOM_UTF_GB_18030,
-};
-
 enum parent_start_stop{
     TEXTPARSER_SEARCH_END_TOKEN,
     TEXTPARSER_SEARCH_START_TOKEN,
@@ -1306,7 +1287,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
     free(definition);
 }
 
-int textparser_openfile(const char *pathname, int default_text_format, textparser_t *handle)
+int textparser_openfile(const char *pathname, int default_text_format, int bom_mask, textparser_t *handle)
 {
     struct textparser_handle local_hnd;
     int err = 0;
@@ -1327,83 +1308,83 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
         goto err;
     }
 
-    if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x00')&&(local_hnd.text_addr[1] == '\x00')&&(local_hnd.text_addr[2] == '\xfe')&&(local_hnd.text_addr[3] == '\xff')) {
+    if ((bom_mask & TEXTPARSER_BOM_UTF_32_BE)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x00')&&(local_hnd.text_addr[1] == '\x00')&&(local_hnd.text_addr[2] == '\xfe')&&(local_hnd.text_addr[3] == '\xff')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_32_BE;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xff')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\x00')&&(local_hnd.text_addr[3] == '\x00')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_32_BE;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_32_LE)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xff')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\x00')&&(local_hnd.text_addr[3] == '\x00')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_32_LE;
-    } else if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xef')&&(local_hnd.text_addr[1] == '\xbb')&&(local_hnd.text_addr[2] == '\xbf')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_32_LE;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_8)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xef')&&(local_hnd.text_addr[1] == '\xbb')&&(local_hnd.text_addr[2] == '\xbf')) {
         local_hnd.text_addr += 3;
         local_hnd.text_size -= 3;
-        local_hnd.bom = BOM_UTF_8;
-    } else if ((local_hnd.text_size >= 2)&&(local_hnd.text_addr[0] == '\xfe')&&(local_hnd.text_addr[1] == '\xff')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_8;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_16_BE)&&(local_hnd.text_size >= 2)&&(local_hnd.text_addr[0] == '\xfe')&&(local_hnd.text_addr[1] == '\xff')) {
         local_hnd.text_addr += 2;
         local_hnd.text_size -= 2;
-        local_hnd.bom = BOM_UTF_16_BE;
-    } else if ((local_hnd.text_size >= 2)&&(local_hnd.text_addr[0] == '\xff')&&(local_hnd.text_addr[1] == '\xfe')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_16_BE;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_16_LE)&&(local_hnd.text_size >= 2)&&(local_hnd.text_addr[0] == '\xff')&&(local_hnd.text_addr[1] == '\xfe')) {
         local_hnd.text_addr += 2;
         local_hnd.text_size -= 2;
-        local_hnd.bom = BOM_UTF_16_LE;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_16_LE;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_1)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_7_1;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x39')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_7_1;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_2)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x39')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_7_2;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2b')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_7_2;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_3)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2b')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_7_3;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2f')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_7_3;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_4)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2f')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_7_4;
-    } else if ((local_hnd.text_size >= 5)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')&&(local_hnd.text_addr[4] == '\x2d')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_7_4;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_5)&&(local_hnd.text_size >= 5)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')&&(local_hnd.text_addr[4] == '\x2d')) {
         local_hnd.text_addr += 5;
         local_hnd.text_size -= 5;
-        local_hnd.bom = BOM_UTF_7_5;
-    } else if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xf7')&&(local_hnd.text_addr[1] == '\x64')&&(local_hnd.text_addr[2] == '\x4c')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_7_5;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_1)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xf7')&&(local_hnd.text_addr[1] == '\x64')&&(local_hnd.text_addr[2] == '\x4c')) {
         local_hnd.text_addr += 3;
         local_hnd.text_size -= 3;
-        local_hnd.bom = BOM_UTF_1;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xdd')&&(local_hnd.text_addr[1] == '\x73')&&(local_hnd.text_addr[2] == '\x66')&&(local_hnd.text_addr[3] == '\x73')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_1;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_EBCDIC)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xdd')&&(local_hnd.text_addr[1] == '\x73')&&(local_hnd.text_addr[2] == '\x66')&&(local_hnd.text_addr[3] == '\x73')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_EBCDIC;
-    } else if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\x0e')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\xff')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_EBCDIC;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_SCSU)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\x0e')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\xff')) {
         local_hnd.text_addr += 3;
         local_hnd.text_size -= 3;
-        local_hnd.bom = BOM_UTF_SCSU;
-    } else if ((local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xfb')&&(local_hnd.text_addr[1] == '\xee')&&(local_hnd.text_addr[2] == '\x28')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_SCSU;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_BOCU1)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xfb')&&(local_hnd.text_addr[1] == '\xee')&&(local_hnd.text_addr[2] == '\x28')) {
         local_hnd.text_addr += 3;
         local_hnd.text_size -= 3;
-        local_hnd.bom = BOM_UTF_BOCU1;
-    } else if ((local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x84')&&(local_hnd.text_addr[1] == '\x31')&&(local_hnd.text_addr[2] == '\x95')&&(local_hnd.text_addr[3] == '\x33')) {
+        local_hnd.bom = TEXTPARSER_BOM_UTF_BOCU1;
+    } else if ((bom_mask & TEXTPARSER_BOM_UTF_GB_18030)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x84')&&(local_hnd.text_addr[1] == '\x31')&&(local_hnd.text_addr[2] == '\x95')&&(local_hnd.text_addr[3] == '\x33')) {
         local_hnd.text_addr += 4;
         local_hnd.text_size -= 4;
-        local_hnd.bom = BOM_UTF_GB_18030;
+        local_hnd.bom = TEXTPARSER_BOM_UTF_GB_18030;
     } else {
-        local_hnd.bom = NO_BOM;
+        local_hnd.bom = TEXTPARSER_BOM_NONE;
     }
 
     local_hnd.text_format = (enum textparser_encoding)default_text_format;
 
     switch(local_hnd.bom)
     {
-        case NO_BOM:
+        case TEXTPARSER_BOM_NONE:
             break;
-        case BOM_UTF_8:
+        case TEXTPARSER_BOM_UTF_8:
             local_hnd.text_format = TEXTPARSER_ENCODING_UTF_8;
             break;
-        case BOM_UTF_16_LE:
+        case TEXTPARSER_BOM_UTF_16_LE:
             local_hnd.text_format = TEXTPARSER_ENCODING_UTF_16;
             break;
-        case BOM_UTF_32_LE:
+        case TEXTPARSER_BOM_UTF_32_LE:
             local_hnd.text_format = TEXTPARSER_ENCODING_UTF_32;
             break;
         default:

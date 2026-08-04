@@ -199,7 +199,7 @@ int main(int argc, const char *argv[])
         return EXIT_FAILURE;
     }
 
-    int err = textparser_openfile(filename, language_def->default_text_encoding, &handle);
+    int err = textparser_openfile(filename, language_def->default_text_encoding, TEXTPARSER_BOM_ALL, &handle);
     if (err)
     {
         if (delete_language_def) {

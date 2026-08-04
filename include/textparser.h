@@ -30,6 +30,27 @@
 
 enum textparser_encoding { TEXTPARSER_ENCODING_NONE, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
 
+enum textparser_bom {
+    TEXTPARSER_BOM_NONE         =       0,
+    TEXTPARSER_BOM_UTF_8        = (1 << 0),
+    TEXTPARSER_BOM_UTF_16_BE    = (1 << 1),
+    TEXTPARSER_BOM_UTF_16_LE    = (1 << 2),
+    TEXTPARSER_BOM_UTF_32_BE    = (1 << 3),
+    TEXTPARSER_BOM_UTF_32_LE    = (1 << 4),
+    TEXTPARSER_BOM_UTF_7_1      = (1 << 5),
+    TEXTPARSER_BOM_UTF_7_2      = (1 << 6),
+    TEXTPARSER_BOM_UTF_7_3      = (1 << 7),
+    TEXTPARSER_BOM_UTF_7_4      = (1 << 8),
+    TEXTPARSER_BOM_UTF_7_5      = (1 << 9),
+    TEXTPARSER_BOM_UTF_1        = (1 << 10),
+    TEXTPARSER_BOM_UTF_EBCDIC   = (1 << 11),
+    TEXTPARSER_BOM_UTF_SCSU     = (1 << 12),
+    TEXTPARSER_BOM_UTF_BOCU1    = (1 << 13),
+    TEXTPARSER_BOM_UTF_GB_18030 = (1 << 14),
+};
+
+#define TEXTPARSER_BOM_ALL (TEXTPARSER_BOM_UTF_8 | TEXTPARSER_BOM_UTF_16_BE | TEXTPARSER_BOM_UTF_16_LE | TEXTPARSER_BOM_UTF_32_BE | TEXTPARSER_BOM_UTF_32_LE | TEXTPARSER_BOM_UTF_7_1 | TEXTPARSER_BOM_UTF_7_2 | TEXTPARSER_BOM_UTF_7_3 | TEXTPARSER_BOM_UTF_7_4 | TEXTPARSER_BOM_UTF_7_5 | TEXTPARSER_BOM_UTF_1 | TEXTPARSER_BOM_UTF_EBCDIC | TEXTPARSER_BOM_UTF_SCSU | TEXTPARSER_BOM_UTF_BOCU1 | TEXTPARSER_BOM_UTF_GB_18030)
+
 enum textparser_validation_item_type {
     TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR,
     TEXTPARSER_VALIDATION_ITEM_TYPE_WARNING,
@@ -128,7 +149,7 @@ extern "C"
 {
 #endif
 
-EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int default_text_format, textparser_t *handle);
+EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int default_text_format, int bom_mask, textparser_t *handle);
 EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);
 EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
 EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
