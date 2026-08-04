@@ -209,7 +209,7 @@ int main(int argc, const char *argv[])
         return EXIT_FAILURE;
     }
 
-    res = textparser_openfile(filename, language_def->default_text_encoding, TEXTPARSER_BOM_ALL, &handle);
+    res = textparser_openfile(filename, language_def->default_text_encoding, language_def->supported_bom, &handle);
     if (res) {
         fprintf(stderr, "Error opening file.\n");
         return EXIT_FAILURE;

@@ -9,6 +9,7 @@
   ],
   "otherTextInside": true,
   "defaultTextEncoding": "latin1",
+  "SupportedBom": "UTF-8,UTF-16-LE,UTF-16-BE",
   "startTokens": [
     "ScriptTagPair",
     "OutputTagPair",

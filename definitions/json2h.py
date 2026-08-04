@@ -15,6 +15,50 @@ def python_bool_to_c_string(val):
         exit(1)
 
 
+SUPPORTED_BOM_ITEMS = {
+    "utf-8":        "TEXTPARSER_BOM_UTF_8",
+    "utf-16-be":    "TEXTPARSER_BOM_UTF_16_BE",
+    "utf-16-le":    "TEXTPARSER_BOM_UTF_16_LE",
+    "utf-32-be":    "TEXTPARSER_BOM_UTF_32_BE",
+    "utf-32-le":    "TEXTPARSER_BOM_UTF_32_LE",
+    "utf-7-1":      "TEXTPARSER_BOM_UTF_7_1",
+    "utf-7-2":      "TEXTPARSER_BOM_UTF_7_2",
+    "utf-7-3":      "TEXTPARSER_BOM_UTF_7_3",
+    "utf-7-4":      "TEXTPARSER_BOM_UTF_7_4",
+    "utf-7-5":      "TEXTPARSER_BOM_UTF_7_5",
+    "utf-1":        "TEXTPARSER_BOM_UTF_1",
+    "utf-ebcdic":   "TEXTPARSER_BOM_UTF_EBCDIC",
+    "utf-scsu":     "TEXTPARSER_BOM_UTF_SCSU",
+    "utf-bocu1":    "TEXTPARSER_BOM_UTF_BOCU1",
+    "gb-18030":     "TEXTPARSER_BOM_UTF_GB_18030",
+}
+
+
+def bom_mask_to_c_string(root):
+    if "SupportedBom" not in root:
+        return "0"
+
+    supported_bom = root["SupportedBom"]
+    if not isinstance(supported_bom, str):
+        print("SupportedBom must be a comma-separated string.")
+        exit(1)
+
+    items = [item.strip() for item in supported_bom.split(",")]
+    if len(items) == 0 or (len(items) == 1 and items[0] == ""):
+        return "0"
+
+    constants = []
+    for item in items:
+        normalized = item.lower()
+        if normalized not in SUPPORTED_BOM_ITEMS:
+            valid = ", ".join(sorted(SUPPORTED_BOM_ITEMS.keys()))
+            print("Invalid SupportedBom item [" + item + "]. Valid options are: " + valid)
+            exit(1)
+        constants.append(SUPPORTED_BOM_ITEMS[normalized])
+
+    return " | ".join(constants)
+
+
 def main(args):
     in_file = args[0]
     out_file = in_file + ".h"
@@ -77,6 +121,8 @@ def main(args):
             case _:
                 print("Illegal default_text_encoding. Valid options are: latin1, utf-8, unicode, utf-16, utf-32")
                 exit(1)
+
+    text += "    .supported_bom = " + bom_mask_to_c_string(root) + "," + os.linesep
 
     if "startTokens" not in root:
         print("starts_with is missing ...")

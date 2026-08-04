@@ -122,6 +122,7 @@ typedef struct {
     bool case_sensitivity;
     const char **default_file_extensions;
     int default_text_encoding;
+    int supported_bom;
     int *starts_with;
     bool other_text_inside;
     bool sign_ambiguity_fix;
