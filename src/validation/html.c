@@ -17,7 +17,6 @@
 #include <strings.h>
 #endif
 
-#define MAX_STACK_DEPTH 1024
 
 typedef struct {
     char name[128];
@@ -249,7 +248,8 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
     size_t text_size = textparser_get_text_size(handle);
     textparser_validation *ret = nullptr;
 
-    html_stack_item stack[MAX_STACK_DEPTH];
+    html_stack_item *stack = NULL;
+    int stack_capacity = 0;
     int stack_top = 0;
 
     textparser_token_item *token = textparser_get_first_token(handle);
@@ -282,7 +282,11 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
 
                 while (child != NULL) {
                     if (child->token_id != TextParser_END && child->token_id == ids.AttributeName) {
-                        char *attr_name = alloca(child->len + 1);
+                        char *attr_name = (char *)malloc(child->len + 1);
+                        if (attr_name == NULL) {
+                            fprintf(stderr, "HTML validation failed: memory allocation error\n");
+                            exit(1);
+                        }
                         memcpy(attr_name, text + child->position, child->len);
                         attr_name[child->len] = '\0';
                         // Convert to lowercase
@@ -308,6 +312,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
                             char *str = dynamic_printf("Unknown attribute [%s] for HTML tag <%s>", attr_name, tag_name);
                             textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, child->position, child->len);
                         }
+                        free(attr_name);
                     }
                     child = child->next;
                 }
@@ -348,14 +353,23 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
             // Handle tag nesting
             bool self_closing = is_tag_self_closing(text, token);
             if (!void_tag && !self_closing) {
-                // Push to stack
-                if (stack_top < MAX_STACK_DEPTH) {
-                    strncpy(stack[stack_top].name, tag_name, sizeof(stack[stack_top].name) - 1);
-                    stack[stack_top].name[sizeof(stack[stack_top].name) - 1] = '\0';
-                    stack[stack_top].position = token->position;
-                    stack[stack_top].len = token->len;
-                    stack_top++;
+                // Push to stack (dynamically grow array if needed)
+                if (stack_top >= stack_capacity) {
+                    int new_capacity = (stack_capacity == 0) ? 32 : stack_capacity * 2;
+                    html_stack_item *new_stack = realloc(stack, sizeof(html_stack_item) * new_capacity);
+                    if (new_stack == NULL) {
+                        free(stack);
+                        fprintf(stderr, "HTML validation failed: memory allocation error\n");
+                        exit(1);
+                    }
+                    stack = new_stack;
+                    stack_capacity = new_capacity;
                 }
+                strncpy(stack[stack_top].name, tag_name, sizeof(stack[stack_top].name) - 1);
+                stack[stack_top].name[sizeof(stack[stack_top].name) - 1] = '\0';
+                stack[stack_top].position = token->position;
+                stack[stack_top].len = token->len;
+                stack_top++;
             }
         }
         else if (token->token_id != TextParser_END && token->token_id == ids.ClosingTag) {
@@ -400,5 +414,6 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
         textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, stack[i].position, stack[i].len);
     }
 
+    free(stack);
     return ret;
 }

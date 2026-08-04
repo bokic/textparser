@@ -138,7 +138,7 @@ int main(int argc, const char *argv[])
     bool json = false;
     bool mute = false;
 
-    const textparser_language_definition *language_def = nullptr;
+    textparser_language_definition *language_def = nullptr;
     textparser_defer(handle);
 
     bool delete_language_def = false;
@@ -171,7 +171,7 @@ int main(int argc, const char *argv[])
                 return EXIT_FAILURE;
             }
             const char *definition_file = argv[++i];
-            int res = textparser_json_load_language_definition_from_json_file(definition_file, (textparser_language_definition **)&language_def);
+            int res = textparser_json_load_language_definition_from_json_file(definition_file, &language_def);
             if (res)
             {
                 fprintf(stderr, "textparser_json_load_language_definition_from_json_file returned with error code: %d\n", res);
@@ -203,7 +203,6 @@ int main(int argc, const char *argv[])
     if (err)
     {
         if (delete_language_def) {
-            textparser_cleanup(&handle);
             textparser_free_language_definition((textparser_language_definition *)language_def);
         }
         fprintf(stderr, "textparser_openfile returned with error code: %d\n", err);
@@ -214,7 +213,6 @@ int main(int argc, const char *argv[])
     if (err)
     {
         if (delete_language_def) {
-            textparser_cleanup(&handle);
             textparser_free_language_definition((textparser_language_definition *)language_def);
         }
         fprintf(stderr, "textparser_parse returned with error code: %d\n", err);
@@ -244,7 +242,6 @@ int main(int argc, const char *argv[])
 
     if (delete_language_def)
     {
-        textparser_cleanup(&handle);
         textparser_free_language_definition((textparser_language_definition *)language_def);
     }
 

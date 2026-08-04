@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 
 #ifndef SSIZE_MAX
 #define SSIZE_MAX ((ssize_t)((((size_t)-1) << 1) >> 1))
@@ -16,7 +17,7 @@
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
-static int active_handle_count = 0;
+static _Atomic int active_handle_count = 0;
 
 #define TOKEN_NOT_FOUND -1
 
@@ -329,11 +330,11 @@ static void adjust_search_order(const struct textparser_handle *handle, const te
 
 static ssize_t textparser_find_token(const struct textparser_handle *handle, int token_id, size_t pos, bool other_text_inside, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
-    if (pos >= textparser_get_total_units(handle)) {
+    if (handle == nullptr || handle->recursion_depth >= MAX_RECURSION_DEPTH) {
         return TOKEN_NOT_FOUND;
     }
 
-    if (handle == nullptr || handle->recursion_depth >= MAX_RECURSION_DEPTH) {
+    if (pos >= textparser_get_total_units(handle)) {
         return TOKEN_NOT_FOUND;
     }
 
@@ -1445,7 +1446,7 @@ int textparser_openfile(const char *pathname, int default_text_format, textparse
     }
     memcpy(*handle, &local_hnd, sizeof(struct textparser_handle));
 
-    active_handle_count++;
+    atomic_fetch_add(&active_handle_count, 1);
     return 0;
 
 err:
@@ -1503,7 +1504,7 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     ret->chunk_size = calculate_chunk_size(ret->text_size);
 
     *handle = (textparser_t)ret;
-    active_handle_count++;
+    atomic_fetch_add(&active_handle_count, 1);
 
     return 0;
 }
@@ -1542,8 +1543,7 @@ void textparser_close(textparser_t handle)
 
     free(handle);
 
-    active_handle_count--;
-    if (active_handle_count == 0) {
+    if (atomic_fetch_sub(&active_handle_count, 1) == 1) {
         adv_regex_cleanup();
     }
 }
@@ -1932,7 +1932,7 @@ const char *textparser_get_token_error(const textparser_token_item *token)
     return token->error;
 }
 
-static void textparser_parse_state_recursively_fill_internal(const textparser_token_item *token, const textparser_token_item **state, int depth)
+static void textparser_parse_state_recursively_fill_internal(const textparser_token_item *token, const textparser_token_item **state, size_t max_units, int depth)
 {
     if (depth >= MAX_RECURSION_DEPTH) {
         return;
@@ -1944,20 +1944,22 @@ static void textparser_parse_state_recursively_fill_internal(const textparser_to
 
         for (size_t c = 0; c < len; c++)
         {
-            state[pos + c] = token;
+            if (pos + c < max_units) {
+                state[pos + c] = token;
+            }
         }
 
         if (token->child != nullptr)
         {
-            textparser_parse_state_recursively_fill_internal(token->child, state, depth + 1);
+            textparser_parse_state_recursively_fill_internal(token->child, state, max_units, depth + 1);
         }
         token = token->next;
     }
 }
 
-static void textparser_parse_state_recursively_fill(const textparser_token_item *token, const textparser_token_item **state)
+static void textparser_parse_state_recursively_fill(const textparser_token_item *token, const textparser_token_item **state, size_t max_units)
 {
-    textparser_parse_state_recursively_fill_internal(token, state, 0);
+    textparser_parse_state_recursively_fill_internal(token, state, max_units, 0);
 }
 
 textparser_parser_state *textparser_state_new(const textparser_t handle)
@@ -1981,7 +1983,7 @@ textparser_parser_state *textparser_state_new(const textparser_t handle)
         ret->len = size;
         memset(ret->state, 0, allocated);
 
-        textparser_parse_state_recursively_fill(handle->first_item, ret->state);
+        textparser_parse_state_recursively_fill(handle->first_item, ret->state, size);
     }
 
     return ret;

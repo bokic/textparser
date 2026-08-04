@@ -283,6 +283,7 @@ static void collect_user_defined_functions_tree(textparser_t handle, textparser_
                 size_t len = p - start;
                 if (len > 0 && !(text[start] >= '0' && text[start] <= '9') && *user_funcs_count < MAX_USER_FUNCS) {
                     char *name = malloc(len + 1);
+                    if (name == NULL) { fprintf(stderr, "PHP validation failed: memory allocation error\n"); exit(1); }
                     memcpy(name, text + start, len);
                     name[len] = '\0';
                     str_tolower(name);

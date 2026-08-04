@@ -175,8 +175,9 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
             child = child->next;
         }
 
-        if (token->position + token->len > last_pos) {
-            print_element(text + last_pos, token->position + token->len - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
+        size_t parent_end = token->position + token->len;
+        if (parent_end > last_pos) {
+            print_element(text + last_pos, parent_end - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
         }
 
     } else {

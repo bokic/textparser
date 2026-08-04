@@ -161,3 +161,52 @@ TEST(validate_HTML, tag_and_attributes) {
     }
 }
 
+TEST(validate_HTML, many_attributes_no_stack_overflow) {
+    // Regression test for Critical 1: alloca in attribute validation loop
+    // caused stack memory to accumulate for every attribute, leading to
+    // stack overflow on files with many attributes.
+    // Generate HTML with 2000 attributes across 100 tags
+    std::string html = "<html><body>";
+    for (int t = 0; t < 100; t++) {
+        html += "<div";
+        for (int a = 0; a < 20; a++) {
+            html += " data-attr-" + std::to_string(t) + "-" + std::to_string(a) + "=\"val\"";
+        }
+        html += "></div>";
+    }
+    html += "</body></html>";
+
+    textparser_t handle = nullptr;
+    int res = textparser_openmem(html.c_str(), html.size(), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(res, 0);
+    res = textparser_parse(handle, &html_definition);
+    ASSERT_EQ(res, 0);
+
+    // Should not crash (the old code would stack overflow here)
+    textparser_validation *validation = textparser_validate_html(handle);
+    // We don't care about the validation results, just that it didn't crash
+    if (validation != nullptr) {
+        textparser_validation_clear(validation);
+    }
+    textparser_close(handle);
+}
+
+TEST(validate_HTML, oversized_attribute_name_skipped) {
+    // Edge case: attribute name longer than 255 chars should be gracefully
+    // skipped rather than causing a buffer overflow
+    std::string long_attr(300, 'x');
+    std::string html = "<div " + long_attr + "=\"val\"></div>";
+
+    textparser_t handle = nullptr;
+    int res = textparser_openmem(html.c_str(), html.size(), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(res, 0);
+    res = textparser_parse(handle, &html_definition);
+    ASSERT_EQ(res, 0);
+
+    // Should not crash - the oversized attribute is simply skipped
+    textparser_validation *validation = textparser_validate_html(handle);
+    if (validation != nullptr) {
+        textparser_validation_clear(validation);
+    }
+    textparser_close(handle);
+}

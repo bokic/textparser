@@ -21,6 +21,10 @@
 
 #define TEXTPARSER_NOCOLOR 0xffffffff
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#error "MSVC compiler is not supported by textparser (requires GCC/Clang extensions like __attribute__((cleanup)))"
+#endif
+
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
 #define textparser_parser_state_defer(var) textparser_parser_state *var __attribute__((cleanup(textparser_state_cleanup))) = nullptr
 

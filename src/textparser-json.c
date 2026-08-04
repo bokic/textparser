@@ -130,6 +130,11 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     found = json_object_object_get_ex(root_obj, "defaultTextEncoding", &value);
     if (found) {
         const char *encoding = json_object_get_string(value);
+        if (encoding == NULL) {
+            (*definition)->error_string = "Invalid `defaultTextEncoding` value: expected a string.";
+            ret_code = TEXTPARSER_JSON_ENCODING_NOT_FOUND;
+            goto err;
+        }
         if(strcmp(encoding, "latin1") == 0)
             (*definition)->default_text_encoding = TEXTPARSER_ENCODING_LATIN1;
         else if(strcmp(encoding, "utf8") == 0 || strcmp(encoding, "utf-8") == 0)
@@ -380,6 +385,11 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                         if (wpi_arr && json_object_is_type(wpi_arr, json_type_array)) {
                             int wpi_len = json_object_array_length(wpi_arr);
                             int *wpi_ids = malloc(sizeof(int) * (wpi_len + 1));
+                            if (wpi_ids == nullptr) {
+                                (*definition)->error_string = "malloc for whenParentIn FAILED!";
+                                ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                                goto err;
+                            }
                             for (int w = 0; w < wpi_len; w++) {
                                 const char *pname = json_object_get_string(json_object_array_get_idx(wpi_arr, w));
                                 int fidx = TextParser_END;
@@ -398,6 +408,11 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                         if (nt_arr && json_object_is_type(nt_arr, json_type_array)) {
                             int nt_len = json_object_array_length(nt_arr);
                             int *nt_ids = malloc(sizeof(int) * (nt_len + 1));
+                            if (nt_ids == nullptr) {
+                                (*definition)->error_string = "malloc for nestedTokens FAILED!";
+                                ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                                goto err;
+                            }
                             for (int n = 0; n < nt_len; n++) {
                                 const char *tname = json_object_get_string(json_object_array_get_idx(nt_arr, n));
                                 int fidx = TextParser_END;
