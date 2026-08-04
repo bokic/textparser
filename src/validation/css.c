@@ -1,5 +1,6 @@
 #include "css.h"
 #include "css_tags.h"
+#include "validation.h"
 
 #include <textparser.h>
 #include <css_definition.json.h>

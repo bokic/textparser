@@ -1,6 +1,7 @@
 #include "html.h"
 #include "html_common.h"
 #include "html_tags.h"
+#include "validation.h"
 
 #include <textparser.h>
 #include <html_definition.json.h>
@@ -282,7 +283,8 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
 
                 while (child != NULL) {
                     if (child->token_id != TextParser_END && child->token_id == ids.AttributeName) {
-                        char *attr_name = (char *)malloc(child->len + 1);
+                        validation_string_defer(attr_name);
+                        attr_name = (char *)malloc(child->len + 1);
                         if (attr_name == NULL) {
                             fprintf(stderr, "HTML validation failed: memory allocation error\n");
                             exit(1);
@@ -312,7 +314,6 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
                             char *str = dynamic_printf("Unknown attribute [%s] for HTML tag <%s>", attr_name, tag_name);
                             textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, child->position, child->len);
                         }
-                        free(attr_name);
                     }
                     child = child->next;
                 }

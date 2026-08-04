@@ -1,6 +1,7 @@
 #include "php.h"
 #include "php_common.h"
 #include "php_functions.h"
+#include "validation.h"
 
 #include <textparser.h>
 #include <php_definition.json.h>

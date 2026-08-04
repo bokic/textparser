@@ -2,6 +2,7 @@
 #include "cfml_common.h"
 #include "cfml_functions.h"
 #include "cfml_tags.h"
+#include "validation.h"
 
 #include <textparser.h>
 #include <cfml_definition.json.h>
@@ -316,12 +317,12 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
         // Check if tag exists in the cfml_tags list
         const cfml_tag_info *info = find_tag_info(tag_name, tag_len);
         if (info == nullptr) {
-            char *token_name = (char *)malloc(tag_len + 1);
+            validation_string_defer(token_name);
+            token_name = (char *)malloc(tag_len + 1);
             if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
             strncpy(token_name, tag_name, tag_len);
             token_name[tag_len] = '\0';
             char *str = dynamic_printf("Unknown CFML tag: [%s]", token_name);
-            free(token_name);
 
             textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, tag_len);
             return;
@@ -331,12 +332,12 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
         if (info->end_tag_type == CFML_END_TAG_REQUIRED) {
             if (!is_token_self_closing(text, token)) {
                 if (!has_matching_end_tag(ids, text, token, tag_name, tag_len)) {
-                    char *token_name = (char *)malloc(tag_len + 1);
+                    validation_string_defer(token_name);
+                    token_name = (char *)malloc(tag_len + 1);
                     if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
                     strncpy(token_name, tag_name, tag_len);
                     token_name[tag_len] = '\0';
                     char *str = dynamic_printf("CFML tag [%s] requires a closing tag </%s>", token_name, token_name);
-                    free(token_name);
                     textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
                 }
             }
@@ -366,12 +367,12 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
         if (info != nullptr) {
             // Check if ending tag is forbidden
             if (info->end_tag_type == CFML_END_TAG_FORBIDDEN) {
-                char *token_name = (char *)malloc(tag_len + 1);
+                validation_string_defer(token_name);
+                token_name = (char *)malloc(tag_len + 1);
                 if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
                 strncpy(token_name, tag_name, tag_len);
                 token_name[tag_len] = '\0';
                 char *str = dynamic_printf("Ending tag </%s> is forbidden", token_name);
-                free(token_name);
                 textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
                 return;
             }
@@ -379,12 +380,12 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
 
         // Check if end tag has its own corresponding start tag
         if (!has_matching_start_tag(ids, text, token, tag_name, tag_len)) {
-            char *token_name = (char *)malloc(tag_len + 1);
+            validation_string_defer(token_name);
+            token_name = (char *)malloc(tag_len + 1);
             if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
             strncpy(token_name, tag_name, tag_len);
             token_name[tag_len] = '\0';
             char *str = dynamic_printf("Ending tag </%s> has no matching start tag", token_name);
-            free(token_name);
             textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
         }
     }
@@ -402,12 +403,12 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
 
         const cfml_function_info *fn_info = find_function_info(func_name, func_len);
         if (fn_info == nullptr) {
-            char *token_name = (char *)malloc(func_len + 1);
+            validation_string_defer(token_name);
+            token_name = (char *)malloc(func_len + 1);
             if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
             strncpy(token_name, func_name, func_len);
             token_name[func_len] = '\0';
             char *str = dynamic_printf("Unknown CFML function: [%s]", token_name);
-            free(token_name);
             textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, func_len);
         } else {
             // Find the Parenthesis token following this function name
@@ -462,20 +463,20 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
                 }
 
                 if (arg_count < min_params) {
-                    char *token_name = (char *)malloc(func_len + 1);
+                    validation_string_defer(token_name);
+                    token_name = (char *)malloc(func_len + 1);
                     if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
                     strncpy(token_name, func_name, func_len);
                     token_name[func_len] = '\0';
                     char *str = dynamic_printf("Function [%s] requires at least %d arguments, but %d were provided", token_name, min_params, arg_count);
-                    free(token_name);
                     textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, func_len);
                 } else if (arg_count > max_params) {
-                    char *token_name = (char *)malloc(func_len + 1);
+                    validation_string_defer(token_name);
+                    token_name = (char *)malloc(func_len + 1);
                     if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
                     strncpy(token_name, func_name, func_len);
                     token_name[func_len] = '\0';
                     char *str = dynamic_printf("Function [%s] takes at most %d arguments, but %d were provided", token_name, max_params, arg_count);
-                    free(token_name);
                     textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, func_len);
                 }
             }
