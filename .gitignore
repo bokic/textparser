@@ -1,6 +1,7 @@
 .vscode
 .cache
 __pycache__
+build_asan
 build
 bin
 include/json-c
