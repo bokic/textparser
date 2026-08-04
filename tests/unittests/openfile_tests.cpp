@@ -38,6 +38,7 @@ std::vector<char> to_bytes(const std::string &s) {
 const std::vector<char> UTF8_BOM   = { (char)0xEF, (char)0xBB, (char)0xBF };
 const std::vector<char> UTF16LE_BOM = { (char)0xFF, (char)0xFE };
 const std::vector<char> UTF16BE_BOM = { (char)0xFE, (char)0xFF };
+const std::vector<char> UTF32BE_BOM = { 0x00, 0x00, (char)0xFE, (char)0xFF };
 const std::vector<char> UTF32LE_BOM = { (char)0xFF, (char)0xFE, 0x00, 0x00 };
 const std::vector<char> UTF7_BOM    = { (char)0x2B, (char)0x2F, (char)0x76, (char)0x38 };
 
@@ -128,6 +129,41 @@ TEST(openfile_bom_mask, utf32le_bom_detected_when_in_mask) {
     textparser_close(handle);
 }
 
+TEST(openfile_bom_mask, utf16be_bom_detected_when_in_mask) {
+    std::vector<char> content = concat(UTF16BE_BOM, std::vector<char>({ 0x00, 'A', 0x00, 'B' }));
+    std::string path = write_temp_file("bom_utf16be_in_mask.txt", content);
+    ASSERT_FALSE(path.empty());
+
+    textparser_t handle = nullptr;
+    int err = textparser_openfile(path.c_str(), TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_UTF_16_BE, &handle);
+    ASSERT_EQ(err, 0);
+    expect_text(handle, std::vector<char>({ 'A', 0x00, 'B', 0x00 }));
+    textparser_close(handle);
+}
+
+TEST(openfile_bom_mask, utf16be_bom_only_no_content) {
+    std::string path = write_temp_file("bom_utf16be_only.txt", UTF16BE_BOM);
+    ASSERT_FALSE(path.empty());
+
+    textparser_t handle = nullptr;
+    int err = textparser_openfile(path.c_str(), TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_UTF_16_BE, &handle);
+    ASSERT_EQ(err, 0);
+    expect_text(handle, {});
+    textparser_close(handle);
+}
+
+TEST(openfile_bom_mask, utf16be_odd_content_length_returns_error) {
+    std::vector<char> content = concat(UTF16BE_BOM, std::vector<char>({ 'A' }));
+    std::string path = write_temp_file("bom_utf16be_odd.txt", content);
+    ASSERT_FALSE(path.empty());
+
+    textparser_t handle = nullptr;
+    int err = textparser_openfile(path.c_str(), TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_UTF_16_BE, &handle);
+    EXPECT_EQ(err, 9);
+    EXPECT_EQ(handle, nullptr);
+    textparser_close(handle);
+}
+
 TEST(openfile_bom_mask, utf32le_bom_with_only_utf16le_mask_strips_two_bytes) {
     std::vector<char> content = concat(UTF32LE_BOM, std::vector<char>({ 'A', 0x00, 0x00, 0x00 }));
     std::string path = write_temp_file("bom_utf32le_utf16le_mask.txt", content);
@@ -141,12 +177,12 @@ TEST(openfile_bom_mask, utf32le_bom_with_only_utf16le_mask_strips_two_bytes) {
 }
 
 TEST(openfile_bom_mask, unsupported_bom_in_mask_returns_error) {
-    std::vector<char> content = concat(UTF16BE_BOM, std::vector<char>({ 'A', 0x00 }));
-    std::string path = write_temp_file("bom_utf16be_in_mask.txt", content);
+    std::vector<char> content = concat(UTF32BE_BOM, std::vector<char>({ 0x00, 0x00, 0x00, 'A' }));
+    std::string path = write_temp_file("bom_utf32be_in_mask.txt", content);
     ASSERT_FALSE(path.empty());
 
     textparser_t handle = nullptr;
-    int err = textparser_openfile(path.c_str(), TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_UTF_16_BE, &handle);
+    int err = textparser_openfile(path.c_str(), TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_UTF_32_BE, &handle);
     EXPECT_EQ(err, 5);
     textparser_close(handle);
 }

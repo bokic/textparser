@@ -57,6 +57,7 @@ struct textparser_handle {
     void *end_regex;
     void *mmap_addr;
     size_t mmap_size;
+    void *owned_buffer;
     enum textparser_bom bom;
     enum textparser_encoding text_format;
     textparser_token_item *first_item;
@@ -154,6 +155,23 @@ static size_t calculate_chunk_size(size_t filesize)
         chunk_size *= 2;
     }
     return chunk_size;
+}
+
+static void *textparser_convert_utf16be_to_native(const char *src, size_t size)
+{
+    size_t unit_count = size / sizeof(uint16_t);
+    if (unit_count == 0)
+        return nullptr;
+
+    uint16_t *buf = (uint16_t *)malloc(size);
+    if (buf == nullptr)
+        return nullptr;
+
+    const uint16_t *units = (const uint16_t *)src;
+    for (size_t i = 0; i < unit_count; i++) {
+        buf[i] = (uint16_t)((units[i] >> 8) | (units[i] << 8));
+    }
+    return buf;
 }
 
 static void free_arena(struct textparser_handle *handle)
@@ -1384,6 +1402,9 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
         case TEXTPARSER_BOM_UTF_16_LE:
             local_hnd.text_format = TEXTPARSER_ENCODING_UTF_16;
             break;
+        case TEXTPARSER_BOM_UTF_16_BE:
+            local_hnd.text_format = TEXTPARSER_ENCODING_UTF_16;
+            break;
         case TEXTPARSER_BOM_UTF_32_LE:
             local_hnd.text_format = TEXTPARSER_ENCODING_UTF_32;
             break;
@@ -1420,6 +1441,16 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
         }
     }
 
+    if (local_hnd.bom == TEXTPARSER_BOM_UTF_16_BE && local_hnd.text_size > 0) {
+        void *swapped = textparser_convert_utf16be_to_native(local_hnd.text_addr, local_hnd.text_size);
+        if (swapped == nullptr) {
+            err = 6;
+            goto err;
+        }
+        local_hnd.owned_buffer = swapped;
+        local_hnd.text_addr = swapped;
+    }
+
     *handle = malloc(sizeof(struct textparser_handle));
     if (*handle == nullptr) {
         err = 6;
@@ -1433,6 +1464,11 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
 err:
     if (local_hnd.mmap_addr) {
         os_unmap(local_hnd.mmap_addr, local_hnd.mmap_size);
+    }
+
+    if (local_hnd.owned_buffer) {
+        free(local_hnd.owned_buffer);
+        local_hnd.owned_buffer = nullptr;
     }
 
     return err;
@@ -1506,6 +1542,11 @@ void textparser_close(textparser_t handle)
 
     if (mmap_addr) {
         os_unmap(mmap_addr, mmap_size);
+    }
+
+    if (handle->owned_buffer) {
+        free(handle->owned_buffer);
+        handle->owned_buffer = nullptr;
     }
 
     item = handle->first_item;
