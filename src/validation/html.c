@@ -7,7 +7,6 @@
 #include <html_definition.json.h>
 
 #include <string.h>
-#include <malloc.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
