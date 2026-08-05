@@ -4,11 +4,9 @@ if exist build\ (
     rmdir /s /q build
 )
 
-SET "PATH=C:\Program Files\CMake\bin;C:\Program Files\LLVm\bin;%PATH%"
-SET "CC=C:\Program Files\LLVm\bin\clang.exe"
-SET "CXX=C:\Program Files\LLVm\bin\clang++.exe"
+SET "PATH=C:\Program Files\CMake\bin;C:\Program Files\LLVM\bin;%LOCALAPPDATA%\Microsoft\WinGet\Links;%LOCALAPPDATA%\Programs\Python\Python313;%PATH%"
 
-cmake.exe -S .. -B build -G "Ninja" || exit /b 1
+cmake.exe -S .. -B build -G "Ninja" "-DCMAKE_C_COMPILER=C:/Program Files/LLVM/bin/clang.exe" "-DCMAKE_CXX_COMPILER=C:/Program Files/LLVM/bin/clang++.exe" || exit /b 1
 cmake --build build --config Release || exit /b 1
 
 copy build\compile_commands.json ..

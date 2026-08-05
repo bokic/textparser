@@ -3,6 +3,35 @@
 SET JSON_C_VERSION=0.19-20260627
 SET PCRE2_VERSION=10.47
 
+REM "Visual Studio 18 2026" generator requires CMake >= 4.2
+where cmake.exe >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] cmake.exe not found in PATH.
+    exit /b 1
+)
+
+for /f "tokens=3" %%v in ('cmake.exe --version') do (
+    set CMAKE_VERSION=%%v
+    goto cmake_version_parsed
+)
+:cmake_version_parsed
+for /f "tokens=1,2 delims=." %%a in ("%CMAKE_VERSION%") do (
+    set CMAKE_VERSION_MAJOR=%%a
+    set CMAKE_VERSION_MINOR=%%b
+)
+
+if %CMAKE_VERSION_MAJOR% LSS 4 goto cmake_too_old
+if %CMAKE_VERSION_MAJOR% EQU 4 if %CMAKE_VERSION_MINOR% LSS 2 goto cmake_too_old
+echo [OK] Using CMake %CMAKE_VERSION%
+goto cmake_done
+
+:cmake_too_old
+echo [ERROR] CMake %CMAKE_VERSION% detected. The "Visual Studio 18 2026" generator requires CMake 4.2 or newer.
+echo         Upgrade with: winget install Kitware.CMake
+exit /b 1
+
+:cmake_done
+
 rmdir /s /q json-c
 rmdir /s /q pcre2
 rmdir /s /q build
@@ -11,8 +40,8 @@ curl -L --output json-c.zip https://github.com/json-c/json-c/archive/refs/tags/j
 tar -xf json-c.zip
 del json-c.zip
 
-cmake.exe -S json-c-json-c-%JSON_C_VERSION% -B build -DBUILD_STATIC_LIBS=OFF
-cmake.exe --build build --config Release
+cmake.exe -S json-c-json-c-%JSON_C_VERSION% -B build -G "Visual Studio 18 2026" -A x64 -DBUILD_STATIC_LIBS=OFF -DBUILD_TESTING=OFF -DBUILD_APPS=OFF
+cmake.exe --build build --config Release --target json-c
 
 mkdir ..\include\json-c
 mkdir ..\bin
@@ -30,8 +59,8 @@ curl -L --output pcre2.zip https://github.com/PCRE2Project/pcre2/releases/downlo
 tar -xf pcre2.zip
 del pcre2.zip
 
-cmake.exe -S pcre2-%PCRE2_VERSION% -B build -DBUILD_STATIC_LIBS=OFF -DBUILD_SHARED_LIBS=ON -DPCRE2_BUILD_PCRE2_8=ON -DPCRE2_BUILD_PCRE2_16=ON -DPCRE2_BUILD_PCRE2_32=ON
-cmake.exe --build build --config Release
+cmake.exe -S pcre2-%PCRE2_VERSION% -B build -G "Visual Studio 18 2026" -A x64 -DBUILD_STATIC_LIBS=OFF -DBUILD_SHARED_LIBS=ON -DPCRE2_BUILD_PCRE2_8=ON -DPCRE2_BUILD_PCRE2_16=ON -DPCRE2_BUILD_PCRE2_32=ON -DPCRE2_BUILD_PCRE2GREP=OFF -DPCRE2_BUILD_TESTS=OFF
+cmake.exe --build build --config Release --target pcre2-8-shared pcre2-16-shared pcre2-32-shared pcre2-posix-shared
 
 mkdir ..\bin
 
