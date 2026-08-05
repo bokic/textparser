@@ -38,7 +38,7 @@ The project currently provides support for:
 
 - **High Performance**: Written in optimized C for fast parsing of large codebases.
 - **Small Footprint**: The library is designed to be small and easy to integrate into other projects.
-- **Minimal Dependencies**: The library has minimal dependencies (only crpe2 library for regex matching).
+- **Minimal Dependencies**: The library has minimal dependencies (only PCRE2 library for regex matching).
 - **Regex-Based Grammars**: Define language syntax using flexible regular expressions.
 - **Hierarchical AST**: Generates a structured tree of tokens (`textparser_token_item`) representing the code structure.
 - **Syntax Highlighting Support**: Tokens track metadata like color, background, and flags, making it suitable for building syntax highlighters and editors.
