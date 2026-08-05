@@ -70,7 +70,7 @@ jobs:
       if: matrix.os == 'ubuntu-26.04'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libjson-c-dev libxml2-dev libcmocka-dev
+        sudo apt-get install -y libjson-c-dev libpcre2-dev
 
     - name: Generate Language Definiiton headers
       working-directory: ${{ github.workspace }}/definitions
