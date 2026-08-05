@@ -206,7 +206,12 @@ static bool is_custom_element(const char *name) {
 
 static bool is_framework_attribute_token(const char *text, textparser_token_item *child, size_t text_size) {
     if (child->len == 0) return false;
-    char *name = alloca(child->len + 1);
+    validation_string_defer(name);
+    name = (char *)malloc(child->len + 1);
+    if (name == NULL) {
+        fprintf(stderr, "HTML validation failed: memory allocation error\n");
+        exit(1);
+    }
     memcpy(name, text + child->position, child->len);
     name[child->len] = '\0';
     

@@ -223,6 +223,49 @@ TEST(validate_PHP, built_in_functions) {
         EXPECT_EQ(validation, nullptr);
         textparser_close(handle);
     }
+
+    // 5. Mixed-case built-in function names (name_lower defer path) are
+    //    recognized case-insensitively and must not raise errors
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<?php STRLEN('a'); StrToLower('B'); substr('x', 0); ?>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &php_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_php(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // 6. `new ClassName(...)` is not a function call (get_function_name_before_paren)
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<?php new Foo(); ?>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &php_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_php(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // 7. Method call syntax -> and :: is not a function call
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<?php $obj->method(); ClassName::staticMethod(); ?>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &php_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_php(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
 }
 
 

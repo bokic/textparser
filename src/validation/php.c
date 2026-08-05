@@ -200,7 +200,9 @@ static bool get_function_name_before_paren(textparser_t handle, textparser_token
     if (len == 0) return false;
     if (text[start] >= '0' && text[start] <= '9') return false;
     
-    char *ident = alloca(len + 1);
+    validation_string_defer(ident);
+    ident = (char *)malloc(len + 1);
+    if (ident == NULL) { fprintf(stderr, "PHP validation failed: memory allocation error\n"); exit(1); }
     memcpy(ident, text + start, len);
     ident[len] = '\0';
     
@@ -312,7 +314,9 @@ static void textparser_validate_php_token(const php_dynamic_token_ids *ids, text
 
         if (get_function_name_before_paren(handle, token, &func_name, &func_len, &func_pos)) {
             // Check if user-defined or built-in function
-            char *name_lower = alloca(func_len + 1);
+            validation_string_defer(name_lower);
+            name_lower = (char *)malloc(func_len + 1);
+            if (name_lower == NULL) { fprintf(stderr, "PHP validation failed: memory allocation error\n"); exit(1); }
             memcpy(name_lower, func_name, func_len);
             name_lower[func_len] = '\0';
             str_tolower(name_lower);

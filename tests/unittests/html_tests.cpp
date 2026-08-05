@@ -191,6 +191,60 @@ TEST(validate_HTML, many_attributes_no_stack_overflow) {
     textparser_close(handle);
 }
 
+TEST(validate_HTML, framework_attributes_not_flagged) {
+    // is_framework_attribute_token (heap/defer path) must accept all
+    // framework-style attributes: Angular/Vue/React bindings, data-/aria-,
+    // event handlers, namespaces and custom-element attributes.
+    {
+        textparser_t handle = nullptr;
+        const char *code =
+            "<div (click)=\"a\" [class]=\"b\" *ngIf=\"c\" @enter=\"d\" :href=\"e\" "
+            "data-x=\"g\" aria-label=\"h\" onclick=\"i\" v-on:click=\"j\"></div>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &html_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_html(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // Framework attribute token at the very start/end of the document
+    // (boundary checks on position +/- 1) must not crash or misfire.
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<div :href=\"a\"></div>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &html_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_html(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // Regular unknown attribute is still reported as an error.
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<div badattr=\"x\"></div>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &html_definition);
+        ASSERT_EQ(res, 0);
+
+        textparser_validation *validation = textparser_validate_html(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Unknown attribute [badattr] for HTML tag <div>");
+
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+}
+
 TEST(validate_HTML, oversized_attribute_name_skipped) {
     // Edge case: attribute name longer than 255 chars should be gracefully
     // skipped rather than causing a buffer overflow
