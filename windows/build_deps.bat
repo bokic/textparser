@@ -17,7 +17,7 @@ cmake.exe --build build --config Release
 mkdir ..\include\json-c
 mkdir ..\bin
 
-xcopy /y json-c\*.h ..\include\json-c
+xcopy /y json-c-json-c-%JSON_C_VERSION%\*.h ..\include\json-c
 xcopy /y build\*.h ..\include\json-c
 
 xcopy /y /e build\Release\json-c.dll ..\bin
