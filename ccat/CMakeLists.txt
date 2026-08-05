@@ -15,8 +15,6 @@ endif()
 
 add_executable(ccat
     main.c
-    ../definitions/json_definition.json.h
-    ../definitions/cfml_definition.json.h
 
     ${OS_FILES}
 )
