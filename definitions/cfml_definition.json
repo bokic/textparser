@@ -19,6 +19,19 @@
     "EndTag",
     "Comment"
   ],
+  "overrideStartTokens": [
+    {
+      "if": {
+        "fileExtensions": [
+          "cfc"
+        ],
+        "regex": "^\\s*(?:(?:component|import|interface|final|abstract)\\b|//|/\\*)"
+      },
+      "startTokens": [
+        "ScriptExpression"
+      ]
+    }
+  ],
   "tokens": {
     "ScriptTagPair": {
       "type": "GroupAllChildrenInSameOrder",

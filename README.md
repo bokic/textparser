@@ -43,6 +43,7 @@ The project currently provides support for:
 - **Hierarchical AST**: Generates a structured tree of tokens (`textparser_token_item`) representing the code structure.
 - **Syntax Highlighting Support**: Tokens track metadata like color, background, and flags, making it suitable for building syntax highlighters and editors.
 - **Extensibility**: Language definitions are decoupled from the core parsing logic, constructed with JSON, and can be loaded at compile time (by generated header file) or at runtime (by loading JSON file).
+- **Conditional Start Tokens (`overrideStartTokens`)**: Dynamic start token override rules based on file extension and regex pattern matching at document start (used e.g. for modern ColdFusion script components).
 - **Context-Sensitive Token Replacement (`contextNestedTokens`)**: Tokens can dynamically specify context-sensitive child token lists based on enclosing parent token types in the parsing stack.
 - **Python Tooling**: Includes Python scripts for: prototyping and validation of the core algorithm, generation of C header files (`json2h.py`), and other parser verification tools.
 

@@ -116,6 +116,12 @@ typedef struct {
 } textparser_token;
 
 typedef struct {
+    const char **file_extensions;
+    const char *regex;
+    int *start_tokens;
+} textparser_override_start_token_rule;
+
+typedef struct {
     const char *name;
     double version;
     const char *empty_segment_language;
@@ -124,6 +130,7 @@ typedef struct {
     int default_text_encoding;
     int supported_bom;
     int *starts_with;
+    textparser_override_start_token_rule *override_start_tokens;
     bool other_text_inside;
     bool sign_ambiguity_fix;
     int token_number_id;
@@ -152,6 +159,8 @@ extern "C"
 
 EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int default_text_format, int bom_mask, textparser_t *handle);
 EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);
+EXPORT_TEXTPARSER void textparser_set_filename(textparser_t handle, const char *filename);
+EXPORT_TEXTPARSER const char *textparser_get_filename(const textparser_t handle);
 EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
 EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 

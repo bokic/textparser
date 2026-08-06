@@ -79,6 +79,7 @@ struct textparser_handle {
     void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data);
     void *user_data;
     int recursion_depth;
+    char *filename;
 };
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -1268,6 +1269,26 @@ void textparser_free_language_definition(textparser_language_definition *definit
         free((void *)definition->starts_with);
     }
 
+    if (definition->override_start_tokens) {
+        for (int r = 0; definition->override_start_tokens[r].file_extensions != nullptr ||
+                        definition->override_start_tokens[r].regex != nullptr ||
+                        definition->override_start_tokens[r].start_tokens != nullptr; r++) {
+            if (definition->override_start_tokens[r].file_extensions) {
+                for (int e = 0; definition->override_start_tokens[r].file_extensions[e] != nullptr; e++) {
+                    free((void *)definition->override_start_tokens[r].file_extensions[e]);
+                }
+                free((void *)definition->override_start_tokens[r].file_extensions);
+            }
+            if (definition->override_start_tokens[r].regex) {
+                free((void *)definition->override_start_tokens[r].regex);
+            }
+            if (definition->override_start_tokens[r].start_tokens) {
+                free((void *)definition->override_start_tokens[r].start_tokens);
+            }
+        }
+        free((void *)definition->override_start_tokens);
+    }
+
     if (definition->tokens) {
         int c = 0;
         while(definition->tokens[c].name != nullptr) {
@@ -1311,6 +1332,7 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
     int err = 0;
 
     memset(&local_hnd, 0, sizeof(local_hnd));
+    local_hnd.filename = pathname ? strdup(pathname) : nullptr;
 
     local_hnd.mmap_addr = os_map(pathname, &local_hnd.mmap_size);
     if (!local_hnd.mmap_addr && local_hnd.mmap_size != 0) {
@@ -1471,6 +1493,11 @@ err:
         local_hnd.owned_buffer = nullptr;
     }
 
+    if (local_hnd.filename) {
+        free(local_hnd.filename);
+        local_hnd.filename = nullptr;
+    }
+
     return err;
 }
 
@@ -1563,6 +1590,11 @@ void textparser_close(textparser_t handle)
         handle->lines = nullptr;
     }
 
+    if (handle->filename) {
+        free(handle->filename);
+        handle->filename = nullptr;
+    }
+
     free(handle);
 
     if (atomic_fetch_sub(&active_handle_count, 1) == 1) {
@@ -1577,6 +1609,29 @@ void textparser_cleanup(textparser_t *handle)
         textparser_close(*handle);
         *handle = nullptr;
     }
+}
+
+void textparser_set_filename(textparser_t handle, const char *filename)
+{
+    if (handle == nullptr)
+        return;
+
+    if (handle->filename) {
+        free(handle->filename);
+        handle->filename = nullptr;
+    }
+
+    if (filename) {
+        handle->filename = strdup(filename);
+    }
+}
+
+const char *textparser_get_filename(const textparser_t handle)
+{
+    if (handle == nullptr)
+        return nullptr;
+
+    return handle->filename;
 }
 
 int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
@@ -1610,6 +1665,53 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
             return -1;
     }
 
+    const int *effective_starts_with = definition->starts_with;
+
+    if (definition->override_start_tokens && handle->filename) {
+        const char *file_ext = strrchr(handle->filename, '.');
+        if (file_ext) {
+            file_ext++;
+            for (int r = 0; definition->override_start_tokens[r].file_extensions != nullptr ||
+                            definition->override_start_tokens[r].regex != nullptr ||
+                            definition->override_start_tokens[r].start_tokens != nullptr; r++) {
+                const textparser_override_start_token_rule *rule = &definition->override_start_tokens[r];
+                bool ext_matches = false;
+                if (rule->file_extensions) {
+                    for (int e = 0; rule->file_extensions[e] != nullptr; e++) {
+                        bool match = false;
+                        if (definition->case_sensitivity) {
+                            match = (strcmp(file_ext, rule->file_extensions[e]) == 0);
+                        } else {
+#ifdef _WIN32
+                            match = (_stricmp(file_ext, rule->file_extensions[e]) == 0);
+#else
+                            match = (strcasecmp(file_ext, rule->file_extensions[e]) == 0);
+#endif
+                        }
+                        if (match) {
+                            ext_matches = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (ext_matches && rule->regex && rule->start_tokens) {
+                    void *rule_regex = nullptr;
+                    size_t found_at = 0;
+                    size_t found_len = 0;
+                    bool matched = adv_regex_find_pattern(rule->regex, &rule_regex, handle->text_format, handle->text_addr, handle->text_size, &found_at, &found_len, !definition->case_sensitivity, true);
+                    if (rule_regex) {
+                        adv_regex_free(&rule_regex, handle->text_format);
+                    }
+                    if (matched) {
+                        effective_starts_with = rule->start_tokens;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     while(pos < size) {
         pos = textparser_skip_whitespace(handle, pos);
         if (pos >= size)
@@ -1618,12 +1720,12 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
         int matched_token_id = TextParser_END;
 
         int count = 0;
-        while (definition->starts_with[count] != TextParser_END) {
+        while (effective_starts_with[count] != TextParser_END) {
             count++;
         }
         {
             int adjusted_list[count + 1];
-            adjust_search_order(handle, nullptr, prev_item, definition->starts_with, adjusted_list);
+            adjust_search_order(handle, nullptr, prev_item, effective_starts_with, adjusted_list);
 
             for (int c = 0; adjusted_list[c] != TextParser_END; c++) {
                 int token_id = adjusted_list[c];

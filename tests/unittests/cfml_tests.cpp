@@ -1035,4 +1035,68 @@ TEST(parse_CFML, parser_error_leading_sharp_quote) {
     }
 }
 
+TEST(parse_CFML, script_component_basic) {
+    const char *code = "component {\n    function sayHello() {\n        return \"hello\";\n    }\n}";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    textparser_set_filename(handle, "MyComponent.cfc");
+
+    EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+
+    const char *token_str = textparser_get_token_type_str(&cfml_definition, first);
+    EXPECT_STREQ(token_str, "ScriptExpression");
+    textparser_close(handle);
+}
+
+TEST(parse_CFML, script_component_leading_comments_and_imports) {
+    const char *code = "// Header comment\n/* Block comment */\nimport com.example.Service;\ncomponent extends=\"Base\" {\n}";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    // Case-insensitivity test (.CFC)
+    textparser_set_filename(handle, "Service.CFC");
+
+    EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+
+    const char *token_str = textparser_get_token_type_str(&cfml_definition, first);
+    EXPECT_STREQ(token_str, "ScriptExpression");
+    textparser_close(handle);
+}
+
+TEST(parse_CFML, script_component_cfml_comment_quirk) {
+    const char *code = "<!--- CFML comment --->\ncomponent {\n}";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    textparser_set_filename(handle, "QuirkComponent.cfc");
+
+    EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+
+    // Initial <!--- fails script detection; first token is standard Comment tag token
+    const char *token_str = textparser_get_token_type_str(&cfml_definition, first);
+    EXPECT_STREQ(token_str, "Comment");
+    textparser_close(handle);
+}
+
+TEST(parse_CFML, cfm_file_unaffected) {
+    const char *code = "component { }";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    textparser_set_filename(handle, "index.cfm");
+
+    EXPECT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    textparser_token_item *first = textparser_get_first_token(handle);
+    // On .cfm file, component { } without <cfscript> is not matched as ScriptExpression
+    if (first != nullptr) {
+        const char *token_str = textparser_get_token_type_str(&cfml_definition, first);
+        EXPECT_STRNE(token_str, "ScriptExpression");
+    }
+    textparser_close(handle);
+}
+
+
 

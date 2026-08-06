@@ -133,6 +133,25 @@ def main(args):
         text += "TextParser_" + name_lowercase + "_" + token_name + "," + os.linesep + "                             "
     text += "TextParser_END}," + os.linesep
 
+    if "overrideStartTokens" in root and isinstance(root["overrideStartTokens"], list) and len(root["overrideStartTokens"]) > 0:
+        text += "    .override_start_tokens = (textparser_override_start_token_rule []) {" + os.linesep
+        for rule in root["overrideStartTokens"]:
+            text += "        {" + os.linesep
+            text += "            .file_extensions = (const char *[]) {"
+            for ext in rule.get("if", {}).get("fileExtensions", []):
+                text += "\"" + ext + "\", "
+            text += "NULL}," + os.linesep
+            text += "            .regex = R\"regex(" + rule.get("if", {}).get("regex", "") + ")regex\"," + os.linesep
+            text += "            .start_tokens = (int []) {"
+            for token_name in rule.get("startTokens", []):
+                text += "TextParser_" + name_lowercase + "_" + token_name + ", "
+            text += "TextParser_END}" + os.linesep
+            text += "        }," + os.linesep
+        text += "        { .file_extensions = NULL, .regex = NULL, .start_tokens = NULL }" + os.linesep
+        text += "    }," + os.linesep
+    else:
+        text += "    .override_start_tokens = NULL," + os.linesep
+
     if "otherTextInside" in root:
         text += "    .other_text_inside = " + python_bool_to_c_string(root["otherTextInside"]) + "," + os.linesep
 

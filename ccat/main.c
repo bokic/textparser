@@ -97,7 +97,17 @@ static const textparser_language_definition *get_language_definition_by_filename
         {
             definition_ext = definition->default_file_extensions[ext_cnt];
 
-            if (strcmp(definition_ext, filename_ext) == 0)
+            bool match = false;
+            if (definition->case_sensitivity) {
+                match = (strcmp(definition_ext, filename_ext) == 0);
+            } else {
+#ifdef _WIN32
+                match = (_stricmp(definition_ext, filename_ext) == 0);
+#else
+                match = (strcasecmp(definition_ext, filename_ext) == 0);
+#endif
+            }
+            if (match)
                 return definition;
 
             ext_cnt++;

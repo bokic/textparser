@@ -487,6 +487,68 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->sign_ambiguity_fix = false;
     }
 
+    json_object *override_arr = nullptr;
+    if (json_object_object_get_ex(root_obj, "overrideStartTokens", &override_arr) && json_object_is_type(override_arr, json_type_array)) {
+        int rule_count = json_object_array_length(override_arr);
+        if (rule_count > 0) {
+            textparser_override_start_token_rule *rules = calloc(rule_count + 1, sizeof(textparser_override_start_token_rule));
+            if (rules != nullptr) {
+                for (int r = 0; r < rule_count; r++) {
+                    json_object *rule_obj = json_object_array_get_idx(override_arr, r);
+                    if (!rule_obj || !json_object_is_type(rule_obj, json_type_object)) continue;
+
+                    json_object *if_obj = nullptr;
+                    if (json_object_object_get_ex(rule_obj, "if", &if_obj) && json_object_is_type(if_obj, json_type_object)) {
+                        json_object *exts_arr = nullptr;
+                        if (json_object_object_get_ex(if_obj, "fileExtensions", &exts_arr) && json_object_is_type(exts_arr, json_type_array)) {
+                            int ext_len = json_object_array_length(exts_arr);
+                            const char **ext_list = calloc(ext_len + 1, sizeof(char *));
+                            if (ext_list != nullptr) {
+                                for (int e = 0; e < ext_len; e++) {
+                                    json_object *ext_item = json_object_array_get_idx(exts_arr, e);
+                                    if (ext_item && json_object_is_type(ext_item, json_type_string)) {
+                                        ext_list[e] = strdup(json_object_get_string(ext_item));
+                                    }
+                                }
+                                rules[r].file_extensions = ext_list;
+                            }
+                        }
+
+                        json_object *regex_item = nullptr;
+                        if (json_object_object_get_ex(if_obj, "regex", &regex_item) && json_object_is_type(regex_item, json_type_string)) {
+                            rules[r].regex = strdup(json_object_get_string(regex_item));
+                        }
+                    }
+
+                    json_object *st_arr = nullptr;
+                    if (json_object_object_get_ex(rule_obj, "startTokens", &st_arr) && json_object_is_type(st_arr, json_type_array)) {
+                        int st_len = json_object_array_length(st_arr);
+                        int *st_list = calloc(st_len + 1, sizeof(int));
+                        if (st_list != nullptr) {
+                            for (int s = 0; s < st_len; s++) {
+                                json_object *st_item = json_object_array_get_idx(st_arr, s);
+                                if (st_item && json_object_is_type(st_item, json_type_string)) {
+                                    const char *st_name = json_object_get_string(st_item);
+                                    int st_idx = TextParser_END;
+                                    for (size_t k = 0; k < tokens_cnt; k++) {
+                                        if ((*definition)->tokens[k].name && strcmp((*definition)->tokens[k].name, st_name) == 0) {
+                                            st_idx = (int)k;
+                                            break;
+                                        }
+                                    }
+                                    st_list[s] = st_idx;
+                                }
+                            }
+                            st_list[st_len] = TextParser_END;
+                            rules[r].start_tokens = st_list;
+                        }
+                    }
+                }
+                (*definition)->override_start_tokens = rules;
+            }
+        }
+    }
+
     return 0;
 
 err:
