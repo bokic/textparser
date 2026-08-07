@@ -3,7 +3,7 @@
 TextParser is a high-performance, extensible text parsing library written in C. It uses regular expressions to define language grammars and generates a hierarchical Abstract Syntax Tree (AST) for parsed documents.
 
 The project currently provides support for: ada, asm, bash, c, c++, c3, cfml, csharp, css, fortran, go, html, jai, java, javascript, json, matlab, pascal, perl, php, python, r, rust, scratch, sql, swift, typescript, vb, zig.
-It has a flexible architecture/easy to add new language.
+It has a flexible architecture making it easy to add new languages.
 
 ## Features
 
@@ -16,17 +16,18 @@ It has a flexible architecture/easy to add new language.
 - **Extensibility**: Language definitions are decoupled from the core parsing logic, constructed with JSON, and can be loaded at compile time (by generated header file) or at runtime (by loading JSON file).
 - **Conditional Start Tokens (`overrideStartTokens`)**: Dynamic start token override rules based on file extension and regex pattern matching at document start (used e.g. for modern ColdFusion script components).
 - **Context-Sensitive Token Replacement (`contextNestedTokens`)**: Tokens can dynamically specify context-sensitive child token lists based on enclosing parent token types in the parsing stack.
-- **Python Tooling**: Includes Python scripts for: prototyping and validation of the core algorithm, generation of C header files (`json2h.py`), and other parser verification tools.
+- **BOM Specification (`SupportedBom`)**: Grammar-level specification of allowed Byte Order Marks (e.g., UTF-8, UTF-16-LE, UTF-16-BE).
+- **Python Tooling**: Includes Python scripts for prototyping, validation of the core algorithm, generation of C header files (`json2h.py`), and other parser verification tools.
 
 ## Project Structure
 
 - **`src/`**: Core C library implementation (`textparser.c`, `adv_regex.c`).
 - **`include/`**: Public header files (`textparser.h`).
-- **`cli/`**: Command-line tool mainly for testing and demonstrating the library.
+- **`cli/`**: Command-line tool for testing, debugging, and demonstrating the library.
 - **`definitions/`**: Language definitions (e.g., CFML, JSON).
 - **`python/`**: Python bindings, prototypes, and validation tools (`validate_cfml.py`).
 - **`tests/`**: Unit and integration tests.
-- **`ccat/`**: Utilities for text processing (e.g., color cat).
+- **`ccat/`**: Syntax highlighting CLI utility (color cat).
 
 ## Build Instructions
 
@@ -34,7 +35,11 @@ It has a flexible architecture/easy to add new language.
 
 - CMake (version 3.15 or higher)
 - Ninja build system
-- A C compiler (GCC/Clang)
+- A C/C++ compiler (GCC or Clang)
+- PCRE2 library (`pcre2-8`)
+  - Ubuntu/Debian: `sudo apt install libpcre2-dev`
+  - Arch Linux: `sudo pacman -S pcre2`
+  - macOS: `brew install pcre2`
 
 ### Building
 
@@ -44,7 +49,7 @@ You can use the provided build script for a quick start:
 ./build.sh
 ```
 
-Alternatively, you can build using standard CMake commands:
+Alternatively, build using standard CMake commands:
 
 ```bash
 cmake -B build -G Ninja
@@ -53,11 +58,25 @@ cmake --build build
 
 Artifacts (libraries and executables) will be output to the `bin/` directory.
 
+## Testing
+
+To run the full test suite after building:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+Or execute the unit test binary directly:
+
+```bash
+bin/unittests
+```
+
 ## Installation
 
 ### Arch Linux
 
-`textparser` is available on the Arch User Repository (AUR). You can install it using an AUR helper like `yay`:
+`textparser` is available on the Arch User Repository (AUR):
 
 ```bash
 yay -S textparser
@@ -65,14 +84,30 @@ yay -S textparser
 
 Or view the package details at [https://aur.archlinux.org/packages/textparser](https://aur.archlinux.org/packages/textparser).
 
+### macOS (Homebrew)
+
+Install from the local formula repository:
+
+```bash
+brew install --build-from-source ./MacOS/textparser.rb
+```
+
+### Windows
+
+Binary releases are available on the project [releases](https://github.com/bokic/textparser/releases) page.
+
 ## Usage
 
 ### CLI Tool
 
-The `textparser` CLI tool can be used to parse files and visualize the resulting token tree.
+The `textparser` CLI tool parses files and visualizes the resulting token tree.
 
 ```bash
+# Parse a file using automatically detected language rules
 bin/textparser path/to/file.cfm
+
+# Parse a file using a custom runtime JSON definition
+bin/textparser path/to/file.json --definition definitions/json_definition.json
 ```
 
 ### C Library Integration
@@ -116,9 +151,9 @@ int main() {
 
 ## Language Definition Example
 
-TextParser uses a JSON-based format to define language grammars. This allows for defining complex syntax rules using regular expressions and hierarchical token structures.
+TextParser uses a JSON-based format to define language grammars. This allows defining complex syntax rules using regular expressions and hierarchical token structures.
 
-Here is a simplified example of what a JSON definition might look like (based on `definitions/json_definition.json`):
+Here is an example of what a JSON definition looks like (based on `definitions/json_definition.json`):
 
 ```json
 {
@@ -151,52 +186,26 @@ Here is a simplified example of what a JSON definition might look like (based on
 
 ## Generating Definition Headers
 
-To use a JSON language definition in C code at compile time, it must be converted into a C header file. This project includes a Python utility [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py) to perform this generation.
+To use a JSON language definition in C code at compile time, convert it into a C header file using the Python utility [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py).
 
 ### Generating a Specific Header
 
-Run the [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py) script located in the `definitions/` directory, passing the path to your JSON definition file as an argument:
+Run [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py) located in the `definitions/` directory:
 
 ```bash
 python3 definitions/json2h.py definitions/your_definition.json
 ```
 
-This will create a new C header file (e.g., `definitions/your_definition.json.h`) containing the C struct and tags enum for your language definition.
+This generates a C header file (e.g., `definitions/your_definition.json.h`) containing the C struct and tags enum.
 
 ### Regenerating All Headers
 
-You can also run the provided helper script [regenerate.sh](file:///home/boris/projects/textparser/definitions/regenerate.sh) from the `definitions/` directory to regenerate header files for all JSON definitions:
+Run the helper script [regenerate.sh](file:///home/boris/projects/textparser/definitions/regenerate.sh) from the `definitions/` directory:
 
 ```bash
 cd definitions
 ./regenerate.sh
 ```
-
-## Build
-> `git clone https://github.com/bokic/textparser.git`
-> 
-> `cd textparser`
-> 
-> `cmake -B build`
-> 
-> `cmake --build build`
-> 
-> `bin/textparser`
-
-## Installation
-* Linux
-  * arch
-    > `yay -S textparser`
-  * Ubuntu [TODO!]
-* Windows
-    > See project [releases](https://github.com/bokic/textparser/releases) page.
-* MacOS
-  * homebrew
-    > `git clone https://github.com/bokic/textparser.git`
-    >.
-    > `cd textparser`
-    >.
-    > `brew install --build-from-source ./MacOS/textparser.rb`
 
 ## License
 
