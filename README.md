@@ -2,7 +2,7 @@
 
 TextParser is a high-performance, extensible text parsing library written in C. It uses regular expressions to define language grammars and generates a hierarchical Abstract Syntax Tree (AST) for parsed documents.
 
-The project currently provides support for: ada, asm, bash, c, c++, c3, cfml, csharp, css, fortran, go, html, jai, java, javascript, json, matlab, pascal, perl, php, python, r, rust, scratch, sql, swift, typescript, vb, zig.
+The project currently provides support for: Ada, ASM, Bash, C, C++, C3, CFML, C#, CSS, Fortran, Go, HTML, Jai, Java, JavaScript, JSON, MATLAB, Pascal, Perl, PHP, Python, R, Rust, Scratch, SQL, Swift, TypeScript, VB, Zig.
 It has a flexible architecture making it easy to add new languages.
 
 ## Features
