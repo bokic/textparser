@@ -96,6 +96,35 @@ brew install --build-from-source ./MacOS/textparser.rb
 
 Binary releases are available on the project [releases](https://github.com/bokic/textparser/releases) page.
 
+### Docker
+
+Ready-to-run images are published to Docker Hub:
+
+```bash
+docker pull bokic/textparser:latest
+```
+
+The image is Alpine-based (musl), contains the `textparser` CLI (entry point) and the `ccat` syntax highlighting utility, and supports both `linux/amd64` and `linux/arm64`. Mount your files and run:
+
+```bash
+# Parse a file
+docker run --rm -w /work -v "$PWD":/work:ro bokic/textparser ./file.cfm
+
+# Emit the token tree as JSON
+docker run --rm -w /work -v "$PWD":/work:ro bokic/textparser ./file.json --json
+
+# Use ccat
+docker run --rm -w /work -v "$PWD":/work:ro --entrypoint ccat bokic/textparser ./file.c
+```
+
+To build the image locally:
+
+```bash
+docker build -t textparser .
+```
+
+Images are published automatically by the [docker-publish.yml](.github/workflows/docker-publish.yml) workflow on pushes to `master` (as `latest`) and on version tags (as `<version>`, `<major>.<minor>` and `latest`). Publishing requires the `DOCKER_HUB_USERNAME` and `DOCKER_HUB_TOKEN` repository secrets to be set.
+
 ## Usage
 
 ### CLI Tool
