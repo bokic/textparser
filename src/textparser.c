@@ -1760,7 +1760,29 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
             prev_item = token_item;
         } else {
             if (definition->other_text_inside) {
-                pos += textparser_char_len(handle, pos);
+                size_t char_l = textparser_char_len(handle, pos);
+                if (prev_item && prev_item->token_id == TEXTPARSER_TOKEN_ID_ERROR) {
+                    prev_item->len += char_l;
+                } else {
+                    textparser_token_item *err_item = allocate_token(handle);
+                    if (err_item) {
+                        memset(err_item, 0, sizeof(textparser_token_item));
+                        err_item->token_id = TEXTPARSER_TOKEN_ID_ERROR;
+                        err_item->position = pos;
+                        err_item->len = char_l;
+                        err_item->text_color = TEXTPARSER_NOCOLOR;
+                        err_item->text_background = TEXTPARSER_NOCOLOR;
+                        if (handle->first_item == nullptr) {
+                            handle->first_item = err_item;
+                        }
+                        if (prev_item) {
+                            prev_item->next = err_item;
+                            err_item->prev = prev_item;
+                        }
+                        prev_item = err_item;
+                    }
+                }
+                pos += char_l;
             } else {
                 break;
             }

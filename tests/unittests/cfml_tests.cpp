@@ -14,6 +14,32 @@ TEST(parse_CFML, crash_cfset) {
     textparser_suppress_errors() = false;
 }
 
+TEST(parse_CFML, error_resynchronization_and_merging) {
+    textparser_t handle = nullptr;
+    const char *text = "<cfset a = 1234 /> @@@@ <cfset b = 5678 />";
+    int err = textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+
+    err = textparser_parse(handle, &cfml_definition);
+    EXPECT_EQ(err, 0);
+
+    const textparser_token_item *item = textparser_get_first_token(handle);
+    ASSERT_NE(item, nullptr);
+    EXPECT_NE(item->token_id, TEXTPARSER_TOKEN_ID_ERROR); // First valid tag
+
+    item = textparser_get_token_next(item);
+    ASSERT_NE(item, nullptr);
+    EXPECT_EQ(item->token_id, TEXTPARSER_TOKEN_ID_ERROR); // Merged error node for "@@@@"
+    EXPECT_EQ(item->len, 4);
+
+    item = textparser_get_token_next(item);
+    ASSERT_NE(item, nullptr);
+    EXPECT_NE(item->token_id, TEXTPARSER_TOKEN_ID_ERROR); // Second valid tag after error resynchronization
+
+    textparser_close(handle);
+}
+
 TEST(parse_CFML, null_definition) {
     textparser_t handle = nullptr;
     int err = textparser_openmem("test", 4, TEXTPARSER_ENCODING_LATIN1, &handle);

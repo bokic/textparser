@@ -16,6 +16,7 @@ It has a flexible architecture making it easy to add new languages.
 - **Extensibility**: Language definitions are decoupled from the core parsing logic, constructed with JSON, and can be loaded at compile time (by generated header file) or at runtime (by loading JSON file).
 - **Conditional Start Tokens (`overrideStartTokens`)**: Dynamic start token override rules based on file extension and regex pattern matching at document start (used e.g. for modern ColdFusion script components).
 - **Context-Sensitive Token Replacement (`contextNestedTokens`)**: Tokens can dynamically specify context-sensitive child token lists based on enclosing parent token types in the parsing stack.
+- **Non-Fatal Error Resynchronization**: Recovers gracefully from malformed syntax without aborting parsing, grouping contiguous invalid input into merged `AST_NODE_ERROR` nodes (`TEXTPARSER_TOKEN_ID_ERROR`).
 - **BOM Specification (`SupportedBom`)**: Grammar-level specification of allowed Byte Order Marks (e.g., UTF-8, UTF-16-LE, UTF-16-BE).
 - **Python Tooling**: Includes Python scripts for prototyping, validation of the core algorithm, generation of C header files (`json2h.py`), and other parser verification tools.
 

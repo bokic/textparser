@@ -19,6 +19,7 @@
 #define TextParser_END (-1)
 #define MAX_RECURSION_DEPTH 1000
 
+#define TEXTPARSER_TOKEN_ID_ERROR (-1)
 #define TEXTPARSER_NOCOLOR 0xffffffff
 
 #if defined(_MSC_VER) && !defined(__clang__)
