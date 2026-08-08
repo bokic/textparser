@@ -64,8 +64,13 @@ TEST(parse_JSON, simple_array) {
 TEST(parse_JSON, simple_object) {
     auto tokens = TextParser(R"({"key": "value"})", &json_definition);
     EXPECT_EQ(tokens.count, 1);
-    
+}
 
+TEST(parse_JSON, multiline_object) {
+    auto tokens = TextParser("{\n  \"key\": \"value\",\n  \"num\": 123\n}", &json_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Object");
+    EXPECT_EQ(tokens[0].children, 7);
 }
 
 TEST(parse_JSON, unicode_object) {

@@ -11,6 +11,8 @@
       "type": "StartStop",
       "startRegex": "{",
       "endRegex": "}",
+      "multiLine": true,
+      "otherTextInside": true,
       "textColor": "0xffd700",
       "nestedTokens": ["Key", "String", "KeyValueSeparator", "Value", "ValueSeparator"]
     },
@@ -18,6 +20,8 @@
       "type": "StartStop",
       "startRegex": "\\[",
       "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": true,
       "textColor": "0x179fff",
       "nestedTokens": ["String", "Number", "Object", "Array", "Bool", "Null", "ValueSeparator"]
     },
