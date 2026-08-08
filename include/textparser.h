@@ -204,6 +204,9 @@ EXPORT_TEXTPARSER textparser_parser_state *textparser_state_generate(const textp
 EXPORT_TEXTPARSER void textparser_state_free(textparser_parser_state *state);
 EXPORT_TEXTPARSER void textparser_state_cleanup(textparser_parser_state **state);
 
+EXPORT_TEXTPARSER const textparser_token_item **textparser_query(const textparser_t handle, const textparser_token_item *root, const char *selector, size_t *out_count);
+EXPORT_TEXTPARSER void textparser_free_query_result(const textparser_token_item **results);
+
 #ifdef __cplusplus
 }
 #endif

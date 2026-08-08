@@ -10,6 +10,12 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdatomic.h>
+#include <ctype.h>
+#if defined(_WIN32)
+#define strcasecmp _stricmp
+#else
+#include <strings.h>
+#endif
 
 #ifndef SSIZE_MAX
 #define SSIZE_MAX ((ssize_t)((((size_t)-1) << 1) >> 1))
@@ -2242,3 +2248,303 @@ size_t textparser_get_line_number_at_position(const textparser_t handle, size_t 
 
     return low;
 }
+
+typedef enum {
+    QUERY_COMB_NONE = 0,
+    QUERY_COMB_CHILD,      // '>'
+    QUERY_COMB_DESCENDANT  // ' '
+} query_combinator_t;
+
+typedef struct {
+    int token_id;           // Target token_id (-1 if unknown type name, -2 if '*')
+    query_combinator_t comb; // Combinator connecting this step to step on its right in AST
+} query_step_t;
+
+typedef struct {
+    query_step_t *steps;
+    size_t step_count;
+} query_sequence_t;
+
+typedef struct {
+    query_sequence_t *sequences;
+    size_t sequence_count;
+} query_selector_t;
+
+static int query_get_token_id_by_name(const textparser_language_definition *language, const char *name)
+{
+    if (!language || !language->tokens || !name)
+        return -1;
+
+    if (strcmp(name, "*") == 0)
+        return -2;
+
+    for (int c = 0; language->tokens[c].name != nullptr; c++)
+    {
+        if (strcmp(language->tokens[c].name, name) == 0)
+            return c;
+        if (!language->case_sensitivity && strcasecmp(language->tokens[c].name, name) == 0)
+            return c;
+    }
+
+    return -1;
+}
+
+static void query_free_selector(query_selector_t *sel)
+{
+    if (!sel) return;
+    if (sel->sequences) {
+        for (size_t i = 0; i < sel->sequence_count; i++) {
+            if (sel->sequences[i].steps) {
+                free(sel->sequences[i].steps);
+            }
+        }
+        free(sel->sequences);
+    }
+    sel->sequences = nullptr;
+    sel->sequence_count = 0;
+}
+
+typedef struct {
+    int token_id;
+    query_combinator_t comb_after;
+} temp_element_t;
+
+static bool query_parse_sequence(const textparser_language_definition *language, const char *seq_str, size_t seq_len, query_sequence_t *out_seq)
+{
+    temp_element_t elements[128];
+    size_t elem_count = 0;
+
+    const char *p = seq_str;
+    const char *end = seq_str + seq_len;
+
+    while (p < end) {
+        while (p < end && isspace((unsigned char)*p)) p++;
+        if (p >= end) break;
+
+        if (*p == '>') {
+            if (elem_count == 0) return false;
+            elements[elem_count - 1].comb_after = QUERY_COMB_CHILD;
+            p++;
+            continue;
+        }
+
+        const char *name_start = p;
+        while (p < end && !isspace((unsigned char)*p) && *p != '>' && *p != ',') {
+            p++;
+        }
+        size_t name_len = p - name_start;
+        if (name_len == 0) break;
+
+        if (elem_count > 0 && elements[elem_count - 1].comb_after == QUERY_COMB_NONE) {
+            elements[elem_count - 1].comb_after = QUERY_COMB_DESCENDANT;
+        }
+
+        char name_buf[256];
+        if (name_len >= sizeof(name_buf)) name_len = sizeof(name_buf) - 1;
+        memcpy(name_buf, name_start, name_len);
+        name_buf[name_len] = '\0';
+
+        if (elem_count >= 128) return false;
+
+        elements[elem_count].token_id = query_get_token_id_by_name(language, name_buf);
+        elements[elem_count].comb_after = QUERY_COMB_NONE;
+        elem_count++;
+    }
+
+    if (elem_count == 0) return false;
+
+    out_seq->steps = malloc(elem_count * sizeof(query_step_t));
+    if (!out_seq->steps) return false;
+    out_seq->step_count = elem_count;
+
+    for (size_t k = 0; k < elem_count; k++) {
+        size_t step_idx = (elem_count - 1) - k;
+        out_seq->steps[step_idx].token_id = elements[k].token_id;
+        if (k == elem_count - 1) {
+            out_seq->steps[step_idx].comb = QUERY_COMB_NONE;
+        } else {
+            out_seq->steps[step_idx].comb = elements[k].comb_after;
+        }
+    }
+
+    return true;
+}
+
+static bool query_parse_selector(const textparser_language_definition *language, const char *selector, query_selector_t *out_sel)
+{
+    out_sel->sequences = nullptr;
+    out_sel->sequence_count = 0;
+
+    const char *p = selector;
+    while (*p) {
+        while (*p && isspace((unsigned char)*p)) p++;
+        if (!*p) break;
+
+        const char *seq_start = p;
+        while (*p && *p != ',') p++;
+        size_t seq_len = p - seq_start;
+
+        query_sequence_t seq = {0};
+        if (query_parse_sequence(language, seq_start, seq_len, &seq)) {
+            size_t new_count = out_sel->sequence_count + 1;
+            query_sequence_t *new_seqs = realloc(out_sel->sequences, new_count * sizeof(query_sequence_t));
+            if (!new_seqs) {
+                if (seq.steps) free(seq.steps);
+                query_free_selector(out_sel);
+                return false;
+            }
+            out_sel->sequences = new_seqs;
+            out_sel->sequences[out_sel->sequence_count] = seq;
+            out_sel->sequence_count = new_count;
+        }
+
+        if (*p == ',') p++;
+    }
+
+    return out_sel->sequence_count > 0;
+}
+
+static bool query_match_sequence(const textparser_token_item *candidate, const query_sequence_t *seq, const textparser_token_item *scope_root)
+{
+    if (seq->step_count == 0) return false;
+
+    const textparser_token_item *curr = candidate;
+
+    for (size_t i = 0; i < seq->step_count; i++) {
+        const query_step_t *step = &seq->steps[i];
+
+        if (i == 0) {
+            if (step->token_id == -1) return false;
+            if (step->token_id != -2 && curr->token_id != step->token_id) return false;
+        } else {
+            if (step->comb == QUERY_COMB_CHILD) {
+                curr = curr->parent;
+                if (!curr) return false;
+                if (scope_root && curr == scope_root->parent) return false;
+                if (step->token_id == -1) return false;
+                if (step->token_id != -2 && curr->token_id != step->token_id) return false;
+            } else if (step->comb == QUERY_COMB_DESCENDANT) {
+                curr = curr->parent;
+                bool found = false;
+                while (curr) {
+                    if (scope_root && curr == scope_root->parent) break;
+                    if (step->token_id != -1 && (step->token_id == -2 || curr->token_id == step->token_id)) {
+                        found = true;
+                        break;
+                    }
+                    curr = curr->parent;
+                }
+                if (!found) return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool query_match_candidate(const textparser_token_item *candidate, const query_selector_t *sel, const textparser_token_item *scope_root)
+{
+    for (size_t s = 0; s < sel->sequence_count; s++) {
+        if (query_match_sequence(candidate, &sel->sequences[s], scope_root)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+EXPORT_TEXTPARSER const textparser_token_item **textparser_query(
+    const textparser_t handle,
+    const textparser_token_item *root,
+    const char *selector,
+    size_t *out_count
+) {
+    if (!out_count) return nullptr;
+    *out_count = 0;
+
+    if (!handle || !selector || strlen(selector) == 0) {
+        return nullptr;
+    }
+
+    const textparser_language_definition *language = textparser_get_language(handle);
+    if (!language) {
+        return nullptr;
+    }
+
+    const textparser_token_item *start_node = root;
+    if (!start_node) {
+        start_node = textparser_get_first_token(handle);
+    }
+    if (!start_node) {
+        return nullptr;
+    }
+
+    query_selector_t sel = {0};
+    if (!query_parse_selector(language, selector, &sel) || sel.sequence_count == 0) {
+        query_free_selector(&sel);
+        return nullptr;
+    }
+
+    size_t capacity = 16;
+    size_t count = 0;
+    const textparser_token_item **results = malloc(capacity * sizeof(const textparser_token_item *));
+    if (!results) {
+        query_free_selector(&sel);
+        return nullptr;
+    }
+
+    const textparser_token_item *curr = start_node;
+    while (curr != nullptr) {
+        if (query_match_candidate(curr, &sel, root)) {
+            if (count >= capacity) {
+                size_t new_cap = capacity * 2;
+                const textparser_token_item **new_res = realloc((void *)results, new_cap * sizeof(const textparser_token_item *));
+                if (!new_res) {
+                    free((void *)results);
+                    query_free_selector(&sel);
+                    return nullptr;
+                }
+                results = new_res;
+                capacity = new_cap;
+            }
+            results[count++] = curr;
+        }
+
+        if (curr->child != nullptr) {
+            curr = curr->child;
+        } else if (curr->next != nullptr) {
+            curr = curr->next;
+        } else {
+            while (curr != nullptr && curr->next == nullptr) {
+                curr = curr->parent;
+                if (curr == start_node) {
+                    curr = nullptr;
+                    break;
+                }
+            }
+            if (curr != nullptr) {
+                if (curr == start_node) {
+                    curr = nullptr;
+                } else {
+                    curr = curr->next;
+                }
+            }
+        }
+    }
+
+    query_free_selector(&sel);
+
+    *out_count = count;
+    if (count == 0) {
+        free((void *)results);
+        return nullptr;
+    }
+
+    return results;
+}
+
+EXPORT_TEXTPARSER void textparser_free_query_result(const textparser_token_item **results)
+{
+    if (results) {
+        free((void *)results);
+    }
+}
+

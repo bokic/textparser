@@ -57,6 +57,7 @@ add_executable( unittests
   rust_tests.cpp
   subtraction_tests.cpp
   openfile_tests.cpp
+  query_tests.cpp
 
   tokenparser.hpp
 )
