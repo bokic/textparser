@@ -232,6 +232,10 @@
         "Keyword",
         "Function",
         "AssignOperator",
+        "TernaryOperator",
+        "LogicalImpOperator",
+        "LogicalEqvOperator",
+        "LogicalXorOperator",
         "LogicalOrOperator",
         "LogicalAndOperator",
         "LogicalNotOperator",
@@ -266,6 +270,10 @@
         "Keyword",
         "Function",
         "AssignOperator",
+        "TernaryOperator",
+        "LogicalImpOperator",
+        "LogicalEqvOperator",
+        "LogicalXorOperator",
         "LogicalOrOperator",
         "LogicalAndOperator",
         "LogicalNotOperator",
@@ -395,9 +403,29 @@
       "startRegex": "\\+=|\\-=|\\*=|\\/=|%=|&=|=",
       "textColor": "0x35b2dd"
     },
+    "TernaryOperator": {
+      "type": "SimpleToken",
+      "startRegex": "\\?:|\\?|\\:",
+      "textColor": "0x35b2dd"
+    },
+    "LogicalImpOperator": {
+      "type": "SimpleToken",
+      "startRegex": "imp\\b",
+      "textColor": "0x35b2dd"
+    },
+    "LogicalEqvOperator": {
+      "type": "SimpleToken",
+      "startRegex": "eqv\\b",
+      "textColor": "0x35b2dd"
+    },
+    "LogicalXorOperator": {
+      "type": "SimpleToken",
+      "startRegex": "xor\\b",
+      "textColor": "0x35b2dd"
+    },
     "LogicalOrOperator": {
       "type": "SimpleToken",
-      "startRegex": "\\|\\||or\\b|xor\\b|imp\\b|eqv\\b",
+      "startRegex": "\\|\\||or\\b",
       "textColor": "0x35b2dd"
     },
     "LogicalAndOperator": {
@@ -437,7 +465,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "\\?|\\:|\\$",
+      "startRegex": "\\$",
       "textColor": "0x35b2dd"
     },
     "CodeBlock": {
@@ -496,6 +524,10 @@
         "Keyword",
         "Function",
         "AssignOperator",
+        "TernaryOperator",
+        "LogicalImpOperator",
+        "LogicalEqvOperator",
+        "LogicalXorOperator",
         "LogicalOrOperator",
         "LogicalAndOperator",
         "LogicalNotOperator",
@@ -553,6 +585,10 @@
         "Keyword",
         "Function",
         "AssignOperator",
+        "TernaryOperator",
+        "LogicalImpOperator",
+        "LogicalEqvOperator",
+        "LogicalXorOperator",
         "LogicalOrOperator",
         "LogicalAndOperator",
         "LogicalNotOperator",
@@ -572,6 +608,10 @@
   },
   "operator_precedence": [
     { "operators": ["AssignOperator"], "associativity": "right" },
+    { "operators": ["TernaryOperator"], "associativity": "right" },
+    { "operators": ["LogicalImpOperator"], "associativity": "left" },
+    { "operators": ["LogicalEqvOperator"], "associativity": "left" },
+    { "operators": ["LogicalXorOperator"], "associativity": "left" },
     { "operators": ["LogicalOrOperator"], "associativity": "left" },
     { "operators": ["LogicalAndOperator"], "associativity": "left" },
     { "operators": ["LogicalNotOperator"], "associativity": "right" },

@@ -6,6 +6,7 @@
 #include <string>
 
 #include <scratch_definition.json.h>
+#include <cfml_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -353,5 +354,98 @@ TEST(parse_Consistency, defensive_checks) {
     textparser_free_token_text(buf);
     textparser_free_token_text(nullptr); // safely handles null
     textparser_close(handle);
+}
+
+TEST(parse_CFML_Precedence, verified_coldfusion_spec_cases) {
+    // Rank 12: AssignOperator (=, +=, -=, *=, /=, %=, &=)
+    {
+        auto tokens = TextParser(R"(<cfset a = b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "AssignOperator"));
+    }
+
+    // Rank 11: LogicalImpOperator (IMP)
+    {
+        auto tokens = TextParser(R"(<cfset res = a imp b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "LogicalImpOperator"));
+    }
+
+    // Rank 10: LogicalEqvOperator (EQV)
+    {
+        auto tokens = TextParser(R"(<cfset res = a eqv b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "LogicalEqvOperator"));
+    }
+
+    // Rank 9: LogicalXorOperator (XOR)
+    {
+        auto tokens = TextParser(R"(<cfset res = a xor b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "LogicalXorOperator"));
+    }
+
+    // Rank 8: LogicalOrOperator (OR, ||)
+    {
+        auto tokens = TextParser(R"(<cfset res = a or b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "LogicalOrOperator"));
+    }
+
+    // Rank 7: LogicalAndOperator (AND, &&)
+    {
+        auto tokens = TextParser(R"(<cfset res = a and b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "LogicalAndOperator"));
+    }
+
+    // Rank 6: LogicalNotOperator (NOT, !)
+    {
+        auto tokens = TextParser(R"(<cfset res = not a />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "LogicalNotOperator"));
+    }
+
+    // Rank 5: CompareOperator (EQ, NEQ, LT, LTE, GT, GTE, CONTAINS, DOES NOT CONTAIN, IS, IS NOT, ==, !=, <, <=, >, >=)
+    {
+        auto tokens = TextParser(R"(<cfset res = a eq b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "CompareOperator"));
+    }
+
+    // Rank 4: ConcatOperator (&)
+    {
+        auto tokens = TextParser(R"(<cfset res = a & b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "ConcatOperator"));
+    }
+
+    // Rank 3: Additive (AddOperator: +, -)
+    {
+        auto tokens = TextParser(R"(<cfset res = a + b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "AddOperator"));
+    }
+
+    // Rank 2: Multiplicative (MulOperator: *, /, \, %, MOD)
+    {
+        auto tokens = TextParser(R"(<cfset res = a mod b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "MulOperator"));
+    }
+
+    // Rank 13: TernaryOperator (?, :, ?:)
+    {
+        auto tokens = TextParser(R"(<cfset res = a ? b : c />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "TernaryOperator"));
+    }
+
+    // Rank 1: PowerOperator (^)
+    {
+        auto tokens = TextParser(R"(<cfset res = a ^ b />)", &cfml_definition);
+        ASSERT_EQ(tokens.count, 1);
+        EXPECT_TRUE(has_token_type(tokens, "PowerOperator"));
+    }
 }
 

@@ -7,7 +7,7 @@
 
 
 #include <cstring>
-
+#include <functional>
 #include <print>
 #include <string>
 
@@ -168,3 +168,19 @@ private:
     textparser_t m_handle = nullptr;
     const textparser_language_definition *m_definition = nullptr;
 };
+
+inline bool has_token_type(const TextParser &tokens, const char *type_name) {
+    std::function<bool(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, type_name) == 0) {
+            return true;
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            if (scan(item[i])) return true;
+        }
+        return false;
+    };
+    for (size_t i = 0; i < tokens.count; ++i) {
+        if (scan(tokens[i])) return true;
+    }
+    return false;
+}
