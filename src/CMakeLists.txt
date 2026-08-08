@@ -28,9 +28,9 @@ add_library(libtextparser SHARED
     textparser.c
     textparser_inc.c
     adv_regex.c
+    adv_regex.h
 
     ../include/textparser.h
-    ../include/adv_regex.h
 
     ${OS_FILES}
 )

@@ -24,7 +24,7 @@ It has a flexible architecture making it easy to add new languages.
 
 ## Project Structure
 
-- **`src/`**: Core C library implementation (`textparser.c`, `adv_regex.c`).
+- **`src/`**: Core C library implementation and private headers (`textparser.c`, `adv_regex.c`, `adv_regex.h`, `logger.h`).
 - **`include/`**: Public header files (`textparser.h`).
 - **`cli/`**: Command-line tool for testing, debugging, and demonstrating the library.
 - **`definitions/`**: Language definitions (e.g., CFML, JSON).
