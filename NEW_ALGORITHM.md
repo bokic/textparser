@@ -227,7 +227,9 @@ Because we can completely delete the old recursive parser functions (such as `pa
 * **The State Machine Verbosity**: In recursive descent, nesting and scope context are handled automatically by the CPU's execution stack and compiler-generated function frames. In an iterative state machine, the developer must manually emulate this:
   * Pushing new scopes to a manual stack.
   * Maintaining an explicit `state_step` to switch-case inside loops (since C lacks native generators/coroutines to resume execution state mid-function).
+### 3. AST Splicing and Transformation Rules
 * **AST Splicing is Eliminated**: Because incremental parsing is used solely for extracting highlight spans and not for mutating a persistent AST, we do not need to stitch nodes or adjust parent/child links in memory. This reduces implementation complexity significantly and protects against pointer corruption bugs.
+* **`delete_if_only_one_child` Parameter Ignored**: Post-parse AST unwrapping rules like `delete_if_only_one_child` (and `must_have_one_child`) are intentionally ignored by `textparser_parse_incremental` for performance and stack snapshot stability.
 
 ### Conclusion
 While the public API and overall project volume remain remarkably simple and clean, the **internal logical complexity of the core parse engine is very manageable**. This is a highly favorable trade-off to achieve scalable, high-performance, real-time syntax highlighting for large files.

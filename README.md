@@ -19,7 +19,7 @@ It has a flexible architecture making it easy to add new languages.
 - **Non-Fatal Error Resynchronization**: Recovers gracefully from malformed syntax without aborting parsing, grouping contiguous invalid input into merged `AST_NODE_ERROR` nodes (`TEXTPARSER_TOKEN_ID_ERROR`).
 - **BOM Specification (`SupportedBom`)**: Grammar-level specification of allowed Byte Order Marks (e.g., UTF-8, UTF-16-LE, UTF-16-BE).
 - **Native Query Engine (`textparser_query`)**: High-performance C selector engine to query AST nodes using intuitive CSS-like selector syntax (`"Parent > Child"`, `"Ancestor Descendant"`, `"TypeA, TypeB"`).
-- **Incremental Parsing (`textparser_parse_incremental`)**: Efficiently re-parses modified document regions using parser state snapshots (`textparser_parser_state`), optimized for real-time text editors and IDE integrations.
+- **Incremental Parsing (`textparser_parse_incremental`)**: Efficiently re-parses modified document regions using parser state snapshots (`textparser_parser_state`), optimized for real-time text editors and IDE integrations. *Note: Post-parse AST node unwrapping rules such as `delete_if_only_one_child` are currently ignored during incremental parsing to avoid stack frame mutation overhead.*
 - **Python Tooling**: Includes Python scripts for prototyping, validation of the core algorithm, generation of C header files (`json2h.py`), and other parser verification tools.
 
 ## Project Structure
