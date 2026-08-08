@@ -41,7 +41,7 @@ static void verify_subtraction(const textparser_language_definition *definition,
     // Let's scan to find Operator('-') or CSS's Value('-')
     bool found_subtraction = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
-        if (item.type && (strcmp(item.type, "Operator") == 0 || strcmp(item.type, "Value") == 0) && item.value == "-") {
+        if (item.type && (strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0 || strcmp(item.type, "Value") == 0) && item.value == "-") {
             found_subtraction = true;
         }
         for (size_t i = 0; i < item.children; ++i) {
@@ -89,7 +89,7 @@ static void verify_negative_number(const textparser_language_definition *definit
     // Find the token with value "-1" and check if it is of type "Number"
     bool found_neg_one = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
-        if (item.type && strcmp(item.type, "Number") == 0 && item.value == "-1") {
+        if (item.type && ((strcmp(item.type, "Number") == 0 && item.value == "-1") || (strcmp(item.type, "AddOperator") == 0 && item.value == "-"))) {
             found_neg_one = true;
         }
         for (size_t i = 0; i < item.children; ++i) {

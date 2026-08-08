@@ -71,7 +71,7 @@ TEST(parse_CFML, basic_cfset) {
     EXPECT_EQ   (tokens[0][0][0].length,   1);
     EXPECT_EQ   (tokens[0][0][0].children, 0);
 
-    EXPECT_STREQ(tokens[0][0][1].type, "Operator");
+    EXPECT_STREQ(tokens[0][0][1].type, "AssignOperator");
     EXPECT_EQ   (tokens[0][0][1].position, 9);
     EXPECT_EQ   (tokens[0][0][1].length,   1);
     EXPECT_EQ   (tokens[0][0][1].children, 0);
@@ -374,13 +374,13 @@ TEST(parse_CFML, symbolic_and_operator) {
     ASSERT_STREQ(tokens[0][1][1][0].type, "ScriptExpression");
     ASSERT_EQ(tokens[0][1][1][0].children, 3);
     ASSERT_STREQ(tokens[0][1][1][0][0].type, "Number");
-    ASSERT_STREQ(tokens[0][1][1][0][1].type, "Operator");
+    ASSERT_STREQ(tokens[0][1][1][0][1].type, "LogicalAndOperator");
     EXPECT_EQ(tokens[0][1][1][0][1].length, 2);
     EXPECT_STREQ(tokens[0][1][1][0][1].value.c_str(), "&&");
     ASSERT_STREQ(tokens[0][1][1][0][2].type, "Number");
 
-    EXPECT_TRUE(has_token_value(tokens, "Operator", "&&"));
-    EXPECT_FALSE(has_token_value(tokens, "Operator", "&"));
+    EXPECT_TRUE(has_token_value(tokens, "LogicalAndOperator", "&&"));
+    EXPECT_FALSE(has_token_value(tokens, "LogicalAndOperator", "&"));
 }
 
 TEST(parse_CFML, symbolic_or_operator) {
@@ -398,12 +398,12 @@ TEST(parse_CFML, symbolic_or_operator) {
     ASSERT_STREQ(tokens[0][1][1][0].type, "ScriptExpression");
     ASSERT_EQ(tokens[0][1][1][0].children, 3);
     ASSERT_STREQ(tokens[0][1][1][0][0].type, "Number");
-    ASSERT_STREQ(tokens[0][1][1][0][1].type, "Operator");
+    ASSERT_STREQ(tokens[0][1][1][0][1].type, "LogicalOrOperator");
     EXPECT_EQ(tokens[0][1][1][0][1].length, 2);
     EXPECT_STREQ(tokens[0][1][1][0][1].value.c_str(), "||");
     ASSERT_STREQ(tokens[0][1][1][0][2].type, "Number");
 
-    EXPECT_TRUE(has_token_value(tokens, "Operator", "||"));
+    EXPECT_TRUE(has_token_value(tokens, "LogicalOrOperator", "||"));
 }
 
 TEST(parse_CFML, symbolic_logical_sharp_expression) {
@@ -414,7 +414,7 @@ TEST(parse_CFML, symbolic_logical_sharp_expression) {
     ASSERT_EQ(tokens.count, 1);
     ASSERT_STREQ(tokens[0].type, "OutputTagPair");
     EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
-    EXPECT_TRUE(has_token_value(tokens, "Operator", "||"));
+    EXPECT_TRUE(has_token_value(tokens, "LogicalOrOperator", "||"));
 }
 
 TEST(parse_CFML, sharp_leading_string_with_interpolation) {
