@@ -2,6 +2,7 @@
 
 ## 1.0
 
+- Implement incremental parsing
 - Implement code validator for each computer language.
 
 ## 1.1
