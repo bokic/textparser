@@ -291,7 +291,7 @@ static const int *get_effective_nested_tokens(const struct textparser_handle *ha
     return token->nested_tokens;
 }
 
-static void adjust_search_order(const struct textparser_handle *handle, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling, const int *original_list, int *adjusted_list)
+static void adjust_search_order(const int *original_list, int *adjusted_list)
 {
     int count = 0;
     while (original_list[count] != TextParser_END) {
@@ -352,7 +352,7 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
                     ssize_t closest_child_pos = SSIZE_MAX;
                     {
                         int adjusted_list[nested_count + 1];
-                        adjust_search_order(handle, parent_item, prev_sibling, effective_nested, adjusted_list);
+                        adjust_search_order(effective_nested, adjusted_list);
 
                         for(int c = 0; adjusted_list[c] != TextParser_END; c++)
                         {
@@ -467,7 +467,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
     int current_token_id = TextParser_END;
     {
         int adjusted_list[count + 1];
-        adjust_search_order(handle, parent_item, prev_sibling, effective_nested, adjusted_list);
+        adjust_search_order(effective_nested, adjusted_list);
 
         for (int c = 0; adjusted_list[c] != TextParser_END; c++)
         {
@@ -592,7 +592,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
         }
         {
             int adjusted_list[count + 1];
-            adjust_search_order(handle, ret, current_prev, loop_effective_nested, adjusted_list);
+            adjust_search_order(loop_effective_nested, adjusted_list);
 
             for (int c = 0; adjusted_list[c] != TextParser_END; c++)
             {
@@ -928,7 +928,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             }
             {
                 int adjusted_list[nested_count + 1];
-                adjust_search_order(handle, ret, current_prev, nested_tokens, adjusted_list);
+                adjust_search_order(nested_tokens, adjusted_list);
 
                 for(int c = 0; adjusted_list[c] != TextParser_END; c++)
                 {
@@ -1700,7 +1700,7 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
         }
         {
             int adjusted_list[count + 1];
-            adjust_search_order(handle, nullptr, prev_item, effective_starts_with, adjusted_list);
+            adjust_search_order(effective_starts_with, adjusted_list);
 
             for (int c = 0; adjusted_list[c] != TextParser_END; c++) {
                 int token_id = adjusted_list[c];

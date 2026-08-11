@@ -140,14 +140,6 @@ static bool item_has_token_type(const TokenParserItem &item, const std::string &
     return found;
 }
 
-static bool has_token_type(const TextParser &tokens, const std::string &target_type) {
-    bool found = false;
-    for (size_t i = 0; i < tokens.count; ++i) {
-        scan_tokens_for_type(tokens[i], target_type, found);
-    }
-    return found;
-}
-
 // Dump helper for visual debugging and validation
 #if defined(__clang__)
 #pragma clang diagnostic push

@@ -95,8 +95,8 @@ static void verify_negative_number(const textparser_language_definition *definit
     bool found_neg_one = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
         if (item.type &&
-            ((strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0) && item.value == "-") ||
-            ((strcmp(item.type, "Number") == 0 || strcmp(item.type, "Value") == 0) && (item.value == "-1" || item.value == "-"))) {
+            (((strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0) && item.value == "-") ||
+             ((strcmp(item.type, "Number") == 0 || strcmp(item.type, "Value") == 0) && (item.value == "-1" || item.value == "-")))) {
             found_neg_one = true;
         }
         for (size_t i = 0; i < item.children; ++i) {

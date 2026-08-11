@@ -149,6 +149,7 @@ int main(int argc, const char *argv[])
     bool mute = false;
 
     textparser_language_definition *language_def = nullptr;
+    const textparser_language_definition *language = nullptr;
     textparser_defer(handle);
 
     bool delete_language_def = false;
@@ -198,32 +199,36 @@ int main(int argc, const char *argv[])
 
     const char *filename = argv[1];
 
-    if (language_def == nullptr)
+    if (language_def != nullptr)
     {
-        language_def = get_language_definition_by_filename(filename);
+        language = language_def;
+    }
+    else
+    {
+        language = get_language_definition_by_filename(filename);
     }
 
-    if (language_def == nullptr)
+    if (language == nullptr)
     {
         fprintf(stderr, "Unsupported file extension for file %s\n", filename);
         return EXIT_FAILURE;
     }
 
-    int err = textparser_openfile(filename, language_def->default_text_encoding, language_def->supported_bom, &handle);
+    int err = textparser_openfile(filename, language->default_text_encoding, language->supported_bom, &handle);
     if (err)
     {
         if (delete_language_def) {
-            textparser_free_language_definition((textparser_language_definition *)language_def);
+            textparser_free_language_definition(language_def);
         }
         fprintf(stderr, "textparser_openfile returned with error code: %d\n", err);
         return EXIT_FAILURE;
     }
 
-    err = textparser_parse(handle, language_def);
+    err = textparser_parse(handle, language);
     if (err)
     {
         if (delete_language_def) {
-            textparser_free_language_definition((textparser_language_definition *)language_def);
+            textparser_free_language_definition(language_def);
         }
         fprintf(stderr, "textparser_parse returned with error code: %d\n", err);
         return EXIT_FAILURE;
@@ -252,7 +257,7 @@ int main(int argc, const char *argv[])
 
     if (delete_language_def)
     {
-        textparser_free_language_definition((textparser_language_definition *)language_def);
+        textparser_free_language_definition(language_def);
     }
 
     return EXIT_SUCCESS;
