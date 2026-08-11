@@ -480,12 +480,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->other_text_inside = json_object_get_boolean(value);
     }
 
-    found = json_object_object_get_ex(root_obj, "signAmbiguityFix", &value);
-    if (found) {
-        (*definition)->sign_ambiguity_fix = json_object_get_boolean(value);
-    } else {
-        (*definition)->sign_ambiguity_fix = false;
-    }
+
 
     json_object *override_arr = nullptr;
     if (json_object_object_get_ex(root_obj, "overrideStartTokens", &override_arr) && json_object_is_type(override_arr, json_type_array)) {

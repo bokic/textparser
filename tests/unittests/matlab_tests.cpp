@@ -73,14 +73,17 @@ TEST(parse_MATLAB, unary_vs_binary_subtraction) {
         EXPECT_STREQ(tokens[2].value.c_str(), "10");
     }
     {
+        // x = -1: with unsigned Number, unary minus is a separate Operator token
         auto tokens = TextParser("x = -1", &matlab_definition);
-        ASSERT_EQ(tokens.count, 3);
+        ASSERT_EQ(tokens.count, 4);
         EXPECT_STREQ(tokens[0].type, "Variable");
         EXPECT_STREQ(tokens[0].value.c_str(), "x");
         EXPECT_STREQ(tokens[1].type, "Operator");
         EXPECT_STREQ(tokens[1].value.c_str(), "=");
-        EXPECT_STREQ(tokens[2].type, "Number");
-        EXPECT_STREQ(tokens[2].value.c_str(), "-1");
+        EXPECT_STREQ(tokens[2].type, "Operator");
+        EXPECT_STREQ(tokens[2].value.c_str(), "-");
+        EXPECT_STREQ(tokens[3].type, "Number");
+        EXPECT_STREQ(tokens[3].value.c_str(), "1");
     }
 }
 

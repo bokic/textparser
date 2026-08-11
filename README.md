@@ -208,7 +208,7 @@ Here is an example of what a JSON definition looks like (based on `definitions/j
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "-?\\d+(?:\\.\\d+)?",
+      "startRegex": "\\d+(?:\\.\\d+)?",
       "textColor": "0xb5cea8"
     }
   }

@@ -1124,5 +1124,25 @@ TEST(parse_CFML, cfm_file_unaffected) {
     textparser_close(handle);
 }
 
+TEST(parse_CFML, dollar_sign_variable_not_operator) {
+    auto tokens = TextParser(R"(<cfset $myVar = 100 /><cfset myVar$2 = 200 />)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 2);
 
+    // Verify $myVar is parsed as Variable, not Operator
+    EXPECT_STREQ(tokens[0].type, "StartTag");
+    EXPECT_EQ(tokens[0].children, 1);
+    EXPECT_STREQ(tokens[0][0].type, "Expression");
+    EXPECT_STREQ(tokens[0][0][0].type, "Variable");
+    EXPECT_EQ(tokens[0][0][0].length, 6); // "$myVar"
 
+    // Verify myVar$2 is parsed as Variable
+    EXPECT_STREQ(tokens[1].type, "StartTag");
+    EXPECT_EQ(tokens[1].children, 1);
+    EXPECT_STREQ(tokens[1][0].type, "Expression");
+    EXPECT_STREQ(tokens[1][0][0].type, "Variable");
+    EXPECT_EQ(tokens[1][0][0].length, 7); // "myVar$2"
+
+    // Verify item_has_token_type for "Operator" returns false
+    EXPECT_FALSE(item_has_token_type(tokens[0], "Operator"));
+    EXPECT_FALSE(item_has_token_type(tokens[1], "Operator"));
+}

@@ -1,6 +1,5 @@
 {
   "name": "cfml",
-  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": false,
   "defaultFileExtensions": [
@@ -231,19 +230,6 @@
         "Boolean",
         "Keyword",
         "Function",
-        "AssignOperator",
-        "TernaryOperator",
-        "LogicalImpOperator",
-        "LogicalEqvOperator",
-        "LogicalXorOperator",
-        "LogicalOrOperator",
-        "LogicalAndOperator",
-        "LogicalNotOperator",
-        "CompareOperator",
-        "ConcatOperator",
-        "AddOperator",
-        "MulOperator",
-        "PowerOperator",
         "Operator",
         "ObjectMember",
         "Variable",
@@ -269,19 +255,6 @@
         "Boolean",
         "Keyword",
         "Function",
-        "AssignOperator",
-        "TernaryOperator",
-        "LogicalImpOperator",
-        "LogicalEqvOperator",
-        "LogicalXorOperator",
-        "LogicalOrOperator",
-        "LogicalAndOperator",
-        "LogicalNotOperator",
-        "CompareOperator",
-        "ConcatOperator",
-        "AddOperator",
-        "MulOperator",
-        "PowerOperator",
         "Operator",
         "ObjectMember",
         "Variable",
@@ -373,7 +346,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "([-+]?[0-9]+\\.?[0-9]*(?:[eE][-+]?[0-9]+)?|[-+]?[0-9]*\\.[0-9]+(?:[eE][-+]?[0-9]+)?)",
+      "startRegex": "([0-9]+\\.?[0-9]*(?:[eE][-+]?[0-9]+)?|[-+]?[0-9]*\\.[0-9]+(?:[eE][-+]?[0-9]+)?)",
       "textColor": "0xb5cea8"
     },
     "Boolean": {
@@ -395,7 +368,7 @@
     },
     "Variable": {
       "type": "SimpleToken",
-      "startRegex": "[a-z_]+[a-z0-9_]*",
+      "startRegex": "[a-z_\\$]+[a-z0-9_\\$]*",
       "textColor": "0x9cdcfe"
     },
     "AssignOperator": {
@@ -464,9 +437,23 @@
       "textColor": "0x35b2dd"
     },
     "Operator": {
-      "type": "SimpleToken",
-      "startRegex": "\\$",
-      "textColor": "0x35b2dd"
+      "type": "Group",
+      "deleteIfOnlyOneChild": true,
+      "nestedTokens": [
+        "AssignOperator",
+        "TernaryOperator",
+        "LogicalImpOperator",
+        "LogicalEqvOperator",
+        "LogicalXorOperator",
+        "LogicalOrOperator",
+        "LogicalAndOperator",
+        "LogicalNotOperator",
+        "CompareOperator",
+        "ConcatOperator",
+        "AddOperator",
+        "MulOperator",
+        "PowerOperator"
+      ]
     },
     "CodeBlock": {
       "type": "StartStop",
@@ -523,19 +510,6 @@
         "Boolean",
         "Keyword",
         "Function",
-        "AssignOperator",
-        "TernaryOperator",
-        "LogicalImpOperator",
-        "LogicalEqvOperator",
-        "LogicalXorOperator",
-        "LogicalOrOperator",
-        "LogicalAndOperator",
-        "LogicalNotOperator",
-        "CompareOperator",
-        "ConcatOperator",
-        "AddOperator",
-        "MulOperator",
-        "PowerOperator",
         "Operator",
         "ObjectMember",
         "Variable",
@@ -584,19 +558,6 @@
         "Boolean",
         "Keyword",
         "Function",
-        "AssignOperator",
-        "TernaryOperator",
-        "LogicalImpOperator",
-        "LogicalEqvOperator",
-        "LogicalXorOperator",
-        "LogicalOrOperator",
-        "LogicalAndOperator",
-        "LogicalNotOperator",
-        "CompareOperator",
-        "ConcatOperator",
-        "AddOperator",
-        "MulOperator",
-        "PowerOperator",
         "Operator",
         "ObjectMember",
         "Variable",
@@ -607,18 +568,83 @@
     }
   },
   "operator_precedence": [
-    { "operators": ["AssignOperator"], "associativity": "right" },
-    { "operators": ["TernaryOperator"], "associativity": "right" },
-    { "operators": ["LogicalImpOperator"], "associativity": "left" },
-    { "operators": ["LogicalEqvOperator"], "associativity": "left" },
-    { "operators": ["LogicalXorOperator"], "associativity": "left" },
-    { "operators": ["LogicalOrOperator"], "associativity": "left" },
-    { "operators": ["LogicalAndOperator"], "associativity": "left" },
-    { "operators": ["LogicalNotOperator"], "associativity": "right" },
-    { "operators": ["CompareOperator"], "associativity": "left" },
-    { "operators": ["ConcatOperator"], "associativity": "left" },
-    { "operators": ["AddOperator"], "associativity": "left" },
-    { "operators": ["MulOperator"], "associativity": "left" },
-    { "operators": ["PowerOperator"], "associativity": "left" }
+    {
+      "operators": [
+        "AssignOperator"
+      ],
+      "associativity": "right"
+    },
+    {
+      "operators": [
+        "TernaryOperator"
+      ],
+      "associativity": "right"
+    },
+    {
+      "operators": [
+        "LogicalImpOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "LogicalEqvOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "LogicalXorOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "LogicalOrOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "LogicalAndOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "LogicalNotOperator"
+      ],
+      "associativity": "right"
+    },
+    {
+      "operators": [
+        "CompareOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "ConcatOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "AddOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "MulOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "PowerOperator"
+      ],
+      "associativity": "left"
+    }
   ]
 }

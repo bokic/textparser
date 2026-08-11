@@ -1,6 +1,5 @@
 {
   "name": "scratch",
-  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [
@@ -47,7 +46,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "[-+]?[0-9]*\\.?[0-9]+",
+      "startRegex": "[0-9]*\\.?[0-9]+",
       "textColor": "0xb5cea8"
     },
     "Variable": {

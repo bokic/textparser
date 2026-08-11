@@ -1,6 +1,5 @@
 {
   "name": "r",
-  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [
@@ -74,7 +73,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "0[xX][0-9a-fA-F]+[lL]?|[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?[lLi]?|\\.[0-9]+(?:[eE][-+]?[0-9]+)?[lLi]?",
+      "startRegex": "0[xX][0-9a-fA-F]+[lL]?|[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?[lLi]?|\\.[0-9]+(?:[eE][-+]?[0-9]+)?[lLi]?",
       "textColor": "0xb5cea8"
     },
     "Variable": {

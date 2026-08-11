@@ -300,38 +300,7 @@ static void adjust_search_order(const struct textparser_handle *handle, const te
     }
     adjusted_list[count] = TextParser_END;
 
-    const textparser_language_definition *definition = handle->language;
-    if (definition->sign_ambiguity_fix) {
-        int number_idx = -1;
-        int operator_idx = -1;
-        for (int j = 0; adjusted_list[j] != TextParser_END; j++) {
-            if (adjusted_list[j] == definition->token_number_id) {
-                number_idx = j;
-            } else if (adjusted_list[j] == definition->token_operator_id) {
-                operator_idx = j;
-            }
-        }
 
-        if (number_idx != -1 && operator_idx != -1) {
-            bool prev_is_operator_or_first = (prev_sibling == nullptr) || (prev_sibling == parent_item) || (prev_sibling->token_id == definition->token_operator_id);
-
-            if (prev_is_operator_or_first) {
-                // Search number before operator
-                if (number_idx > operator_idx) {
-                    int temp = adjusted_list[number_idx];
-                    adjusted_list[number_idx] = adjusted_list[operator_idx];
-                    adjusted_list[operator_idx] = temp;
-                }
-            } else {
-                // Search operator before number
-                if (operator_idx > number_idx) {
-                    int temp = adjusted_list[number_idx];
-                    adjusted_list[number_idx] = adjusted_list[operator_idx];
-                    adjusted_list[operator_idx] = temp;
-                }
-            }
-        }
-    }
 }
 
 static ssize_t textparser_find_token(const struct textparser_handle *handle, int token_id, size_t pos, bool other_text_inside, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)

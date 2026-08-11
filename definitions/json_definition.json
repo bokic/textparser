@@ -2,10 +2,15 @@
   "name": "json",
   "version": 1.0,
   "caseSensitivity": false,
-  "defaultFileExtensions": ["json"],
+  "defaultFileExtensions": [
+    "json"
+  ],
   "otherTextInside": false,
   "defaultTextEncoding": "latin1",
-  "startTokens": ["Object", "Array"],
+  "startTokens": [
+    "Object",
+    "Array"
+  ],
   "tokens": {
     "Object": {
       "type": "StartStop",
@@ -14,7 +19,13 @@
       "multiLine": true,
       "otherTextInside": true,
       "textColor": "0xffd700",
-      "nestedTokens": ["Key", "String", "KeyValueSeparator", "Value", "ValueSeparator"]
+      "nestedTokens": [
+        "Key",
+        "String",
+        "KeyValueSeparator",
+        "Value",
+        "ValueSeparator"
+      ]
     },
     "Array": {
       "type": "StartStop",
@@ -23,11 +34,26 @@
       "multiLine": true,
       "otherTextInside": true,
       "textColor": "0x179fff",
-      "nestedTokens": ["String", "Number", "Object", "Array", "Bool", "Null", "ValueSeparator"]
+      "nestedTokens": [
+        "String",
+        "Number",
+        "Object",
+        "Array",
+        "Bool",
+        "Null",
+        "ValueSeparator"
+      ]
     },
     "Value": {
       "type": "GroupOneChildOnly",
-      "nestedTokens": ["String", "Number", "Object", "Array", "Bool", "Null"]
+      "nestedTokens": [
+        "String",
+        "Number",
+        "Object",
+        "Array",
+        "Bool",
+        "Null"
+      ]
     },
     "Key": {
       "type": "StartStop",
@@ -35,7 +61,9 @@
       "startRegex": "\\\"(?=[^\\\"\\\\\\\\]*(?:\\\\\\\\.[^\\\"\\\\\\\\]*)*\\\"\\s*:)",
       "endRegex": "(\\\")\\s*:",
       "textColor": "0x9cdcfe",
-      "nestedTokens": ["StringEscape"]
+      "nestedTokens": [
+        "StringEscape"
+      ]
     },
     "String": {
       "type": "StartStop",
@@ -43,11 +71,13 @@
       "startRegex": "\\\"",
       "endRegex": "\\\"",
       "textColor": "0xce9178",
-      "nestedTokens": ["StringEscape"]
+      "nestedTokens": [
+        "StringEscape"
+      ]
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "-?\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+      "startRegex": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
       "textColor": "0xb5cea8"
     },
     "StringEscape": {

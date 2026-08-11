@@ -1,6 +1,5 @@
 {
   "name": "zig",
-  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [

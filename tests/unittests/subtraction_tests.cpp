@@ -38,10 +38,13 @@ static void verify_subtraction(const textparser_language_definition *definition,
 
     auto tokens = TextParser(test_str.c_str(), definition);
     
-    // Let's scan to find Operator('-') or CSS's Value('-')
+    // Scan for an Operator/AddOperator/Value token with value "-".
+    // With unsigned Number regexes, subtraction is always tokenized as a standalone operator.
     bool found_subtraction = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
-        if (item.type && (strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0 || strcmp(item.type, "Value") == 0) && item.value == "-") {
+        if (item.type &&
+            (strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0 || strcmp(item.type, "Value") == 0) &&
+            item.value == "-") {
             found_subtraction = true;
         }
         for (size_t i = 0; i < item.children; ++i) {
@@ -51,7 +54,7 @@ static void verify_subtraction(const textparser_language_definition *definition,
     for (size_t i = 0; i < tokens.count; ++i) {
         scan(tokens[i]);
     }
-    
+
     if (!found_subtraction) {
         std::cout << "DEBUG: " << lang_name << " subtraction tokens:" << std::endl;
         std::function<void(const TokenParserItem&, int)> dump = [&](const TokenParserItem &item, int indent) {
@@ -66,7 +69,7 @@ static void verify_subtraction(const textparser_language_definition *definition,
             dump(tokens[i], 0);
         }
     }
-    
+
     EXPECT_TRUE(found_subtraction) << "Failed subtraction for language: " << lang_name;
 }
 
@@ -85,11 +88,15 @@ static void verify_negative_number(const textparser_language_definition *definit
     }
 
     auto tokens = TextParser(test_str.c_str(), definition);
-    
-    // Find the token with value "-1" and check if it is of type "Number"
+
+    // With unsigned Number regexes, -1 is always tokenized as Operator("-") + Number("1").
+    // We accept: an Operator/AddOperator/Value with value "-" (unary minus prefix),
+    // OR a Number/Value with value "-1" (CSS keeps negative values as a single Value token).
     bool found_neg_one = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
-        if (item.type && ((strcmp(item.type, "Number") == 0 && item.value == "-1") || (strcmp(item.type, "AddOperator") == 0 && item.value == "-"))) {
+        if (item.type &&
+            ((strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0) && item.value == "-") ||
+            ((strcmp(item.type, "Number") == 0 || strcmp(item.type, "Value") == 0) && (item.value == "-1" || item.value == "-"))) {
             found_neg_one = true;
         }
         for (size_t i = 0; i < item.children; ++i) {
@@ -99,7 +106,7 @@ static void verify_negative_number(const textparser_language_definition *definit
     for (size_t i = 0; i < tokens.count; ++i) {
         scan(tokens[i]);
     }
-    
+
     if (!found_neg_one) {
         std::cout << "DEBUG: " << lang_name << " negative number tokens:" << std::endl;
         std::function<void(const TokenParserItem&, int)> dump = [&](const TokenParserItem &item, int indent) {
@@ -114,7 +121,7 @@ static void verify_negative_number(const textparser_language_definition *definit
             dump(tokens[i], 0);
         }
     }
-    
+
     EXPECT_TRUE(found_neg_one) << "Failed negative number for language: " << lang_name;
 }
 

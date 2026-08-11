@@ -1,6 +1,5 @@
 {
   "name": "vb",
-  "signAmbiguityFix": true,
   "version": 1.0,
   "caseSensitivity": false,
   "defaultFileExtensions": [
@@ -61,7 +60,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "&H[0-9a-fA-F]+|&O[0-7]+|[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?[!#%&@]?",
+      "startRegex": "&H[0-9a-fA-F]+|&O[0-7]+|[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?[!#%&@]?",
       "textColor": "0xb5cea8"
     },
     "Variable": {
