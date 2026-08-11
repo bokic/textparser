@@ -303,6 +303,100 @@ static void adjust_search_order(const int *original_list, int *adjusted_list)
 
 }
 
+static bool textparser_token_in_id_list(const int *list, int token_id)
+{
+    if (list == nullptr) return false;
+    for (int i = 0; list[i] != TextParser_END; i++) {
+        if (list[i] == token_id) return true;
+    }
+    return false;
+}
+
+static textparser_token_item *textparser_get_last_child_item(const textparser_token_item *item)
+{
+    if (item == nullptr || item->child == nullptr) return nullptr;
+    textparser_token_item *last = item->child;
+    while (last->next) last = last->next;
+    return last;
+}
+
+// Called right after a child token n is created and linked into its parent's
+// child list. When n is a number and the immediately preceding sibling is a sign
+// (+/-) in unary context (i.e. the sign is NOT preceded by an operand), the sign
+// is absorbed into n and its own token is removed. This also handles a sign that
+// is the last child of an operator group (e.g. "12 +-43" -> "12 + -43").
+static void maybe_merge_sign(struct textparser_handle *handle, textparser_token_item *n)
+{
+    const textparser_language_definition *definition = handle->language;
+    const textparser_sign_merge *sign_merge = definition->sign_merge;
+    if (sign_merge == nullptr) return;
+    if (!textparser_token_in_id_list(sign_merge->number_tokens, n->token_id)) return;
+
+    textparser_token_item *prev = n->prev;
+    if (prev == nullptr) return;
+
+    textparser_token_item *sign = nullptr;
+    textparser_token_item *context = nullptr;
+
+    if (textparser_token_in_id_list(sign_merge->sign_tokens, prev->token_id)) {
+        sign = prev;
+        context = sign->prev;
+    } else {
+        textparser_token_item *last = textparser_get_last_child_item(prev);
+        if (last != nullptr && textparser_token_in_id_list(sign_merge->sign_tokens, last->token_id)) {
+            sign = last;
+            context = (sign->prev != nullptr) ? sign->prev : prev->prev;
+        } else {
+            return;
+        }
+    }
+
+    // Adjacency only: the sign must touch the number directly.
+    if (sign->position + sign->len != n->position) return;
+
+    // Only literal "+" and "-" are signs; never absorb other operators (e.g. "!3").
+    if (sign->len != 1) return;
+    uint32_t sign_ch = textparser_get_unit_at(handle, sign->position);
+    if (sign_ch != '+' && sign_ch != '-') return;
+
+    // Unary context: the token before the sign must not be an operand.
+    if (context != nullptr && textparser_token_in_id_list(sign_merge->operand_tokens, context->token_id)) return;
+
+    // Absorb the sign into the number.
+    n->position = sign->position;
+    n->len += sign->len;
+
+    // Unlink the sign token. In the standalone case sign->next == n, so this
+    // also repoints n->prev to the context token (or to null when first child).
+    if (sign->prev != nullptr) {
+        sign->prev->next = sign->next;
+    }
+    if (sign->next != nullptr) {
+        sign->next->prev = sign->prev;
+    }
+    if (n->parent != nullptr && n->parent->child == sign) {
+        n->parent->child = n;
+    }
+
+    // When the sign was the last child of a container (operator group), shrink
+    // the container and unwrap it if a single child remains.
+    if (prev != sign) {
+        if (prev->len >= sign->len) prev->len -= sign->len;
+        textparser_token_item *remaining = prev->child;
+        if (remaining != nullptr && remaining->next == nullptr) {
+            remaining->parent = prev->parent;
+            remaining->prev = prev->prev;
+            if (prev->prev != nullptr) {
+                prev->prev->next = remaining;
+            } else if (prev->parent != nullptr) {
+                prev->parent->child = remaining;
+            }
+            remaining->next = n;
+            n->prev = remaining;
+        }
+    }
+}
+
 static ssize_t textparser_find_token(const struct textparser_handle *handle, int token_id, size_t pos, bool other_text_inside, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     if (handle == nullptr || handle->recursion_depth >= MAX_RECURSION_DEPTH) {
@@ -634,6 +728,8 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                 child->next = new_child;
                 child = new_child;
             }
+
+            maybe_merge_sign(handle, child);
 
             if (child->len == 0) {
                 exit_with_error(handle, "0-length child token match caused infinite loop", offset);
@@ -972,11 +1068,13 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                     last_child->next = child;
                 last_child = child;
 
+                maybe_merge_sign(handle, child);
+
                 if (child->len == 0) {
                     exit_with_error(handle, "0-length child token match caused infinite loop", offset);
                 }
 
-                offset += child->len;
+                offset = child->position + child->len;
                 check_and_exit_on_fatal_parsing_error(handle, child, offset);
                 continue;
             }
@@ -1242,6 +1340,19 @@ void textparser_free_language_definition(textparser_language_definition *definit
 
     if (definition->starts_with) {
         free((void *)definition->starts_with);
+    }
+
+    if (definition->sign_merge) {
+        if (definition->sign_merge->sign_tokens) {
+            free((void *)definition->sign_merge->sign_tokens);
+        }
+        if (definition->sign_merge->number_tokens) {
+            free((void *)definition->sign_merge->number_tokens);
+        }
+        if (definition->sign_merge->operand_tokens) {
+            free((void *)definition->sign_merge->operand_tokens);
+        }
+        free((void *)definition->sign_merge);
     }
 
     if (definition->override_start_tokens) {
@@ -1727,6 +1838,8 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
                 prev_item->next = token_item;
                 token_item->prev = prev_item;
             }
+
+            maybe_merge_sign(handle, token_item);
 
             if ((handle->error)||(token_item->len <= 0))
                 return -1;

@@ -7,6 +7,26 @@
     "cfc"
   ],
   "otherTextInside": true,
+  "mergeSignIntoNumber": {
+    "signTokens": [
+      "AddOperator"
+    ],
+    "numberTokens": [
+      "Number"
+    ],
+    "operandTokens": [
+      "Number",
+      "Variable",
+      "Boolean",
+      "Function",
+      "SingleString",
+      "DoubleString",
+      "Parenthesis",
+      "ArrayIndex",
+      "CodeBlock",
+      "SharpExpression"
+    ]
+  },
   "defaultTextEncoding": "latin1",
   "SupportedBom": "UTF-8,UTF-16-LE,UTF-16-BE",
   "startTokens": [
@@ -346,7 +366,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "([0-9]+\\.?[0-9]*(?:[eE][-+]?[0-9]+)?|[-+]?[0-9]*\\.[0-9]+(?:[eE][-+]?[0-9]+)?)",
+      "startRegex": "([0-9]+\\.?[0-9]*(?:[eE][-+]?[0-9]+)?|[0-9]*\\.[0-9]+(?:[eE][-+]?[0-9]+)?)",
       "textColor": "0xb5cea8"
     },
     "Boolean": {

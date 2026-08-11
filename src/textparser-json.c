@@ -480,7 +480,47 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->other_text_inside = json_object_get_boolean(value);
     }
 
-
+    json_object *sign_merge_obj = nullptr;
+    if (json_object_object_get_ex(root_obj, "mergeSignIntoNumber", &sign_merge_obj) && json_object_is_type(sign_merge_obj, json_type_object)) {
+        textparser_sign_merge *sign_merge = calloc(1, sizeof(textparser_sign_merge));
+        if (sign_merge != nullptr) {
+            int *sign_list = nullptr;
+            int *number_list = nullptr;
+            int *operand_list = nullptr;
+            const char *list_names[3] = { "signTokens", "numberTokens", "operandTokens" };
+            int **list_ptrs[3] = { &sign_list, &number_list, &operand_list };
+            for (int l = 0; l < 3; l++) {
+                json_object *list_arr = nullptr;
+                if (!json_object_object_get_ex(sign_merge_obj, list_names[l], &list_arr) || !json_object_is_type(list_arr, json_type_array)) {
+                    continue;
+                }
+                int list_len = json_object_array_length(list_arr);
+                int *list = calloc(list_len + 1, sizeof(int));
+                if (list == nullptr) {
+                    continue;
+                }
+                for (int i = 0; i < list_len; i++) {
+                    json_object *item = json_object_array_get_idx(list_arr, i);
+                    list[i] = TextParser_END;
+                    if (item && json_object_is_type(item, json_type_string)) {
+                        const char *token_name = json_object_get_string(item);
+                        for (size_t k = 0; k < tokens_cnt; k++) {
+                            if ((*definition)->tokens[k].name && strcmp((*definition)->tokens[k].name, token_name) == 0) {
+                                list[i] = (int)k;
+                                break;
+                            }
+                        }
+                    }
+                }
+                list[list_len] = TextParser_END;
+                *list_ptrs[l] = list;
+            }
+            sign_merge->sign_tokens = sign_list;
+            sign_merge->number_tokens = number_list;
+            sign_merge->operand_tokens = operand_list;
+            (*definition)->sign_merge = sign_merge;
+        }
+    }
 
     json_object *override_arr = nullptr;
     if (json_object_object_get_ex(root_obj, "overrideStartTokens", &override_arr) && json_object_is_type(override_arr, json_type_array)) {

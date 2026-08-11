@@ -183,5 +183,23 @@
         "CodeBlock"
       ]
     }
+  },
+  "mergeSignIntoNumber": {
+    "signTokens": [
+      "Operator"
+    ],
+    "numberTokens": [
+      "Number"
+    ],
+    "operandTokens": [
+      "Number",
+      "Variable",
+      "Boolean",
+      "SingleString",
+      "DoubleString",
+      "Parenthesis",
+      "ArrayIndex",
+      "CodeBlock"
+    ]
   }
 }

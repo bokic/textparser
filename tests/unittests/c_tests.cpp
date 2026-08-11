@@ -125,3 +125,74 @@ int main(void) {
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Boolean"));
 }
+
+TEST(parse_C, sign_merge_top_level_and_incremental) {
+    const char *text = "int x = -1; int y = 10-10; int z = !3;";
+    auto tokens = TextParser(text, &c_definition);
+
+    // Unary "-1" merges into a single Number; subtraction and "!3" do not merge.
+    bool found_neg1 = false;
+    bool found_neg10 = false;
+    bool found_not3 = false;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Number") == 0) {
+            if (item.value == "-1") found_neg1 = true;
+            if (item.value == "-10") found_neg10 = true;
+        }
+        if (item.type && strcmp(item.type, "Operator") == 0 && item.value == "!") found_not3 = true;
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+    EXPECT_TRUE(found_neg1);
+    EXPECT_TRUE(found_not3);
+    EXPECT_FALSE(found_neg10);
+
+    // Incremental parser must produce identical sign-merge results.
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_NE(handle, nullptr);
+    ASSERT_EQ(textparser_parse_incremental(handle, &c_definition, nullptr, 0, strlen(text)), 0);
+
+    bool inc_neg1 = false;
+    std::function<void(const textparser_token_item *)> iscan = [&](const textparser_token_item *item) {
+        if (item == nullptr) return;
+        char *txt = textparser_get_token_text(handle, item);
+        if (txt) {
+            if (strcmp(txt, "-1") == 0) inc_neg1 = true;
+            textparser_free_token_text(txt);
+        }
+        iscan(textparser_get_token_child(item));
+        iscan(textparser_get_token_next(item));
+    };
+    iscan(textparser_get_first_token(handle));
+    EXPECT_TRUE(inc_neg1);
+    textparser_close(handle);
+}
+
+TEST(parse_C, scientific_notation) {
+    auto tokens = TextParser("double a = 1e-9; double b = 2e+5; double c = 1.5E-3;", &c_definition);
+
+    bool found_neg = false;
+    bool found_pos = false;
+    bool found_upper = false;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Number") == 0) {
+            if (item.value == "1e-9") found_neg = true;
+            if (item.value == "2e+5") found_pos = true;
+            if (item.value == "1.5E-3") found_upper = true;
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+    EXPECT_TRUE(found_neg);
+    EXPECT_TRUE(found_pos);
+    EXPECT_TRUE(found_upper);
+}

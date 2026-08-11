@@ -123,6 +123,12 @@ typedef struct {
 } textparser_override_start_token_rule;
 
 typedef struct {
+    const int *sign_tokens;
+    const int *number_tokens;
+    const int *operand_tokens;
+} textparser_sign_merge;
+
+typedef struct {
     const char *name;
     double version;
     const char *empty_segment_language;
@@ -133,6 +139,7 @@ typedef struct {
     int *starts_with;
     textparser_override_start_token_rule *override_start_tokens;
     bool other_text_inside;
+    textparser_sign_merge *sign_merge;
     textparser_token *tokens;
     const char *error_string;
 } textparser_language_definition;

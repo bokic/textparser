@@ -39,7 +39,8 @@ static void verify_subtraction(const textparser_language_definition *definition,
     auto tokens = TextParser(test_str.c_str(), definition);
     
     // Scan for an Operator/AddOperator/Value token with value "-".
-    // With unsigned Number regexes, subtraction is always tokenized as a standalone operator.
+    // Subtraction is always tokenized as a standalone operator (sign merging
+    // applies only in unary context, e.g. after another operator or at start).
     bool found_subtraction = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
         if (item.type &&
@@ -89,14 +90,13 @@ static void verify_negative_number(const textparser_language_definition *definit
 
     auto tokens = TextParser(test_str.c_str(), definition);
 
-    // With unsigned Number regexes, -1 is always tokenized as Operator("-") + Number("1").
-    // We accept: an Operator/AddOperator/Value with value "-" (unary minus prefix),
-    // OR a Number/Value with value "-1" (CSS keeps negative values as a single Value token).
+    // With mergeSignIntoNumber, "-1" is a single merged Number token (CSS keeps
+    // negative values as a single Value token). Require the merged form.
     bool found_neg_one = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
         if (item.type &&
-            (((strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0) && item.value == "-") ||
-             ((strcmp(item.type, "Number") == 0 || strcmp(item.type, "Value") == 0) && (item.value == "-1" || item.value == "-")))) {
+            (strcmp(item.type, "Number") == 0 || strcmp(item.type, "Value") == 0) &&
+            item.value == "-1") {
             found_neg_one = true;
         }
         for (size_t i = 0; i < item.children; ++i) {
@@ -149,17 +149,20 @@ TEST(parse_Subtraction, all_languages) {
 }
 
 TEST(parse_NegativeNumbers, all_languages) {
-    // Only verify languages that natively support negative signs in their Number token regex.
-    // Ada, Fortran, and Pascal do not have a leading sign in their Number regexes.
+    // mergeSignIntoNumber merges a unary "-" into the following Number for all
+    // languages (CSS keeps negative values as a single Value token).
+    verify_negative_number(&ada_definition, "Ada");
     verify_negative_number(&c_definition, "C");
     verify_negative_number(&cfml_definition, "CFML");
     verify_negative_number(&cpp_definition, "C++");
     verify_negative_number(&csharp_definition, "C#");
     verify_negative_number(&css_definition, "CSS");
+    verify_negative_number(&fortran_definition, "Fortran");
     verify_negative_number(&go_definition, "Go");
     verify_negative_number(&java_definition, "Java");
     verify_negative_number(&javascript_definition, "JavaScript");
     verify_negative_number(&matlab_definition, "Matlab");
+    verify_negative_number(&pascal_definition, "Pascal");
     verify_negative_number(&perl_definition, "Perl");
     verify_negative_number(&php_definition, "PHP");
     verify_negative_number(&python_definition, "Python");

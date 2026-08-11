@@ -140,5 +140,22 @@
         "CodeBlock"
       ]
     }
+  },
+  "mergeSignIntoNumber": {
+    "signTokens": [
+      "Operator"
+    ],
+    "numberTokens": [
+      "Number"
+    ],
+    "operandTokens": [
+      "Number",
+      "Variable",
+      "Register",
+      "SingleString",
+      "Parenthesis",
+      "ArrayIndex",
+      "CodeBlock"
+    ]
   }
 }

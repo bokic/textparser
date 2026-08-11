@@ -63,3 +63,27 @@ let greeting = `Hello ${name}!`;
     EXPECT_TRUE(found.contains("TemplateString"));
     EXPECT_TRUE(found.contains("StringEscape"));
 }
+
+TEST(parse_TypeScript, scientific_notation) {
+    auto tokens = TextParser("let a = 1e-9; let b = 2e+5; let c = 1.5E-3;", &typescript_definition);
+
+    bool found_neg = false;
+    bool found_pos = false;
+    bool found_upper = false;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Number") == 0) {
+            if (item.value == "1e-9") found_neg = true;
+            if (item.value == "2e+5") found_pos = true;
+            if (item.value == "1.5E-3") found_upper = true;
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+    EXPECT_TRUE(found_neg);
+    EXPECT_TRUE(found_pos);
+    EXPECT_TRUE(found_upper);
+}

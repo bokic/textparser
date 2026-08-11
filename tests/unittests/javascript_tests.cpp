@@ -141,3 +141,27 @@ export class Calculator {
     ASSERT_GE(template_str.children, 1);
     EXPECT_STREQ(template_str[0].type, "StringEscape");
 }
+
+TEST(parse_JavaScript, scientific_notation) {
+    auto tokens = TextParser("var a = 1e-9; var b = 2e+5; var c = 1.5E-3;", &javascript_definition);
+
+    bool found_neg = false;
+    bool found_pos = false;
+    bool found_upper = false;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Number") == 0) {
+            if (item.value == "1e-9") found_neg = true;
+            if (item.value == "2e+5") found_pos = true;
+            if (item.value == "1.5E-3") found_upper = true;
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+    EXPECT_TRUE(found_neg);
+    EXPECT_TRUE(found_pos);
+    EXPECT_TRUE(found_upper);
+}

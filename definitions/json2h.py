@@ -84,6 +84,16 @@ def main(args):
     text += "};" + os.linesep
     text += "" + os.linesep
 
+    if "mergeSignIntoNumber" in root and isinstance(root["mergeSignIntoNumber"], dict):
+        merge = root["mergeSignIntoNumber"]
+        for key, list_name in (("signTokens", "sign_tokens"), ("numberTokens", "number_tokens"), ("operandTokens", "operand_tokens")):
+            if key in merge:
+                text += "static const int " + name_lowercase + "_" + list_name + "[] = {"
+                for token_name in merge[key]:
+                    text += "TextParser_" + name_lowercase + "_" + token_name + ", "
+                text += "TextParser_END};" + os.linesep
+        text += "" + os.linesep
+
     text += "static const textparser_language_definition " + name_lowercase + "_definition = {" + os.linesep
 
     if "name" in root:
@@ -154,6 +164,19 @@ def main(args):
 
     if "otherTextInside" in root:
         text += "    .other_text_inside = " + python_bool_to_c_string(root["otherTextInside"]) + "," + os.linesep
+
+    if "mergeSignIntoNumber" in root and isinstance(root["mergeSignIntoNumber"], dict):
+        merge = root["mergeSignIntoNumber"]
+        text += "    .sign_merge = (textparser_sign_merge []) {{" + os.linesep
+        if "signTokens" in merge:
+            text += "        .sign_tokens = " + name_lowercase + "_sign_tokens," + os.linesep
+        if "numberTokens" in merge:
+            text += "        .number_tokens = " + name_lowercase + "_number_tokens," + os.linesep
+        if "operandTokens" in merge:
+            text += "        .operand_tokens = " + name_lowercase + "_operand_tokens," + os.linesep
+        text += "    }}," + os.linesep
+    else:
+        text += "    .sign_merge = NULL," + os.linesep
 
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep

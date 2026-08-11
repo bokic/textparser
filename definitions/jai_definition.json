@@ -101,7 +101,7 @@
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "0[xX][0-9a-fA-F_]+\\b|0[bB][01_]+\\b|0[hH][0-9a-fA-F_]+\\b|[-+]?[0-9_]*\\.?[0-9_]+(?:[eE][-+]?[0-9_]+)?\\b",
+      "startRegex": "0[xX][0-9a-fA-F_]+\\b|0[bB][01_]+\\b|0[hH][0-9a-fA-F_]+\\b|[0-9_]*\\.?[0-9_]+(?:[eE][-+]?[0-9_]+)?\\b",
       "textColor": "0xb5cea8"
     },
     "Parenthesis": {
@@ -148,5 +148,22 @@
         "ArrayIndex"
       ]
     }
+  },
+  "mergeSignIntoNumber": {
+    "signTokens": [
+      "Operator"
+    ],
+    "numberTokens": [
+      "Number"
+    ],
+    "operandTokens": [
+      "Number",
+      "Variable",
+      "Boolean",
+      "DoubleString",
+      "Parenthesis",
+      "ArrayIndex",
+      "CodeBlock"
+    ]
   }
 }

@@ -1138,3 +1138,240 @@ TEST(parse_CFML, dollar_sign_variable_not_operator) {
     EXPECT_FALSE(item_has_token_type(tokens[0], "Operator"));
     EXPECT_FALSE(item_has_token_type(tokens[1], "Operator"));
 }
+
+TEST(parse_CFML, sign_merge_unary_minus) {
+    auto tokens = TextParser(R"(<cfset x = -1 />)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_STREQ(tokens[0].type, "StartTag");
+    ASSERT_EQ(tokens[0].children, 1);
+    ASSERT_STREQ(tokens[0][0].type, "Expression");
+    ASSERT_EQ(tokens[0][0].children, 3);
+    EXPECT_STREQ(tokens[0][0][0].type, "Variable");
+    EXPECT_STREQ(tokens[0][0][1].type, "AssignOperator");
+    EXPECT_STREQ(tokens[0][0][2].type, "Number");
+    EXPECT_STREQ(tokens[0][0][2].value.c_str(), "-1");
+    EXPECT_EQ(tokens[0][0][2].position, 11);
+    EXPECT_EQ(tokens[0][0][2].length, 2);
+}
+
+TEST(parse_CFML, sign_merge_plus_sign) {
+    auto tokens = TextParser(R"(<cfset a = +1 />)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "Number", "+1"));
+    EXPECT_FALSE(has_token_value(tokens, "AddOperator", "+"));
+}
+
+TEST(parse_CFML, sign_merge_first_token_in_expression) {
+    auto tokens = TextParser(R"(<cfset -1 />)", &cfml_definition);
+    // Expression (deleteIfOnlyOneChild) unwraps to the single merged Number
+    ASSERT_EQ(tokens[0].children, 1);
+    EXPECT_STREQ(tokens[0][0].type, "Number");
+    EXPECT_STREQ(tokens[0][0].value.c_str(), "-1");
+}
+
+TEST(parse_CFML, sign_merge_subtraction_preserved) {
+    auto tokens = TextParser(R"(<cfset y = 10-10 />)", &cfml_definition);
+    ASSERT_EQ(tokens[0][0].children, 5);
+    EXPECT_STREQ(tokens[0][0][0].type, "Variable");
+    EXPECT_STREQ(tokens[0][0][1].type, "AssignOperator");
+    EXPECT_STREQ(tokens[0][0][2].type, "Number");
+    EXPECT_STREQ(tokens[0][0][2].value.c_str(), "10");
+    EXPECT_STREQ(tokens[0][0][3].type, "AddOperator");
+    EXPECT_STREQ(tokens[0][0][3].value.c_str(), "-");
+    EXPECT_STREQ(tokens[0][0][4].type, "Number");
+    EXPECT_STREQ(tokens[0][0][4].value.c_str(), "10");
+}
+
+TEST(parse_CFML, sign_merge_subtraction_with_spaces_preserved) {
+    auto tokens = TextParser(R"(<cfset y = 10 - 10 />)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "Number", "10"));
+    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
+}
+
+TEST(parse_CFML, sign_merge_operator_group) {
+    auto tokens = TextParser(R"(<cfset a = 12 +-43 />)", &cfml_definition);
+    ASSERT_EQ(tokens[0][0].children, 5);
+    EXPECT_STREQ(tokens[0][0][0].type, "Variable");
+    EXPECT_STREQ(tokens[0][0][1].type, "AssignOperator");
+    EXPECT_STREQ(tokens[0][0][2].type, "Number");
+    EXPECT_STREQ(tokens[0][0][2].value.c_str(), "12");
+    // Operator group [+,-] is unwrapped to a single AddOperator("+")
+    EXPECT_STREQ(tokens[0][0][3].type, "AddOperator");
+    EXPECT_STREQ(tokens[0][0][3].value.c_str(), "+");
+    EXPECT_STREQ(tokens[0][0][4].type, "Number");
+    EXPECT_STREQ(tokens[0][0][4].value.c_str(), "-43");
+    EXPECT_EQ(tokens[0][0][4].position, 15);
+    EXPECT_EQ(tokens[0][0][4].length, 3);
+}
+
+TEST(parse_CFML, sign_merge_plus_then_minus) {
+    auto tokens = TextParser(R"(<cfset a = 1+-2 />)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "Number", "1"));
+    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "+"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "-2"));
+}
+
+TEST(parse_CFML, sign_merge_unary_before_power) {
+    auto tokens = TextParser(R"(<cfset e = -2^2 />)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "Number", "-2"));
+    EXPECT_TRUE(has_token_value(tokens, "PowerOperator", "^"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "2"));
+}
+
+TEST(parse_CFML, sign_merge_leading_dot_number) {
+    auto tokens = TextParser(R"(<cfset d = -.5 />)", &cfml_definition);
+    ASSERT_EQ(tokens[0][0].children, 3);
+    EXPECT_STREQ(tokens[0][0][2].type, "Number");
+    EXPECT_STREQ(tokens[0][0][2].value.c_str(), "-.5");
+}
+
+TEST(parse_CFML, sign_merge_exponent_not_merged) {
+    auto tokens = TextParser(R"(<cfset c = 1e-5 />)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "Number", "1e-5"));
+    EXPECT_FALSE(has_token_value(tokens, "AddOperator", "-"));
+}
+
+TEST(parse_CFML, sign_merge_whitespace_not_merged) {
+    auto tokens = TextParser(R"(<cfset b = - 1 />)", &cfml_definition);
+    // "- 1" with whitespace: adjacency rule keeps the sign as an operator
+    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
+    EXPECT_FALSE(has_token_value(tokens, "Number", "-1"));
+}
+
+TEST(parse_CFML, sign_merge_double_minus_single_pass) {
+    auto tokens = TextParser(R"(<cfset c = --1 />)", &cfml_definition);
+    // "--1" merges only once: AddOperator("-") + Number("-1")
+    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "-1"));
+    EXPECT_FALSE(has_token_value(tokens, "Number", "--1"));
+}
+
+TEST(parse_CFML, sign_merge_not_applied_to_variable) {
+    auto tokens = TextParser(R"(<cfset e = -x />)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "x"));
+    EXPECT_FALSE(has_token_value(tokens, "Number", "-x"));
+}
+
+TEST(parse_CFML, sign_merge_after_paren_is_subtraction) {
+    auto tokens = TextParser(R"(<cfset d = (5)-1 />)", &cfml_definition);
+    // "(5)-1": Parenthesis is an operand, so "-" is a binary operator
+    EXPECT_TRUE(has_token_value(tokens, "Parenthesis", "(5)"));
+    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
+    EXPECT_FALSE(has_token_value(tokens, "Number", "-1"));
+}
+
+TEST(parse_CFML, sign_merge_function_argument) {
+    textparser_suppress_errors() = true;
+    auto tokens = TextParser(R"(<cfscript>foo(-1);</cfscript>)", &cfml_definition);
+    textparser_suppress_errors() = false;
+    EXPECT_TRUE(has_token_value(tokens, "Number", "-1"));
+}
+
+TEST(parse_CFML, sign_merge_array_after_separator) {
+    auto tokens = TextParser(R"(<cfset arr = [1, -2] />)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "Number", "-2"));
+}
+
+TEST(parse_CFML, sign_merge_sharp_expression) {
+    auto tokens = TextParser(R"(<cfoutput>#-1#</cfoutput>)", &cfml_definition);
+    EXPECT_TRUE(has_token_value(tokens, "SharpExpression", "#-1#"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "-1"));
+}
+
+TEST(parse_CFML, sign_merge_nested_in_script) {
+    textparser_suppress_errors() = true;
+    auto tokens = TextParser(R"(<cfscript>if (1 - -2 == 3) writeOutput("ok");</cfscript>)", &cfml_definition);
+    textparser_suppress_errors() = false;
+    // "1 - -2" -> Number(1) AddOperator(-) Number(-2)
+    EXPECT_TRUE(has_token_value(tokens, "Number", "1"));
+    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "-2"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "3"));
+}
+
+TEST(parse_CFML, sign_merge_incremental) {
+    textparser_t handle = nullptr;
+    const char *text = "<cfset x = -1 /><cfset a = 12 +-43 />";
+    int err = textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(handle, nullptr);
+
+    err = textparser_parse_incremental(handle, &cfml_definition, nullptr, 0, strlen(text));
+    EXPECT_EQ(err, 0);
+
+    bool found_neg1 = false;
+    bool found_neg43 = false;
+    std::function<void(const textparser_token_item *)> scan = [&](const textparser_token_item *item) {
+        if (item == nullptr) return;
+        char *txt = textparser_get_token_text(handle, item);
+        if (txt) {
+            if (strcmp(txt, "-1") == 0) found_neg1 = true;
+            if (strcmp(txt, "-43") == 0) found_neg43 = true;
+            textparser_free_token_text(txt);
+        }
+        scan(textparser_get_token_child(item));
+        scan(textparser_get_token_next(item));
+    };
+    scan(textparser_get_first_token(handle));
+
+    EXPECT_TRUE(found_neg1);
+    EXPECT_TRUE(found_neg43);
+    textparser_close(handle);
+}
+
+TEST(parse_CFML, sign_merge_runtime_json_load) {
+    // Verify mergeSignIntoNumber parsed from runtime JSON string behaves correctly.
+    const char *custom_json = R"json({
+        "name": "custom_sign",
+        "caseSensitivity": true,
+        "otherTextInside": true,
+        "defaultFileExtensions": ["cfm"],
+        "startTokens": ["Expr"],
+        "tokens": {
+            "Expr": {
+                "type": "Group",
+                "nestedTokens": ["Number", "AddOperator"]
+            },
+            "Number": { "type": "SimpleToken", "startRegex": "[0-9]+" },
+            "AddOperator": { "type": "SimpleToken", "startRegex": "[+-]" }
+        },
+        "mergeSignIntoNumber": {
+            "signTokens": ["AddOperator"],
+            "numberTokens": ["Number"],
+            "operandTokens": ["Number"]
+        }
+    })json";
+
+    textparser_language_definition *runtime_def = nullptr;
+    int err = textparser_json_load_language_definition_from_string(custom_json, &runtime_def);
+    ASSERT_EQ(err, 0);
+    ASSERT_NE(runtime_def, nullptr);
+
+    {
+        auto tokens = TextParser("-1", runtime_def);
+        // Unary: sign merges into the number
+        ASSERT_EQ(tokens.count, 1);
+        ASSERT_EQ(tokens[0].children, 1);
+        EXPECT_STREQ(tokens[0][0].type, "Number");
+        EXPECT_STREQ(tokens[0][0].value.c_str(), "-1");
+    }
+    {
+        auto tokens = TextParser("10-10", runtime_def);
+        // Binary: operand precedes the sign, so subtraction is preserved
+        ASSERT_EQ(tokens.count, 1);
+        ASSERT_EQ(tokens[0].children, 3);
+        EXPECT_STREQ(tokens[0][0].type, "Number");
+        EXPECT_STREQ(tokens[0][0].value.c_str(), "10");
+        EXPECT_STREQ(tokens[0][1].type, "AddOperator");
+        EXPECT_STREQ(tokens[0][1].value.c_str(), "-");
+        EXPECT_STREQ(tokens[0][2].type, "Number");
+        EXPECT_STREQ(tokens[0][2].value.c_str(), "10");
+    }
+    {
+        auto tokens = TextParser("1+-2", runtime_def);
+        EXPECT_TRUE(has_token_value(tokens, "AddOperator", "+"));
+        EXPECT_TRUE(has_token_value(tokens, "Number", "-2"));
+    }
+
+    textparser_free_language_definition(runtime_def);
+}
