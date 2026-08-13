@@ -153,8 +153,17 @@ static size_t textparser_char_len(const struct textparser_handle *handle, size_t
 
 static size_t calculate_chunk_size(size_t filesize)
 {
-    size_t chunk_size = 4096; // 4KB minimum
-    while (chunk_size <= filesize && chunk_size < 16777216) {
+    size_t min_chunk = 4096;      // 4KB minimum
+    size_t max_chunk = 4194304;   // 4MB initial cap
+
+    // Estimate initial arena size as 75% of file size
+    size_t estimated = (filesize * 3) / 4;
+    if (estimated < min_chunk) {
+        return min_chunk;
+    }
+
+    size_t chunk_size = min_chunk;
+    while (chunk_size < estimated && chunk_size < max_chunk) {
         chunk_size *= 2;
     }
     return chunk_size;
