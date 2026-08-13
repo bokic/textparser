@@ -607,6 +607,45 @@ exit:
     return ret;
 }
 
+/*
+ * Scan `nested_tokens` (in adjusted priority order) and return the id of the
+ * first token that matches at exactly offset 0 relative to `pos`.
+ * Returns TextParser_END when no token matches at the current position.
+ * Uses a 64-slot stack buffer; falls back to heap for larger lists.
+ */
+static int find_child_at_offset(
+    struct textparser_handle        *handle,
+    const int                       *nested_tokens,
+    size_t                           pos,
+    bool                             other_text_inside,
+    const textparser_token_item     *parent_item,
+    const textparser_token_item     *prev_sibling)
+{
+    int nested_count = 0;
+    while (nested_tokens[nested_count] != TextParser_END) nested_count++;
+
+    int  stack_buf[64];
+    int *adjusted_list = (nested_count + 1 <= 64)
+        ? stack_buf
+        : (int *)malloc((size_t)(nested_count + 1) * sizeof(int));
+    if (!adjusted_list) return TextParser_END;
+
+    adjust_search_order(nested_tokens, adjusted_list);
+
+    int result = TextParser_END;
+    for (int c = 0; adjusted_list[c] != TextParser_END; c++) {
+        ssize_t found = textparser_find_token(handle, adjusted_list[c], pos,
+                                             other_text_inside, parent_item, prev_sibling);
+        if (found == 0) {
+            result = adjusted_list[c];
+            break;
+        }
+    }
+
+    if (adjusted_list != stack_buf) free(adjusted_list);
+    return result;
+}
+
 static textparser_token_item *parse_token_group(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
@@ -686,31 +725,9 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
             }
         }
 
-        current_token_id = TextParser_END;
-
         const int *loop_effective_nested = get_effective_nested_tokens(handle, token_id, ret);
-        int count = 0;
-        while (loop_effective_nested[count] != TextParser_END) {
-            count++;
-        }
-        {
-            int stack_buf[64];
-            int *adjusted_list = (count + 1 <= 64) ? stack_buf : malloc((count + 1) * sizeof(int));
-            if (adjusted_list != nullptr) {
-                adjust_search_order(loop_effective_nested, adjusted_list);
-
-                for (int c = 0; adjusted_list[c] != TextParser_END; c++)
-                {
-                    ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, ret, current_prev);
-                    if (current_closest == 0)
-                    {
-                        current_token_id = adjusted_list[c];
-                        break;
-                    }
-                }
-                if (adjusted_list != stack_buf) free(adjusted_list);
-            }
-        }
+        current_token_id = find_child_at_offset(handle, loop_effective_nested, offset,
+                                                 token_def->other_text_inside, ret, current_prev);
 
         if (current_token_id != TextParser_END)
         {
@@ -1028,27 +1045,9 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             }
 
             // 2. Check if any nested token matches at offset
-            int child_token_id = TextParser_END;
             const textparser_token_item *current_prev = (last_child == nullptr) ? ret : last_child;
-
-            int nested_count = 0;
-            while (nested_tokens[nested_count] != TextParser_END) {
-                nested_count++;
-            }
-            {
-                int adjusted_list[nested_count + 1];
-                adjust_search_order(nested_tokens, adjusted_list);
-
-                for(int c = 0; adjusted_list[c] != TextParser_END; c++)
-                {
-                    ssize_t pos = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, ret, current_prev);
-                    if (pos == 0)
-                    {
-                        child_token_id = adjusted_list[c];
-                        break;
-                    }
-                }
-            }
+            int child_token_id = find_child_at_offset(handle, nested_tokens, offset,
+                                                       token_def->other_text_inside, ret, current_prev);
 
             if (child_token_id != TextParser_END)
             {
