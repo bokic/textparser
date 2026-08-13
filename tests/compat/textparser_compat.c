@@ -23,8 +23,6 @@
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
-static _Atomic int active_handle_count = 0;
-
 #define TOKEN_NOT_FOUND -1
 
 #define exit_with_error(handle, error_text, offset)   \

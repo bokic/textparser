@@ -23,8 +23,6 @@
 
 #define MAX_PARSE_SIZE (16 * 1024 * 1024)
 
-static _Atomic int active_handle_count = 0;
-
 #define TOKEN_NOT_FOUND -1
 
 #define exit_with_error(handle, error_text, offset)   \
@@ -1593,7 +1591,6 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
     }
     memcpy(*handle, &local_hnd, sizeof(struct textparser_handle));
 
-    atomic_fetch_add(&active_handle_count, 1);
     return 0;
 
 err:
@@ -1662,7 +1659,6 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     ret->regex_ctx = adv_regex_context_create();
 
     *handle = (textparser_t)ret;
-    atomic_fetch_add(&active_handle_count, 1);
 
     return 0;
 }
@@ -1710,10 +1706,6 @@ void textparser_close(textparser_t handle)
     }
 
     free(handle);
-
-    if (atomic_fetch_sub(&active_handle_count, 1) == 1) {
-        // Cleaned up via regex_ctx
-    }
 }
 
 void textparser_cleanup(textparser_t *handle)
