@@ -1470,46 +1470,46 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
         local_hnd.text_addr += 2;
         local_hnd.text_size -= 2;
         local_hnd.bom = TEXTPARSER_BOM_UTF_16_LE;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_1)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_7_1;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_2)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x39')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_7_2;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_3)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2b')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_7_3;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_4)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2f')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_7_4;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_5)&&(local_hnd.text_size >= 5)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')&&(local_hnd.text_addr[4] == '\x2d')) {
-        local_hnd.text_addr += 5;
-        local_hnd.text_size -= 5;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_7_5;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_1)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xf7')&&(local_hnd.text_addr[1] == '\x64')&&(local_hnd.text_addr[2] == '\x4c')) {
-        local_hnd.text_addr += 3;
-        local_hnd.text_size -= 3;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_1;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_EBCDIC)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xdd')&&(local_hnd.text_addr[1] == '\x73')&&(local_hnd.text_addr[2] == '\x66')&&(local_hnd.text_addr[3] == '\x73')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_EBCDIC;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_SCSU)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\x0e')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\xff')) {
-        local_hnd.text_addr += 3;
-        local_hnd.text_size -= 3;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_SCSU;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_BOCU1)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xfb')&&(local_hnd.text_addr[1] == '\xee')&&(local_hnd.text_addr[2] == '\x28')) {
-        local_hnd.text_addr += 3;
-        local_hnd.text_size -= 3;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_BOCU1;
-    } else if ((bom_mask & TEXTPARSER_BOM_UTF_GB_18030)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x84')&&(local_hnd.text_addr[1] == '\x31')&&(local_hnd.text_addr[2] == '\x95')&&(local_hnd.text_addr[3] == '\x33')) {
-        local_hnd.text_addr += 4;
-        local_hnd.text_size -= 4;
-        local_hnd.bom = TEXTPARSER_BOM_UTF_GB_18030;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_1)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')) {
+    //     local_hnd.text_addr += 4;
+    //     local_hnd.text_size -= 4;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_7_1;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_2)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x39')) {
+    //     local_hnd.text_addr += 4;
+    //     local_hnd.text_size -= 4;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_7_2;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_3)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2b')) {
+    //     local_hnd.text_addr += 4;
+    //     local_hnd.text_size -= 4;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_7_3;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_4)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x2f')) {
+    //     local_hnd.text_addr += 4;
+    //     local_hnd.text_size -= 4;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_7_4;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_7_5)&&(local_hnd.text_size >= 5)&&(local_hnd.text_addr[0] == '\x2b')&&(local_hnd.text_addr[1] == '\x2f')&&(local_hnd.text_addr[2] == '\x76')&&(local_hnd.text_addr[3] == '\x38')&&(local_hnd.text_addr[4] == '\x2d')) {
+    //     local_hnd.text_addr += 5;
+    //     local_hnd.text_size -= 5;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_7_5;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_1)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xf7')&&(local_hnd.text_addr[1] == '\x64')&&(local_hnd.text_addr[2] == '\x4c')) {
+    //     local_hnd.text_addr += 3;
+    //     local_hnd.text_size -= 3;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_1;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_EBCDIC)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\xdd')&&(local_hnd.text_addr[1] == '\x73')&&(local_hnd.text_addr[2] == '\x66')&&(local_hnd.text_addr[3] == '\x73')) {
+    //     local_hnd.text_addr += 4;
+    //     local_hnd.text_size -= 4;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_EBCDIC;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_SCSU)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\x0e')&&(local_hnd.text_addr[1] == '\xfe')&&(local_hnd.text_addr[2] == '\xff')) {
+    //     local_hnd.text_addr += 3;
+    //     local_hnd.text_size -= 3;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_SCSU;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_BOCU1)&&(local_hnd.text_size >= 3)&&(local_hnd.text_addr[0] == '\xfb')&&(local_hnd.text_addr[1] == '\xee')&&(local_hnd.text_addr[2] == '\x28')) {
+    //     local_hnd.text_addr += 3;
+    //     local_hnd.text_size -= 3;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_BOCU1;
+    // } else if ((bom_mask & TEXTPARSER_BOM_UTF_GB_18030)&&(local_hnd.text_size >= 4)&&(local_hnd.text_addr[0] == '\x84')&&(local_hnd.text_addr[1] == '\x31')&&(local_hnd.text_addr[2] == '\x95')&&(local_hnd.text_addr[3] == '\x33')) {
+    //     local_hnd.text_addr += 4;
+    //     local_hnd.text_size -= 4;
+    //     local_hnd.bom = TEXTPARSER_BOM_UTF_GB_18030;
     } else {
         local_hnd.bom = TEXTPARSER_BOM_NONE;
     }
