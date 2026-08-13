@@ -654,6 +654,64 @@ static int find_child_at_offset(
     return result;
 }
 
+/* Helper to check if parent start/end token boundary matches at offset */
+static inline bool check_parent_token_boundary(
+    struct textparser_handle *handle,
+    int parent_token_id,
+    int parent_start_stop,
+    size_t offset)
+{
+    if (parent_token_id == TextParser_END) return false;
+
+    const char *pattern = nullptr;
+    void **compiled_ptr = nullptr;
+
+    switch (parent_start_stop) {
+    case TEXTPARSER_SEARCH_END_TOKEN:
+        pattern = handle->language->tokens[parent_token_id].end_regex;
+        compiled_ptr = (void **)handle->end_regex + parent_token_id;
+        break;
+    case TEXTPARSER_SEARCH_START_TOKEN:
+        pattern = handle->language->tokens[parent_token_id].start_regex;
+        compiled_ptr = (void **)handle->start_regex + parent_token_id;
+        break;
+    default:
+        LOGE("Error: Unknown parent_start_stop value! at %zu", offset);
+        if (handle) {
+            handle->error = "Unknown parent_start_stop value!";
+            handle->error_offset = offset;
+        }
+        return false;
+    }
+
+    if (!pattern) return false;
+
+    size_t match_len = 0;
+    return adv_regex_find_pattern_ctx(
+        handle->regex_ctx, pattern, compiled_ptr, handle->text_format,
+        handle->text_addr + textparser_get_byte_offset(handle, offset),
+        textparser_get_total_units(handle) - offset, nullptr, &match_len,
+        !handle->language->case_sensitivity, true);
+}
+
+/* Helper to link a newly parsed child node into a parent AST container node */
+static inline void append_child_to_ast(
+    textparser_token_item *parent,
+    textparser_token_item **head_child,
+    textparser_token_item **last_child,
+    textparser_token_item *new_child)
+{
+    new_child->parent = parent;
+    if (*head_child == nullptr) {
+        *head_child = new_child;
+    }
+    if (*last_child != nullptr) {
+        new_child->prev = *last_child;
+        (*last_child)->next = new_child;
+    }
+    *last_child = new_child;
+}
+
 static textparser_token_item *parse_token_group(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
@@ -701,34 +759,9 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
 
         const textparser_token_item *current_prev = (child == nullptr) ? prev_sibling : child;
 
-        const char *parent_regex_pattern = nullptr;
-        void **parent_regex_compiled_ptr = nullptr;
-
-        if (parent_token_id != TextParser_END) {
-            switch(parent_start_stop)
-            {
-            case TEXTPARSER_SEARCH_END_TOKEN:
-                parent_regex_pattern = definition->tokens[parent_token_id].end_regex;
-                parent_regex_compiled_ptr = (void **)handle->end_regex + parent_token_id;
-                break;
-            case TEXTPARSER_SEARCH_START_TOKEN:
-                parent_regex_pattern = definition->tokens[parent_token_id].start_regex;
-                parent_regex_compiled_ptr = (void **)handle->start_regex + parent_token_id;
-                break;
-            default:
-                exit_with_error(handle, "Unknown parent_start_stop value!", offset);
-            }
-        }
-
-        if (parent_regex_pattern) {
-            size_t parent_match_len = 0;
-            bool found_parent_token = adv_regex_find_pattern_ctx(handle->regex_ctx, parent_regex_pattern, parent_regex_compiled_ptr, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &parent_match_len, !handle->language->case_sensitivity, true);
-
-            if (found_parent_token)
-            {
-                ret->len = offset - ret->position;
-                break;
-            }
+        if (check_parent_token_boundary(handle, parent_token_id, parent_start_stop, offset)) {
+            ret->len = offset - ret->position;
+            break;
         }
 
         const int *loop_effective_nested = get_effective_nested_tokens(handle, token_id, ret);
@@ -754,17 +787,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                 goto exit;
             }
 
-            if (child == nullptr) {
-                child = new_child;
-                child->parent = ret;
-                ret->child = child;
-            } else {
-                new_child->parent = ret;
-                new_child->prev = child;
-                child->next = new_child;
-                child = new_child;
-            }
-
+            append_child_to_ast(ret, &ret->child, &child, new_child);
             maybe_merge_sign(handle, child);
 
             if (child->len == 0) {
@@ -1067,17 +1090,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                 }
 
                 child = new_child;
-                child->parent = ret;
-                if (last_child) {
-                    child->prev = last_child;
-                }
-                if (ret->child == nullptr)
-                    ret->child = child;
-
-                if (last_child)
-                    last_child->next = child;
-                last_child = child;
-
+                append_child_to_ast(ret, &ret->child, &last_child, child);
                 maybe_merge_sign(handle, child);
 
                 if (child->len == 0) {
