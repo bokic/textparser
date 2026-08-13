@@ -1291,13 +1291,19 @@ static int textparser_init_regex(struct textparser_handle *handle)
 
 static void textparser_free_regex(struct textparser_handle *handle)
 {
-    enum textparser_encoding text_format = TEXTPARSER_ENCODING_NONE;
-
-    if ((handle == nullptr)||((handle->start_regex == nullptr)&&(handle->end_regex == nullptr)))
+    if (handle == nullptr)
         return;
 
-    text_format = handle->text_format;
+    // Always free regex_ctx, even if regexes were never compiled
+    if (handle->regex_ctx) {
+        adv_regex_context_free(handle->regex_ctx);
+        handle->regex_ctx = nullptr;
+    }
 
+    if ((handle->start_regex == nullptr) && (handle->end_regex == nullptr))
+        return;
+
+    enum textparser_encoding text_format = handle->text_format;
     size_t token_cnt = handle->token_count;
 
     if (handle->start_regex)
@@ -1654,6 +1660,7 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     ret->text_addr = text;
     ret->text_size = (size_t)len;
     ret->chunk_size = calculate_chunk_size(ret->text_size);
+    ret->regex_ctx = adv_regex_context_create();
 
     *handle = (textparser_t)ret;
     atomic_fetch_add(&active_handle_count, 1);

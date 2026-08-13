@@ -12,6 +12,9 @@
 #include <algorithm>
 
 TEST(ParserPerformance, cfml_workspace_benchmark) {
+#ifdef __SANITIZE_ADDRESS__
+    GTEST_SKIP() << "Skipping benchmark under AddressSanitizer";
+#endif
     namespace fs = std::filesystem;
     struct FileSample {
         std::string path;

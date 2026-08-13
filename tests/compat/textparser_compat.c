@@ -1337,6 +1337,11 @@ static void textparser_free_regex(struct textparser_handle *handle)
         free(handle->end_regex);
         handle->end_regex = nullptr;
     }
+
+    if (handle->regex_ctx) {
+        adv_regex_context_free(handle->regex_ctx);
+        handle->regex_ctx = nullptr;
+    }
 }
 
 void textparser_free_language_definition(textparser_language_definition *definition)
@@ -1453,10 +1458,6 @@ int textparser_parse_compat(textparser_t handle, const textparser_language_defin
     handle->error_offset = 0;
 
     // Free any previously parsed token tree to prevent leaks and AST corruption
-    if (handle->regex_ctx) {
-        adv_regex_context_free(handle->regex_ctx);
-        handle->regex_ctx = nullptr;
-    }
     free_arena(handle);
     handle->first_item = nullptr;
 

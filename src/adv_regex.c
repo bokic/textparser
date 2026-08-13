@@ -15,19 +15,7 @@ struct adv_regex_context {
 
 adv_regex_context *adv_regex_context_create(void)
 {
-    adv_regex_context *ctx = (adv_regex_context *)calloc(1, sizeof(adv_regex_context));
-    if (!ctx) return nullptr;
-
-    ctx->ccontext8 = pcre2_compile_context_create_8(nullptr);
-    if (ctx->ccontext8) pcre2_set_newline_8(ctx->ccontext8, PCRE2_NEWLINE_ANY);
-
-    ctx->ccontext16 = pcre2_compile_context_create_16(nullptr);
-    if (ctx->ccontext16) pcre2_set_newline_16(ctx->ccontext16, PCRE2_NEWLINE_ANY);
-
-    ctx->ccontext32 = pcre2_compile_context_create_32(nullptr);
-    if (ctx->ccontext32) pcre2_set_newline_32(ctx->ccontext32, PCRE2_NEWLINE_ANY);
-
-    return ctx;
+    return (adv_regex_context *)calloc(1, sizeof(adv_regex_context));
 }
 
 void adv_regex_context_free(adv_regex_context *ctx)
