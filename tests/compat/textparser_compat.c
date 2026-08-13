@@ -78,6 +78,7 @@ enum parent_start_stop{
 
 struct textparser_handle {
     const textparser_language_definition *language;
+    adv_regex_context *regex_ctx;
     void *start_regex;
     void *end_regex;
     void *mmap_addr;
@@ -507,7 +508,7 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
             /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
-            if (adv_regex_find_pattern(token->start_regex, (void **)handle->start_regex + token_id, handle->text_format, text, len, &found_at, nullptr, !handle->language->case_sensitivity, true)) {
+            if (adv_regex_find_pattern_ctx(handle->regex_ctx, token->start_regex, (void **)handle->start_regex + token_id, handle->text_format, text, len, &found_at, nullptr, !handle->language->case_sensitivity, true)) {
                 LOGI("found_at token type: [%s] at %zu",  handle->language->tokens[token_id].name, pos + found_at);
                 result = (ssize_t)found_at;
             }
@@ -687,7 +688,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
 
         if (parent_regex_pattern) {
             size_t parent_match_len = 0;
-            bool found_parent_token = adv_regex_find_pattern(parent_regex_pattern, parent_regex_compiled_ptr, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &parent_match_len, !handle->language->case_sensitivity, true);
+            bool found_parent_token = adv_regex_find_pattern_ctx(handle->regex_ctx, parent_regex_pattern, parent_regex_compiled_ptr, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &parent_match_len, !handle->language->case_sensitivity, true);
 
             if (found_parent_token)
             {
@@ -932,7 +933,7 @@ static textparser_token_item *parse_token_simple_token(struct textparser_handle 
     ret->position = offset;
 
     size_t len = 0;
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
+    if (!adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
         exit_with_error(handle, "Can't find start of the token!", offset);
     }
 
@@ -988,7 +989,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     ret->position = offset;
 
     // Search for start token
-    if (!adv_regex_find_pattern(token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
+    if (!adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
         exit_with_error(handle, "Can't find start of the token!", offset);
     }
 
@@ -1026,7 +1027,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             if (token_def->search_parent_end_token_last == false)
             {
                 size_t end_match_len = 0;
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
+                bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
                 if (found_end)
                 {
                     break;
@@ -1102,7 +1103,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             if (token_def->search_parent_end_token_last == true)
             {
                 size_t end_match_len = 0;
-                bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
+                bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
                 if (found_end)
                 {
                     break;
@@ -1130,7 +1131,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     }
 
     size_t end_len = 0;
-    bool found_end = adv_regex_find_pattern(token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, !handle->language->case_sensitivity, false);
+    bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, !handle->language->case_sensitivity, false);
 
     if (!found_end) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
@@ -1261,6 +1262,10 @@ static int textparser_init_regex(struct textparser_handle *handle)
 
     if (handle == nullptr)
         return -1;
+
+    if (handle->regex_ctx == nullptr) {
+        handle->regex_ctx = adv_regex_context_create();
+    }
 
     while(handle->language->tokens[token_cnt].name != nullptr)
         token_cnt++;
@@ -1448,6 +1453,10 @@ int textparser_parse_compat(textparser_t handle, const textparser_language_defin
     handle->error_offset = 0;
 
     // Free any previously parsed token tree to prevent leaks and AST corruption
+    if (handle->regex_ctx) {
+        adv_regex_context_free(handle->regex_ctx);
+        handle->regex_ctx = nullptr;
+    }
     free_arena(handle);
     handle->first_item = nullptr;
 
@@ -1497,7 +1506,7 @@ int textparser_parse_compat(textparser_t handle, const textparser_language_defin
                     void *rule_regex = nullptr;
                     size_t found_at = 0;
                     size_t found_len = 0;
-                    bool matched = adv_regex_find_pattern(rule->regex, &rule_regex, handle->text_format, handle->text_addr, handle->text_size, &found_at, &found_len, !definition->case_sensitivity, true);
+                    bool matched = adv_regex_find_pattern_ctx(handle->regex_ctx, rule->regex, &rule_regex, handle->text_format, handle->text_addr, handle->text_size, &found_at, &found_len, !definition->case_sensitivity, true);
                     if (rule_regex) {
                         adv_regex_free(&rule_regex, handle->text_format);
                     }

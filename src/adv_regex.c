@@ -7,9 +7,37 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-static pcre2_compile_context_8 *ccontext8 = nullptr;
-static pcre2_compile_context_16 *ccontext16 = nullptr;
-static pcre2_compile_context_32 *ccontext32 = nullptr;
+struct adv_regex_context {
+    pcre2_compile_context_8 *ccontext8;
+    pcre2_compile_context_16 *ccontext16;
+    pcre2_compile_context_32 *ccontext32;
+};
+
+adv_regex_context *adv_regex_context_create(void)
+{
+    adv_regex_context *ctx = (adv_regex_context *)calloc(1, sizeof(adv_regex_context));
+    if (!ctx) return nullptr;
+
+    ctx->ccontext8 = pcre2_compile_context_create_8(nullptr);
+    if (ctx->ccontext8) pcre2_set_newline_8(ctx->ccontext8, PCRE2_NEWLINE_ANY);
+
+    ctx->ccontext16 = pcre2_compile_context_create_16(nullptr);
+    if (ctx->ccontext16) pcre2_set_newline_16(ctx->ccontext16, PCRE2_NEWLINE_ANY);
+
+    ctx->ccontext32 = pcre2_compile_context_create_32(nullptr);
+    if (ctx->ccontext32) pcre2_set_newline_32(ctx->ccontext32, PCRE2_NEWLINE_ANY);
+
+    return ctx;
+}
+
+void adv_regex_context_free(adv_regex_context *ctx)
+{
+    if (!ctx) return;
+    if (ctx->ccontext8) pcre2_compile_context_free_8(ctx->ccontext8);
+    if (ctx->ccontext16) pcre2_compile_context_free_16(ctx->ccontext16);
+    if (ctx->ccontext32) pcre2_compile_context_free_32(ctx->ccontext32);
+    free(ctx);
+}
 
 static uint32_t decode_one_utf8_codepoint(const unsigned char **p)
 {
@@ -103,7 +131,7 @@ static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
 
 
 #define DEFINE_ADV_REGEX_FIND_PATTERN(bits) \
-static bool adv_regex_find_pattern##bits(const char *regex_str, pcre2_code_##bits **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start) \
+static bool adv_regex_find_pattern##bits(adv_regex_context *ctx, const char *regex_str, pcre2_code_##bits **regex, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_utf, bool is_caseless, bool only_at_start) \
 { \
     bool ret = false; \
  \
@@ -111,11 +139,14 @@ static bool adv_regex_find_pattern##bits(const char *regex_str, pcre2_code_##bit
     int error_number = 0; \
     pcre2_match_data_##bits *match_data = nullptr; \
     PCRE2_SIZE *ovector = nullptr; \
+    if (!ctx) return false; \
+    pcre2_compile_context_##bits *comp_ctx = ctx->ccontext##bits; \
  \
-    if (ccontext##bits == nullptr) \
+    if (comp_ctx == nullptr) \
     { \
-        ccontext##bits = pcre2_compile_context_create_##bits(nullptr); \
-        pcre2_set_newline_##bits(ccontext##bits, PCRE2_NEWLINE_ANY); \
+        comp_ctx = pcre2_compile_context_create_##bits(nullptr); \
+        pcre2_set_newline_##bits(comp_ctx, PCRE2_NEWLINE_ANY); \
+        ctx->ccontext##bits = comp_ctx; \
     } \
  \
     if (*regex == nullptr) \
@@ -134,7 +165,7 @@ static bool adv_regex_find_pattern##bits(const char *regex_str, pcre2_code_##bit
             if (pattern_conv == nullptr) return false; \
             compile_pattern = pattern_conv; \
         } \
-        *regex = pcre2_compile_##bits((PCRE2_SPTR##bits)compile_pattern, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, ccontext##bits); \
+        *regex = pcre2_compile_##bits((PCRE2_SPTR##bits)compile_pattern, PCRE2_ZERO_TERMINATED, options, &error_number, &error_offset, comp_ctx); \
         if (pattern_conv) free(pattern_conv); \
         if (*regex == nullptr) \
         { \
@@ -199,7 +230,7 @@ DEFINE_ADV_REGEX_FIND_PATTERN(16)
 DEFINE_ADV_REGEX_FIND_PATTERN(32)
 #undef DEFINE_ADV_REGEX_FIND_PATTERN
 
-bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+bool adv_regex_find_pattern_ctx(adv_regex_context *ctx, const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     if (regex_str == nullptr)
     {
@@ -209,15 +240,15 @@ bool adv_regex_find_pattern(const char *regex_str, void **regex, enum textparser
     switch(encoding)
     {
     case TEXTPARSER_ENCODING_LATIN1:
-        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, false, is_caseless, only_at_start);
+        return adv_regex_find_pattern8(ctx, regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, false, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UTF_8:
-        return adv_regex_find_pattern8(regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
+        return adv_regex_find_pattern8(ctx, regex_str, (pcre2_code_8 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UNICODE:
-        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, false, is_caseless, only_at_start);
+        return adv_regex_find_pattern16(ctx, regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, false, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UTF_16:
-        return adv_regex_find_pattern16(regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
+        return adv_regex_find_pattern16(ctx, regex_str, (pcre2_code_16 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
     case TEXTPARSER_ENCODING_UTF_32:
-        return adv_regex_find_pattern32(regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
+        return adv_regex_find_pattern32(ctx, regex_str, (pcre2_code_32 **)regex, start, max_len, offset, length, true, is_caseless, only_at_start);
     default:
         fprintf(stderr, "Illegal text encoding(%d) at adv_regex_find_pattern()\n", encoding);
         break;
@@ -250,20 +281,4 @@ void adv_regex_free(void **regex, enum textparser_encoding encoding)
     }
 
     *regex = nullptr;
-}
-
-void adv_regex_cleanup(void)
-{
-    if (ccontext8) {
-        pcre2_compile_context_free_8(ccontext8);
-        ccontext8 = nullptr;
-    }
-    if (ccontext16) {
-        pcre2_compile_context_free_16(ccontext16);
-        ccontext16 = nullptr;
-    }
-    if (ccontext32) {
-        pcre2_compile_context_free_32(ccontext32);
-        ccontext32 = nullptr;
-    }
 }
