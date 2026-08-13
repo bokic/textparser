@@ -1418,7 +1418,13 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
     int err = 0;
 
     memset(&local_hnd, 0, sizeof(local_hnd));
-    local_hnd.filename = pathname ? strdup(pathname) : nullptr;
+    if (pathname) {
+        local_hnd.filename = strdup(pathname);
+        if (local_hnd.filename == nullptr) {
+            err = 1;
+            goto err;
+        }
+    }
 
     local_hnd.mmap_addr = os_map(pathname, &local_hnd.mmap_size);
     if (!local_hnd.mmap_addr && local_hnd.mmap_size != 0) {
@@ -1709,6 +1715,9 @@ void textparser_set_filename(textparser_t handle, const char *filename)
 
     if (filename) {
         handle->filename = strdup(filename);
+        if (handle->filename == nullptr) {
+            return;
+        }
     }
 }
 
@@ -2270,6 +2279,7 @@ int textparser_build_line_map(textparser_t handle)
 
     handle->lines = malloc(sizeof(size_t) * count);
     if (handle->lines == nullptr) {
+        handle->no_lines = 0;
         return -1;
     }
     handle->no_lines = count;

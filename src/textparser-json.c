@@ -80,6 +80,11 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         goto err;
     }
     (*definition)->name = strdup(name_str);
+    if ((*definition)->name == nullptr) {
+        (*definition)->error_string = "strdup for `name` FAILED!";
+        ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+        goto err;
+    }
 
     found = json_object_object_get_ex(root_obj, "version", &value);
     if (found)
@@ -87,10 +92,18 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     else
         (*definition)->version = 0.;
 
-    found = json_object_object_get_ex(root_obj, "emptySegmentLanguage", &value);
     if (found) {
         const char *empty_lang = json_object_get_string(value);
-        (*definition)->empty_segment_language = empty_lang ? strdup(empty_lang) : nullptr;
+        if (empty_lang) {
+            (*definition)->empty_segment_language = strdup(empty_lang);
+            if ((*definition)->empty_segment_language == nullptr) {
+                (*definition)->error_string = "strdup for `emptySegmentLanguage` FAILED!";
+                ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                goto err;
+            }
+        } else {
+            (*definition)->empty_segment_language = nullptr;
+        }
     }
 
     found = json_object_object_get_ex(root_obj, "caseSensitivity", &value);
@@ -121,7 +134,16 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         for(size_t i = 0; i < array_length; i++) {
             json_object *array_item = json_object_array_get_idx(value, i);
             const char *ext_str = json_object_get_string(array_item);
-            (*definition)->default_file_extensions[i] = ext_str ? strdup(ext_str) : nullptr;
+            if (ext_str) {
+                (*definition)->default_file_extensions[i] = strdup(ext_str);
+                if ((*definition)->default_file_extensions[i] == nullptr) {
+                    (*definition)->error_string = "strdup for default_file_extensions item FAILED!";
+                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    goto err;
+                }
+            } else {
+                (*definition)->default_file_extensions[i] = nullptr;
+            }
         }
 
         (*definition)->default_file_extensions[array_length] = nullptr;
@@ -207,7 +229,15 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             key_value = nullptr;
             json_object_object_get_ex(token_item, "name", &key_value);
             str_val = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].name = strdup(str_val ? str_val : key);
+            const char *target_name = str_val ? str_val : key;
+            if (target_name) {
+                (*definition)->tokens[token_idx].name = strdup(target_name);
+                if ((*definition)->tokens[token_idx].name == nullptr) {
+                    (*definition)->error_string = "strdup for token name FAILED!";
+                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    goto err;
+                }
+            }
 
             key_value = nullptr;
             json_object_object_get_ex(token_item, "type", &key_value);
@@ -235,14 +265,32 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                 }
             }
             str_val = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].start_regex = str_val ? strdup(str_val) : nullptr;
+            if (str_val) {
+                (*definition)->tokens[token_idx].start_regex = strdup(str_val);
+                if ((*definition)->tokens[token_idx].start_regex == nullptr) {
+                    (*definition)->error_string = "strdup for token start_regex FAILED!";
+                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    goto err;
+                }
+            } else {
+                (*definition)->tokens[token_idx].start_regex = nullptr;
+            }
 
             key_value = nullptr;
             if (!json_object_object_get_ex(token_item, "endRegex", &key_value)) {
                 json_object_object_get_ex(token_item, "end_regex", &key_value);
             }
             str_val = json_object_get_string(key_value);
-            (*definition)->tokens[token_idx].end_regex = str_val ? strdup(str_val) : nullptr;
+            if (str_val) {
+                (*definition)->tokens[token_idx].end_regex = strdup(str_val);
+                if ((*definition)->tokens[token_idx].end_regex == nullptr) {
+                    (*definition)->error_string = "strdup for token end_regex FAILED!";
+                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    goto err;
+                }
+            } else {
+                (*definition)->tokens[token_idx].end_regex = nullptr;
+            }
 
             key_value = nullptr;
             if (!json_object_object_get_ex(token_item, "otherTextInside", &key_value)) {
@@ -542,7 +590,15 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                                 for (int e = 0; e < ext_len; e++) {
                                     json_object *ext_item = json_object_array_get_idx(exts_arr, e);
                                     if (ext_item && json_object_is_type(ext_item, json_type_string)) {
-                                        ext_list[e] = strdup(json_object_get_string(ext_item));
+                                        const char *ext_val = json_object_get_string(ext_item);
+                                        if (ext_val) {
+                                            ext_list[e] = strdup(ext_val);
+                                            if (ext_list[e] == nullptr) {
+                                                (*definition)->error_string = "strdup for override rule fileExtension FAILED!";
+                                                ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                                                goto err;
+                                            }
+                                        }
                                     }
                                 }
                                 rules[r].file_extensions = ext_list;
@@ -551,7 +607,15 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
                         json_object *regex_item = nullptr;
                         if (json_object_object_get_ex(if_obj, "regex", &regex_item) && json_object_is_type(regex_item, json_type_string)) {
-                            rules[r].regex = strdup(json_object_get_string(regex_item));
+                            const char *reg_val = json_object_get_string(regex_item);
+                            if (reg_val) {
+                                rules[r].regex = strdup(reg_val);
+                                if (rules[r].regex == nullptr) {
+                                    (*definition)->error_string = "strdup for override rule regex FAILED!";
+                                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                                    goto err;
+                                }
+                            }
                         }
                     }
 
