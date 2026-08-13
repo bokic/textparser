@@ -46,20 +46,20 @@ static uint32_t decode_one_utf8_codepoint(const unsigned char **p)
         cp = *s++;
     } else if (*s < 0xE0) {
         cp = (*s++ & 0x1F) << 6;
-        if ((*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
+        if (*s && (*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
     } else if (*s < 0xF0) {
         cp = (*s++ & 0x0F) << 12;
-        if ((*s & 0xC0) == 0x80) {
+        if (*s && (*s & 0xC0) == 0x80) {
             cp |= (*s++ & 0x3F) << 6;
-            if ((*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
+            if (*s && (*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
         }
     } else {
         cp = (*s++ & 0x07) << 18;
-        if ((*s & 0xC0) == 0x80) {
+        if (*s && (*s & 0xC0) == 0x80) {
             cp |= (*s++ & 0x3F) << 12;
-            if ((*s & 0xC0) == 0x80) {
+            if (*s && (*s & 0xC0) == 0x80) {
                 cp |= (*s++ & 0x3F) << 6;
-                if ((*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
+                if (*s && (*s & 0xC0) == 0x80) cp |= (*s++ & 0x3F);
             }
         }
     }

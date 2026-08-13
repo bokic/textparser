@@ -449,3 +449,20 @@ TEST(parse_CFML_Precedence, verified_coldfusion_spec_cases) {
     }
 }
 
+TEST(parse_UTF8, truncated_utf8_sequences) {
+    // Truncated 2-byte, 3-byte, and 4-byte sequence headers at string boundary
+    const char *truncated_inputs[] = {
+        "\xC2",             // Truncated 2-byte sequence
+        "\xE0\xA0",         // Truncated 3-byte sequence (1 continuation byte)
+        "\xF0\x90\x80",     // Truncated 4-byte sequence (2 continuation bytes)
+        "test\xC2",         // Valid ASCII followed by truncated 2-byte sequence
+        "hello\xE0\xA0"     // Valid ASCII followed by truncated 3-byte sequence
+    };
+
+    for (const char *input : truncated_inputs) {
+        // Attempt parsing UTF-16/32 encoding conversions via adv_regex_find_pattern_ctx
+        TextParser parser(input, &cfml_definition);
+        // Ensure execution completes safely without reading out-of-bounds or crashing
+    }
+}
+
