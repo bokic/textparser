@@ -168,10 +168,7 @@ static size_t textparser_char_len(const struct textparser_handle *handle, size_t
 }
 
 
-static void free_item_tree(textparser_token_item *item)
-{
-    (void)item;
-}
+
 
 static size_t calculate_chunk_size(size_t filesize)
 {

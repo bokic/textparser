@@ -149,10 +149,7 @@ static size_t textparser_char_len(const struct textparser_handle *handle, size_t
 }
 
 
-static void free_item_tree(textparser_token_item *item)
-{
-    (void)item;
-}
+
 
 static size_t calculate_chunk_size(size_t filesize)
 {
@@ -1659,7 +1656,6 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
 
 void textparser_close(textparser_t handle)
 {
-    textparser_token_item *item = nullptr;
     void *mmap_addr = nullptr;
     size_t mmap_size = 0;
 
@@ -1678,13 +1674,6 @@ void textparser_close(textparser_t handle)
     if (handle->owned_buffer) {
         free(handle->owned_buffer);
         handle->owned_buffer = nullptr;
-    }
-
-    item = handle->first_item;
-    if (item)
-    {
-        free_item_tree(item);
-        item = nullptr;
     }
 
     free_arena(handle);
