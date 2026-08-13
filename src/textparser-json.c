@@ -68,18 +68,6 @@ static char *json_pool_strdup(json_string_pool *pool, const char *str)
     return dest;
 }
 
-static void json_pool_free(json_string_pool *pool)
-{
-    if (!pool) return;
-    json_string_pool_chunk *curr = pool->head;
-    while (curr) {
-        json_string_pool_chunk *next = curr->next;
-        free(curr);
-        curr = next;
-    }
-    free(pool);
-}
-
 static uint32_t get_color_or_flag_value(struct json_object *obj, uint32_t default_val)
 {
     if (obj == nullptr) {
