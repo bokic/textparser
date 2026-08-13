@@ -196,7 +196,7 @@ static void free_arena(struct textparser_handle *handle)
     handle->current_chunk_used = 0;
 }
 
-static textparser_token_item *allocate_token(struct textparser_handle *handle)
+static textparser_token_item *textparser_alloc_token(struct textparser_handle *handle, int token_id, size_t pos, size_t len)
 {
     size_t token_size = sizeof(textparser_token_item);
     if (handle->current_chunk == nullptr ||
@@ -231,6 +231,12 @@ static textparser_token_item *allocate_token(struct textparser_handle *handle)
     textparser_token_item *ret = (textparser_token_item *)((char *)handle->current_chunk + handle->current_chunk_used);
     handle->current_chunk_used += token_size;
     memset(ret, 0, token_size);
+
+    ret->token_id = token_id;
+    ret->position = pos;
+    ret->len = len;
+    ret->text_color = TEXTPARSER_NOCOLOR;
+    ret->text_background = TEXTPARSER_NOCOLOR;
     return ret;
 }
 
@@ -542,16 +548,14 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
         exit_with_error(handle, "group_one_child token type nested_tokens list is empty!", offset);
     }
 
-    ret = allocate_token(handle);
+    offset = textparser_skip_whitespace(handle, offset);
+
+    ret = textparser_alloc_token(handle, token_id, offset, 0);
     if (ret == nullptr) {
         return nullptr;
     }
 
     ret->parent = (textparser_token_item *)parent_item;
-    offset = textparser_skip_whitespace(handle, offset);
-
-    ret->token_id = token_id;
-    ret->position = offset;
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
 
@@ -665,16 +669,14 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
         exit_with_error(handle, "nested_tokens list is empty!", offset);
     }
 
-    ret = allocate_token(handle);
+    offset = textparser_skip_whitespace(handle, offset);
+
+    ret = textparser_alloc_token(handle, token_id, offset, 0);
     if (ret == nullptr) {
         return nullptr;
     }
 
     ret->parent = (textparser_token_item *)parent_item;
-    offset = textparser_skip_whitespace(handle, offset);
-
-    ret->token_id = token_id;
-    ret->position = offset;
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
 
@@ -820,16 +822,14 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
     int inner_token_id = token_def->nested_tokens[1];
     int end_token_id   = token_def->nested_tokens[2];
 
-    ret = allocate_token(handle);
+    offset = textparser_skip_whitespace(handle, offset);
+
+    ret = textparser_alloc_token(handle, token_id, offset, 0);
     if (ret == nullptr) {
         return nullptr;
     }
 
     ret->parent = (textparser_token_item *)parent_item;
-    offset = textparser_skip_whitespace(handle, offset);
-
-    ret->token_id = token_id;
-    ret->position = offset;
 
     ssize_t start_pos = textparser_find_token(handle, start_token_id, offset, definition->other_text_inside, ret, prev_sibling);
     if (start_pos != 0) {
@@ -930,15 +930,12 @@ static textparser_token_item *parse_token_simple_token(struct textparser_handle 
         exit_with_error(handle, "offset >= total units count!", offset);
     }
 
-    ret = allocate_token(handle);
+    offset = textparser_skip_whitespace(handle, offset);
+
+    ret = textparser_alloc_token(handle, token_id, offset, 0);
     if (ret == nullptr) {
         exit_with_error(handle, "Can't allocate memory!", offset);
     }
-
-    offset = textparser_skip_whitespace(handle, offset);
-
-    ret->token_id = token_id;
-    ret->position = offset;
 
     size_t len = 0;
     if (!adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
@@ -986,15 +983,12 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
         exit_with_error(handle, "offset >= total units count!", offset);
     }
 
-    ret = allocate_token(handle);
+    offset = textparser_skip_whitespace(handle, offset);
+
+    ret = textparser_alloc_token(handle, token_id, offset, 0);
     if (ret == nullptr) {
         exit_with_error(handle, "Can't allocate memory!", offset);
     }
-
-    offset = textparser_skip_whitespace(handle, offset);
-
-    ret->token_id = token_id;
-    ret->position = offset;
 
     // Search for start token
     if (!adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
@@ -1875,14 +1869,8 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
                 if (prev_item && prev_item->token_id == TEXTPARSER_TOKEN_ID_ERROR) {
                     prev_item->len += char_l;
                 } else {
-                    textparser_token_item *err_item = allocate_token(handle);
+                    textparser_token_item *err_item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_ERROR, pos, char_l);
                     if (err_item) {
-                        memset(err_item, 0, sizeof(textparser_token_item));
-                        err_item->token_id = TEXTPARSER_TOKEN_ID_ERROR;
-                        err_item->position = pos;
-                        err_item->len = char_l;
-                        err_item->text_color = TEXTPARSER_NOCOLOR;
-                        err_item->text_background = TEXTPARSER_NOCOLOR;
                         if (handle->first_item == nullptr) {
                             handle->first_item = err_item;
                         }
