@@ -142,6 +142,7 @@ typedef struct {
     textparser_sign_merge *sign_merge;
     textparser_token *tokens;
     const char *error_string;
+    void *string_pool;
 } textparser_language_definition;
 
 

@@ -1339,22 +1339,27 @@ void textparser_free_language_definition(textparser_language_definition *definit
     if (definition == nullptr)
         return;
 
-    if (definition->default_file_extensions) {
-        int c = 0;
-        while(definition->default_file_extensions[c]) {
-            free((void *)definition->default_file_extensions[c]);
-            c++;
-        }
+    bool uses_pool = (definition->string_pool != nullptr);
 
+    if (definition->default_file_extensions) {
+        if (!uses_pool) {
+            int c = 0;
+            while(definition->default_file_extensions[c]) {
+                free((void *)definition->default_file_extensions[c]);
+                c++;
+            }
+        }
         free((void *)definition->default_file_extensions);
     }
 
-    if (definition->name) {
-        free((void *)definition->name);
-    }
+    if (!uses_pool) {
+        if (definition->name) {
+            free((void *)definition->name);
+        }
 
-    if (definition->empty_segment_language) {
-        free((void *)definition->empty_segment_language);
+        if (definition->empty_segment_language) {
+            free((void *)definition->empty_segment_language);
+        }
     }
 
     if (definition->starts_with) {
@@ -1379,12 +1384,14 @@ void textparser_free_language_definition(textparser_language_definition *definit
                         definition->override_start_tokens[r].regex != nullptr ||
                         definition->override_start_tokens[r].start_tokens != nullptr; r++) {
             if (definition->override_start_tokens[r].file_extensions) {
-                for (int e = 0; definition->override_start_tokens[r].file_extensions[e] != nullptr; e++) {
-                    free((void *)definition->override_start_tokens[r].file_extensions[e]);
+                if (!uses_pool) {
+                    for (int e = 0; definition->override_start_tokens[r].file_extensions[e] != nullptr; e++) {
+                        free((void *)definition->override_start_tokens[r].file_extensions[e]);
+                    }
                 }
                 free((void *)definition->override_start_tokens[r].file_extensions);
             }
-            if (definition->override_start_tokens[r].regex) {
+            if (!uses_pool && definition->override_start_tokens[r].regex) {
                 free((void *)definition->override_start_tokens[r].regex);
             }
             if (definition->override_start_tokens[r].start_tokens) {
@@ -1399,14 +1406,16 @@ void textparser_free_language_definition(textparser_language_definition *definit
         while(definition->tokens[c].name != nullptr) {
             textparser_token *token = &definition->tokens[c];
 
-            if (token->name) {
-                free((void *)token->name);
-            }
-            if (token->start_regex) {
-                free((void *)token->start_regex);
-            }
-            if (token->end_regex) {
-                free((void *)token->end_regex);
+            if (!uses_pool) {
+                if (token->name) {
+                    free((void *)token->name);
+                }
+                if (token->start_regex) {
+                    free((void *)token->start_regex);
+                }
+                if (token->end_regex) {
+                    free((void *)token->end_regex);
+                }
             }
             if (token->nested_tokens) {
                 free((void *)token->nested_tokens);
@@ -1426,6 +1435,31 @@ void textparser_free_language_definition(textparser_language_definition *definit
             c++;
         }
         free(definition->tokens);
+    }
+
+    if (uses_pool) {
+        /* Free the continuous string pool arena */
+        typedef struct json_string_pool_chunk {
+            struct json_string_pool_chunk *next;
+            size_t used;
+            size_t capacity;
+            char buffer[];
+        } json_string_pool_chunk;
+
+        typedef struct {
+            json_string_pool_chunk *head;
+        } json_string_pool;
+
+        json_string_pool *pool = (json_string_pool *)definition->string_pool;
+        if (pool) {
+            json_string_pool_chunk *curr = pool->head;
+            while (curr) {
+                json_string_pool_chunk *next = curr->next;
+                free(curr);
+                curr = next;
+            }
+            free(pool);
+        }
     }
 
     free(definition);

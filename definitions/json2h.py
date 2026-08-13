@@ -319,6 +319,7 @@ def main(args):
 
     text += "    }," + os.linesep
     text += "    .error_string = NULL," + os.linesep
+    text += "    .string_pool = NULL," + os.linesep
     text += "};" + os.linesep
 
     open(out_file, "w").write(text)
