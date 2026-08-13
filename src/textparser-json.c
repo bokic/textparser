@@ -40,6 +40,33 @@ static uint32_t get_color_or_flag_value(struct json_object *obj, uint32_t defaul
     return (uint32_t)json_object_get_int64(obj);
 }
 
+static int *json_parse_token_id_array(struct json_object *arr, const textparser_token *tokens, size_t tokens_cnt)
+{
+    if (!arr || !json_object_is_type(arr, json_type_array)) return nullptr;
+
+    int len = json_object_array_length(arr);
+    int *list = calloc(len + 1, sizeof(int));
+    if (!list) return nullptr;
+
+    for (int i = 0; i < len; i++) {
+        json_object *item = json_object_array_get_idx(arr, i);
+        list[i] = TextParser_END;
+        if (item && json_object_is_type(item, json_type_string)) {
+            const char *name = json_object_get_string(item);
+            if (name && tokens) {
+                for (size_t j = 0; j < tokens_cnt; j++) {
+                    if (tokens[j].name && strcmp(tokens[j].name, name) == 0) {
+                        list[i] = (int)j;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    list[len] = TextParser_END;
+    return list;
+}
+
 static int textparser_json_load_language_definition_internal(struct json_object *root_obj, textparser_language_definition **definition)
 {
     size_t array_length = 0;
@@ -370,32 +397,21 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                      goto err;
                 }
 
-                (*definition)->tokens[token_idx].nested_tokens = malloc(sizeof(int) * (nested_cnt + 1));
-                if (!(*definition)->tokens[token_idx].nested_tokens) {
-                    (*definition)->error_string = "malloc for nested_tokens FAILED!";
-                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
-                    goto err;
-                }
-
-                for(int i = 0; i < nested_cnt; i++) {
+                for (int i = 0; i < nested_cnt; i++) {
                      json_object *item = json_object_array_get_idx(nested_tokens_json, i);
                      if (!item || !json_object_is_type(item, json_type_string)) {
                          (*definition)->error_string = "`nestedTokens` array element is not a string!";
                          ret_code = TEXTPARSER_JSON_NESTED_TOKENS_ELEMENT_NOT_STRING;
                          goto err;
                      }
-                     const char *name = json_object_get_string(item);
-
-                     int found_idx = TextParser_END;
-                     for(int j = 0; j < (int)tokens_cnt; j++) {
-                          if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
-                               found_idx = j;
-                               break;
-                          }
-                     }
-                     (*definition)->tokens[token_idx].nested_tokens[i] = found_idx;
                 }
-                 (*definition)->tokens[token_idx].nested_tokens[nested_cnt] = TextParser_END;
+
+                (*definition)->tokens[token_idx].nested_tokens = json_parse_token_id_array(nested_tokens_json, (*definition)->tokens, tokens_cnt);
+                if (!(*definition)->tokens[token_idx].nested_tokens) {
+                    (*definition)->error_string = "malloc for nested_tokens FAILED!";
+                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    goto err;
+                }
             } else {
                  (*definition)->tokens[token_idx].nested_tokens = nullptr;
             }
@@ -431,48 +447,22 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                         }
 
                         if (wpi_arr && json_object_is_type(wpi_arr, json_type_array)) {
-                            int wpi_len = json_object_array_length(wpi_arr);
-                            int *wpi_ids = malloc(sizeof(int) * (wpi_len + 1));
+                            int *wpi_ids = json_parse_token_id_array(wpi_arr, (*definition)->tokens, tokens_cnt);
                             if (wpi_ids == nullptr) {
                                 (*definition)->error_string = "malloc for whenParentIn FAILED!";
                                 ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
                                 goto err;
                             }
-                            for (int w = 0; w < wpi_len; w++) {
-                                const char *pname = json_object_get_string(json_object_array_get_idx(wpi_arr, w));
-                                int fidx = TextParser_END;
-                                for (size_t j = 0; j < tokens_cnt; j++) {
-                                    if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, pname) == 0) {
-                                        fidx = (int)j;
-                                        break;
-                                    }
-                                }
-                                wpi_ids[w] = fidx;
-                            }
-                            wpi_ids[wpi_len] = TextParser_END;
                             (*definition)->tokens[token_idx].context_nested_tokens[r].when_parent_in = wpi_ids;
                         }
 
                         if (nt_arr && json_object_is_type(nt_arr, json_type_array)) {
-                            int nt_len = json_object_array_length(nt_arr);
-                            int *nt_ids = malloc(sizeof(int) * (nt_len + 1));
+                            int *nt_ids = json_parse_token_id_array(nt_arr, (*definition)->tokens, tokens_cnt);
                             if (nt_ids == nullptr) {
                                 (*definition)->error_string = "malloc for nestedTokens FAILED!";
                                 ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
                                 goto err;
                             }
-                            for (int n = 0; n < nt_len; n++) {
-                                const char *tname = json_object_get_string(json_object_array_get_idx(nt_arr, n));
-                                int fidx = TextParser_END;
-                                for (size_t j = 0; j < tokens_cnt; j++) {
-                                    if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, tname) == 0) {
-                                        fidx = (int)j;
-                                        break;
-                                    }
-                                }
-                                nt_ids[n] = fidx;
-                            }
-                            nt_ids[nt_len] = TextParser_END;
                             (*definition)->tokens[token_idx].context_nested_tokens[r].nested_tokens = nt_ids;
                         }
                     }
@@ -496,32 +486,21 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         goto err;
     }
 
-    (*definition)->starts_with = malloc(sizeof(int) * (starts_with_cnt + 1));
-    if ((*definition)->starts_with == nullptr) {
-        (*definition)->error_string = "malloc for starts_with FAILED!";
-        ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
-        goto err;
-    }
-
-    for(int i = 0; i < starts_with_cnt; i++) {
+    for (int i = 0; i < starts_with_cnt; i++) {
         json_object *item = json_object_array_get_idx(start_tokens_arr, i);
         if (!item || !json_object_is_type(item, json_type_string)) {
             (*definition)->error_string = "`startTokens` array element is not a string!";
             ret_code = TEXTPARSER_JSON_STARTS_WITH_ELEMENT_NOT_STRING;
             goto err;
         }
-        const char *name = json_object_get_string(item);
-
-        int found_idx = TextParser_END;
-        for(size_t j = 0; j < tokens_cnt; j++) {
-             if ((*definition)->tokens[j].name && strcmp((*definition)->tokens[j].name, name) == 0) {
-                 found_idx = j;
-                 break;
-             }
-        }
-        (*definition)->starts_with[i] = found_idx;
     }
-    (*definition)->starts_with[starts_with_cnt] = TextParser_END;
+
+    (*definition)->starts_with = json_parse_token_id_array(start_tokens_arr, (*definition)->tokens, tokens_cnt);
+    if ((*definition)->starts_with == nullptr) {
+        (*definition)->error_string = "malloc for starts_with FAILED!";
+        ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+        goto err;
+    }
 
     found = json_object_object_get_ex(root_obj, "otherTextInside", &value);
     if (found) {
@@ -542,26 +521,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                 if (!json_object_object_get_ex(sign_merge_obj, list_names[l], &list_arr) || !json_object_is_type(list_arr, json_type_array)) {
                     continue;
                 }
-                int list_len = json_object_array_length(list_arr);
-                int *list = calloc(list_len + 1, sizeof(int));
-                if (list == nullptr) {
-                    continue;
-                }
-                for (int i = 0; i < list_len; i++) {
-                    json_object *item = json_object_array_get_idx(list_arr, i);
-                    list[i] = TextParser_END;
-                    if (item && json_object_is_type(item, json_type_string)) {
-                        const char *token_name = json_object_get_string(item);
-                        for (size_t k = 0; k < tokens_cnt; k++) {
-                            if ((*definition)->tokens[k].name && strcmp((*definition)->tokens[k].name, token_name) == 0) {
-                                list[i] = (int)k;
-                                break;
-                            }
-                        }
-                    }
-                }
-                list[list_len] = TextParser_END;
-                *list_ptrs[l] = list;
+                *list_ptrs[l] = json_parse_token_id_array(list_arr, (*definition)->tokens, tokens_cnt);
             }
             sign_merge->sign_tokens = sign_list;
             sign_merge->number_tokens = number_list;
@@ -621,26 +581,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
                     json_object *st_arr = nullptr;
                     if (json_object_object_get_ex(rule_obj, "startTokens", &st_arr) && json_object_is_type(st_arr, json_type_array)) {
-                        int st_len = json_object_array_length(st_arr);
-                        int *st_list = calloc(st_len + 1, sizeof(int));
-                        if (st_list != nullptr) {
-                            for (int s = 0; s < st_len; s++) {
-                                json_object *st_item = json_object_array_get_idx(st_arr, s);
-                                if (st_item && json_object_is_type(st_item, json_type_string)) {
-                                    const char *st_name = json_object_get_string(st_item);
-                                    int st_idx = TextParser_END;
-                                    for (size_t k = 0; k < tokens_cnt; k++) {
-                                        if ((*definition)->tokens[k].name && strcmp((*definition)->tokens[k].name, st_name) == 0) {
-                                            st_idx = (int)k;
-                                            break;
-                                        }
-                                    }
-                                    st_list[s] = st_idx;
-                                }
-                            }
-                            st_list[st_len] = TextParser_END;
-                            rules[r].start_tokens = st_list;
-                        }
+                        rules[r].start_tokens = json_parse_token_id_array(st_arr, (*definition)->tokens, tokens_cnt);
                     }
                 }
                 (*definition)->override_start_tokens = rules;
