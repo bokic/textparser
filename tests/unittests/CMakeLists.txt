@@ -25,6 +25,13 @@ endif()
 
 enable_testing()
 
+if(NOT WIN32)
+    find_package(PkgConfig REQUIRED)
+    foreach(width 8 16 32)
+        pkg_search_module(libpcre2-${width} REQUIRED IMPORTED_TARGET libpcre2-${width}>=10.42)
+    endforeach()
+endif()
+
 add_executable( unittests
   cfml_tests.cpp
   json_tests.cpp
@@ -58,13 +65,17 @@ add_executable( unittests
   subtraction_tests.cpp
   openfile_tests.cpp
   query_tests.cpp
+  ../compat/textparser_compat.c
+  ../../src/adv_regex.c
 
   tokenparser.hpp
 )
 target_include_directories( unittests PRIVATE
     ../../include
     ../../definitions
+    ../../src
     ../../src/validation
+    ../compat
 )
 if(NOT MSVC)
   target_compile_options(unittests PRIVATE -Wno-pedantic)
@@ -76,6 +87,9 @@ target_link_libraries( unittests
   php
   html
   css
+  PkgConfig::libpcre2-8
+  PkgConfig::libpcre2-16
+  PkgConfig::libpcre2-32
   GTest::gtest_main
 )
 

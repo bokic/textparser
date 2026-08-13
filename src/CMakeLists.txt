@@ -26,7 +26,6 @@ endif()
 
 add_library(libtextparser SHARED
     textparser.c
-    textparser_inc.c
     adv_regex.c
     adv_regex.h
 

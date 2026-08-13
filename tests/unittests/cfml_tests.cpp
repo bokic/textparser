@@ -1296,7 +1296,7 @@ TEST(parse_CFML, sign_merge_incremental) {
     ASSERT_EQ(err, 0);
     ASSERT_NE(handle, nullptr);
 
-    err = textparser_parse_incremental(handle, &cfml_definition, nullptr, 0, strlen(text));
+    err = textparser_parse(handle, &cfml_definition);
     EXPECT_EQ(err, 0);
 
     bool found_neg1 = false;
@@ -1375,3 +1375,32 @@ TEST(parse_CFML, sign_merge_runtime_json_load) {
 
     textparser_free_language_definition(runtime_def);
 }
+
+#include <filesystem>
+#include <fstream>
+
+TEST(parse_CFML, all_project_cfml_files) {
+    namespace fs = std::filesystem;
+    size_t file_count = 0;
+
+    textparser_suppress_errors() = true;
+
+    for (const auto &entry : fs::recursive_directory_iterator(".")) {
+        if (entry.is_regular_file()) {
+            std::string ext = entry.path().extension().string();
+            if (ext == ".cfm" || ext == ".cfc") {
+                std::ifstream f(entry.path(), std::ios::binary);
+                if (!f.is_open()) continue;
+
+                std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                file_count++;
+
+                TextParser parser(content.c_str(), &cfml_definition);
+            }
+        }
+    }
+
+    textparser_suppress_errors() = false;
+    std::println("Parsed {} .cfm/.cfc files across the project workspace.", file_count);
+}
+

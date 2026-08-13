@@ -21,17 +21,18 @@ It has a flexible architecture making it easy to add new languages.
 - **Native Query Engine (`textparser_query`)**: High-performance C selector engine to query AST nodes using intuitive CSS-like selector syntax (`"Parent > Child"`, `"Ancestor Descendant"`, `"TypeA, TypeB"`).
 - **Operator Precedence & Pratt Parsing (`operator_precedence`)**: Top-Down Operator Precedence algorithm integrated into the C parser to pivot flat operator token sequences into structured binary/unary expression trees with configurable binding power and associativity (`left`/`right`).
 - **Sign Merging (`mergeSignIntoNumber`)**: Per-definition rule (enabled for all arithmetic languages, e.g. C, Java, JavaScript, Python, CFML, ...) that absorbs a leading `+`/`-` sign into the following number token (e.g. `x = -1` → `Number("-1")`) while leaving true binary subtraction untouched (`10-10` → `Number(10) Operator(-) Number(10)`). The merge is decided in the parse pass by the preceding context (unary only when the sign is *not* preceded by an operand), requires sign/number adjacency, only applies to literal `+`/`-` (never e.g. `!3`), and also handles a sign that is the last child of an operator group (`12 +-43` → `Number(12) Operator(+) Number(-43)`). Configured via `signTokens`, `numberTokens`, and `operandTokens` in the JSON definition.
-- **Incremental Parsing (`textparser_parse_incremental`)**: Efficiently re-parses modified document regions using parser state snapshots (`textparser_parser_state`), optimized for real-time text editors and IDE integrations. *Note: Post-parse AST node unwrapping rules such as `delete_if_only_one_child` are currently ignored during incremental parsing to avoid stack frame mutation overhead.*
+- **Core Parser Architecture**: High-performance stack-based parsing engine ([src/textparser.c](file:///home/boris/projects/textparser/src/textparser.c)) supporting full and incremental document parsing (`textparser_parse`, `textparser_parse_incremental`) using state snapshots (`textparser_parser_state`).
+- **Compatibility Testing Harness**: Legacy parser preserved in `tests/compat/textparser_compat.c` (`textparser_parse_compat`). Unit tests automatically cross-validate the new core parser AST against the compat parser AST, logging `"incremental parser parsed differently compared to full parser algorithm"` if any token tree divergence occurs.
 - **Python Tooling**: Includes Python scripts for prototyping, validation of the core algorithm, generation of C header files (`json2h.py`), and other parser verification tools.
 
 ## Project Structure
 
-- **`src/`**: Core C library implementation and private headers (`textparser.c`, `adv_regex.c`, `adv_regex.h`, `logger.h`).
-- **`include/`**: Public header files (`textparser.h`).
+- **`src/`**: Core C library implementation (`textparser.c`, `textparser-json.c`, `adv_regex.c`, `adv_regex.h`, `logger.h`).
+- **`include/`**: Public header files (`textparser.h`, `textparser-json.h`).
 - **`cli/`**: Command-line tool for testing, debugging, and demonstrating the library.
 - **`definitions/`**: Language definitions (e.g., CFML, JSON).
 - **`python/`**: Python bindings, prototypes, and validation tools (`validate_cfml.py`).
-- **`tests/`**: Unit and integration tests.
+- **`tests/`**: Unit and integration tests, including `tests/compat/` for legacy parser validation.
 - **`ccat/`**: Syntax highlighting CLI utility (color cat).
 
 ## Build Instructions

@@ -155,7 +155,7 @@ TEST(parse_C, sign_merge_top_level_and_incremental) {
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
     ASSERT_NE(handle, nullptr);
-    ASSERT_EQ(textparser_parse_incremental(handle, &c_definition, nullptr, 0, strlen(text)), 0);
+    ASSERT_EQ(textparser_parse(handle, &c_definition), 0);
 
     bool inc_neg1 = false;
     std::function<void(const textparser_token_item *)> iscan = [&](const textparser_token_item *item) {
