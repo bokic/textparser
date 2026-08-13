@@ -171,6 +171,16 @@ EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_language_definition *definition);
 EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos);
+
+/**
+ * Perform a 2nd AST post-processing pass to collapse/unwrap container nodes marked
+ * with `delete_if_only_one_child` that contain exactly 1 child token.
+ *
+ * NOTE: This function MUST ONLY be called for full one-time document parses.
+ * DO NOT use this function during interactive incremental parsing (`textparser_parse_incremental`),
+ * as modifying node pointers invalidates parser state snapshots for subsequent edits.
+ */
+EXPORT_TEXTPARSER void textparser_post_process(textparser_token_item **root, const textparser_language_definition *language);
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle);
 

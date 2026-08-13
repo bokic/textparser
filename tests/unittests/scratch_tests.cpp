@@ -309,7 +309,10 @@ TEST(parse_DeleteIfOnlyOneChild, token_delete_if_only_one_child_validation) {
     err = textparser_parse(handle, &lang);
     EXPECT_EQ(err, 0);
 
-    const textparser_token_item *first = textparser_get_first_token(handle);
+    textparser_token_item *root = textparser_get_first_token(handle);
+    textparser_post_process(&root, &lang);
+
+    const textparser_token_item *first = root;
     ASSERT_NE(first, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&lang, first), "ChildToken");
     EXPECT_EQ(first->parent, nullptr);

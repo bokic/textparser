@@ -1889,6 +1889,48 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
     return 0;
 }
 
+void textparser_post_process(textparser_token_item **root, const textparser_language_definition *language)
+{
+    if (root == nullptr || *root == nullptr || language == nullptr) return;
+
+    textparser_token_item *curr = *root;
+
+    while (curr) {
+        textparser_token_item *next_sibling = curr->next;
+
+        /* First recursively process child subtree */
+        if (curr->child) {
+            textparser_post_process(&curr->child, language);
+        }
+
+        /* Check if this node has delete_if_only_one_child condition */
+        if (curr->token_id >= 0 && language->tokens[curr->token_id].delete_if_only_one_child &&
+            curr->child && textparser_get_token_children_count(curr) == 1) {
+            textparser_token_item *only_child = curr->child;
+
+            only_child->parent = curr->parent;
+            only_child->prev = curr->prev;
+            only_child->next = curr->next;
+
+            if (curr->prev) {
+                curr->prev->next = only_child;
+            } else if (curr->parent) {
+                curr->parent->child = only_child;
+            } else {
+                *root = only_child;
+            }
+
+            if (curr->next) {
+                curr->next->prev = only_child;
+            }
+
+            curr = only_child;
+        }
+
+        curr = next_sibling;
+    }
+}
+
 const char *textparser_parse_error(textparser_t handle)
 {
     if (handle == nullptr)
