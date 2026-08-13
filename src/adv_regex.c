@@ -148,6 +148,8 @@ static bool adv_regex_find_pattern##bits(const char *regex_str, pcre2_code_##bit
     } \
  \
     match_data = pcre2_match_data_create_from_pattern_##bits(*regex, nullptr); \
+    if (match_data == nullptr) \
+        return false; \
  \
     int rc = pcre2_match_##bits( \
         *regex, \
