@@ -445,21 +445,25 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
 
                     ssize_t closest_child_pos = SSIZE_MAX;
                     {
-                        int adjusted_list[nested_count + 1];
-                        adjust_search_order(effective_nested, adjusted_list);
+                        int stack_buf[64];
+                        int *adjusted_list = (nested_count + 1 <= 64) ? stack_buf : malloc((nested_count + 1) * sizeof(int));
+                        if (adjusted_list != nullptr) {
+                            adjust_search_order(effective_nested, adjusted_list);
 
-                        for(int c = 0; adjusted_list[c] != TextParser_END; c++)
-                        {
-                            ssize_t child_token_pos = textparser_find_token(handle, adjusted_list[c], pos, token->other_text_inside, parent_item, prev_sibling);
-                            if (child_token_pos == TOKEN_NOT_FOUND) continue;
-                            if (child_token_pos == 0) {
-                                closest_child_pos = 0;
-                                break;
-                            }
+                            for(int c = 0; adjusted_list[c] != TextParser_END; c++)
+                            {
+                                ssize_t child_token_pos = textparser_find_token(handle, adjusted_list[c], pos, token->other_text_inside, parent_item, prev_sibling);
+                                if (child_token_pos == TOKEN_NOT_FOUND) continue;
+                                if (child_token_pos == 0) {
+                                    closest_child_pos = 0;
+                                    break;
+                                }
 
-                            if (child_token_pos < closest_child_pos) {
-                                closest_child_pos = child_token_pos;
+                                if (child_token_pos < closest_child_pos) {
+                                    closest_child_pos = child_token_pos;
+                                }
                             }
+                            if (adjusted_list != stack_buf) free(adjusted_list);
                         }
                     }
 
@@ -560,17 +564,21 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
     size_t closest = SIZE_MAX;
     int current_token_id = TextParser_END;
     {
-        int adjusted_list[count + 1];
-        adjust_search_order(effective_nested, adjusted_list);
+        int stack_buf[64];
+        int *adjusted_list = (count + 1 <= 64) ? stack_buf : malloc((count + 1) * sizeof(int));
+        if (adjusted_list != nullptr) {
+            adjust_search_order(effective_nested, adjusted_list);
 
-        for (int c = 0; adjusted_list[c] != TextParser_END; c++)
-        {
-            ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, prev_sibling);
-            if ((current_closest >= 0)&&((size_t)current_closest < closest))
+            for (int c = 0; adjusted_list[c] != TextParser_END; c++)
             {
-                closest = (size_t)current_closest;
-                current_token_id = adjusted_list[c];
+                ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, parent_item, prev_sibling);
+                if ((current_closest >= 0)&&((size_t)current_closest < closest))
+                {
+                    closest = (size_t)current_closest;
+                    current_token_id = adjusted_list[c];
+                }
             }
+            if (adjusted_list != stack_buf) free(adjusted_list);
         }
     }
 
@@ -685,17 +693,21 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
             count++;
         }
         {
-            int adjusted_list[count + 1];
-            adjust_search_order(loop_effective_nested, adjusted_list);
+            int stack_buf[64];
+            int *adjusted_list = (count + 1 <= 64) ? stack_buf : malloc((count + 1) * sizeof(int));
+            if (adjusted_list != nullptr) {
+                adjust_search_order(loop_effective_nested, adjusted_list);
 
-            for (int c = 0; adjusted_list[c] != TextParser_END; c++)
-            {
-                ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, ret, current_prev);
-                if (current_closest == 0)
+                for (int c = 0; adjusted_list[c] != TextParser_END; c++)
                 {
-                    current_token_id = adjusted_list[c];
-                    break;
+                    ssize_t current_closest = textparser_find_token(handle, adjusted_list[c], offset, token_def->other_text_inside, ret, current_prev);
+                    if (current_closest == 0)
+                    {
+                        current_token_id = adjusted_list[c];
+                        break;
+                    }
                 }
+                if (adjusted_list != stack_buf) free(adjusted_list);
             }
         }
 
