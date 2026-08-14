@@ -27,6 +27,7 @@ It has a flexible architecture making it easy to add new languages.
 - **Python Tooling**: Includes Python scripts for prototyping, validation against the reference C parser, generation of C header files (`json2h.py`), and other parser verification tools.
 - **Rust Implementation & Tooling**: Native Rust implementation (`rust/`) including library crate (`TextParser`), CLI binaries (`parse`, `parsedir`, `validate`), and unit test suite validated against the reference C output.
 - **Java Implementation & Tooling**: Standalone Java implementation (`java/`) including core parser (`TextParser`), CLI entrypoints (`Parse`, `ParseDir`, `Validate`, `ValidateAll`), zero-dependency JSON engine, and unit test suite validated against the reference C output.
+- **WebAssembly Bindings**: Compiled with Emscripten into WebAssembly (`webassembly/`) with JavaScript wrapper library (`TextParserWasm`) for client-side web application consumption.
 
 ## Project Structure
 
@@ -37,6 +38,7 @@ It has a flexible architecture making it easy to add new languages.
 - **`python/`**: Python bindings, prototypes, and validation tools.
 - **`rust/`**: Rust library crate, CLI tools (`parse`, `parsedir`, `validate`), and test suite matching the Python parser implementation.
 - **`java/`**: Standalone Java implementation, CLI tools (`Parse`, `ParseDir`, `Validate`), build script (`build.sh`), and unit test suite.
+- **`webassembly/`**: WebAssembly build setup (`textparser_wasm.c`, `build.sh`), JS wrapper API (`textparser_wrapper.js`), and Node/browser unit tests (`test_wasm.js`).
 - **`tests/`**: Unit and integration tests, including `tests/compat/` for legacy parser validation.
 - **`ccat/`**: Syntax highlighting CLI utility (color cat).
 
