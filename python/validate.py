@@ -34,25 +34,34 @@ def compareTrees(pythonTree, cTree):
                 return False
     return True
 
-def recursiveParseDirectory(definition_file, dir):
+def recursiveParseDirectory(definition_file, target_path):
     parser = TextParser(definition_file)
-    for file in os.listdir(dir):
-        if file.endswith(".cfm") or file.endswith(".cfc"):
-            fullPathName = dir + "/" + file
-            print("Comparing " + fullPathName + "...", end="")
-            with open(fullPathName, "rb") as f:
-                    text = f.read().decode('latin-1', errors='ignore')
+    exts = tuple("." + ext for ext in parser.definition.get("defaultFileExtensions", ["cfm", "cfc"]))
 
-            pythonTree = parser.parse(text)
-            cTree = json.loads(subprocess.run(["bin/textparser", fullPathName, "--json"], capture_output=True, text=True).stdout)
+    def process_file(fullPathName):
+        print("Comparing " + fullPathName + "...", end="")
+        with open(fullPathName, "rb") as f:
+            text = f.read().decode('latin-1', errors='ignore')
 
-            same = compareTrees(pythonTree, cTree)
-            if not same:
-                sys.exit(1)
+        pythonTree = parser.parse(text)
+        cTree = json.loads(subprocess.run(["bin/textparser", fullPathName, "--definition", definition_file, "--json"], capture_output=True, text=True).stdout)
 
-            print(" done")
-        elif os.path.isdir(dir + "/" + file):
-            recursiveParseDirectory(definition_file, dir + "/" + file)
+        same = compareTrees(pythonTree, cTree)
+        if not same:
+            sys.exit(1)
+
+        print(" done")
+
+    if os.path.isfile(target_path):
+        process_file(target_path)
+        return
+
+    for file in os.listdir(target_path):
+        fullPathName = os.path.join(target_path, file)
+        if file.endswith(exts) or file.endswith(".py"):
+            process_file(fullPathName)
+        elif os.path.isdir(fullPathName):
+            recursiveParseDirectory(definition_file, fullPathName)
 
 def main(args):
 

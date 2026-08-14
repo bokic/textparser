@@ -35,6 +35,73 @@ class TextParser:
             if self.definition['tokens'][token].get('nestedTokens') is None:
                 self.definition['tokens'][token]['nestedTokens'] = None
 
+        self.sign_merge = self.definition.get('mergeSignIntoNumber')
+
+    def __maybeMergeSign(self, tokenItem):
+        if not self.sign_merge:
+            return
+        
+        sign_tokens = self.sign_merge.get('signTokens', [])
+        number_tokens = self.sign_merge.get('numberTokens', [])
+        operand_tokens = self.sign_merge.get('operandTokens', [])
+
+        if tokenItem['id'] not in number_tokens:
+            return
+
+        children = tokenItem.get('children')
+        if not children:
+            return
+
+        i = 0
+        while i < len(children):
+            curr = children[i]
+            if curr['id'] in number_tokens and i > 0:
+                prev = children[i - 1]
+                sign = None
+                context = None
+
+                if prev['id'] in sign_tokens:
+                    sign = prev
+                    context = children[i - 2] if i >= 2 else None
+                elif prev.get('children') and prev['children'][-1]['id'] in sign_tokens:
+                    sign = prev['children'][-1]
+                    context = prev['children'][-2] if len(prev['children']) >= 2 else (children[i - 2] if i >= 2 else None)
+
+                if sign and (sign['position'] + sign['length'] == curr['position']) and sign['length'] == 1:
+                    # Unary context check: context must not be an operand
+                    if context is None or context['id'] not in operand_tokens:
+                        # Absorb sign into number
+                        curr['length'] += curr['position'] - sign['position']
+                        curr['position'] = sign['position']
+
+                        # Remove sign token
+                        if prev['id'] in sign_tokens:
+                            children.pop(i - 1)
+                            i -= 1
+                        else:
+                            prev['children'].pop()
+                            if len(prev['children']) == 0:
+                                children.pop(i - 1)
+                                i -= 1
+
+            if curr.get('children'):
+                self.__maybeMergeSign(curr)
+            i += 1
+
+    def postProcess(self, tokens):
+        i = 0
+        while i < len(tokens):
+            curr = tokens[i]
+            if curr.get('children'):
+                self.postProcess(curr['children'])
+
+            tokenDef = self.definition['tokens'].get(curr['id'], {})
+            if tokenDef.get('deleteIfOnlyOneChild') and len(curr.get('children', [])) == 1:
+                only_child = curr['children'][0]
+                tokens[i] = only_child
+                curr = only_child
+            i += 1
+
     def __skipWhitespace(self, text, pos):
         while pos < len(text) and (text[pos].isspace() or text[pos] == '\t' or text[pos] == "\n" or text[pos] == "\r"):
             pos += 1
@@ -226,8 +293,7 @@ class TextParser:
 
     def __parseStartStop(self, text, tokenName, token, parentRegex, pos, endRequired):
 
-        if (token['endRegex'] is not None):
-            parentRegex = token['endRegex']
+        myEndRegex = token['endRegex']
 
         pos = self.__skipWhitespace(text, pos)
 
@@ -249,9 +315,9 @@ class TextParser:
         pos += startRegex.regs[len(startRegex.regs) - 1][1]
 
         if (token['nestedTokens'] is None):
-            endRegex = re.search(token['endRegex'], text[pos:], flags=re.IGNORECASE)
+            endRegex = re.search(myEndRegex, text[pos:], flags=re.IGNORECASE)
             if (endRegex is None):
-                raise Exception("Expected " + token['endRegex'] + " at position: " + str(pos))
+                raise Exception("Expected " + myEndRegex + " at position: " + str(pos))
             endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
             endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
             ret['length'] = pos + endTokenPos + endTokenLength - ret['position']
@@ -262,9 +328,11 @@ class TextParser:
             endTokenLength = 0
             pos = self.__skipWhitespace(text, pos)
 
+            checkRegex = parentRegex if token['searchParentEndTokenLast'] and parentRegex is not None else myEndRegex
+
             if (not token['searchParentEndTokenLast']):
-                if parentRegex is not None:
-                    endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
+                if checkRegex is not None:
+                    endRegex = re.search(checkRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
                         endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
                         endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
@@ -276,7 +344,7 @@ class TextParser:
             closestChildTokenName = None
 
             for childTokenName in token['nestedTokens']:
-                childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], self.definition['otherTextInside'])
+                childTokenPos = self.__findToken(text, pos, self.definition['tokens'][childTokenName], token['otherTextInside'])
                 if (childTokenPos is not None):
                     if (childTokenPos < closestChildTokenPos):
                         closestChildTokenPos = childTokenPos
@@ -285,8 +353,8 @@ class TextParser:
                             break
 
             if (token['searchParentEndTokenLast']):
-                if parentRegex is not None:
-                    endRegex = re.search(parentRegex, text[pos:], flags=re.IGNORECASE)
+                if checkRegex is not None:
+                    endRegex = re.search(checkRegex, text[pos:], flags=re.IGNORECASE)
                     if (endRegex is not None):
                         endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
                         endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
@@ -299,6 +367,12 @@ class TextParser:
                 break
 
             if (closestChildTokenPos == sys.maxsize) or (closestChildTokenName is None):
+                if endRequired and checkRegex is not None:
+                    endRegex = re.search(checkRegex, text[pos:], flags=re.IGNORECASE)
+                    if endRegex is not None:
+                        endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
+                        endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
+                        ret['length'] = pos - ret['position'] + endTokenPos + endTokenLength
                 break
 
             if (closestChildTokenPos > 0) and (self.definition['tokens'][tokenName]['otherTextInside'] == False):
@@ -306,7 +380,7 @@ class TextParser:
 
             pos += closestChildTokenPos
 
-            child = self.__parseToken(text, closestChildTokenName, self.definition['tokens'][closestChildTokenName], parentRegex, pos)
+            child = self.__parseToken(text, closestChildTokenName, self.definition['tokens'][closestChildTokenName], myEndRegex, pos)
             if (child["length"] == 0):
                 raise Exception("Child token " + closestChildTokenName + " has no length!")
 
@@ -316,28 +390,9 @@ class TextParser:
 
             pos = child['position'] + child['length']
 
-            pos = self.__skipWhitespace(text, pos)
-
-            endRegex = re.search(token['endRegex'], text[pos:], flags=re.IGNORECASE)
-
-            if (endRegex is None) and (endRequired):
-                raise Exception("Expected endtoken for " + tokenName + " at position: " + str(pos))
-
-            if (endRegex is not None):
-                endTokenPos = endRegex.regs[len(endRegex.regs) - 1][0]
-                endTokenLength = endRegex.regs[len(endRegex.regs) - 1][1] - endTokenPos
-                if (endTokenPos == 0):
-                    if token['searchParentEndTokenLast']:
-                         continue
-                    ret['length'] = pos + endTokenPos + endTokenLength - ret['position']
-                    break
-
         return ret
 
     def __parseToken(self, text: str, tokenName: str, token: dict, parentRegex: str | None, pos: int):
-
-        if (token['endRegex'] is not None):
-            parentRegex = token['endRegex']
 
         pos = self.__skipWhitespace(text, pos)
 
@@ -414,6 +469,12 @@ class TextParser:
 
             tokens.append(child)
             pos = child['position'] + child['length']
+
+        if self.definition.get('mergeSignIntoNumber'):
+            dummyRoot = {'id': 'ROOT', 'children': tokens}
+            self.__maybeMergeSign(dummyRoot)
+
+        self.postProcess(tokens)
 
         return tokens
 
