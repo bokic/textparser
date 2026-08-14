@@ -19,7 +19,7 @@
 
 
 typedef struct {
-    char name[128];
+    char *name;
     size_t position;
     size_t len;
 } html_stack_item;
@@ -370,8 +370,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
                     stack = new_stack;
                     stack_capacity = new_capacity;
                 }
-                strncpy(stack[stack_top].name, tag_name, sizeof(stack[stack_top].name) - 1);
-                stack[stack_top].name[sizeof(stack[stack_top].name) - 1] = '\0';
+                stack[stack_top].name = strdup(tag_name);
                 stack[stack_top].position = token->position;
                 stack[stack_top].len = token->len;
                 stack_top++;
@@ -400,7 +399,9 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
                     for (int i = stack_top - 1; i > found_idx; i--) {
                         char *str = dynamic_printf("HTML tag [%s] requires a closing tag </%s>", stack[i].name, stack[i].name);
                         textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, stack[i].position, stack[i].len);
+                        free(stack[i].name);
                     }
+                    free(stack[found_idx].name);
                     // Pop all the way to found_idx
                     stack_top = found_idx;
                 } else {
@@ -417,6 +418,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
     for (int i = stack_top - 1; i >= 0; i--) {
         char *str = dynamic_printf("HTML tag [%s] requires a closing tag </%s>", stack[i].name, stack[i].name);
         textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, stack[i].position, stack[i].len);
+        free(stack[i].name);
     }
 
     free(stack);
