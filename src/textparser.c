@@ -1784,10 +1784,13 @@ const char *textparser_get_filename(const textparser_t handle)
 
 int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
 {
-    if (handle == nullptr)
-        return -1;
+    return textparser_parse_incremental(handle, definition, NULL, 0, textparser_get_total_units(handle));
+}
 
-    if (definition == nullptr)
+EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos)
+{
+    (void)state;
+    if (handle == nullptr || definition == nullptr)
         return -1;
 
     if (handle->text_size >= MAX_PARSE_SIZE)
@@ -1797,13 +1800,37 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
     handle->error = nullptr;
     handle->error_offset = 0;
 
-    // Free any previously parsed token tree to prevent leaks and AST corruption
-    free_arena(handle);
-    handle->first_item = nullptr;
+    size_t total = textparser_get_total_units(handle);
+    if (end_pos > total)
+        end_pos = total;
+
+    // If doing a full parse from offset 0, reset existing arena tree
+    if (start_pos == 0)
+    {
+        free_arena(handle);
+        handle->first_item = nullptr;
+    }
 
     textparser_token_item *prev_item = nullptr;
-    size_t size = textparser_get_total_units(handle);
-    size_t pos = 0;
+    size_t pos = start_pos;
+
+    if (start_pos > 0 && handle->first_item != nullptr)
+    {
+        // Find closest previous item before start_pos
+        textparser_token_item *curr = handle->first_item;
+        while (curr)
+        {
+            if (curr->position + curr->len <= start_pos)
+            {
+                prev_item = curr;
+            }
+            else
+            {
+                break;
+            }
+            curr = curr->next;
+        }
+    }
 
     if (handle->language != definition)
     {
@@ -1860,9 +1887,9 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
         }
     }
 
-    while(pos < size) {
+    while(pos < end_pos) {
         pos = textparser_skip_whitespace(handle, pos);
-        if (pos >= size)
+        if (pos >= end_pos)
             break;
 
         int matched_token_id = TextParser_END;
@@ -1970,8 +1997,6 @@ void textparser_post_process(textparser_token_item **root, const textparser_lang
             if (curr->next) {
                 curr->next->prev = only_child;
             }
-
-            curr = only_child;
         }
 
         curr = next_sibling;
