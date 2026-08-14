@@ -33,6 +33,11 @@ jobs:
             libjson-c-dev libpcre2-dev \
             clang
 
+      # ── Generate Language Definition headers ─────────────────────────────────
+      - name: Generate Language Definition headers
+        working-directory: ${{ github.workspace }}/definitions
+        run: ./regenerate.sh
+
       # ── Configure (Release, Clang) ───────────────────────────────────────────
       - name: Configure CMake
         run: |
