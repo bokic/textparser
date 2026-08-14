@@ -79,6 +79,12 @@ Or execute the unit test binary directly:
 bin/unittests
 ```
 
+## Performance
+
+Parsing performance is tracked on every push to `master` using the [Google Benchmark](https://github.com/google/benchmark) framework against the SQLite 3.53.0 source tree (312 `.c` + 42 `.h` files, ~13.7 MB).
+
+📊 **[View benchmark charts](https://bokic.github.io/textparser/benchmarks/)**
+
 ## Installation
 
 ### Arch Linux

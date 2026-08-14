@@ -1,0 +1,83 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [ "master" ]
+
+# Only one benchmark run at a time (protects the gh-pages branch)
+concurrency:
+  group: benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    name: Run SQLite C/H parse benchmark
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write      # needed to push results to gh-pages
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────────────────
+      - uses: actions/checkout@v4
+
+      # ── System dependencies ──────────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build \
+            libpcre2-dev \
+            clang
+
+      # ── Configure (Release, Clang) ───────────────────────────────────────────
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{ github.workspace }}/bin
+
+      # ── Build benchmark_sqlite target only ───────────────────────────────────
+      # (Google Benchmark + SQLite download happen here)
+      - name: Build benchmark_sqlite
+        run: cmake --build build --target benchmark_sqlite --parallel
+
+      # ── Run benchmark & output JSON ──────────────────────────────────────────
+      - name: Run benchmark
+        run: |
+          bin/benchmark_sqlite \
+            --benchmark_format=json \
+            --benchmark_out=benchmark_result.json \
+            --benchmark_repetitions=3 \
+            --benchmark_report_aggregates_only=true
+          cat benchmark_result.json
+
+      # ── Upload raw JSON as artifact (for debugging) ──────────────────────────
+      - name: Upload benchmark JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-result
+          path: benchmark_result.json
+
+      # ── Store results & publish GitHub Pages charts ──────────────────────────
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: textparser SQLite C/H Parse Benchmark
+          tool: googlecpp
+          output-file-path: benchmark_result.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Push results to gh-pages branch under benchmarks/
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: benchmarks
+          # Auto-push to gh-pages
+          auto-push: true
+          # Alert if performance degrades more than 20%
+          alert-threshold: '120%'
+          comment-on-alert: true
+          fail-on-alert: false
+          # Show chart link in commit summary
+          summary-always: true
