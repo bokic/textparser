@@ -61,10 +61,10 @@ static void textparser_validation_item_add(enum textparser_validation_item_type 
         free(text);
         return;
     }
-    *validation = new_val;
-    if (current_len == 0) {
-        (*validation)->len = 0;
+    if (*validation == nullptr) {
+        new_val->len = 0;
     }
+    *validation = new_val;
 
     textparser_validation_item *item = malloc(sizeof(textparser_validation_item));
     if (item == nullptr) {
