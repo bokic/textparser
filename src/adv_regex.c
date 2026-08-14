@@ -189,7 +189,8 @@ static bool adv_regex_find_pattern_impl(
     void **cctx_slot = &ctx->ccontext[api->index];
     if (*cctx_slot == nullptr) {
         *cctx_slot = api->ccontext_create(nullptr);
-        if (*cctx_slot) api->ccontext_set_newline(*cctx_slot, PCRE2_NEWLINE_ANY);
+        if (!*cctx_slot) return false;
+        api->ccontext_set_newline(*cctx_slot, PCRE2_NEWLINE_ANY);
     }
 
     /* Compile the pattern on first use. */
