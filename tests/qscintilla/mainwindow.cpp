@@ -198,11 +198,20 @@ public:
                     break;
                 }
 
-                if (m_definition->tokens[c].text_color != -1)
+                if (m_definition->tokens[c].text_color != TEXTPARSER_NOCOLOR)
                     setColor(QColor::fromRgb(m_definition->tokens[c].text_color >> 16 & 0xff, m_definition->tokens[c].text_color >> 8 & 0xff, m_definition->tokens[c].text_color >> 0 & 0xff), c + 1);
-                if (m_definition->tokens[c].text_background != -1)
+                if (m_definition->tokens[c].text_background != TEXTPARSER_NOCOLOR)
                     setColor(QColor::fromRgb(m_definition->tokens[c].text_background >> 16 & 0xff, m_definition->tokens[c].text_background >> 8 & 0xff, m_definition->tokens[c].text_background >> 0 & 0xff), c + 1);
             }
+        }
+    }
+
+    ~QsciLexerTextParser()
+    {
+        if (m_parser)
+        {
+            textparser_close(m_parser);
+            m_parser = nullptr;
         }
     }
 
@@ -249,23 +258,88 @@ public:
         if (text.length() <= 0)
             return;
 
-        textparser_defer(parser);
-        textparser_openmem(text.constData(), text.length(), TEXTPARSER_ENCODING_LATIN1, &parser);
+        int len = end - start;
+        bool isMultiCharModification = (len > 1 || m_lastTextLength == 0 || abs(text.length() - m_lastTextLength) > 1);
 
-        if (textparser_parse(parser, m_definition) != 0)
-            return;
+        if (isMultiCharModification || m_parser == nullptr)
+        {
+            if (m_parser)
+            {
+                textparser_close(m_parser);
+                m_parser = nullptr;
+            }
+            textparser_openmem(text.constData(), text.length(), TEXTPARSER_ENCODING_LATIN1, &m_parser);
 
-        startStyling(0);
-        setStyling(text.length(), 0);
+            if (textparser_parse(m_parser, m_definition) != 0)
+                return;
 
-        const textparser_token_item *token = textparser_get_first_token(parser);
+            startStyling(0);
+            setStyling(text.length(), 0);
 
-        recursivelyStyleText(token);
+            const textparser_token_item *token = textparser_get_first_token(m_parser);
+            recursivelyStyleText(token);
+        }
+        else
+        {
+            // Incremental parse for single-character typing/deletions.
+            // Find current token, previous token, and next token window to re-parse.
+            size_t parse_start = (size_t)start;
+            size_t parse_end = (size_t)end;
+
+            const textparser_token_item *first = textparser_get_first_token(m_parser);
+            const textparser_token_item *prev = nullptr;
+            const textparser_token_item *curr = nullptr;
+            const textparser_token_item *next = nullptr;
+
+            for (const textparser_token_item *t = first; t != nullptr; t = t->next)
+            {
+                if (t->position <= (size_t)start && (t->position + t->len) >= (size_t)start)
+                {
+                    curr = t;
+                    next = t->next;
+                    break;
+                }
+                prev = t;
+            }
+
+            if (prev)
+                parse_start = prev->position;
+            else if (curr)
+                parse_start = curr->position;
+            else
+                parse_start = (start > 0) ? (size_t)(start - 1) : 0;
+
+            if (next)
+                parse_end = next->position + next->len;
+            else if (curr)
+                parse_end = curr->position + curr->len;
+            else
+                parse_end = (size_t)end;
+
+            if (parse_end <= parse_start)
+                parse_end = parse_start + 1;
+            if (parse_end > (size_t)text.length())
+                parse_end = (size_t)text.length();
+
+            // Run incremental parse for window [parse_start, parse_end]
+            if (textparser_parse_incremental(m_parser, m_definition, NULL, parse_start, parse_end) == 0)
+            {
+                startStyling(0);
+                setStyling(text.length(), 0);
+
+                const textparser_token_item *token = textparser_get_first_token(m_parser);
+                recursivelyStyleText(token);
+            }
+        }
+
+        m_lastTextLength = text.length();
     }
 
 private:
     const textparser_language_definition *m_definition = nullptr;
+    textparser_t m_parser = nullptr;
     int m_tokenCnt = 0;
+    int m_lastTextLength = 0;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -300,6 +374,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_textEdit_marginClicked(int margin, int line, const Qt::KeyboardModifiers &state)
 {
+    Q_UNUSED(state);
+
     if (margin == 0)
     {
         if (ui->textEdit->markersAtLine(line))
