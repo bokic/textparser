@@ -87,11 +87,15 @@ target_link_libraries( unittests
   php
   html
   css
-  PkgConfig::libpcre2-8
-  PkgConfig::libpcre2-16
-  PkgConfig::libpcre2-32
   GTest::gtest_main
 )
+if(NOT WIN32)
+  target_link_libraries(unittests
+    PkgConfig::libpcre2-8
+    PkgConfig::libpcre2-16
+    PkgConfig::libpcre2-32
+  )
+endif()
 
 include(GoogleTest)
 gtest_discover_tests(unittests)

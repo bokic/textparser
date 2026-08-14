@@ -64,10 +64,14 @@ endif()
 target_link_libraries(benchmark_cfml PRIVATE
     libtextparser
     cfml
-    PkgConfig::libpcre2-8
-    PkgConfig::libpcre2-16
-    PkgConfig::libpcre2-32
 )
+if(NOT WIN32)
+    target_link_libraries(benchmark_cfml PRIVATE
+        PkgConfig::libpcre2-8
+        PkgConfig::libpcre2-16
+        PkgConfig::libpcre2-32
+    )
+endif()
 
 # ── SQLite C/H benchmark (Google Benchmark) ──────────────────────────────────
 add_executable(benchmark_sqlite
@@ -86,7 +90,11 @@ endif()
 target_link_libraries(benchmark_sqlite PRIVATE
     libtextparser
     benchmark::benchmark_main
-    PkgConfig::libpcre2-8
-    PkgConfig::libpcre2-16
-    PkgConfig::libpcre2-32
 )
+if(NOT WIN32)
+    target_link_libraries(benchmark_sqlite PRIVATE
+        PkgConfig::libpcre2-8
+        PkgConfig::libpcre2-16
+        PkgConfig::libpcre2-32
+    )
+endif()
