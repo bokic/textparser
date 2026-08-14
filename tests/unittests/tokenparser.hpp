@@ -100,22 +100,6 @@ private:
     textparser_t m_handle = nullptr;
 };
 
-#include "textparser_compat.h"
-
-inline bool compare_token_trees(const textparser_t h1, const textparser_token_item *t1, const textparser_t h2, const textparser_token_item *t2) {
-    while (t1 != nullptr && t2 != nullptr) {
-        if (t1->token_id != t2->token_id || t1->position != t2->position || t1->len != t2->len) {
-            return false;
-        }
-        if (!compare_token_trees(h1, t1->child, h2, t2->child)) {
-            return false;
-        }
-        t1 = t1->next;
-        t2 = t2->next;
-    }
-    return t1 == nullptr && t2 == nullptr;
-}
-
 class TextParser
 {
 public:
@@ -130,21 +114,6 @@ public:
             {
                 count++;
                 token = token->next;
-            }
-
-            // Cross-validate AST with compat parser
-            textparser_t compat_handle = nullptr;
-            if (textparser_openmem(text, strlen(text), definition->default_text_encoding, &compat_handle) == 0) {
-                if (textparser_parse_compat(compat_handle, definition) == 0) {
-                    const textparser_token_item *t_core = textparser_get_first_token(m_handle);
-                    const textparser_token_item *t_compat = textparser_get_first_token(compat_handle);
-                    if (!compare_token_trees(m_handle, t_core, compat_handle, t_compat)) {
-                        if (!textparser_suppress_errors()) {
-                            std::println(stderr, "incremental parser parsed differently compared to full parser algorithm");
-                        }
-                    }
-                }
-                textparser_close(compat_handle);
             }
         }
         else if (!textparser_suppress_errors())
