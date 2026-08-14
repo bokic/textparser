@@ -47,7 +47,6 @@
         goto exit;                                                                            \
     }
 
-static size_t calculate_chunk_size(size_t text_size);
 static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos);
 
 enum textparser_internal_bom {
@@ -120,11 +119,6 @@ static size_t textparser_get_byte_offset(const struct textparser_handle *handle,
     }
 }
 
-static size_t textparser_get_byte_len(const struct textparser_handle *handle, size_t len)
-{
-    return textparser_get_byte_offset(handle, len);
-}
-
 static size_t textparser_get_total_units(const struct textparser_handle *handle)
 {
     switch (handle->text_format)
@@ -165,35 +159,6 @@ static size_t textparser_char_len(const struct textparser_handle *handle, size_t
         return 1;
     }
     return 1;
-}
-
-
-
-
-static size_t calculate_chunk_size(size_t filesize)
-{
-    size_t chunk_size = 4096; // 4KB minimum
-    while (chunk_size <= filesize && chunk_size < 16777216) {
-        chunk_size *= 2;
-    }
-    return chunk_size;
-}
-
-static void *textparser_convert_utf16be_to_native(const char *src, size_t size)
-{
-    size_t unit_count = size / sizeof(uint16_t);
-    if (unit_count == 0)
-        return nullptr;
-
-    uint16_t *buf = (uint16_t *)malloc(size);
-    if (buf == nullptr)
-        return nullptr;
-
-    const uint16_t *units = (const uint16_t *)src;
-    for (size_t i = 0; i < unit_count; i++) {
-        buf[i] = (uint16_t)((units[i] >> 8) | (units[i] << 8));
-    }
-    return buf;
 }
 
 static void free_arena(struct textparser_handle *handle)
