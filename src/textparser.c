@@ -588,6 +588,9 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
                 }
             }
             if (adjusted_list != stack_buf) free(adjusted_list);
+        } else {
+            exit_with_error(handle, "Memory allocation failed for adjusted_list in GROUP_ONE_CHILD_ONLY", offset);
+            return ret;
         }
     }
 
