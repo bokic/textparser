@@ -18,8 +18,11 @@ jobs:
       contents: write      # needed to push results to gh-pages
 
     steps:
-      # ── Checkout ─────────────────────────────────────────────────────────────
+      # ── Checkout (full history so git describe --tags works) ─────────────────
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       # ── System dependencies ──────────────────────────────────────────────────
       - name: Install dependencies
