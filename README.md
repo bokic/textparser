@@ -25,6 +25,7 @@ It has a flexible architecture making it easy to add new languages.
 - **Standalone AST Post-Processing (`textparser_post_process`)**: Opt-in 2nd-pass AST unwrapping for full one-time static analysis tools without breaking token pointer snapshot stability for interactive incremental text editor sessions (`textparser_parse_incremental`).
 - **Modern C23 & C++23 Standard**: Engineered natively for ISO C23 (`ISO/IEC 9899:2024`) and C++23 standards (`set(CMAKE_C_STANDARD 23)`, `set(CMAKE_CXX_STANDARD 23)`), utilizing native `nullptr` keywords and C23 clean struct initialization across GCC, Clang, and MSVC compilers.
 - **Python Tooling**: Includes Python scripts for prototyping, validation of the core algorithm, generation of C header files (`json2h.py`), and other parser verification tools.
+- **Rust Implementation & Tooling**: Native Rust implementation (`rust/`) including library crate (`TextParser`), CLI binaries (`parse`, `parsedir`, `validate`), and unit test suite.
 
 ## Project Structure
 
@@ -32,7 +33,8 @@ It has a flexible architecture making it easy to add new languages.
 - **`include/`**: Public header files (`textparser.h`, `textparser-json.h`).
 - **`cli/`**: Command-line tool for testing, debugging, and demonstrating the library.
 - **`definitions/`**: Language definitions (e.g., CFML, JSON).
-- **`python/`**: Python bindings, prototypes, and validation tools (`validate_cfml.py`).
+- **`python/`**: Python bindings, prototypes, and validation tools.
+- **`rust/`**: Rust library crate, CLI tools (`parse`, `parsedir`, `validate`), and test suite matching the Python parser implementation.
 - **`tests/`**: Unit and integration tests, including `tests/compat/` for legacy parser validation.
 - **`ccat/`**: Syntax highlighting CLI utility (color cat).
 

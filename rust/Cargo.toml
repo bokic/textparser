@@ -1,0 +1,21 @@
+[package]
+name = "textparser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+fancy-regex = "0.13"
+
+[[bin]]
+name = "parse"
+path = "src/bin/parse.rs"
+
+[[bin]]
+name = "parsedir"
+path = "src/bin/parsedir.rs"
+
+[[bin]]
+name = "validate"
+path = "src/bin/validate.rs"
