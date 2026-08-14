@@ -459,7 +459,16 @@ class TextParser:
                         closestTokenName = tokenName
 
             if (closestTokenName is None):
+                if self.definition.get('otherTextInside') and pos < len(text):
+                    tokens.append({'id': '', 'position': pos, 'length': len(text) - pos})
                 break
+
+            if closestTokenPos > 0 and self.definition.get('otherTextInside'):
+                errEnd = pos + closestTokenPos
+                while errEnd > pos and text[errEnd - 1].isspace():
+                    errEnd -= 1
+                if errEnd > pos:
+                    tokens.append({'id': '', 'position': pos, 'length': errEnd - pos})
 
             pos += closestTokenPos
 
