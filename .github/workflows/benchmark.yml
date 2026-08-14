@@ -81,8 +81,6 @@ jobs:
           # Push results to gh-pages branch under benchmarks/
           gh-pages-branch: gh-pages
           benchmark-data-dir-path: benchmarks
-          # Skip fetch if gh-pages branch does not exist yet (creates on first run)
-          skip-fetch-gh-pages: true
           # Auto-push to gh-pages
           auto-push: true
           # Alert if performance degrades more than 20%
