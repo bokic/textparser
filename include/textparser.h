@@ -163,14 +163,77 @@ extern "C"
 {
 #endif
 
+/**
+ * Open and load a text file for parsing.
+ *
+ * @param pathname Path to the file to open.
+ * @param default_text_format Fallback encoding if auto-detection fails.
+ * @param bom_mask Bitmask of supported BOM types (e.g. TEXTPARSER_BOM_ALL).
+ * @param handle Pointer where the created parser handle will be stored.
+ * @return 0 on success, non-zero error code on failure.
+ */
 EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int default_text_format, int bom_mask, textparser_t *handle);
+
+/**
+ * Create a parser handle from an in-memory string buffer.
+ *
+ * @param text Pointer to the buffer containing text to parse.
+ * @param len Length of text in bytes (-1 for null-terminated strings).
+ * @param text_format Encoding format of the text.
+ * @param handle Pointer where the created parser handle will be stored.
+ * @return 0 on success, non-zero error code on failure.
+ */
 EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);
+
+/**
+ * Set or update the filename associated with the parser handle.
+ *
+ * @param handle The parser handle.
+ * @param filename Filename string to assign.
+ */
 EXPORT_TEXTPARSER void textparser_set_filename(textparser_t handle, const char *filename);
+
+/**
+ * Get the filename associated with the parser handle.
+ *
+ * @param handle The parser handle.
+ * @return Const pointer to the filename string, or NULL if unset.
+ */
 EXPORT_TEXTPARSER const char *textparser_get_filename(const textparser_t handle);
+
+/**
+ * Close and release resources associated with a parser handle.
+ *
+ * @param handle The parser handle to close.
+ */
 EXPORT_TEXTPARSER void textparser_close(textparser_t handle);
+
+/**
+ * Cleanup function for auto-cleanup attributes (`textparser_defer`).
+ *
+ * @param handle Pointer to the parser handle pointer to close/free.
+ */
 EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 
+/**
+ * Perform a full document parse using the provided language definition.
+ *
+ * @param handle The parser handle containing the source text.
+ * @param definition Pointer to the language definition rules.
+ * @return 0 on success, non-zero error code on syntax/parsing error.
+ */
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_language_definition *definition);
+
+/**
+ * Perform an incremental document parse for a modified range of text.
+ *
+ * @param handle The parser handle.
+ * @param definition Pointer to the language definition rules.
+ * @param state Saved parser state prior to start_pos.
+ * @param start_pos Starting byte position of the edited region.
+ * @param end_pos Ending byte position of the edited region.
+ * @return 0 on success, non-zero error code on failure.
+ */
 EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos);
 
 /**
@@ -180,46 +243,291 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
  * NOTE: This function MUST ONLY be called for full one-time document parses.
  * DO NOT use this function during interactive incremental parsing (`textparser_parse_incremental`),
  * as modifying node pointers invalidates parser state snapshots for subsequent edits.
+ *
+ * @param root Pointer to the root token item pointer of the AST.
+ * @param language Pointer to the language definition rules.
  */
 EXPORT_TEXTPARSER void textparser_post_process(textparser_token_item **root, const textparser_language_definition *language);
+
+/**
+ * Retrieve the latest parse error message for a handle.
+ *
+ * @param handle The parser handle.
+ * @return Const pointer to error message string, or NULL if no error.
+ */
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
+
+/**
+ * Retrieve the byte position of the latest parse error.
+ *
+ * @param handle The parser handle.
+ * @return Byte position index of the parse error.
+ */
 EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle);
 
+/**
+ * Set a user callback function to be executed when tokens are matched.
+ *
+ * @param handle The parser handle.
+ * @param callback Callback function pointer.
+ * @param user_data Arbitrary pointer passed to the callback.
+ */
 EXPORT_TEXTPARSER void textparser_set_callback(textparser_t handle, void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data), void *user_data);
+
+/**
+ * Get the underlying raw input text buffer from the parser.
+ *
+ * @param handle The parser handle.
+ * @return Const pointer to the text buffer.
+ */
 EXPORT_TEXTPARSER const char *textparser_get_text(textparser_t handle);
+
+/**
+ * Get the total byte size of the input text buffer.
+ *
+ * @param handle The parser handle.
+ * @return Length of text in bytes.
+ */
 EXPORT_TEXTPARSER size_t textparser_get_text_size(textparser_t handle);
+
+/**
+ * Get the root (first) token item of the parsed AST.
+ *
+ * @param handle The parser handle.
+ * @return Pointer to the first textparser_token_item node.
+ */
 EXPORT_TEXTPARSER textparser_token_item *textparser_get_first_token(const textparser_t handle);
+
+/**
+ * Get a dynamically allocated UTF-8 string containing the token's text.
+ * Caller must release with `textparser_free_token_text`.
+ *
+ * @param handle The parser handle.
+ * @param item The token item node.
+ * @return Allocated string copy of token text, or NULL.
+ */
 EXPORT_TEXTPARSER char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item);
+
+/**
+ * Get a dynamically allocated UTF-16 string containing the token's text.
+ * Caller must release with `textparser_free_token_text`.
+ *
+ * @param handle The parser handle.
+ * @param item The token item node.
+ * @return Allocated uint16_t buffer copy of token text, or NULL.
+ */
 EXPORT_TEXTPARSER uint16_t *textparser_get_token_text16(const textparser_t handle, const textparser_token_item *item);
+
+/**
+ * Get a dynamically allocated UTF-32 string containing the token's text.
+ * Caller must release with `textparser_free_token_text`.
+ *
+ * @param handle The parser handle.
+ * @param item The token item node.
+ * @return Allocated uint32_t buffer copy of token text, or NULL.
+ */
 EXPORT_TEXTPARSER uint32_t *textparser_get_token_text32(const textparser_t handle, const textparser_token_item *item);
+
+/**
+ * Free memory allocated by token text getter functions (`textparser_get_token_text*`).
+ *
+ * @param text Pointer to text buffer to free.
+ */
 EXPORT_TEXTPARSER void textparser_free_token_text(void *text);
+
+/**
+ * Get the active language definition assigned to the parser.
+ *
+ * @param handle The parser handle.
+ * @return Const pointer to language definition.
+ */
 EXPORT_TEXTPARSER const textparser_language_definition *textparser_get_language(const textparser_t handle);
+
+/**
+ * Free resources allocated for a language definition structure.
+ *
+ * @param definition Pointer to language definition to free.
+ */
 EXPORT_TEXTPARSER void textparser_free_language_definition(textparser_language_definition *definition);
 
+/**
+ * Count the number of direct child tokens under the given token item.
+ *
+ * @param token The parent token item node.
+ * @return Count of child tokens.
+ */
 EXPORT_TEXTPARSER size_t textparser_get_token_children_count(const textparser_token_item *token);
+
+/**
+ * Get the first child token item of a parent token node.
+ *
+ * @param token The parent token item node.
+ * @return Const pointer to first child token node, or NULL if none.
+ */
 EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_child(const textparser_token_item *token);
+
+/**
+ * Get the next sibling token item.
+ *
+ * @param token The current token item node.
+ * @return Const pointer to next sibling token node, or NULL if none.
+ */
 EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_next(const textparser_token_item *token);
+
+/**
+ * Get the previous sibling token item.
+ *
+ * @param token The current token item node.
+ * @return Const pointer to previous sibling token node, or NULL if none.
+ */
 EXPORT_TEXTPARSER const textparser_token_item *textparser_get_token_prev(const textparser_token_item *token);
+
+/**
+ * Get the textual token name/type string defined in the language definition.
+ *
+ * @param language Language definition structure.
+ * @param token The token item node.
+ * @return Const pointer to name string, or NULL if unknown.
+ */
 EXPORT_TEXTPARSER const char *textparser_get_token_type_str(const textparser_language_definition *language, const textparser_token_item *token);
+
+/**
+ * Get the integer token ID of the token item.
+ *
+ * @param token The token item node.
+ * @return Token ID integer.
+ */
 EXPORT_TEXTPARSER int textparser_get_token_type(const textparser_token_item *token);
+
+/**
+ * Get the byte offset position of the token item in the input text.
+ *
+ * @param token The token item node.
+ * @return Byte offset position.
+ */
 EXPORT_TEXTPARSER size_t textparser_get_token_position(const textparser_token_item *token);
+
+/**
+ * Get the byte length of the token item.
+ *
+ * @param token The token item node.
+ * @return Byte length.
+ */
 EXPORT_TEXTPARSER size_t textparser_get_token_length(const textparser_token_item *token);
+
+/**
+ * Get foreground text color code assigned to the token.
+ *
+ * @param token The token item node.
+ * @return ARGB/RGB color value or TEXTPARSER_NOCOLOR.
+ */
 EXPORT_TEXTPARSER uint32_t textparser_get_token_text_color(const textparser_token_item *token);
+
+/**
+ * Get background text color code assigned to the token.
+ *
+ * @param token The token item node.
+ * @return ARGB/RGB color value or TEXTPARSER_NOCOLOR.
+ */
 EXPORT_TEXTPARSER uint32_t textparser_get_token_text_background(const textparser_token_item *token);
+
+/**
+ * Get text styling/formatting flags associated with the token.
+ *
+ * @param token The token item node.
+ * @return Bitfield flags.
+ */
 EXPORT_TEXTPARSER uint32_t textparser_get_token_text_flags(const textparser_token_item *token);
+
+/**
+ * Get syntax error message associated with a specific token item.
+ *
+ * @param token The token item node.
+ * @return Const pointer to error message string, or NULL if no error.
+ */
 EXPORT_TEXTPARSER const char *textparser_get_token_error(const textparser_token_item *token);
 
+/**
+ * Build line offset lookup table for fast line/column mapping.
+ *
+ * @param handle The parser handle.
+ * @return 0 on success, non-zero on failure.
+ */
 EXPORT_TEXTPARSER int textparser_build_line_map(textparser_t handle);
+
+/**
+ * Get total number of lines in the input text document.
+ *
+ * @param handle The parser handle.
+ * @return Line count.
+ */
 EXPORT_TEXTPARSER size_t textparser_get_line_count(const textparser_t handle);
+
+/**
+ * Get byte starting position of a given 0-indexed line.
+ *
+ * @param handle The parser handle.
+ * @param line_index 0-based index of the line.
+ * @return Byte offset position.
+ */
 EXPORT_TEXTPARSER size_t textparser_get_line_start_position(const textparser_t handle, size_t line_index);
+
+/**
+ * Get 0-indexed line number containing the given byte position.
+ *
+ * @param handle The parser handle.
+ * @param position Byte position offset.
+ * @return 0-based line index.
+ */
 EXPORT_TEXTPARSER size_t textparser_get_line_number_at_position(const textparser_t handle, size_t position);
 
+/**
+ * Create an empty parser state snapshot structure.
+ *
+ * @param handle The parser handle.
+ * @return Allocated parser state object.
+ */
 EXPORT_TEXTPARSER textparser_parser_state *textparser_state_new(const textparser_t handle);
+
+/**
+ * Generate a parser state snapshot at the specified byte position.
+ *
+ * @param handle The parser handle.
+ * @param position Byte offset position.
+ * @return Allocated parser state snapshot.
+ */
 EXPORT_TEXTPARSER textparser_parser_state *textparser_state_generate(const textparser_t handle, size_t position);
+
+/**
+ * Free a parser state snapshot.
+ *
+ * @param state State snapshot object to free.
+ */
 EXPORT_TEXTPARSER void textparser_state_free(textparser_parser_state *state);
+
+/**
+ * Cleanup helper for auto-cleanup parser state pointers (`textparser_parser_state_defer`).
+ *
+ * @param state Pointer to parser state pointer.
+ */
 EXPORT_TEXTPARSER void textparser_state_cleanup(textparser_parser_state **state);
 
+/**
+ * Query AST tokens matching a selector string starting from root node.
+ *
+ * @param handle The parser handle.
+ * @param root Root token node to query from.
+ * @param selector Query selector string.
+ * @param out_count Pointer to store result array length.
+ * @return Array of matching token node pointers (must be freed with `textparser_free_query_result`).
+ */
 EXPORT_TEXTPARSER const textparser_token_item **textparser_query(const textparser_t handle, const textparser_token_item *root, const char *selector, size_t *out_count);
+
+/**
+ * Free results array returned by `textparser_query`.
+ *
+ * @param results Matching token array to free.
+ */
 EXPORT_TEXTPARSER void textparser_free_query_result(const textparser_token_item **results);
 
 #ifdef __cplusplus

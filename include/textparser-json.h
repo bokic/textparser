@@ -44,7 +44,22 @@ extern "C"
 {
 #endif
 
+/**
+ * Load and parse a language definition structure from a JSON file.
+ *
+ * @param pathname Path to the JSON language definition file.
+ * @param definition Pointer where the newly allocated language definition pointer will be stored.
+ * @return TEXTPARSER_JSON_NO_ERROR (0) on success, or a non-zero error code indicating the failure reason.
+ */
 EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_json_file(const char *pathname, textparser_language_definition **definition);
+
+/**
+ * Load and parse a language definition structure from an in-memory JSON string.
+ *
+ * @param text Null-terminated JSON string containing the language definition.
+ * @param definition Pointer where the newly allocated language definition pointer will be stored.
+ * @return TEXTPARSER_JSON_NO_ERROR (0) on success, or a non-zero error code indicating the failure reason.
+ */
 EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_string(const char *text, textparser_language_definition **definition);
 
 #ifdef __cplusplus
