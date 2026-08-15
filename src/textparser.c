@@ -1,6 +1,7 @@
 #include <textparser.h>
 #include "adv_regex.h"
 #include "logger.h"
+#include "string_pool.h"
 #include <os.h>
 
 #include <string.h>
@@ -1400,27 +1401,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
 
     if (uses_pool) {
         /* Free the continuous string pool arena */
-        typedef struct json_string_pool_chunk {
-            struct json_string_pool_chunk *next;
-            size_t used;
-            size_t capacity;
-            char buffer[];
-        } json_string_pool_chunk;
-
-        typedef struct {
-            json_string_pool_chunk *head;
-        } json_string_pool;
-
-        json_string_pool *pool = (json_string_pool *)definition->string_pool;
-        if (pool) {
-            json_string_pool_chunk *curr = pool->head;
-            while (curr) {
-                json_string_pool_chunk *next = curr->next;
-                free(curr);
-                curr = next;
-            }
-            free(pool);
-        }
+        textparser_string_pool_free((textparser_string_pool *)definition->string_pool);
     }
 
     free(definition);

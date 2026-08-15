@@ -26,47 +26,7 @@ static void json_object_cleanup(struct json_object **handle)
     }
 }
 
-/* --- JSON String Pool Arena Allocator ------------------------------------ */
-
-typedef struct json_string_pool_chunk {
-    struct json_string_pool_chunk *next;
-    size_t used;
-    size_t capacity;
-    char buffer[];
-} json_string_pool_chunk;
-
-typedef struct {
-    json_string_pool_chunk *head;
-} json_string_pool;
-
-static json_string_pool *json_pool_create(void)
-{
-    return (json_string_pool *)calloc(1, sizeof(json_string_pool));
-}
-
-static char *json_pool_strdup(json_string_pool *pool, const char *str)
-{
-    if (!pool || !str) return nullptr;
-
-    size_t len = strlen(str) + 1;
-    json_string_pool_chunk *chunk = pool->head;
-
-    if (!chunk || (chunk->used + len > chunk->capacity)) {
-        size_t cap = len > 4096 ? len : 4096;
-        json_string_pool_chunk *new_chunk = (json_string_pool_chunk *)malloc(sizeof(json_string_pool_chunk) + cap);
-        if (!new_chunk) return nullptr;
-        new_chunk->next = pool->head;
-        new_chunk->used = 0;
-        new_chunk->capacity = cap;
-        pool->head = new_chunk;
-        chunk = new_chunk;
-    }
-
-    char *dest = chunk->buffer + chunk->used;
-    memcpy(dest, str, len);
-    chunk->used += len;
-    return dest;
-}
+#include "string_pool.h"
 
 static uint32_t get_color_or_flag_value(struct json_object *obj, uint32_t default_val)
 {
@@ -135,7 +95,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
     memset(*definition, 0, sizeof(textparser_language_definition));
 
-    json_string_pool *pool = json_pool_create();
+    textparser_string_pool *pool = textparser_string_pool_create();
     if (pool == nullptr) {
         free(*definition);
         *definition = nullptr;
@@ -156,7 +116,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         ret_code = TEXTPARSER_JSON_NAME_NOT_FOUND;
         goto err;
     }
-    (*definition)->name = json_pool_strdup(pool, name_str);
+    (*definition)->name = textparser_string_pool_strdup(pool, name_str);
     if ((*definition)->name == nullptr) {
         (*definition)->error_string = "strdup for `name` FAILED!";
         ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -173,7 +133,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     if (found) {
         const char *empty_lang = json_object_get_string(value);
         if (empty_lang) {
-            (*definition)->empty_segment_language = json_pool_strdup(pool, empty_lang);
+            (*definition)->empty_segment_language = textparser_string_pool_strdup(pool, empty_lang);
             if ((*definition)->empty_segment_language == nullptr) {
                 (*definition)->error_string = "strdup for `emptySegmentLanguage` FAILED!";
                 ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -213,7 +173,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             json_object *array_item = json_object_array_get_idx(value, i);
             const char *ext_str = json_object_get_string(array_item);
             if (ext_str) {
-                (*definition)->default_file_extensions[i] = json_pool_strdup(pool, ext_str);
+                (*definition)->default_file_extensions[i] = textparser_string_pool_strdup(pool, ext_str);
                 if ((*definition)->default_file_extensions[i] == nullptr) {
                     (*definition)->error_string = "strdup for default_file_extensions item FAILED!";
                     ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -309,7 +269,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             str_val = json_object_get_string(key_value);
             const char *target_name = str_val ? str_val : key;
             if (target_name) {
-                (*definition)->tokens[token_idx].name = json_pool_strdup(pool, target_name);
+                (*definition)->tokens[token_idx].name = textparser_string_pool_strdup(pool, target_name);
                 if ((*definition)->tokens[token_idx].name == nullptr) {
                     (*definition)->error_string = "strdup for token name FAILED!";
                     ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -342,7 +302,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             }
             str_val = json_object_get_string(key_value);
             if (str_val) {
-                (*definition)->tokens[token_idx].start_regex = json_pool_strdup(pool, str_val);
+                (*definition)->tokens[token_idx].start_regex = textparser_string_pool_strdup(pool, str_val);
                 if ((*definition)->tokens[token_idx].start_regex == nullptr) {
                     (*definition)->error_string = "strdup for token start_regex FAILED!";
                     ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -356,7 +316,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             json_object_object_get_ex(token_item, "endRegex", &key_value);
             str_val = json_object_get_string(key_value);
             if (str_val) {
-                (*definition)->tokens[token_idx].end_regex = json_pool_strdup(pool, str_val);
+                (*definition)->tokens[token_idx].end_regex = textparser_string_pool_strdup(pool, str_val);
                 if ((*definition)->tokens[token_idx].end_regex == nullptr) {
                     (*definition)->error_string = "strdup for token end_regex FAILED!";
                     ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -583,7 +543,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                             if (ext_item && json_object_is_type(ext_item, json_type_string)) {
                                 const char *ext_val = json_object_get_string(ext_item);
                                 if (ext_val) {
-                                    ext_list[e] = json_pool_strdup(pool, ext_val);
+                                    ext_list[e] = textparser_string_pool_strdup(pool, ext_val);
                                     if (ext_list[e] == nullptr) {
                                         (*definition)->error_string = "strdup for override rule fileExtension FAILED!";
                                         ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -599,7 +559,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                     if (json_object_object_get_ex(if_obj, "regex", &regex_item) && json_object_is_type(regex_item, json_type_string)) {
                         const char *reg_val = json_object_get_string(regex_item);
                         if (reg_val) {
-                            rules[r].regex = json_pool_strdup(pool, reg_val);
+                            rules[r].regex = textparser_string_pool_strdup(pool, reg_val);
                             if (rules[r].regex == nullptr) {
                                 (*definition)->error_string = "strdup for override rule regex FAILED!";
                                 ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
