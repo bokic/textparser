@@ -5,6 +5,9 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <string.h>
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
 typedef HANDLE file_hnd_fd;
 #define FILE_HND_FD_NULL NULL
 #define ERROR_FILE_HND_FD NULL
@@ -15,6 +18,7 @@ typedef SSIZE_T ssize_t;
 #endif
 #else
 #include <unistd.h>
+#include <strings.h>
 typedef int file_hnd_fd;
 #define FILE_HND_FD_NULL 0
 #define ERROR_FILE_HND_FD -1

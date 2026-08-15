@@ -12,12 +12,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#ifdef _WIN32
-#define strcasecmp _stricmp
-#define strncasecmp _strnicmp
-#else
-#include <strings.h>
-#endif
 
 
 void textparser_validation_clear(textparser_validation *validation)

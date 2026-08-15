@@ -10,11 +10,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#ifdef _WIN32
-#define strncasecmp _strnicmp
-#else
-#include <strings.h>
-#endif
 
 typedef struct {
     int AtRule;

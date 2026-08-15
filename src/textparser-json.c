@@ -10,10 +10,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 
-
-#ifdef _WIN32
-#define strcasecmp _stricmp
-#endif
+#include <os.h>
 
 #define json_object_defer(var) struct json_object * var __attribute__((cleanup(json_object_cleanup))) = nullptr
 

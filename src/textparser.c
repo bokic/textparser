@@ -12,11 +12,6 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <ctype.h>
-#if defined(_WIN32)
-#define strcasecmp _stricmp
-#else
-#include <strings.h>
-#endif
 
 #ifndef SSIZE_MAX
 #define SSIZE_MAX ((ssize_t)((((size_t)-1) << 1) >> 1))
