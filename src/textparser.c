@@ -1961,6 +1961,42 @@ textparser_token_item *textparser_get_first_token(const textparser_t handle)
     return handle->first_item;
 }
 
+static inline size_t encode_utf8_codepoint(uint32_t cp, char *out)
+{
+    if (cp <= 0x7F) {
+        if (out) out[0] = (char)cp;
+        return 1;
+    } else if (cp <= 0x7FF) {
+        if (out) {
+            out[0] = (char)(0xC0 | (cp >> 6));
+            out[1] = (char)(0x80 | (cp & 0x3F));
+        }
+        return 2;
+    } else if (cp <= 0xFFFF) {
+        if (out) {
+            out[0] = (char)(0xE0 | (cp >> 12));
+            out[1] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            out[2] = (char)(0x80 | (cp & 0x3F));
+        }
+        return 3;
+    } else if (cp <= 0x10FFFF) {
+        if (out) {
+            out[0] = (char)(0xF0 | (cp >> 18));
+            out[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+            out[2] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            out[3] = (char)(0x80 | (cp & 0x3F));
+        }
+        return 4;
+    }
+    // Replacement character U+FFFD
+    if (out) {
+        out[0] = (char)0xEF;
+        out[1] = (char)0xBF;
+        out[2] = (char)0xBD;
+    }
+    return 3;
+}
+
 char *textparser_get_token_text(const textparser_t handle, const textparser_token_item *item)
 {
     char *ret = nullptr;
@@ -1973,26 +2009,56 @@ char *textparser_get_token_text(const textparser_t handle, const textparser_toke
         return nullptr;
 
     if (handle->text_format == TEXTPARSER_ENCODING_UNICODE || handle->text_format == TEXTPARSER_ENCODING_UTF_16) {
-        if (item->len > SIZE_MAX - 1)
-            return nullptr;
-        ret = malloc(item->len + 1);
-        if (ret) {
-            const uint16_t *src = (const uint16_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
-            for (size_t i = 0; i < item->len; i++) {
-                ret[i] = (src[i] < 256) ? (char)src[i] : '?';
+        const uint16_t *src = (const uint16_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
+        size_t utf8_len = 0;
+        for (size_t i = 0; i < item->len; i++) {
+            uint32_t cp = src[i];
+            if (cp >= 0xD800 && cp <= 0xDBFF && (i + 1 < item->len) && (src[i + 1] >= 0xDC00 && src[i + 1] <= 0xDFFF)) {
+                cp = 0x10000 + (((src[i] - 0xD800) << 10) | (src[i + 1] - 0xDC00));
+                i++;
+            } else if (cp >= 0xD800 && cp <= 0xDFFF) {
+                cp = 0xFFFD;
             }
-            ret[item->len] = '\0';
+            utf8_len += encode_utf8_codepoint(cp, nullptr);
+        }
+
+        ret = malloc(utf8_len + 1);
+        if (ret) {
+            size_t out_idx = 0;
+            for (size_t i = 0; i < item->len; i++) {
+                uint32_t cp = src[i];
+                if (cp >= 0xD800 && cp <= 0xDBFF && (i + 1 < item->len) && (src[i + 1] >= 0xDC00 && src[i + 1] <= 0xDFFF)) {
+                    cp = 0x10000 + (((src[i] - 0xD800) << 10) | (src[i + 1] - 0xDC00));
+                    i++;
+                } else if (cp >= 0xD800 && cp <= 0xDFFF) {
+                    cp = 0xFFFD;
+                }
+                out_idx += encode_utf8_codepoint(cp, ret + out_idx);
+            }
+            ret[out_idx] = '\0';
         }
     } else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
-        if (item->len > SIZE_MAX - 1)
-            return nullptr;
-        ret = malloc(item->len + 1);
-        if (ret) {
-            const uint32_t *src = (const uint32_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
-            for (size_t i = 0; i < item->len; i++) {
-                ret[i] = (src[i] < 256) ? (char)src[i] : '?';
+        const uint32_t *src = (const uint32_t *)(handle->text_addr + textparser_get_byte_offset(handle, item->position));
+        size_t utf8_len = 0;
+        for (size_t i = 0; i < item->len; i++) {
+            uint32_t cp = src[i];
+            if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
+                cp = 0xFFFD;
             }
-            ret[item->len] = '\0';
+            utf8_len += encode_utf8_codepoint(cp, nullptr);
+        }
+
+        ret = malloc(utf8_len + 1);
+        if (ret) {
+            size_t out_idx = 0;
+            for (size_t i = 0; i < item->len; i++) {
+                uint32_t cp = src[i];
+                if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
+                    cp = 0xFFFD;
+                }
+                out_idx += encode_utf8_codepoint(cp, ret + out_idx);
+            }
+            ret[out_idx] = '\0';
         }
     } else {
         size_t byte_len = textparser_get_byte_len(handle, item->len);

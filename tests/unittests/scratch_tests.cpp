@@ -469,3 +469,41 @@ TEST(parse_UTF8, truncated_utf8_sequences) {
     }
 }
 
+TEST(get_token_text, utf16_and_utf32_to_utf8_transcoding) {
+    // 1. UTF-16: Greek "αβγ" (U+03B1 U+03B2 U+03B3) + Emoji "😀" (U+1F600 = D83D DE00)
+    // UTF-8 bytes for "αβγ😀": \xCE\xB1 \xCE\xB2 \xCE\xB3 \xF0\x9F\x98\x80
+    uint16_t u16_data[] = { 0x03B1, 0x03B2, 0x03B3, 0xD83D, 0xDE00, 0 };
+    textparser_t handle16 = nullptr;
+    int err16 = textparser_openmem((const char *)u16_data, 5 * sizeof(uint16_t), TEXTPARSER_ENCODING_UTF_16, &handle16);
+    ASSERT_EQ(err16, 0);
+
+    textparser_token_item item16;
+    memset(&item16, 0, sizeof(item16));
+    item16.position = 0;
+    item16.len = 5; // 5 UTF-16 units (3 bmp + 2 surrogate)
+
+    char *txt16 = textparser_get_token_text(handle16, &item16);
+    ASSERT_NE(txt16, nullptr);
+    EXPECT_STREQ(txt16, "αβγ😀");
+    textparser_free_token_text(txt16);
+    textparser_close(handle16);
+
+    // 2. UTF-32: Greek "αβγ" + Emoji "😀"
+    uint32_t u32_data[] = { 0x03B1, 0x03B2, 0x03B3, 0x1F600, 0 };
+    textparser_t handle32 = nullptr;
+    int err32 = textparser_openmem((const char *)u32_data, 4 * sizeof(uint32_t), TEXTPARSER_ENCODING_UTF_32, &handle32);
+    ASSERT_EQ(err32, 0);
+
+    textparser_token_item item32;
+    memset(&item32, 0, sizeof(item32));
+    item32.position = 0;
+    item32.len = 4; // 4 UTF-32 code points
+
+    char *txt32 = textparser_get_token_text(handle32, &item32);
+    ASSERT_NE(txt32, nullptr);
+    EXPECT_STREQ(txt32, "αβγ😀");
+    textparser_free_token_text(txt32);
+    textparser_close(handle32);
+}
+
+
