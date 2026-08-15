@@ -169,6 +169,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     else
         (*definition)->version = 0.;
 
+    found = json_object_object_get_ex(root_obj, "emptySegmentLanguage", &value);
     if (found) {
         const char *empty_lang = json_object_get_string(value);
         if (empty_lang) {
@@ -337,9 +338,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
             key_value = nullptr;
             if (!json_object_object_get_ex(token_item, "startRegex", &key_value)) {
-                if (!json_object_object_get_ex(token_item, "regex", &key_value)) {
-                    json_object_object_get_ex(token_item, "start_regex", &key_value);
-                }
+                json_object_object_get_ex(token_item, "regex", &key_value);
             }
             str_val = json_object_get_string(key_value);
             if (str_val) {
@@ -354,9 +353,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             }
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "endRegex", &key_value)) {
-                json_object_object_get_ex(token_item, "end_regex", &key_value);
-            }
+            json_object_object_get_ex(token_item, "endRegex", &key_value);
             str_val = json_object_get_string(key_value);
             if (str_val) {
                 (*definition)->tokens[token_idx].end_regex = json_pool_strdup(pool, str_val);
@@ -370,51 +367,35 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             }
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "otherTextInside", &key_value)) {
-                json_object_object_get_ex(token_item, "other_text_inside", &key_value);
-            }
+            json_object_object_get_ex(token_item, "otherTextInside", &key_value);
             (*definition)->tokens[token_idx].other_text_inside = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "deleteIfOnlyOneChild", &key_value)) {
-                json_object_object_get_ex(token_item, "delete_if_only_one_child", &key_value);
-            }
+            json_object_object_get_ex(token_item, "deleteIfOnlyOneChild", &key_value);
             (*definition)->tokens[token_idx].delete_if_only_one_child = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "mustHaveOneChild", &key_value)) {
-                json_object_object_get_ex(token_item, "must_have_one_child", &key_value);
-            }
+            json_object_object_get_ex(token_item, "mustHaveOneChild", &key_value);
             (*definition)->tokens[token_idx].must_have_one_child = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "multiLine", &key_value)) {
-                json_object_object_get_ex(token_item, "multi_line", &key_value);
-            }
+            json_object_object_get_ex(token_item, "multiLine", &key_value);
             (*definition)->tokens[token_idx].multi_line = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "searchParentEndTokenLast", &key_value)) {
-                json_object_object_get_ex(token_item, "search_parent_end_token_last", &key_value);
-            }
+            json_object_object_get_ex(token_item, "searchParentEndTokenLast", &key_value);
             (*definition)->tokens[token_idx].search_parent_end_token_last = key_value ? json_object_get_boolean(key_value) : false;
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "textColor", &key_value)) {
-                json_object_object_get_ex(token_item, "text_color", &key_value);
-            }
+            json_object_object_get_ex(token_item, "textColor", &key_value);
             (*definition)->tokens[token_idx].text_color = get_color_or_flag_value(key_value, TEXTPARSER_NOCOLOR);
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "textBackground", &key_value)) {
-                json_object_object_get_ex(token_item, "text_background", &key_value);
-            }
+            json_object_object_get_ex(token_item, "textBackground", &key_value);
             (*definition)->tokens[token_idx].text_background = get_color_or_flag_value(key_value, TEXTPARSER_NOCOLOR);
 
             key_value = nullptr;
-            if (!json_object_object_get_ex(token_item, "textFlags", &key_value)) {
-                json_object_object_get_ex(token_item, "text_flags", &key_value);
-            }
+            json_object_object_get_ex(token_item, "textFlags", &key_value);
             (*definition)->tokens[token_idx].text_flags = get_color_or_flag_value(key_value, 0);
 
             token_idx++;
@@ -430,9 +411,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             (void)key;
 
             nested_tokens_json = nullptr;
-            if (!json_object_object_get_ex(token_item, "nestedTokens", &nested_tokens_json)) {
-                json_object_object_get_ex(token_item, "nested_tokens", &nested_tokens_json);
-            }
+            json_object_object_get_ex(token_item, "nestedTokens", &nested_tokens_json);
             if (nested_tokens_json) {
                 if (!json_object_is_type(nested_tokens_json, json_type_array)) {
                     (*definition)->error_string = "`nestedTokens` is not array!";
@@ -468,9 +447,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
 
             // Resolve contextNestedTokens
             struct json_object *cnt_json = nullptr;
-            if (!json_object_object_get_ex(token_item, "contextNestedTokens", &cnt_json)) {
-                json_object_object_get_ex(token_item, "context_nested_tokens", &cnt_json);
-            }
+            json_object_object_get_ex(token_item, "contextNestedTokens", &cnt_json);
             if (cnt_json && json_object_is_type(cnt_json, json_type_array)) {
                 int rule_cnt = json_object_array_length(cnt_json);
                 if (rule_cnt > 0) {
@@ -487,14 +464,10 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                         if (!rule_obj || !json_object_is_type(rule_obj, json_type_object)) continue;
 
                         json_object *wpi_arr = nullptr;
-                        if (!json_object_object_get_ex(rule_obj, "whenParentIn", &wpi_arr)) {
-                            json_object_object_get_ex(rule_obj, "when_parent_in", &wpi_arr);
-                        }
+                        json_object_object_get_ex(rule_obj, "whenParentIn", &wpi_arr);
 
                         json_object *nt_arr = nullptr;
-                        if (!json_object_object_get_ex(rule_obj, "nestedTokens", &nt_arr)) {
-                            json_object_object_get_ex(rule_obj, "nested_tokens", &nt_arr);
-                        }
+                        json_object_object_get_ex(rule_obj, "nestedTokens", &nt_arr);
 
                         if (wpi_arr && json_object_is_type(wpi_arr, json_type_array)) {
                             int *wpi_ids = json_parse_token_id_array(wpi_arr, (*definition)->tokens, tokens_cnt);

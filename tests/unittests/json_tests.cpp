@@ -332,6 +332,58 @@ TEST(parse_JSON, non_string_nested_tokens_element) {
     EXPECT_EQ(definition, nullptr);
 }
 
+TEST(parse_JSON, empty_segment_language_parsing) {
+    // 1. Present emptySegmentLanguage
+    const char *json_present = R"({
+        "name": "test_lang",
+        "version": 1.0,
+        "emptySegmentLanguage": "html",
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["MyToken"],
+        "tokens": {
+            "MyToken": {
+                "type": "SimpleToken",
+                "startRegex": "hello"
+            }
+        }
+    })";
+
+    textparser_language_definition *def1 = nullptr;
+    int err1 = textparser_json_load_language_definition_from_string(json_present, &def1);
+    ASSERT_EQ(err1, 0);
+    ASSERT_NE(def1, nullptr);
+    EXPECT_DOUBLE_EQ(def1->version, 1.0);
+    ASSERT_NE(def1->empty_segment_language, nullptr);
+    EXPECT_STREQ(def1->empty_segment_language, "html");
+    textparser_free_language_definition(def1);
+
+    // 2. Absent emptySegmentLanguage
+    const char *json_none = R"({
+        "name": "test_lang2",
+        "version": 4.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["MyToken"],
+        "tokens": {
+            "MyToken": {
+                "type": "SimpleToken",
+                "startRegex": "hello"
+            }
+        }
+    })";
+
+    textparser_language_definition *def2 = nullptr;
+    int err2 = textparser_json_load_language_definition_from_string(json_none, &def2);
+    ASSERT_EQ(err2, 0);
+    ASSERT_NE(def2, nullptr);
+    EXPECT_DOUBLE_EQ(def2->version, 4.0);
+    EXPECT_EQ(def2->empty_segment_language, nullptr);
+    textparser_free_language_definition(def2);
+}
+
 
 
 
