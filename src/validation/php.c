@@ -31,65 +31,8 @@ typedef struct {
     int CodeBlock;
 } php_dynamic_token_ids;
 
-static char *dynamic_printf(const char *format, ...) {
-    va_list args1, args2;
-    va_start(args1, format);
-    va_copy(args2, args1);
-
-    int length = vsnprintf(NULL, 0, format, args1);
-    va_end(args1);
-
-    if (length < 0) {
-        va_end(args2);
-        return NULL;
-    }
-
-    char *buffer = malloc(length + 1);
-    if (buffer == NULL) {
-        va_end(args2);
-        return NULL;
-    }
-
-    vsnprintf(buffer, length + 1, format, args2);
-    va_end(args2);
-
-    return buffer;
-}
-
-static void textparser_validation_item_add(enum textparser_validation_item_type type, textparser_validation **validation, char *text, size_t position, size_t length) {
-    int current_len = *validation ? (*validation)->len : 0;
-    textparser_validation *new_val = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * (current_len + 1));
-    if (new_val == NULL) {
-        free(text);
-        return;
-    }
-    if (*validation == NULL) {
-        new_val->len = 0;
-    }
-    *validation = new_val;
-
-    textparser_validation_item *item = malloc(sizeof(textparser_validation_item));
-    if (item == NULL) {
-        free(text);
-        return;
-    }
-    item->type = type;
-    item->position = position;
-    item->length = length;
-    item->text = text;
-
-    (*validation)->items[(*validation)->len] = item;
-    (*validation)->len++;
-}
-
 void textparser_validation_clear(textparser_validation *validation) {
-    if (validation != NULL) {
-        for (int i = 0; i < validation->len; i++) {
-            free(validation->items[i]->text);
-            free(validation->items[i]);
-        }
-        free(validation);
-    }
+    validation_clear_internal(validation);
 }
 
 static int find_token_id_by_name(textparser_t handle, const char *name) {

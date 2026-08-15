@@ -20,75 +20,9 @@
 #endif
 
 
-static char *dynamic_printf(const char *format, ...) {
-    va_list args1, args2;
-
-    // 1. Initialize the variable argument lists
-    va_start(args1, format);
-    // We make a copy because a va_list can only be read through once safely
-    va_copy(args2, args1);
-
-    // 2. Ask vsnprintf how many characters the final string will need
-    // We pass NULL and 0 so it only counts the length without writing anything
-    int length = vsnprintf(NULL, 0, format, args1);
-    va_end(args1);
-
-    // If something went wrong with formatting, return NULL
-    if (length < 0) {
-        va_end(args2);
-        return NULL;
-    }
-
-    // 3. Allocate memory (+1 is vital to leave room for the '\0' null terminator)
-    char *buffer = malloc(length + 1);
-    if (buffer == NULL) {
-        va_end(args2);
-        return NULL; // Return NULL if the system runs out of memory
-    }
-
-    // 4. Fill the allocated buffer with our formatted text
-    vsnprintf(buffer, length + 1, format, args2);
-    va_end(args2);
-
-    // 5. Return the newly created string to the caller
-    return buffer;
-}
-
-static void textparser_validation_item_add(enum textparser_validation_item_type type, textparser_validation **validation, char *text, size_t position, size_t length) {
-    int current_len = *validation ? (*validation)->len : 0;
-    textparser_validation *new_val = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * (current_len + 1));
-    if (new_val == nullptr) {
-        free(text);
-        return;
-    }
-    if (*validation == nullptr) {
-        new_val->len = 0;
-    }
-    *validation = new_val;
-
-    textparser_validation_item *item = malloc(sizeof(textparser_validation_item));
-    if (item == nullptr) {
-        free(text);
-        return;
-    }
-    item->type = type;
-    item->position = position;
-    item->length = length;
-    item->text = text;
-
-    (*validation)->items[(*validation)->len] = item;
-    (*validation)->len++;
-}
-
 void textparser_validation_clear(textparser_validation *validation)
 {
-    if (validation != nullptr) {
-        for (int i = 0; i < validation->len; i++) {
-            free(validation->items[i]->text);
-            free(validation->items[i]);
-        }
-        free(validation);
-    }
+    validation_clear_internal(validation);
 }
 
 typedef struct {
