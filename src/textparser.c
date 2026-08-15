@@ -2413,6 +2413,7 @@ typedef struct {
 typedef struct {
     query_sequence_t *sequences;
     size_t sequence_count;
+    size_t sequence_capacity;
 } query_selector_t;
 
 static int query_get_token_id_by_name(const textparser_language_definition *language, const char *name)
@@ -2447,6 +2448,7 @@ static void query_free_selector(query_selector_t *sel)
     }
     sel->sequences = nullptr;
     sel->sequence_count = 0;
+    sel->sequence_capacity = 0;
 }
 
 typedef struct {
@@ -2519,6 +2521,7 @@ static bool query_parse_selector(const textparser_language_definition *language,
 {
     out_sel->sequences = nullptr;
     out_sel->sequence_count = 0;
+    out_sel->sequence_capacity = 0;
 
     const char *p = selector;
     while (*p) {
@@ -2531,16 +2534,18 @@ static bool query_parse_selector(const textparser_language_definition *language,
 
         query_sequence_t seq = {0};
         if (query_parse_sequence(language, seq_start, seq_len, &seq)) {
-            size_t new_count = out_sel->sequence_count + 1;
-            query_sequence_t *new_seqs = realloc(out_sel->sequences, new_count * sizeof(query_sequence_t));
-            if (!new_seqs) {
-                if (seq.steps) free(seq.steps);
-                query_free_selector(out_sel);
-                return false;
+            if (out_sel->sequence_count >= out_sel->sequence_capacity) {
+                size_t new_cap = out_sel->sequence_capacity == 0 ? 4 : out_sel->sequence_capacity * 2;
+                query_sequence_t *new_seqs = realloc(out_sel->sequences, new_cap * sizeof(query_sequence_t));
+                if (!new_seqs) {
+                    if (seq.steps) free(seq.steps);
+                    query_free_selector(out_sel);
+                    return false;
+                }
+                out_sel->sequences = new_seqs;
+                out_sel->sequence_capacity = new_cap;
             }
-            out_sel->sequences = new_seqs;
-            out_sel->sequences[out_sel->sequence_count] = seq;
-            out_sel->sequence_count = new_count;
+            out_sel->sequences[out_sel->sequence_count++] = seq;
         }
 
         if (*p == ',') p++;

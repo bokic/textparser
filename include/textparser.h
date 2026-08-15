@@ -159,6 +159,7 @@ typedef struct {
 
 typedef struct {
     int len;
+    int capacity;
     textparser_validation_item *items[];
 } textparser_validation;
 

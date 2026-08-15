@@ -42,16 +42,25 @@ static inline char *dynamic_printf(const char *format, ...) {
 }
 
 static inline void textparser_validation_item_add(enum textparser_validation_item_type type, textparser_validation **validation, char *text, size_t position, size_t length) {
-    int current_len = *validation ? (*validation)->len : 0;
-    textparser_validation *new_val = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * (current_len + 1));
-    if (new_val == nullptr) {
-        free(text);
-        return;
-    }
     if (*validation == nullptr) {
-        new_val->len = 0;
+        int initial_cap = 8;
+        *validation = malloc(offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * initial_cap);
+        if (*validation == nullptr) {
+            free(text);
+            return;
+        }
+        (*validation)->len = 0;
+        (*validation)->capacity = initial_cap;
+    } else if ((*validation)->len >= (*validation)->capacity) {
+        int new_cap = (*validation)->capacity * 2;
+        textparser_validation *new_val = realloc(*validation, offsetof(textparser_validation, items) + sizeof(textparser_validation_item *) * new_cap);
+        if (new_val == nullptr) {
+            free(text);
+            return;
+        }
+        new_val->capacity = new_cap;
+        *validation = new_val;
     }
-    *validation = new_val;
 
     textparser_validation_item *item = malloc(sizeof(textparser_validation_item));
     if (item == nullptr) {
