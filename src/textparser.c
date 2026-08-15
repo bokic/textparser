@@ -813,11 +813,9 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
     if (child == nullptr) {
         exit_with_error(handle, "Parsing start token failed", offset);
     }
-    child->parent = ret;
+    append_child_to_ast(ret, &ret->child, &last_child, child);
+    maybe_merge_sign(handle, child);
     check_and_exit_on_fatal_parsing_error(handle, child, offset);
-
-    ret->child = child;
-    last_child = child;
 
     offset = child->position + child->len;
 
@@ -839,10 +837,8 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
             if (child == nullptr) {
                 exit_with_error(handle, "Parsing inner token failed", offset);
             }
-            child->parent = ret;
-            child->prev = last_child;
-            last_child->next = child;
-            last_child = child;
+            append_child_to_ast(ret, &ret->child, &last_child, child);
+            maybe_merge_sign(handle, child);
             check_and_exit_on_fatal_parsing_error(handle, child, offset);
 
             if (child->len == 0) {
@@ -865,9 +861,8 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
     if (child == nullptr) {
         exit_with_error(handle, "Parsing end token failed", offset);
     }
-    child->parent = ret;
-    child->prev = last_child;
-    last_child->next = child;
+    append_child_to_ast(ret, &ret->child, &last_child, child);
+    maybe_merge_sign(handle, child);
     check_and_exit_on_fatal_parsing_error(handle, child, offset);
 
     ret->len = child->position + child->len - ret->position;
