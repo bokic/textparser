@@ -1,0 +1,155 @@
+#pragma once
+
+#define TEXTPARSER_ALLOW_C_HEADER_IN_CPP
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "textparser.h"
+
+#ifdef __cplusplus
+}
+#endif
+
+#undef TEXTPARSER_ALLOW_C_HEADER_IN_CPP
+
+#ifdef __cplusplus
+
+#include <utility>
+
+namespace textparser {
+
+class State {
+public:
+    State() = default;
+
+    explicit State(textparser_parser_state *state) : m_state(state) {}
+
+    ~State() {
+        reset();
+    }
+
+    State(const State &) = delete;
+    State &operator=(const State &) = delete;
+
+    State(State &&other) noexcept : m_state(other.m_state) {
+        other.m_state = nullptr;
+    }
+
+    State &operator=(State &&other) noexcept {
+        if (this != &other) {
+            reset();
+            m_state = other.m_state;
+            other.m_state = nullptr;
+        }
+        return *this;
+    }
+
+    static State create(textparser_t handle) {
+        return State(textparser_state_new(handle));
+    }
+
+    textparser_parser_state *get() const { return m_state; }
+    textparser_parser_state *release() {
+        textparser_parser_state *state = m_state;
+        m_state = nullptr;
+        return state;
+    }
+
+    void reset(textparser_parser_state *state = nullptr) {
+        if (m_state) {
+            textparser_state_free(m_state);
+        }
+        m_state = state;
+    }
+
+    explicit operator bool() const { return m_state != nullptr; }
+
+private:
+    textparser_parser_state *m_state = nullptr;
+};
+
+class Parser {
+public:
+    Parser() = default;
+
+    explicit Parser(textparser_t handle) : m_handle(handle) {}
+
+    ~Parser() {
+        reset();
+    }
+
+    Parser(const Parser &) = delete;
+    Parser &operator=(const Parser &) = delete;
+
+    Parser(Parser &&other) noexcept : m_handle(other.m_handle) {
+        other.m_handle = nullptr;
+    }
+
+    Parser &operator=(Parser &&other) noexcept {
+        if (this != &other) {
+            reset();
+            m_handle = other.m_handle;
+            other.m_handle = nullptr;
+        }
+        return *this;
+    }
+
+    int openfile(const char *pathname, enum textparser_encoding default_text_format, int bom_mask) {
+        reset();
+        return textparser_openfile(pathname, default_text_format, bom_mask, &m_handle);
+    }
+
+    int openmem(const char *buffer, int len, enum textparser_encoding default_text_format) {
+        reset();
+        return textparser_openmem(buffer, len, default_text_format, &m_handle);
+    }
+
+    int parse(const textparser_language_definition *definition) {
+        return textparser_parse(m_handle, definition);
+    }
+
+    int parse_incremental(const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos) {
+        return textparser_parse_incremental(m_handle, definition, state, start_pos, end_pos);
+    }
+
+    int parse_incremental(const textparser_language_definition *definition, const State &state, size_t start_pos, size_t end_pos) {
+        return textparser_parse_incremental(m_handle, definition, state.get(), start_pos, end_pos);
+    }
+
+    textparser_token_item *get_first_token() const {
+        return textparser_get_first_token(m_handle);
+    }
+
+    textparser_t get() const { return m_handle; }
+    textparser_t release() {
+        textparser_t handle = m_handle;
+        m_handle = nullptr;
+        return handle;
+    }
+
+    void reset(textparser_t handle = nullptr) {
+        if (m_handle) {
+            textparser_close(m_handle);
+        }
+        m_handle = handle;
+    }
+
+    explicit operator bool() const { return m_handle != nullptr; }
+
+    const char *get_parse_error() const {
+        return textparser_parse_error(m_handle);
+    }
+
+    size_t get_parse_error_position() const {
+        return textparser_parse_error_position(m_handle);
+    }
+
+private:
+    textparser_t m_handle = nullptr;
+};
+
+} // namespace textparser
+
+#endif

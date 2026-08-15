@@ -1,4 +1,4 @@
-#include <textparser.h>
+#include <textparser.hpp>
 #include <cfml_definition.json.h>
 
 #include <chrono>
@@ -40,10 +40,11 @@ static void collect_cfml_files(const std::filesystem::path &root,
 
 static bool parse_file(const std::string &path)
 {
-    textparser_defer(handle);
-    int ret = textparser_openfile(path.c_str(), cfml_definition.default_text_encoding, cfml_definition.supported_bom, &handle);
-    if (ret != 0) return false;
-    return textparser_parse(handle, &cfml_definition) == 0;
+    textparser::Parser parser;
+    if (parser.openfile(path.c_str(), cfml_definition.default_text_encoding, cfml_definition.supported_bom) != 0) {
+        return false;
+    }
+    return parser.parse(&cfml_definition) == 0;
 }
 
 int main(int argc, char **argv)

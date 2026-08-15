@@ -1,5 +1,5 @@
 #include "tokenparser.hpp"
-#include <textparser.h>
+#include <textparser.hpp>
 #include <textparser-json.h>
 
 #include <gtest/gtest.h>

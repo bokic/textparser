@@ -1,7 +1,7 @@
 #include "tokenparser.hpp"
 
 #include <gtest/gtest.h>
-#include <textparser.h>
+#include <textparser.hpp>
 #include <set>
 #include <string>
 

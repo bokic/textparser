@@ -30,6 +30,7 @@ add_library(libtextparser SHARED
     adv_regex.h
 
     ../include/textparser.h
+    ../include/textparser.hpp
 
     ${OS_FILES}
 )
@@ -58,7 +59,7 @@ else()
 endif()
 
 set_target_properties(libtextparser PROPERTIES
-    PUBLIC_HEADER "../include/textparser.h"
+    PUBLIC_HEADER "../include/textparser.h;../include/textparser.hpp"
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser"
     VERSION "${TEXTPARSER_VERSION_TAG}"

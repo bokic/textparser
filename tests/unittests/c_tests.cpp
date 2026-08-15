@@ -1,7 +1,7 @@
 #include "tokenparser.hpp"
 
 #include <gtest/gtest.h>
-#include <textparser.h>
+#include <textparser.hpp>
 #include <set>
 #include <string>
 
@@ -196,3 +196,28 @@ TEST(parse_C, scientific_notation) {
     EXPECT_TRUE(found_pos);
     EXPECT_TRUE(found_upper);
 }
+
+TEST(parse_C, defer_macro_cpp_guard) {
+    // When including textparser.hpp in C++, textparser_defer and textparser_parser_state_defer must be defined.
+#ifndef textparser_defer
+    FAIL() << "textparser_defer should be defined when including textparser.hpp in C++ mode";
+#endif
+#ifndef textparser_parser_state_defer
+    FAIL() << "textparser_parser_state_defer should be defined when including textparser.hpp in C++ mode";
+#endif
+}
+
+TEST(parse_C, raii_wrapper_class) {
+    const char *src = "int x = 10;";
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1), 0);
+    ASSERT_TRUE(static_cast<bool>(parser));
+    ASSERT_EQ(parser.parse(&c_definition), 0);
+
+    textparser_token_item *first = parser.get_first_token();
+    EXPECT_NE(first, nullptr);
+
+    textparser::State state = textparser::State::create(parser.get());
+    EXPECT_NE(state.get(), nullptr);
+}
+

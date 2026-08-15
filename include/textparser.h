@@ -26,6 +26,10 @@
 #error "MSVC compiler is not supported by textparser (requires GCC/Clang extensions like __attribute__((cleanup)))"
 #endif
 
+#if defined(__cplusplus) && !defined(TEXTPARSER_ALLOW_C_HEADER_IN_CPP)
+#error "textparser.h is for C compilation only. Please include textparser.hpp when compiling C++ code."
+#endif
+
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
 #define textparser_parser_state_defer(var) textparser_parser_state *var __attribute__((cleanup(textparser_state_cleanup))) = nullptr
 
@@ -134,7 +138,7 @@ typedef struct {
     const char *empty_segment_language;
     bool case_sensitivity;
     const char **default_file_extensions;
-    int default_text_encoding;
+    enum textparser_encoding default_text_encoding;
     int supported_bom;
     int *starts_with;
     textparser_override_start_token_rule *override_start_tokens;
@@ -158,10 +162,7 @@ typedef struct {
     textparser_validation_item *items[];
 } textparser_validation;
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 
 /**
  * Open and load a text file for parsing.
@@ -530,6 +531,4 @@ EXPORT_TEXTPARSER const textparser_token_item **textparser_query(const textparse
  */
 EXPORT_TEXTPARSER void textparser_free_query_result(const textparser_token_item **results);
 
-#ifdef __cplusplus
-}
-#endif
+

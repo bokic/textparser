@@ -159,7 +159,7 @@ bin/textparser path/to/file.json --definition definitions/json_definition.json
 
 ### C Library Integration
 
-To use TextParser in your C project, include `textparser.h` and link against `libtextparser`.
+To use TextParser in your C project, include `textparser.h` and link against `libtextparser`. When compiling with C++, include `textparser.hpp` instead of `textparser.h`.
 
 **Basic Example:**
 
@@ -171,7 +171,7 @@ To use TextParser in your C project, include `textparser.h` and link against `li
 extern const textparser_language_definition my_lang_definition;
 
 int main() {
-    textparser_defer(handle); // Auto-cleanup
+    textparser_defer(handle); // Auto-cleanup (defined when compiling with C compiler)
 
     // Open a file
     int err = textparser_openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_ALL, &handle);
@@ -193,6 +193,27 @@ int main() {
     }
     
     return 0;
+}
+```
+
+**C++ RAII Wrapper Example:**
+
+```cpp
+#include <textparser.hpp>
+#include <iostream>
+
+extern const textparser_language_definition my_lang_definition;
+
+int main() {
+    textparser::Parser parser;
+    if (parser.openfile("example.txt", TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_BOM_ALL) == 0) {
+        if (parser.parse(&my_lang_definition) == 0) {
+            for (textparser_token_item *item = parser.get_first_token(); item != nullptr; item = item->next) {
+                // ... process item ...
+            }
+        }
+    }
+    return 0; // Automatically calls textparser_close on scope exit
 }
 ```
 

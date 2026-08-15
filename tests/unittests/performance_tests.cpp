@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <textparser.h>
+#include <textparser.hpp>
 #include <cfml_definition.json.h>
 #include "tokenparser.hpp"
 

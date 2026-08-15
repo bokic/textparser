@@ -1,5 +1,5 @@
 #include <benchmark/benchmark.h>
-#include <textparser.h>
+#include <textparser.hpp>
 #include <c_definition.json.h>
 
 #include <cstdio>
@@ -76,12 +76,11 @@ static void BM_ParseC(benchmark::State &state)
 
     for (auto _ : state) {
         for (const auto &sf : g_c_files) {
-            textparser_defer(handle);
-            textparser_openmem(sf.content.c_str(),
-                               static_cast<int>(sf.content.size()),
-                               c_definition.default_text_encoding,
-                               &handle);
-            textparser_parse(handle, &c_definition);
+            textparser::Parser parser;
+            parser.openmem(sf.content.c_str(),
+                           static_cast<int>(sf.content.size()),
+                           c_definition.default_text_encoding);
+            parser.parse(&c_definition);
             total_bytes += sf.bytes;
         }
     }
@@ -117,12 +116,11 @@ static void BM_ParseH(benchmark::State &state)
 
     for (auto _ : state) {
         for (const auto &sf : g_h_files) {
-            textparser_defer(handle);
-            textparser_openmem(sf.content.c_str(),
-                               static_cast<int>(sf.content.size()),
-                               c_definition.default_text_encoding,
-                               &handle);
-            textparser_parse(handle, &c_definition);
+            textparser::Parser parser;
+            parser.openmem(sf.content.c_str(),
+                           static_cast<int>(sf.content.size()),
+                           c_definition.default_text_encoding);
+            parser.parse(&c_definition);
             total_bytes += sf.bytes;
         }
     }

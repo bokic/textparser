@@ -2,7 +2,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-#include <textparser.h>
+#include <textparser.hpp>
 #pragma GCC diagnostic pop
 
 

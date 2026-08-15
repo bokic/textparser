@@ -6,7 +6,7 @@
 #include <Qsci/qsciabstractapis.h>
 #include <Qsci/qscistyle.h>
 
-#include <textparser.h>
+#include <textparser.hpp>
 #include <../definitions/cfml_definition.json.h>
 
 
@@ -208,11 +208,6 @@ public:
 
     ~QsciLexerTextParser()
     {
-        if (m_parser)
-        {
-            textparser_close(m_parser);
-            m_parser = nullptr;
-        }
     }
 
     const char *language() const override
@@ -261,22 +256,17 @@ public:
         int len = end - start;
         bool isMultiCharModification = (len > 1 || m_lastTextLength == 0 || abs(text.length() - m_lastTextLength) > 1);
 
-        if (isMultiCharModification || m_parser == nullptr)
+        if (isMultiCharModification || !m_parser)
         {
-            if (m_parser)
-            {
-                textparser_close(m_parser);
-                m_parser = nullptr;
-            }
-            textparser_openmem(text.constData(), text.length(), TEXTPARSER_ENCODING_LATIN1, &m_parser);
+            m_parser.openmem(text.constData(), text.length(), TEXTPARSER_ENCODING_LATIN1);
 
-            if (textparser_parse(m_parser, m_definition) != 0)
+            if (m_parser.parse(m_definition) != 0)
                 return;
 
             startStyling(0);
             setStyling(text.length(), 0);
 
-            const textparser_token_item *token = textparser_get_first_token(m_parser);
+            const textparser_token_item *token = m_parser.get_first_token();
             recursivelyStyleText(token);
         }
         else
@@ -286,7 +276,7 @@ public:
             size_t parse_start = (size_t)start;
             size_t parse_end = (size_t)end;
 
-            const textparser_token_item *first = textparser_get_first_token(m_parser);
+            const textparser_token_item *first = m_parser.get_first_token();
             const textparser_token_item *prev = nullptr;
             const textparser_token_item *curr = nullptr;
             const textparser_token_item *next = nullptr;
@@ -322,12 +312,12 @@ public:
                 parse_end = (size_t)text.length();
 
             // Run incremental parse for window [parse_start, parse_end]
-            if (textparser_parse_incremental(m_parser, m_definition, NULL, parse_start, parse_end) == 0)
+            if (m_parser.parse_incremental(m_definition, nullptr, parse_start, parse_end) == 0)
             {
                 startStyling(0);
                 setStyling(text.length(), 0);
 
-                const textparser_token_item *token = textparser_get_first_token(m_parser);
+                const textparser_token_item *token = m_parser.get_first_token();
                 recursivelyStyleText(token);
             }
         }
@@ -337,7 +327,7 @@ public:
 
 private:
     const textparser_language_definition *m_definition = nullptr;
-    textparser_t m_parser = nullptr;
+    textparser::Parser m_parser;
     int m_tokenCnt = 0;
     int m_lastTextLength = 0;
 };
