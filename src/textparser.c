@@ -1400,20 +1400,20 @@ void textparser_free_language_definition(textparser_language_definition *definit
 int textparser_openfile(const char *pathname, int default_text_format, int bom_mask, textparser_t *handle)
 {
     struct textparser_handle local_hnd;
-    int err = 0;
+    int err = TEXTPARSER_OK;
 
     memset(&local_hnd, 0, sizeof(local_hnd));
     if (pathname) {
         local_hnd.filename = strdup(pathname);
         if (local_hnd.filename == nullptr) {
-            err = 1;
+            err = TEXTPARSER_ERROR_OUT_OF_MEMORY;
             goto err;
         }
     }
 
     local_hnd.mmap_addr = os_map(pathname, &local_hnd.mmap_size);
     if (!local_hnd.mmap_addr && local_hnd.mmap_size != 0) {
-        err = 1;
+        err = TEXTPARSER_ERROR_FILE_OPEN;
         goto err;
     }
 
@@ -1421,7 +1421,7 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
     local_hnd.text_size = local_hnd.mmap_size;
 
     if (local_hnd.text_size >= MAX_PARSE_SIZE) {
-        err = 8;
+        err = TEXTPARSER_ERROR_FILE_TOO_LARGE;
         goto err;
     }
 
@@ -1508,7 +1508,7 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
             local_hnd.text_format = TEXTPARSER_ENCODING_UTF_32;
             break;
         default:
-            err = 5;
+            err = TEXTPARSER_ERROR_UNSUPPORTED_BOM;
             goto err;
     }
 
@@ -1524,18 +1524,18 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
     case TEXTPARSER_ENCODING_UTF_32:
         break;
     default:
-        err = 7;
+        err = TEXTPARSER_ERROR_INVALID_ENCODING;
         goto err;
     }
 
     if (local_hnd.text_format == TEXTPARSER_ENCODING_UTF_16 || local_hnd.text_format == TEXTPARSER_ENCODING_UNICODE) {
         if (local_hnd.text_size % sizeof(uint16_t) != 0) {
-            err = 9;
+            err = TEXTPARSER_ERROR_INVALID_UTF16_SIZE;
             goto err;
         }
     } else if (local_hnd.text_format == TEXTPARSER_ENCODING_UTF_32) {
         if (local_hnd.text_size % sizeof(uint32_t) != 0) {
-            err = 10;
+            err = TEXTPARSER_ERROR_INVALID_UTF32_SIZE;
             goto err;
         }
     }
@@ -1543,7 +1543,7 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
     if (local_hnd.bom == TEXTPARSER_BOM_UTF_16_BE && local_hnd.text_size > 0) {
         void *swapped = textparser_convert_utf16be_to_native(local_hnd.text_addr, local_hnd.text_size);
         if (swapped == nullptr) {
-            err = 6;
+            err = TEXTPARSER_ERROR_BYTE_ORDER_CONVERSION;
             goto err;
         }
         local_hnd.owned_buffer = swapped;
@@ -1552,12 +1552,12 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
 
     *handle = malloc(sizeof(struct textparser_handle));
     if (*handle == nullptr) {
-        err = 6;
+        err = TEXTPARSER_ERROR_OUT_OF_MEMORY;
         goto err;
     }
     memcpy(*handle, &local_hnd, sizeof(struct textparser_handle));
 
-    return 0;
+    return TEXTPARSER_OK;
 
 err:
     if (local_hnd.mmap_addr) {
@@ -1927,6 +1927,36 @@ size_t textparser_parse_error_position(textparser_t handle)
         return 0;
 
     return handle->error_offset;
+}
+
+const char *textparser_strerror(int error_code)
+{
+    switch (error_code) {
+    case TEXTPARSER_OK:
+        return "Success";
+    case TEXTPARSER_ERROR_FILE_OPEN:
+        return "Failed to open or map file";
+    case TEXTPARSER_ERROR_INVALID_ARGUMENT:
+        return "Invalid argument";
+    case TEXTPARSER_ERROR_OUT_OF_MEMORY:
+        return "Out of memory";
+    case TEXTPARSER_ERROR_PARSE_FAILED:
+        return "Parsing failed";
+    case TEXTPARSER_ERROR_UNSUPPORTED_BOM:
+        return "Unsupported byte order mark (BOM)";
+    case TEXTPARSER_ERROR_BYTE_ORDER_CONVERSION:
+        return "Byte order conversion failed";
+    case TEXTPARSER_ERROR_INVALID_ENCODING:
+        return "Invalid text encoding";
+    case TEXTPARSER_ERROR_FILE_TOO_LARGE:
+        return "File exceeds maximum parse size (16 MB)";
+    case TEXTPARSER_ERROR_INVALID_UTF16_SIZE:
+        return "Invalid UTF-16 size (not a multiple of 2 bytes)";
+    case TEXTPARSER_ERROR_INVALID_UTF32_SIZE:
+        return "Invalid UTF-32 size (not a multiple of 4 bytes)";
+    default:
+        return "Unknown error";
+    }
 }
 
 void textparser_set_callback(textparser_t handle, void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data), void *user_data)

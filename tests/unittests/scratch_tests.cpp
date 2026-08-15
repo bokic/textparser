@@ -506,4 +506,15 @@ TEST(get_token_text, utf16_and_utf32_to_utf8_transcoding) {
     textparser_close(handle32);
 }
 
+TEST(textparser_error, strerror_messages) {
+    EXPECT_STREQ(textparser_strerror(TEXTPARSER_OK), "Success");
+    EXPECT_STREQ(textparser_strerror(TEXTPARSER_ERROR_FILE_OPEN), "Failed to open or map file");
+    EXPECT_STREQ(textparser_strerror(TEXTPARSER_ERROR_FILE_TOO_LARGE), "File exceeds maximum parse size (16 MB)");
+    EXPECT_STREQ(textparser_strerror(TEXTPARSER_ERROR_UNSUPPORTED_BOM), "Unsupported byte order mark (BOM)");
+    EXPECT_STREQ(textparser_strerror(TEXTPARSER_ERROR_INVALID_UTF16_SIZE), "Invalid UTF-16 size (not a multiple of 2 bytes)");
+    EXPECT_STREQ(textparser_strerror(TEXTPARSER_ERROR_INVALID_UTF32_SIZE), "Invalid UTF-32 size (not a multiple of 4 bytes)");
+    EXPECT_STREQ(textparser_strerror(9999), "Unknown error");
+}
+
+
 

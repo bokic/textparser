@@ -215,19 +215,25 @@ int main(int argc, const char *argv[])
 
     language_def = get_language_definition_by_filename(filename);
     if (language_def == nullptr) {
-        fprintf(stderr, "Unsupported file extension for file %s\n", filename);
+        fprintf(stderr, "Unsupported file extension for file '%s'\n", filename);
         return EXIT_FAILURE;
     }
 
     res = textparser_openfile(filename, language_def->default_text_encoding, language_def->supported_bom, &handle);
     if (res) {
-        fprintf(stderr, "Error opening file.\n");
+        fprintf(stderr, "Error opening file '%s': %s (code %d)\n", filename, textparser_strerror(res), res);
         return EXIT_FAILURE;
     }
 
     res = textparser_parse(handle, language_def);
     if (res) {
-        fprintf(stderr, "Parsing failed.\n");
+        const char *detail = textparser_parse_error(handle);
+        size_t error_pos = textparser_parse_error_position(handle);
+        if (detail) {
+            fprintf(stderr, "Error parsing file '%s' at offset %zu: %s (code %d)\n", filename, error_pos, detail, res);
+        } else {
+            fprintf(stderr, "Error parsing file '%s': %s (code %d)\n", filename, textparser_strerror(res), res);
+        }
         return EXIT_FAILURE;
     }
 

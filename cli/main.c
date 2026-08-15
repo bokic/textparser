@@ -185,7 +185,7 @@ int main(int argc, const char *argv[])
             int res = textparser_json_load_language_definition_from_json_file(definition_file, &language_def);
             if (res)
             {
-                fprintf(stderr, "textparser_json_load_language_definition_from_json_file returned with error code: %d\n", res);
+                fprintf(stderr, "Error loading definition file '%s': %s (code %d)\n", definition_file, textparser_json_strerror(res), res);
                 return EXIT_FAILURE;
             }
             delete_language_def = true;
@@ -210,7 +210,7 @@ int main(int argc, const char *argv[])
 
     if (language == nullptr)
     {
-        fprintf(stderr, "Unsupported file extension for file %s\n", filename);
+        fprintf(stderr, "Unsupported file extension for file '%s'\n", filename);
         return EXIT_FAILURE;
     }
 
@@ -220,17 +220,23 @@ int main(int argc, const char *argv[])
         if (delete_language_def) {
             textparser_free_language_definition(language_def);
         }
-        fprintf(stderr, "textparser_openfile returned with error code: %d\n", err);
+        fprintf(stderr, "Error opening file '%s': %s (code %d)\n", filename, textparser_strerror(err), err);
         return EXIT_FAILURE;
     }
 
     err = textparser_parse(handle, language);
     if (err)
     {
+        const char *detail = textparser_parse_error(handle);
+        size_t error_pos = textparser_parse_error_position(handle);
         if (delete_language_def) {
             textparser_free_language_definition(language_def);
         }
-        fprintf(stderr, "textparser_parse returned with error code: %d\n", err);
+        if (detail) {
+            fprintf(stderr, "Error parsing file '%s' at offset %zu: %s (code %d)\n", filename, error_pos, detail, err);
+        } else {
+            fprintf(stderr, "Error parsing file '%s': %s (code %d)\n", filename, textparser_strerror(err), err);
+        }
         return EXIT_FAILURE;
     }
 

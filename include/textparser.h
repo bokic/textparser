@@ -33,6 +33,20 @@
 #define textparser_defer(var) textparser_t var __attribute__((cleanup(textparser_cleanup))) = nullptr
 #define textparser_parser_state_defer(var) textparser_parser_state *var __attribute__((cleanup(textparser_state_cleanup))) = nullptr
 
+enum textparser_error {
+    TEXTPARSER_OK = 0,
+    TEXTPARSER_ERROR_FILE_OPEN = 1,
+    TEXTPARSER_ERROR_INVALID_ARGUMENT = 2,
+    TEXTPARSER_ERROR_OUT_OF_MEMORY = 3,
+    TEXTPARSER_ERROR_PARSE_FAILED = 4,
+    TEXTPARSER_ERROR_UNSUPPORTED_BOM = 5,
+    TEXTPARSER_ERROR_BYTE_ORDER_CONVERSION = 6,
+    TEXTPARSER_ERROR_INVALID_ENCODING = 7,
+    TEXTPARSER_ERROR_FILE_TOO_LARGE = 8,
+    TEXTPARSER_ERROR_INVALID_UTF16_SIZE = 9,
+    TEXTPARSER_ERROR_INVALID_UTF32_SIZE = 10,
+};
+
 enum textparser_encoding { TEXTPARSER_ENCODING_NONE, TEXTPARSER_ENCODING_LATIN1, TEXTPARSER_ENCODING_UTF_8, TEXTPARSER_ENCODING_UNICODE, TEXTPARSER_ENCODING_UTF_16, TEXTPARSER_ENCODING_UTF_32 };
 
 enum textparser_bom {
@@ -266,6 +280,14 @@ EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
  * @return Byte position index of the parse error.
  */
 EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle);
+
+/**
+ * Return a human-readable description for a textparser_error code.
+ *
+ * @param error_code The error code.
+ * @return Const string description of the error.
+ */
+EXPORT_TEXTPARSER const char *textparser_strerror(int error_code);
 
 /**
  * Set a user callback function to be executed when tokens are matched.

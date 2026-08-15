@@ -384,6 +384,17 @@ TEST(parse_JSON, empty_segment_language_parsing) {
     textparser_free_language_definition(def2);
 }
 
+TEST(parse_JSON, json_strerror_messages) {
+    EXPECT_STREQ(textparser_json_strerror(TEXTPARSER_JSON_NO_ERROR), "Success");
+    EXPECT_STREQ(textparser_json_strerror(TEXTPARSER_JSON_ROOT_OBJ_IS_NULL), "JSON root object is null");
+    EXPECT_STREQ(textparser_json_strerror(TEXTPARSER_JSON_DEFINITION_IS_NULL), "Definition pointer is null");
+    EXPECT_STREQ(textparser_json_strerror(TEXTPARSER_JSON_OUT_OF_MEMORY), "Out of memory");
+    EXPECT_STREQ(textparser_json_strerror(TEXTPARSER_JSON_NAME_NOT_FOUND), "Mandatory field 'name' not found or invalid");
+    EXPECT_STREQ(textparser_json_strerror(TEXTPARSER_JSON_INVALID_TOKEN_TYPE), "Invalid token type");
+    EXPECT_STREQ(textparser_json_strerror(9999), "Unknown JSON parser error");
+}
+
+
 
 
 

@@ -594,3 +594,53 @@ int textparser_json_load_language_definition_from_string(const char *text, textp
 {
     return textparser_json_load_language_definition_internal(json_tokener_parse(text), definition);
 }
+
+const char *textparser_json_strerror(int error_code)
+{
+    switch (error_code) {
+    case TEXTPARSER_JSON_NO_ERROR:
+        return "Success";
+    case TEXTPARSER_JSON_ROOT_OBJ_IS_NULL:
+        return "JSON root object is null";
+    case TEXTPARSER_JSON_DEFINITION_IS_NULL:
+        return "Definition pointer is null";
+    case TEXTPARSER_JSON_OUT_OF_MEMORY:
+        return "Out of memory";
+    case TEXTPARSER_JSON_NAME_NOT_FOUND:
+        return "Mandatory field 'name' not found or invalid";
+    case TEXTPARSER_JSON_VERSION_NOT_FOUND:
+        return "Field 'version' not found";
+    case TEXTPARSER_JSON_EMPTY_SEGMENT_LANGUAGE_NOT_FOUND:
+        return "Field 'emptySegmentLanguage' not found";
+    case TEXTPARSER_JSON_CASE_SENSITIVITY_NOT_FOUND:
+        return "Field 'caseSensitivity' not found";
+    case TEXTPARSER_JSON_FILE_EXTENSIONS_NOT_FOUND:
+        return "Field 'defaultFileExtensions' not found";
+    case TEXTPARSER_JSON_ENCODING_NOT_FOUND:
+        return "Field 'defaultTextEncoding' not found";
+    case TEXTPARSER_JSON_STARTS_WITH_NOT_FOUND:
+        return "Field 'startsWith' not found";
+    case TEXTPARSER_JSON_STARTS_WITH_NOT_ARRAY:
+        return "Field 'startsWith' is not an array";
+    case TEXTPARSER_JSON_TOKENS_NOT_FOUND:
+        return "Field 'tokens' not found";
+    case TEXTPARSER_JSON_TOKENS_NOT_OBJECT:
+        return "Field 'tokens' is not an object";
+    case TEXTPARSER_JSON_STARTS_WITH_IS_EMPTY:
+        return "Field 'startsWith' array is empty";
+    case TEXTPARSER_JSON_STARTS_WITH_ELEMENT_NOT_STRING:
+        return "Element in 'startsWith' is not a string";
+    case TEXTPARSER_JSON_NESTED_TOKENS_NOT_ARRAY:
+        return "Field 'nestedTokens' is not an array";
+    case TEXTPARSER_JSON_NESTED_TOKENS_IS_EMPTY:
+        return "Field 'nestedTokens' array is empty";
+    case TEXTPARSER_JSON_NESTED_TOKENS_ELEMENT_NOT_STRING:
+        return "Element in 'nestedTokens' is not a string";
+    case TEXTPARSER_JSON_TOKEN_TYPE_NOT_FOUND:
+        return "Field 'type' not found in token definition";
+    case TEXTPARSER_JSON_INVALID_TOKEN_TYPE:
+        return "Invalid token type";
+    default:
+        return "Unknown JSON parser error";
+    }
+}

@@ -62,6 +62,14 @@ EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_json_fi
  */
 EXPORT_TEXTPARSER_JSON int textparser_json_load_language_definition_from_string(const char *text, textparser_language_definition **definition);
 
+/**
+ * Return a human-readable description for a TEXTPARSER_JSON error code.
+ *
+ * @param error_code The error code.
+ * @return Const string description of the error.
+ */
+EXPORT_TEXTPARSER_JSON const char *textparser_json_strerror(int error_code);
+
 #ifdef __cplusplus
 }
 #endif
