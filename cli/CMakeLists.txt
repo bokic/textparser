@@ -31,6 +31,7 @@ target_link_libraries(textparser PRIVATE
 )
 
 if(WIN32)
+    target_sources(textparser PRIVATE ${RC_EXE_OUT_FILE})
     target_link_directories(textparser PRIVATE ../bin)
     target_link_libraries(textparser PRIVATE json-c.lib)
 else()

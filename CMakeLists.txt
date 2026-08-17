@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 SET(TEXTPARSER_VERSION_TAG CACHE STRING "")
-SET(REVISION CACHE STRING "0")
+SET(REVISION "0" CACHE STRING "")
 
 if(NOT TEXTPARSER_VERSION_TAG)
     find_package(Git QUIET)
@@ -30,6 +30,14 @@ if(NOT TEXTPARSER_VERSION_TAG)
                 if(GIT_REV_LIST_RESULT EQUAL 0 AND GIT_REVISION)
                     set(REVISION ${GIT_REVISION})
                 endif()
+                execute_process(
+                    COMMAND ${GIT_EXECUTABLE} describe --tags --dirty
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    OUTPUT_VARIABLE GIT_COMMIT_NAME
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    RESULT_VARIABLE GIT_DESCRIBE_RESULT
+                    ERROR_QUIET
+                )
             endif()
         endif()
     endif()
@@ -39,6 +47,7 @@ if(NOT TEXTPARSER_VERSION_TAG)
     if(DEFINED ENV{TEXTPARSER_VERSION})
         set(TEXTPARSER_VERSION_TAG "$ENV{TEXTPARSER_VERSION}")
         set(REVISION "0")
+        set(GIT_COMMIT_NAME "${TEXTPARSER_VERSION_TAG}")
     else()
         message(FATAL_ERROR "Not building under Git repository and the TEXTPARSER_VERSION environment variable is not set! Please set TEXTPARSER_VERSION (e.g., export TEXTPARSER_VERSION=X.Y.Z) to configure the build.")
     endif()
@@ -48,9 +57,36 @@ if(NOT TEXTPARSER_VERSION_TAG MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     message(FATAL_ERROR "Git last tag '${TEXTPARSER_VERSION_TAG}' is not in format X.Y.Z")
 endif()
 
+string(REGEX REPLACE "^([0-9]+)\\..*$" "\\1" TEXTPARSER_VERSION_MAJOR ${TEXTPARSER_VERSION_TAG})
+string(REGEX REPLACE "^[0-9]+\\.([0-9]+)\\..*$" "\\1" TEXTPARSER_VERSION_MINOR ${TEXTPARSER_VERSION_TAG})
+string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+)$" "\\1" TEXTPARSER_VERSION_PATCH ${TEXTPARSER_VERSION_TAG})
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*$" "\\1" TEXTPARSER_VERSION_TAG_SHORT ${TEXTPARSER_VERSION_TAG})
+math(EXPR TEXTPARSER_VERSION_INT "${TEXTPARSER_VERSION_MAJOR}*10000 + ${TEXTPARSER_VERSION_MINOR}*100 + ${TEXTPARSER_VERSION_PATCH}")
 
-project(textparser)
+project(textparser VERSION ${TEXTPARSER_VERSION_TAG} LANGUAGES C CXX)
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
+    @ONLY
+)
+
+if(WIN32)
+    set(RC_EXE_OUT_FILE "${CMAKE_BINARY_DIR}/version_exe.rc")
+    set(RC_OUT_NAME "textparser")
+    set(RC_OUT_EXTENSION "exe")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in ${RC_EXE_OUT_FILE} @ONLY)
+
+    set(RC_DLL_OUT_FILE "${CMAKE_BINARY_DIR}/version_dll.rc")
+    set(RC_OUT_NAME "textparser")
+    set(RC_OUT_EXTENSION "dll")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in ${RC_DLL_OUT_FILE} @ONLY)
+
+    set(RC_CCAT_OUT_FILE "${CMAKE_BINARY_DIR}/version_ccat.rc")
+    set(RC_OUT_NAME "ccat")
+    set(RC_OUT_EXTENSION "exe")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in ${RC_CCAT_OUT_FILE} @ONLY)
+endif()
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)

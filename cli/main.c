@@ -1,5 +1,8 @@
 #include <textparser-json.h>
 #include <textparser.h>
+#if __has_include("version.h")
+#include "version.h"
+#endif
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
 #include <php_definition.json.h>
@@ -139,7 +142,7 @@ static struct json_object *recursivelyAddChildsToJson(const textparser_t handle,
 
 void usage()
 {
-    fprintf(stderr, "Usage: textparser <file> [--no-color|--json|--mute|--definition definition_file.json]\n");
+    fprintf(stderr, "Usage: textparser <file> [--no-color|--json|--mute|--version|--definition definition_file.json]\n");
 }
 
 int main(int argc, const char *argv[])
@@ -158,6 +161,16 @@ int main(int argc, const char *argv[])
     {
         usage();
         return EXIT_FAILURE;
+    }
+
+    if (strcmp(argv[1], "--version") == 0)
+    {
+#ifdef TEXTPARSER_VERSION
+        printf("textparser version: " TEXTPARSER_VERSION "\n");
+#else
+        printf("textparser (version unknown)\n");
+#endif
+        return EXIT_SUCCESS;
     }
 
     for (int i = 2; i < argc; i++)

@@ -28,6 +28,10 @@ target_link_libraries(ccat PRIVATE
     libtextparser
 )
 
+if(WIN32)
+    target_sources(ccat PRIVATE ${RC_CCAT_OUT_FILE})
+endif()
+
 install(TARGETS ccat
     RUNTIME DESTINATION bin
     COMPONENT cli

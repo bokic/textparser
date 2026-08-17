@@ -38,6 +38,7 @@ add_library(libtextparser SHARED
 target_include_directories(libtextparser PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../os>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
@@ -59,12 +60,16 @@ else()
 endif()
 
 set_target_properties(libtextparser PROPERTIES
-    PUBLIC_HEADER "../include/textparser.h;../include/textparser.hpp"
+    PUBLIC_HEADER "../include/textparser.h;../include/textparser.hpp;${CMAKE_BINARY_DIR}/include/version.h"
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser"
     VERSION "${TEXTPARSER_VERSION_TAG}"
     SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
 )
+
+if(WIN32)
+    target_sources(libtextparser PRIVATE ${RC_DLL_OUT_FILE})
+endif()
 
 install(TARGETS libtextparser
     EXPORT textparserTargets
@@ -109,6 +114,10 @@ set_target_properties(libtextparser-json PROPERTIES
     VERSION "${TEXTPARSER_VERSION_TAG}"
     SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
 )
+
+if(WIN32)
+    target_sources(libtextparser-json PRIVATE ${RC_DLL_OUT_FILE})
+endif()
 
 install(TARGETS libtextparser-json
     EXPORT textparserTargets
