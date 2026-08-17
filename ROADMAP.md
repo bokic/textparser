@@ -13,5 +13,6 @@
 ## 1.2
 
 - Replace PCRE2 library with new regex implementation featuring precompiled regexes(like CRTE C++ library - https://github.com/hanickadot/compile-time-regular-expressions).
+  or with ahead-of-time regex specialization.
 
 ## 2.0
