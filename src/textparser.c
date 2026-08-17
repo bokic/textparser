@@ -1629,6 +1629,29 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     return 0;
 }
 
+EXPORT_TEXTPARSER int textparser_set_text(textparser_t handle, const char *text, int len)
+{
+    if (handle == nullptr || text == nullptr)
+        return -1;
+
+    if (len < 0) {
+        len = (int)strlen(text);
+    }
+
+    if ((size_t)len >= MAX_PARSE_SIZE)
+        return -1;
+
+    if (handle->lines) {
+        free(handle->lines);
+        handle->lines = nullptr;
+        handle->no_lines = 0;
+    }
+
+    handle->text_addr = text;
+    handle->text_size = (size_t)len;
+    return 0;
+}
+
 void textparser_close(textparser_t handle)
 {
     void *mmap_addr = nullptr;
@@ -1701,6 +1724,59 @@ const char *textparser_get_filename(const textparser_t handle)
     return handle->filename;
 }
 
+static const textparser_token_item *find_token_at_position_internal(const textparser_token_item *token, size_t position, int depth)
+{
+    if (depth >= MAX_RECURSION_DEPTH || token == nullptr) {
+        return nullptr;
+    }
+    const textparser_token_item *best = nullptr;
+    while (token != nullptr) {
+        if (position >= token->position && position < token->position + token->len) {
+            best = token;
+            if (token->child != nullptr) {
+                const textparser_token_item *child_match = find_token_at_position_internal(token->child, position, depth + 1);
+                if (child_match) {
+                    best = child_match;
+                }
+            }
+            break;
+        }
+        token = token->next;
+    }
+    return best;
+}
+
+static void shift_token_offsets(textparser_token_item *token, ssize_t delta)
+{
+    while (token != nullptr) {
+        token->position = (size_t)((ssize_t)token->position + delta);
+        if (token->child != nullptr) {
+            shift_token_offsets(token->child, delta);
+        }
+        token = token->next;
+    }
+}
+
+static const textparser_token_item *find_open_container(const textparser_token_item *token, size_t position, const textparser_language_definition *definition)
+{
+    const textparser_token_item *curr = token;
+    while (curr != nullptr) {
+        if (curr->token_id >= 0) {
+            const textparser_token *def = &definition->tokens[curr->token_id];
+            if (def->type == TEXTPARSER_TOKEN_TYPE_START_STOP ||
+                def->type == TEXTPARSER_TOKEN_TYPE_START_OPT_STOP ||
+                def->type == TEXTPARSER_TOKEN_TYPE_GROUP ||
+                def->type == TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER) {
+                if (position >= curr->position && position < curr->position + curr->len) {
+                    return curr;
+                }
+            }
+        }
+        curr = curr->parent;
+    }
+    return nullptr;
+}
+
 int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
 {
     return textparser_parse_incremental(handle, definition, NULL, 0, textparser_get_total_units(handle));
@@ -1708,7 +1784,6 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
 
 EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos)
 {
-    (void)state;
     if (handle == nullptr || definition == nullptr)
         return -1;
 
@@ -1723,32 +1798,11 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
     if (end_pos > total)
         end_pos = total;
 
-    // If doing a full parse from offset 0, reset existing arena tree
-    if (start_pos == 0)
+    // If doing a full parse from offset 0 to EOF, reset existing arena tree
+    if (start_pos == 0 && end_pos >= total)
     {
         free_arena(handle);
         handle->first_item = nullptr;
-    }
-
-    textparser_token_item *prev_item = nullptr;
-    size_t pos = start_pos;
-
-    if (start_pos > 0 && handle->first_item != nullptr)
-    {
-        // Find closest previous item before start_pos
-        textparser_token_item *curr = handle->first_item;
-        while (curr)
-        {
-            if (curr->position + curr->len <= start_pos)
-            {
-                prev_item = curr;
-            }
-            else
-            {
-                break;
-            }
-            curr = curr->next;
-        }
     }
 
     if (handle->language != definition)
@@ -1759,9 +1813,49 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
             return -1;
     }
 
-    const int *effective_starts_with = definition->starts_with;
+    // Determine old document length and delta
+    size_t old_total = total;
+    if (handle->first_item != nullptr) {
+        textparser_token_item *curr = handle->first_item;
+        size_t max_end = 0;
+        while (curr) {
+            if (curr->position + curr->len > max_end) {
+                max_end = curr->position + curr->len;
+            }
+            curr = curr->next;
+        }
+        if (max_end > 0) {
+            old_total = max_end;
+        }
+    } else if (state != nullptr && state->len > 0) {
+        old_total = state->len;
+    }
 
-    if (definition->override_start_tokens && handle->filename) {
+    ssize_t delta = (ssize_t)total - (ssize_t)old_total;
+    ssize_t old_end_bound = (ssize_t)end_pos - delta;
+    if (old_end_bound < (ssize_t)start_pos) {
+        old_end_bound = (ssize_t)start_pos;
+    }
+
+    // Resolve active token from state or existing AST
+    const textparser_token_item *active_token = nullptr;
+    if (state != nullptr && start_pos > 0 && start_pos - 1 < state->len) {
+        active_token = state->state[start_pos - 1];
+    } else if (handle->first_item != nullptr && start_pos > 0) {
+        active_token = find_token_at_position_internal(handle->first_item, start_pos - 1, 0);
+    }
+
+    const textparser_token_item *open_container = nullptr;
+    if (active_token != nullptr) {
+        open_container = find_open_container(active_token, start_pos, definition);
+    }
+
+    const int *effective_starts_with = definition->starts_with;
+    textparser_token_item *parent_container = (textparser_token_item *)open_container;
+
+    if (open_container) {
+        effective_starts_with = get_effective_nested_tokens(handle, open_container->token_id, open_container);
+    } else if (definition->override_start_tokens && handle->filename) {
         const char *file_ext = strrchr(handle->filename, '.');
         if (file_ext) {
             file_ext++;
@@ -1806,6 +1900,45 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
         }
     }
 
+    textparser_token_item *prev_item = nullptr;
+    textparser_token_item *sibling_list = parent_container ? parent_container->child : handle->first_item;
+
+    if (start_pos > 0 && sibling_list != nullptr)
+    {
+        textparser_token_item *curr = sibling_list;
+        while (curr)
+        {
+            if (curr->position + curr->len <= start_pos)
+            {
+                prev_item = curr;
+            }
+            else
+            {
+                break;
+            }
+            curr = curr->next;
+        }
+    }
+
+    textparser_token_item *tail_first = nullptr;
+    if (sibling_list != nullptr && end_pos < total)
+    {
+        textparser_token_item *curr = prev_item ? prev_item->next : sibling_list;
+        while (curr)
+        {
+            if ((ssize_t)curr->position >= old_end_bound)
+            {
+                tail_first = curr;
+                break;
+            }
+            curr = curr->next;
+        }
+    }
+
+    size_t pos = start_pos;
+    textparser_token_item *first_new_token = nullptr;
+    textparser_token_item *last_new_token = nullptr;
+
     while(pos < end_pos) {
         pos = textparser_skip_whitespace(handle, pos);
         if (pos >= end_pos)
@@ -1813,9 +1946,9 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
 
         int matched_token_id = TextParser_END;
 
-        for (int c = 0; effective_starts_with[c] != TextParser_END; c++) {
+        for (int c = 0; effective_starts_with && effective_starts_with[c] != TextParser_END; c++) {
             int token_id = effective_starts_with[c];
-            ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside, nullptr, prev_item);
+            ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside, parent_container, prev_item);
             if (offset == 0)
             {
                 matched_token_id = token_id;
@@ -1824,18 +1957,27 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
         }
 
         if (matched_token_id != TextParser_END) {
-            textparser_token_item *token_item = textparser_parse_token(handle, matched_token_id, TextParser_END, TEXTPARSER_SEARCH_END_TOKEN, pos, nullptr, prev_item);
+            int parent_tok_id = parent_container ? parent_container->token_id : TextParser_END;
+            textparser_token_item *token_item = textparser_parse_token(handle, matched_token_id, parent_tok_id, TEXTPARSER_SEARCH_END_TOKEN, pos, parent_container, prev_item);
             if (token_item == nullptr) {
                 LOGE("token_item == nullptr");
                 return -1;
             }
 
-            if (handle->first_item == nullptr)
-                handle->first_item = token_item;
+            if (parent_container) {
+                token_item->parent = parent_container;
+            }
+
+            if (first_new_token == nullptr)
+                first_new_token = token_item;
 
             if (prev_item) {
                 prev_item->next = token_item;
                 token_item->prev = prev_item;
+            } else if (parent_container) {
+                parent_container->child = token_item;
+            } else {
+                handle->first_item = token_item;
             }
 
             maybe_merge_sign(handle, token_item);
@@ -1845,6 +1987,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
 
             pos = token_item->position + token_item->len;
             prev_item = token_item;
+            last_new_token = token_item;
         } else {
             if (definition->other_text_inside) {
                 size_t char_l = textparser_char_len(handle, pos);
@@ -1853,14 +1996,22 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
                 } else {
                     textparser_token_item *err_item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_ERROR, pos, char_l);
                     if (err_item) {
-                        if (handle->first_item == nullptr) {
-                            handle->first_item = err_item;
+                        if (parent_container) {
+                            err_item->parent = parent_container;
+                        }
+                        if (first_new_token == nullptr) {
+                            first_new_token = err_item;
                         }
                         if (prev_item) {
                             prev_item->next = err_item;
                             err_item->prev = prev_item;
+                        } else if (parent_container) {
+                            parent_container->child = err_item;
+                        } else {
+                            handle->first_item = err_item;
                         }
                         prev_item = err_item;
+                        last_new_token = err_item;
                     }
                 }
                 pos += char_l;
@@ -1868,6 +2019,43 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
                 break;
             }
         }
+    }
+
+    textparser_token_item *stitch_point = last_new_token ? last_new_token : prev_item;
+    if (tail_first) {
+        if (stitch_point) {
+            stitch_point->next = tail_first;
+            tail_first->prev = stitch_point;
+        } else if (parent_container) {
+            parent_container->child = tail_first;
+            tail_first->prev = nullptr;
+        } else {
+            handle->first_item = tail_first;
+            tail_first->prev = nullptr;
+        }
+        if (delta != 0) {
+            shift_token_offsets(tail_first, delta);
+        }
+    } else if (stitch_point) {
+        stitch_point->next = nullptr;
+    } else if (parent_container) {
+        parent_container->child = nullptr;
+    } else {
+        handle->first_item = nullptr;
+    }
+
+    if (parent_container && delta != 0) {
+        textparser_token_item *p = parent_container;
+        while (p) {
+            p->len = (size_t)((ssize_t)p->len + delta);
+            p = p->parent;
+        }
+    }
+
+    if (handle->lines && (delta != 0 || start_pos == 0)) {
+        free(handle->lines);
+        handle->lines = nullptr;
+        handle->no_lines = 0;
     }
 
     return 0;
@@ -2349,6 +2537,38 @@ textparser_parser_state *textparser_state_new(const textparser_t handle)
         textparser_parse_state_recursively_fill(handle->first_item, ret->state, size);
     }
 
+    return ret;
+}
+
+EXPORT_TEXTPARSER textparser_parser_state *textparser_state_generate(const textparser_t handle, size_t position)
+{
+    if (handle == nullptr)
+        return nullptr;
+
+    size_t total = textparser_get_total_units(handle);
+    if (total >= MAX_PARSE_SIZE)
+        return nullptr;
+
+    if (position > total)
+        position = total;
+
+    size_t len = position;
+    size_t allocated = len * sizeof(const textparser_token_item *);
+    size_t to_allocate = offsetof(textparser_parser_state, state) + allocated;
+
+    textparser_parser_state *ret = malloc(to_allocate);
+    if (ret) {
+        ret->len = len;
+        if (allocated > 0) {
+            memset(ret->state, 0, allocated);
+        }
+        if (position > 0) {
+            const textparser_token_item *active = find_token_at_position_internal(handle->first_item, position - 1, 0);
+            if (active) {
+                ret->state[position - 1] = active;
+            }
+        }
+    }
     return ret;
 }
 

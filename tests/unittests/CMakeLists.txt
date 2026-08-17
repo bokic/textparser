@@ -65,6 +65,7 @@ add_executable( unittests
   subtraction_tests.cpp
   openfile_tests.cpp
   query_tests.cpp
+  incremental_tests.cpp
   ../compat/textparser_compat.c
   ../../src/adv_regex.c
 

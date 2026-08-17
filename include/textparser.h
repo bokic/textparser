@@ -202,6 +202,16 @@ EXPORT_TEXTPARSER int textparser_openfile(const char *pathname, int default_text
 EXPORT_TEXTPARSER int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle);
 
 /**
+ * Update the text buffer associated with an existing parser handle for incremental parsing.
+ *
+ * @param handle The parser handle.
+ * @param text Pointer to the new buffer containing updated text.
+ * @param len Length of text in bytes (-1 for null-terminated strings).
+ * @return 0 on success, non-zero error code on failure.
+ */
+EXPORT_TEXTPARSER int textparser_set_text(textparser_t handle, const char *text, int len);
+
+/**
  * Set or update the filename associated with the parser handle.
  *
  * @param handle The parser handle.

@@ -50,6 +50,10 @@ public:
         return State(textparser_state_new(handle));
     }
 
+    static State generate(textparser_t handle, size_t position) {
+        return State(textparser_state_generate(handle, position));
+    }
+
     textparser_parser_state *get() const { return m_state; }
     textparser_parser_state *release() {
         textparser_parser_state *state = m_state;
@@ -104,6 +108,10 @@ public:
     int openmem(const char *buffer, int len, enum textparser_encoding default_text_format) {
         reset();
         return textparser_openmem(buffer, len, default_text_format, &m_handle);
+    }
+
+    int set_text(const char *buffer, int len = -1) {
+        return textparser_set_text(m_handle, buffer, len);
     }
 
     int parse(const textparser_language_definition *definition) {
