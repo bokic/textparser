@@ -233,7 +233,7 @@ public:
         if (token == nullptr)
             return;
 
-        startStyling(token->position);
+        startStyling(textparser_get_token_position(token));
         setStyling(token->len, token->token_id + 1);
 
         if (token->child)
@@ -283,7 +283,8 @@ public:
 
             for (const textparser_token_item *t = first; t != nullptr; t = t->next)
             {
-                if (t->position <= (size_t)start && (t->position + t->len) >= (size_t)start)
+                size_t t_pos = textparser_get_token_position(t);
+                if (t_pos <= (size_t)start && (t_pos + t->len) >= (size_t)start)
                 {
                     curr = t;
                     next = t->next;
@@ -293,16 +294,16 @@ public:
             }
 
             if (prev)
-                parse_start = prev->position;
+                parse_start = textparser_get_token_position(prev);
             else if (curr)
-                parse_start = curr->position;
+                parse_start = textparser_get_token_position(curr);
             else
                 parse_start = (start > 0) ? (size_t)(start - 1) : 0;
 
             if (next)
-                parse_end = next->position + next->len;
+                parse_end = textparser_get_token_position(next) + next->len;
             else if (curr)
-                parse_end = curr->position + curr->len;
+                parse_end = textparser_get_token_position(curr) + curr->len;
             else
                 parse_end = (size_t)end;
 

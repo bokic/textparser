@@ -20,6 +20,7 @@
 #define MAX_RECURSION_DEPTH 1000
 
 #define TEXTPARSER_TOKEN_ID_ERROR (-1)
+#define TEXTPARSER_TOKEN_ID_UNPROCESSED (-2)
 #define TEXTPARSER_NOCOLOR 0xffffffff
 
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -104,7 +105,6 @@ typedef struct textparser_token_item {
     struct textparser_token_item *child;
     struct textparser_token_item *parent;
     int token_id;
-    size_t position;
     size_t len;
     uint32_t text_color;
     uint32_t text_background;

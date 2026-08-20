@@ -172,26 +172,28 @@ static void print_recursive_token(const textparser_t handle, const char *text, c
     if (text_flags & 0x08) strcat(ansi_format_flags, "\33[4m");
 
     child = token->child;
+    size_t token_pos = textparser_get_token_position(token);
 
-    last_pos = token->position;
+    last_pos = token_pos;
 
     if (child) {
         while (child) {
-            if (child->position > last_pos) {
-                print_element(text + last_pos, child->position - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
+            size_t child_pos = textparser_get_token_position(child);
+            if (child_pos > last_pos) {
+                print_element(text + last_pos, child_pos - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
             }
             print_recursive_token(handle, text, child);
-            last_pos = child->position + child->len;
+            last_pos = child_pos + child->len;
             child = child->next;
         }
 
-        size_t parent_end = token->position + token->len;
+        size_t parent_end = token_pos + token->len;
         if (parent_end > last_pos) {
             print_element(text + last_pos, parent_end - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
         }
 
     } else {
-        print_element(text + token->position, token->len, ansi_format_background, ansi_format_text_color, ansi_format_flags);
+        print_element(text + token_pos, token->len, ansi_format_background, ansi_format_text_color, ansi_format_flags);
     }
 }
 
@@ -250,13 +252,14 @@ int main(int argc, const char *argv[])
         size_t pos = 0;
 
         do {
-            if (token->position > pos) {
-                os_write_to_terminal(text + pos, token->position - pos);
+            size_t curr_pos = textparser_get_token_position(token);
+            if (curr_pos > pos) {
+                os_write_to_terminal(text + pos, curr_pos - pos);
             }
 
             print_recursive_token(handle, text, token);
 
-            pos = token->position + token->len;
+            pos = curr_pos + token->len;
 
             token = token->next;
         } while(token);

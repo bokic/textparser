@@ -81,21 +81,22 @@ static void print_textparser_token_item(void *handle, textparser_token_item *ite
 
     token_name = textparser_get_token_type_str(textparser_get_language(handle), item);
     token_text = textparser_get_token_text(handle, item);
+    size_t item_pos = textparser_get_token_position(item);
 
     if (colored)
     {
         if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
-            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu, text: \033[48;5;5m%s\033[0m\n", token_name, item->position, item->len, token_text);
+            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu, text: \033[48;5;5m%s\033[0m\n", token_name, item_pos, item->len, token_text);
         } else {
-            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu\n", token_name, item->position, item->len);
+            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu\n", token_name, item_pos, item->len);
         }
     }
     else
     {
         if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
-            printf("type: %s, position: %zu, length: %zu, text: %s\n", token_name, item->position, item->len, token_text);
+            printf("type: %s, position: %zu, length: %zu, text: %s\n", token_name, item_pos, item->len, token_text);
         } else {
-            printf("type: %s, position: %zu, length: %zu\n", token_name, item->position, item->len);
+            printf("type: %s, position: %zu, length: %zu\n", token_name, item_pos, item->len);
         }
     }
 
@@ -120,7 +121,7 @@ static struct json_object *recursivelyAddChildsToJson(const textparser_t handle,
         struct json_object *child = json_object_new_object();
 
         json_object_object_add(child, "id", json_object_new_string(language->tokens[item->token_id].name));
-        json_object_object_add(child, "position", json_object_new_int64((int64_t)item->position));
+        json_object_object_add(child, "position", json_object_new_int64((int64_t)textparser_get_token_position(item)));
         json_object_object_add(child, "length", json_object_new_int64((int64_t)item->len));
 
         if (item->child)

@@ -92,8 +92,9 @@ static bool is_css_at_rule(const char *name) {
 }
 
 static void get_property_name(const char *text, textparser_token_item *token, char *buf, size_t max_len) {
-    size_t p = token->position;
-    size_t end = token->position + token->len;
+    size_t token_pos = textparser_get_token_position(token);
+    size_t p = token_pos;
+    size_t end = token_pos + token->len;
     size_t i = 0;
     while (p < end && i + 1 < max_len) {
         char c = text[p];
@@ -107,9 +108,10 @@ static void get_property_name(const char *text, textparser_token_item *token, ch
 }
 
 static void get_token_name_lower(const char *text, textparser_token_item *token, char *buf, size_t max_len) {
+    size_t token_pos = textparser_get_token_position(token);
     size_t len = token->len < max_len - 1 ? token->len : max_len - 1;
     for (size_t i = 0; i < len; i++) {
-        char c = text[token->position + i];
+        char c = text[token_pos + i];
         buf[i] = (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
     }
     buf[len] = '\0';
@@ -117,13 +119,14 @@ static void get_token_name_lower(const char *text, textparser_token_item *token,
 
 static void textparser_validate_css_token(const css_dynamic_token_ids *ids, textparser_validation **ret, textparser_t handle, textparser_token_item *token) {
     const char *text = textparser_get_text(handle);
+    size_t token_pos = textparser_get_token_position(token);
     if (token->token_id != TextParser_END && token->token_id == ids->Declaration) {
         char prop_name[128];
         get_property_name(text, token, prop_name, sizeof(prop_name));
 
         if (!is_css_property(prop_name)) {
             char *str = dynamic_printf("Unknown CSS property: [%s]", prop_name);
-            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, strlen(prop_name));
+            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token_pos, strlen(prop_name));
         }
     }
     else if (token->token_id != TextParser_END && token->token_id == ids->PseudoClass) {
@@ -133,12 +136,12 @@ static void textparser_validate_css_token(const css_dynamic_token_ids *ids, text
         if (strncmp(pseudo_name, "::", 2) == 0) {
             if (!is_css_pseudo_element(pseudo_name)) {
                 char *str = dynamic_printf("Unknown CSS pseudo-element: [%s]", pseudo_name);
-                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token_pos, token->len);
             }
         } else {
             if (!is_css_pseudo_class(pseudo_name)) {
                 char *str = dynamic_printf("Unknown CSS pseudo-class: [%s]", pseudo_name);
-                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token_pos, token->len);
             }
         }
     }
@@ -148,7 +151,7 @@ static void textparser_validate_css_token(const css_dynamic_token_ids *ids, text
 
         if (!is_css_at_rule(at_name)) {
             char *str = dynamic_printf("Unknown CSS At-Rule: [%s]", at_name);
-            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token->position, token->len);
+            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token_pos, token->len);
         }
     }
 }

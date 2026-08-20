@@ -100,7 +100,7 @@ static bool is_token_in_string(textparser_t handle, textparser_token_item *token
 
 static bool get_function_name_before_paren(textparser_t handle, textparser_token_item *paren_token, const char **func_name_out, size_t *func_len_out, size_t *func_pos_out) {
     const char *text = textparser_get_text(handle);
-    size_t pos = paren_token->position;
+    size_t pos = textparser_get_token_position(paren_token);
     
     int p = (int)pos - 1;
     textparser_token_item *prev_tok = paren_token->prev;
@@ -111,12 +111,15 @@ static bool get_function_name_before_paren(textparser_t handle, textparser_token
             continue;
         }
         
-        if (prev_tok != NULL && (prev_tok->position + prev_tok->len) > (size_t)p) {
-            const char *type_str = textparser_get_token_type_str(textparser_get_language(handle), prev_tok);
-            if (type_str != NULL && (strcmp(type_str, "LineComment") == 0 || strcmp(type_str, "BlockComment") == 0)) {
-                p = (int)prev_tok->position - 1;
-                prev_tok = prev_tok->prev;
-                continue;
+        if (prev_tok != NULL) {
+            size_t prev_pos = textparser_get_token_position(prev_tok);
+            if ((prev_pos + prev_tok->len) > (size_t)p) {
+                const char *type_str = textparser_get_token_type_str(textparser_get_language(handle), prev_tok);
+                if (type_str != NULL && (strcmp(type_str, "LineComment") == 0 || strcmp(type_str, "BlockComment") == 0)) {
+                    p = (int)prev_pos - 1;
+                    prev_tok = prev_tok->prev;
+                    continue;
+                }
             }
         }
         break;
@@ -190,8 +193,9 @@ static bool get_function_name_before_paren(textparser_t handle, textparser_token
 static void collect_user_defined_functions_tree(textparser_t handle, textparser_token_item *token, int keyword_id, char **user_funcs, int *user_funcs_count) {
     const char *text = textparser_get_text(handle);
     while (token != NULL) {
-        if (token->token_id == keyword_id && token->len == 8 && strncmp(text + token->position, "function", 8) == 0) {
-            size_t p = token->position + token->len;
+        size_t token_pos = textparser_get_token_position(token);
+        if (token->token_id == keyword_id && token->len == 8 && strncmp(text + token_pos, "function", 8) == 0) {
+            size_t p = token_pos + token->len;
             size_t text_size = textparser_get_text_size(handle);
             textparser_token_item *next_tok = token->next;
             
@@ -201,7 +205,7 @@ static void collect_user_defined_functions_tree(textparser_t handle, textparser_
                     continue;
                 }
                 
-                if (next_tok != NULL && next_tok->position == p) {
+                if (next_tok != NULL && textparser_get_token_position(next_tok) == p) {
                     const char *type_str = textparser_get_token_type_str(textparser_get_language(handle), next_tok);
                     if (type_str != NULL && (strcmp(type_str, "LineComment") == 0 || strcmp(type_str, "BlockComment") == 0)) {
                         p += next_tok->len;
@@ -278,15 +282,16 @@ static void textparser_validate_php_token(const php_dynamic_token_ids *ids, text
             } else {
                 // Count arguments passed inside this parenthesis
                 const char *text = textparser_get_text(handle);
-                size_t start_pos = token->position + 1;
-                size_t end_pos = token->position + token->len - 1;
+                size_t token_pos = textparser_get_token_position(token);
+                size_t start_pos = token_pos + 1;
+                size_t end_pos = token_pos + token->len - 1;
                 size_t p = start_pos;
                 textparser_token_item *curr_child = token->child;
                 int comma_count = 0;
                 bool has_arguments = false;
 
                 while (p < end_pos) {
-                    if (curr_child != NULL && curr_child->position == p) {
+                    if (curr_child != NULL && textparser_get_token_position(curr_child) == p) {
                         const char *type_str = textparser_get_token_type_str(textparser_get_language(handle), curr_child);
                         if (type_str != NULL && (
                             strcmp(type_str, "SingleString") == 0 ||
@@ -335,11 +340,12 @@ static void textparser_validate_php_token(const php_dynamic_token_ids *ids, text
                     textparser_token_item *child = token->child;
                     bool in_comment = false;
                     while (child != NULL) {
-                        if (last_comma_check >= (int)child->position && last_comma_check < (int)(child->position + child->len)) {
+                        size_t child_pos = textparser_get_token_position(child);
+                        if (last_comma_check >= (int)child_pos && last_comma_check < (int)(child_pos + child->len)) {
                             const char *type_str = textparser_get_token_type_str(textparser_get_language(handle), child);
                             if (type_str != NULL && (strcmp(type_str, "LineComment") == 0 || strcmp(type_str, "BlockComment") == 0)) {
                                 in_comment = true;
-                                last_comma_check = (int)child->position - 1;
+                                last_comma_check = (int)child_pos - 1;
                                 break;
                             }
                         }

@@ -114,7 +114,6 @@ TEST(parse_Callback, get_token_text_overflow_protection) {
 
     textparser_token_item item;
     memset(&item, 0, sizeof(item));
-    item.position = 0;
     item.len = SIZE_MAX;
 
     char *txt = textparser_get_token_text(handle, &item);
@@ -313,6 +312,7 @@ TEST(parse_DeleteIfOnlyOneChild, token_delete_if_only_one_child_validation) {
     textparser_post_process(&root, &lang);
 
     const textparser_token_item *first = root;
+    while (first && first->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) first = first->next;
     ASSERT_NE(first, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&lang, first), "ChildToken");
     EXPECT_EQ(first->parent, nullptr);
@@ -328,7 +328,11 @@ TEST(parse_DeleteIfOnlyOneChild, token_delete_if_only_one_child_validation) {
     first = textparser_get_first_token(handle);
     ASSERT_NE(first, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&lang, first), "ParentGroup");
-    EXPECT_EQ(textparser_get_token_children_count(first), 2);
+    size_t semantic_children = 0;
+    for (const textparser_token_item *c = first->child; c; c = c->next) {
+        if (c->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) semantic_children++;
+    }
+    EXPECT_EQ(semantic_children, 2);
     textparser_close(handle);
 }
 
@@ -349,7 +353,6 @@ TEST(parse_Consistency, defensive_checks) {
     int err = textparser_openmem(text, strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle);
     ASSERT_EQ(err, 0);
     textparser_token_item item = {};
-    item.position = 0;
     item.len = 5;
     char *buf = textparser_get_token_text(handle, &item);
     ASSERT_NE(buf, nullptr);
@@ -479,7 +482,6 @@ TEST(get_token_text, utf16_and_utf32_to_utf8_transcoding) {
 
     textparser_token_item item16;
     memset(&item16, 0, sizeof(item16));
-    item16.position = 0;
     item16.len = 5; // 5 UTF-16 units (3 bmp + 2 surrogate)
 
     char *txt16 = textparser_get_token_text(handle16, &item16);
@@ -496,7 +498,6 @@ TEST(get_token_text, utf16_and_utf32_to_utf8_transcoding) {
 
     textparser_token_item item32;
     memset(&item32, 0, sizeof(item32));
-    item32.position = 0;
     item32.len = 4; // 4 UTF-32 code points
 
     char *txt32 = textparser_get_token_text(handle32, &item32);
@@ -515,6 +516,50 @@ TEST(textparser_error, strerror_messages) {
     EXPECT_STREQ(textparser_strerror(TEXTPARSER_ERROR_INVALID_UTF32_SIZE), "Invalid UTF-32 size (not a multiple of 4 bytes)");
     EXPECT_STREQ(textparser_strerror(9999), "Unknown error");
 }
+
+static size_t verify_cst_subtree(textparser_t handle, const textparser_token_item *node, size_t expected_start_pos) {
+    size_t total_len = 0;
+    const textparser_token_item *curr = node;
+    while (curr != nullptr) {
+        size_t computed_pos = textparser_get_token_position(curr);
+        EXPECT_EQ(computed_pos, expected_start_pos + total_len);
+
+        if (curr->child != nullptr) {
+            size_t child_len_sum = verify_cst_subtree(handle, curr->child, computed_pos);
+            EXPECT_EQ(child_len_sum, curr->len);
+        }
+
+        total_len += curr->len;
+        curr = curr->next;
+    }
+    return total_len;
+}
+
+TEST(parse_CST, gapless_tree_and_dynamic_offsets) {
+    const char *code = R"(
+        <cfoutput>
+            <!--- Comment --->
+            <cfset x = 10 + 20 />
+            <cfset str = "Hello " & name />
+            #DateFormat(Now(), "yyyy-mm-dd")#
+        </cfoutput>
+    )";
+
+    textparser_t handle = nullptr;
+    int err = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(err, 0);
+    err = textparser_parse(handle, &cfml_definition);
+    EXPECT_EQ(err, 0);
+
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+
+    size_t total_len = verify_cst_subtree(handle, first, 0);
+    EXPECT_EQ(total_len, strlen(code));
+
+    textparser_close(handle);
+}
+
 
 
 

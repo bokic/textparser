@@ -89,10 +89,11 @@ TEST(parse_JSON, unicode_object) {
     ASSERT_NE(first, nullptr);
     
     EXPECT_STREQ(textparser_get_token_type_str(&json_definition, first), "Object");
-    EXPECT_EQ(first->position, 0);
+    EXPECT_EQ(textparser_get_token_position(first), 0u);
     EXPECT_EQ(first->len, byte_len / sizeof(uint16_t));
     
     textparser_token_item *child = first->child;
+    while (child && child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) child = child->next;
     ASSERT_NE(child, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&json_definition, child), "Key");
     
@@ -120,10 +121,11 @@ TEST(parse_JSON, utf32_object) {
     ASSERT_NE(first, nullptr);
     
     EXPECT_STREQ(textparser_get_token_type_str(&json_definition, first), "Object");
-    EXPECT_EQ(first->position, 0);
+    EXPECT_EQ(textparser_get_token_position(first), 0u);
     EXPECT_EQ(first->len, byte_len / sizeof(uint32_t));
     
     textparser_token_item *child = first->child;
+    while (child && child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) child = child->next;
     ASSERT_NE(child, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&json_definition, child), "Key");
     
@@ -153,6 +155,7 @@ TEST(parse_JSON, unicode_non_ascii) {
     ASSERT_NE(first, nullptr);
     
     textparser_token_item *child = first->child;
+    while (child && child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) child = child->next;
     ASSERT_NE(child, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&json_definition, child), "Key");
     
@@ -187,6 +190,7 @@ TEST(parse_JSON, utf32_non_ascii) {
     ASSERT_NE(first, nullptr);
     
     textparser_token_item *child = first->child;
+    while (child && child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) child = child->next;
     ASSERT_NE(child, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&json_definition, child), "Key");
     
@@ -277,10 +281,12 @@ TEST(parse_JSON, recursive_group_find_token_depth_limit) {
     ASSERT_EQ(err, 0);
     ASSERT_NE(handle, nullptr);
 
-    // Parsing should complete safely without stack overflow and yield no matched tokens
+    // Parsing should complete safely without stack overflow and yield no matched semantic tokens
     err = textparser_parse(handle, definition);
     EXPECT_EQ(err, 0);
-    EXPECT_EQ(textparser_get_first_token(handle), nullptr);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    while (first && first->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) first = first->next;
+    EXPECT_EQ(first, nullptr);
 
     textparser_close(handle);
     textparser_free_language_definition(definition);

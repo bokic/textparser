@@ -62,7 +62,14 @@ public:
             position = textparser_get_token_position(token);
             length = textparser_get_token_length(token);
             type = textparser_get_token_type_str(definition, token);
-            children = textparser_get_token_children_count(token);
+            children = 0;
+            const textparser_token_item *c = token->child;
+            while (c) {
+                if (c->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                    children++;
+                }
+                c = c->next;
+            }
             if (handle)
             {
                 char *txt = textparser_get_token_text(handle, token);
@@ -77,11 +84,16 @@ public:
 
     TokenParserItem operator[](size_t index) const
     {
-        const textparser_token_item *token = m_token->child;
+        const textparser_token_item *token = m_token ? m_token->child : nullptr;
 
-        for(size_t c = 0; c < index; c++)
+        size_t c = 0;
+        while (token != nullptr)
         {
-            if (token == nullptr) break;
+            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED)
+            {
+                if (c == index) break;
+                c++;
+            }
             token = token->next;
         }
 
@@ -112,7 +124,9 @@ public:
             auto token = textparser_get_first_token(m_handle);
             while(token)
             {
-                count++;
+                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                    count++;
+                }
                 token = token->next;
             }
         }
@@ -140,9 +154,14 @@ public:
     {
         const textparser_token_item *token = textparser_get_first_token(m_handle);
 
-        for(size_t c = 0; c < index; c++)
+        size_t c = 0;
+        while (token != nullptr)
         {
-            if (token == nullptr) break;
+            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED)
+            {
+                if (c == index) break;
+                c++;
+            }
             token = token->next;
         }
 
@@ -151,15 +170,7 @@ public:
 
     TokenParserItem at(size_t index) const
     {
-        const textparser_token_item *token = textparser_get_first_token(m_handle);
-
-        for(size_t c = 0; c < index; c++)
-        {
-            if (token == nullptr) break;
-            token = token->next;
-        }
-
-        return TokenParserItem(token, m_definition, m_handle);
+        return operator[](index);
     }
 
     size_t count = 0;

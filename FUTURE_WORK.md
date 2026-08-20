@@ -3,16 +3,16 @@
 
 ---
 
-## 1. Concrete Syntax Tree (CST) & Full Token Retention
+## 1. Concrete Syntax Tree (CST) & Full Token Retention [COMPLETED]
 
 ### Motivation & Goals
 Transform `textparser` into a 100% lossless Concrete Syntax Tree (CST) engine that records every token, delimiter, punctuation mark, and leading trivia/padding so that the source code can be reproduced byte-for-byte from the tree.
 
-### Key Enhancements
-* **Syntax Trivia & Delimiter Retention**: Ensure operators (`=`), separators (`;`, `,`), and structural brackets (`{`, `}`, `(`, `)`) are preserved as explicit CST nodes.
-* **Relative Sizing & Padding**:
-  * Store relative `size` (node length) and `padding` (preceding whitespace/trivia) in internal subtree structures.
-  * Compute absolute offsets on demand during traversal, enabling structural sharing and position-independent node reuse.
+* **Syntax Trivia & Unprocessed Node Retention** *(Implemented)*:
+  * Preserves delimiters, punctuation, whitespace, and plain unparsed text as explicit **Unprocessed** token nodes (`TEXTPARSER_TOKEN_ID_UNPROCESSED` = -2), ensuring gapless, byte-for-byte fidelity ($\sum \text{token.len} == \text{document\_length}$).
+* **Relative Sizing (`len` only) & Dynamic Position** *(Implemented)*:
+  * Stores only relative node length (`len`) inside token structures; removed absolute `position` field to prevent $O(N)$ position-invalidation cascades during incremental parsing.
+  * Computes absolute offsets on demand during traversal via `textparser_get_token_position(token)`.
 * **Tree-sitter Compatible Token Schema**: Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.
 
 ---

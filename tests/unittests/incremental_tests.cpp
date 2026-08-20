@@ -55,11 +55,11 @@ TEST(IncrementalParsing, CppStateGenerateAndSetText) {
 
     textparser_token_item *first = parser.get_first_token();
     ASSERT_NE(first, nullptr);
-    EXPECT_EQ(first->position, 0u);
+    EXPECT_EQ(textparser_get_token_position(first), 0u);
     EXPECT_EQ(first->len, 13u);
 
     ASSERT_NE(first->next, nullptr);
-    EXPECT_EQ(first->next->position, 13u);
+    EXPECT_EQ(textparser_get_token_position(first->next), 13u);
     EXPECT_EQ(first->next->len, 15u);
 }
 
@@ -82,19 +82,19 @@ TEST(IncrementalParsing, MiddleReplacementLongerTextPreservesTail) {
 
     textparser_token_item *tok1 = textparser_get_first_token(handle);
     ASSERT_NE(tok1, nullptr);
-    EXPECT_EQ(tok1->position, 0u);
+    EXPECT_EQ(textparser_get_token_position(tok1), 0u);
     EXPECT_EQ(tok1->len, 13u);
 
     textparser_token_item *tok2 = tok1->next;
     ASSERT_NE(tok2, nullptr);
     EXPECT_EQ(tok2->prev, tok1);
-    EXPECT_EQ(tok2->position, 13u);
+    EXPECT_EQ(textparser_get_token_position(tok2), 13u);
     EXPECT_EQ(tok2->len, 16u);
 
     textparser_token_item *tok3 = tok2->next;
     ASSERT_NE(tok3, nullptr);
     EXPECT_EQ(tok3->prev, tok2);
-    EXPECT_EQ(tok3->position, 29u); // Shifted by +3 from 26
+    EXPECT_EQ(textparser_get_token_position(tok3), 29u); // Shifted by +3 from 26
     EXPECT_EQ(tok3->len, 13u);
     EXPECT_EQ(tok3->next, nullptr);
 
@@ -119,19 +119,19 @@ TEST(IncrementalParsing, MiddleReplacementShorterTextPreservesTail) {
 
     textparser_token_item *tok1 = textparser_get_first_token(handle);
     ASSERT_NE(tok1, nullptr);
-    EXPECT_EQ(tok1->position, 0u);
+    EXPECT_EQ(textparser_get_token_position(tok1), 0u);
     EXPECT_EQ(tok1->len, 13u);
 
     textparser_token_item *tok2 = tok1->next;
     ASSERT_NE(tok2, nullptr);
     EXPECT_EQ(tok2->prev, tok1);
-    EXPECT_EQ(tok2->position, 13u);
+    EXPECT_EQ(textparser_get_token_position(tok2), 13u);
     EXPECT_EQ(tok2->len, 13u);
 
     textparser_token_item *tok3 = tok2->next;
     ASSERT_NE(tok3, nullptr);
     EXPECT_EQ(tok3->prev, tok2);
-    EXPECT_EQ(tok3->position, 26u); // Shifted by -3 from 29
+    EXPECT_EQ(textparser_get_token_position(tok3), 26u); // Shifted by -3 from 29
     EXPECT_EQ(tok3->len, 13u);
     EXPECT_EQ(tok3->next, nullptr);
 
@@ -156,13 +156,13 @@ TEST(IncrementalParsing, MiddleDeletionPreservesHeadAndTail) {
 
     textparser_token_item *tok1 = textparser_get_first_token(handle);
     ASSERT_NE(tok1, nullptr);
-    EXPECT_EQ(tok1->position, 0u);
+    EXPECT_EQ(textparser_get_token_position(tok1), 0u);
     EXPECT_EQ(tok1->len, 13u);
 
     textparser_token_item *tok2 = tok1->next;
     ASSERT_NE(tok2, nullptr);
     EXPECT_EQ(tok2->prev, tok1);
-    EXPECT_EQ(tok2->position, 13u); // Shifted by -13 from 26
+    EXPECT_EQ(textparser_get_token_position(tok2), 13u); // Shifted by -13 from 26
     EXPECT_EQ(tok2->len, 13u);
     EXPECT_EQ(tok2->next, nullptr);
 
@@ -187,13 +187,13 @@ TEST(IncrementalParsing, LeadingEditPreservesTail) {
 
     textparser_token_item *tok1 = textparser_get_first_token(handle);
     ASSERT_NE(tok1, nullptr);
-    EXPECT_EQ(tok1->position, 0u);
+    EXPECT_EQ(textparser_get_token_position(tok1), 0u);
     EXPECT_EQ(tok1->len, 15u);
 
     textparser_token_item *tok2 = tok1->next;
     ASSERT_NE(tok2, nullptr);
     EXPECT_EQ(tok2->prev, tok1);
-    EXPECT_EQ(tok2->position, 15u); // Shifted by +2 from 13
+    EXPECT_EQ(textparser_get_token_position(tok2), 15u); // Shifted by +2 from 13
     EXPECT_EQ(tok2->len, 13u);
     EXPECT_EQ(tok2->next, nullptr);
 
@@ -218,13 +218,13 @@ TEST(IncrementalParsing, AppendAtEOF) {
 
     textparser_token_item *tok1 = textparser_get_first_token(handle);
     ASSERT_NE(tok1, nullptr);
-    EXPECT_EQ(tok1->position, 0u);
+    EXPECT_EQ(textparser_get_token_position(tok1), 0u);
     EXPECT_EQ(tok1->len, 13u);
 
     textparser_token_item *tok2 = tok1->next;
     ASSERT_NE(tok2, nullptr);
     EXPECT_EQ(tok2->prev, tok1);
-    EXPECT_EQ(tok2->position, 13u);
+    EXPECT_EQ(textparser_get_token_position(tok2), 13u);
     EXPECT_EQ(tok2->len, 13u);
     EXPECT_EQ(tok2->next, nullptr);
 
@@ -245,16 +245,16 @@ TEST(IncrementalParsing, NullStateFallback) {
 
     textparser_token_item *tok1 = textparser_get_first_token(handle);
     ASSERT_NE(tok1, nullptr);
-    EXPECT_EQ(tok1->position, 0u);
+    EXPECT_EQ(textparser_get_token_position(tok1), 0u);
 
     textparser_token_item *tok2 = tok1->next;
     ASSERT_NE(tok2, nullptr);
-    EXPECT_EQ(tok2->position, 13u);
+    EXPECT_EQ(textparser_get_token_position(tok2), 13u);
     EXPECT_EQ(tok2->len, 15u);
 
     textparser_token_item *tok3 = tok2->next;
     ASSERT_NE(tok3, nullptr);
-    EXPECT_EQ(tok3->position, 28u);
+    EXPECT_EQ(textparser_get_token_position(tok3), 28u);
     EXPECT_EQ(tok3->len, 13u);
 
     textparser_close(handle);

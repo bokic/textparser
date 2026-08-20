@@ -90,8 +90,9 @@ static bool is_tag_specific_attribute(const html_tag_info *info, const char *att
 }
 
 static void get_tag_name(const char *text, textparser_token_item *token, char *buf, size_t max_len) {
-    size_t p = token->position + 1; // skip '<'
-    size_t end = token->position + token->len;
+    size_t token_pos = textparser_get_token_position(token);
+    size_t p = token_pos + 1; // skip '<'
+    size_t end = token_pos + token->len;
     size_t i = 0;
     while (p < end && i + 1 < max_len) {
         char c = text[p];
@@ -105,8 +106,9 @@ static void get_tag_name(const char *text, textparser_token_item *token, char *b
 }
 
 static void get_closing_tag_name(const char *text, textparser_token_item *token, char *buf, size_t max_len) {
-    size_t p = token->position + 2; // skip '</'
-    size_t end = token->position + token->len;
+    size_t token_pos = textparser_get_token_position(token);
+    size_t p = token_pos + 2; // skip '</'
+    size_t end = token_pos + token->len;
     size_t i = 0;
     while (p < end && i + 1 < max_len) {
         char c = text[p];
@@ -120,11 +122,12 @@ static void get_closing_tag_name(const char *text, textparser_token_item *token,
 }
 
 static bool is_tag_self_closing(const char *text, textparser_token_item *token) {
-    size_t end = token->position + token->len;
+    size_t token_pos = textparser_get_token_position(token);
+    size_t end = token_pos + token->len;
     if (token->len < 3) return false;
     
     int p = (int)end - 2;
-    while (p >= (int)token->position) {
+    while (p >= (int)token_pos) {
         char c = text[p];
         if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
             p--;
@@ -144,25 +147,26 @@ static bool is_custom_element(const char *name) {
 
 static bool is_framework_attribute_token(const char *text, textparser_token_item *child, size_t text_size) {
     if (child->len == 0) return false;
+    size_t child_pos = textparser_get_token_position(child);
     validation_string_defer(name);
     name = (char *)malloc(child->len + 1);
     if (name == NULL) {
         fprintf(stderr, "HTML validation failed: memory allocation error\n");
         exit(1);
     }
-    memcpy(name, text + child->position, child->len);
+    memcpy(name, text + child_pos, child->len);
     name[child->len] = '\0';
     
     // Framework attributes like (click), [class], *ngIf, @click, :href
     // Check characters immediately surrounding the token in the source text
-    if (child->position > 0) {
-        char prev = text[child->position - 1];
+    if (child_pos > 0) {
+        char prev = text[child_pos - 1];
         if (prev == '[' || prev == '(' || prev == '*' || prev == '@' || prev == ':') {
             return true;
         }
     }
-    if (child->position + child->len < text_size) {
-        char next = text[child->position + child->len];
+    if (child_pos + child->len < text_size) {
+        char next = text[child_pos + child->len];
         if (next == ']' || next == ')') {
             return true;
         }
@@ -200,6 +204,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
         if (token->token_id != TextParser_END && token->token_id == ids.Tag) {
             char tag_name[128];
             get_tag_name(text, token, tag_name, sizeof(tag_name));
+            size_t token_pos = textparser_get_token_position(token);
 
             // Validate tag name
             bool known_tag = find_html_tag_info(tag_name) != NULL;
@@ -207,7 +212,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
 
             if (!known_tag && !is_custom_element(tag_name)) {
                 char *str = dynamic_printf("Unknown HTML tag: [%s]", tag_name);
-                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, strlen(tag_name) + 1);
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, strlen(tag_name) + 1);
             }
 
             // Validate attributes inside this tag
@@ -225,13 +230,14 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
 
                 while (child != NULL) {
                     if (child->token_id != TextParser_END && child->token_id == ids.AttributeName) {
+                        size_t child_pos = textparser_get_token_position(child);
                         validation_string_defer(attr_name);
                         attr_name = (char *)malloc(child->len + 1);
                         if (attr_name == NULL) {
                             fprintf(stderr, "HTML validation failed: memory allocation error\n");
                             exit(1);
                         }
-                        memcpy(attr_name, text + child->position, child->len);
+                        memcpy(attr_name, text + child_pos, child->len);
                         attr_name[child->len] = '\0';
                         // Convert to lowercase
                         for (int i = 0; attr_name[i]; i++) {
@@ -254,7 +260,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
 
                         if (!valid_attr) {
                             char *str = dynamic_printf("Unknown attribute [%s] for HTML tag <%s>", attr_name, tag_name);
-                            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, child->position, child->len);
+                            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, child_pos, child->len);
                         }
                     }
                     child = child->next;
@@ -264,31 +270,31 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
                 if (strcmp(tag_name, "img") == 0) {
                     if (!has_src) {
                         char *str = dynamic_printf("HTML tag <img> is missing mandatory attribute [src]");
-                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, token->len);
+                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, token->len);
                     }
                     if (!has_alt) {
                         char *str = dynamic_printf("HTML tag <img> is missing mandatory attribute [alt]");
-                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_WARNING, &ret, str, token->position, token->len);
+                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_WARNING, &ret, str, token_pos, token->len);
                     }
                 } else if (strcmp(tag_name, "meta") == 0) {
                     if (!has_charset && !has_content) {
                         char *str = dynamic_printf("HTML tag <meta> is missing mandatory attribute [content]");
-                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, token->len);
+                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, token->len);
                     }
                 } else if (strcmp(tag_name, "base") == 0) {
                     if (!has_href && !has_target) {
                         char *str = dynamic_printf("HTML tag <base> is missing mandatory attribute [href] or [target]");
-                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, token->len);
+                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, token->len);
                     }
                 } else if (strcmp(tag_name, "link") == 0) {
                     if (!has_rel) {
                         char *str = dynamic_printf("HTML tag <link> is missing mandatory attribute [rel]");
-                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, token->len);
+                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, token->len);
                     }
                 } else if (strcmp(tag_name, "area") == 0) {
                     if (has_href && !has_alt) {
                         char *str = dynamic_printf("HTML tag <area> is missing mandatory attribute [alt] when [href] is present");
-                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, token->len);
+                        textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, token->len);
                     }
                 }
             }
@@ -309,7 +315,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
                     stack_capacity = new_capacity;
                 }
                 stack[stack_top].name = strdup(tag_name);
-                stack[stack_top].position = token->position;
+                stack[stack_top].position = token_pos;
                 stack[stack_top].len = token->len;
                 stack_top++;
             }
@@ -317,11 +323,12 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
         else if (token->token_id != TextParser_END && token->token_id == ids.ClosingTag) {
             char tag_name[128];
             get_closing_tag_name(text, token, tag_name, sizeof(tag_name));
+            size_t token_pos = textparser_get_token_position(token);
 
             bool void_tag = is_html_void_element(tag_name);
             if (void_tag) {
                 char *str = dynamic_printf("Ending tag </%s> is forbidden for void element", tag_name);
-                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, token->len);
+                textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, token->len);
             } else {
                 // Look for matching tag in the stack
                 int found_idx = -1;
@@ -344,7 +351,7 @@ textparser_validation *textparser_validate_html(textparser_t handle) {
                     stack_top = found_idx;
                 } else {
                     char *str = dynamic_printf("Ending tag </%s> has no matching start tag", tag_name);
-                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token->position, token->len);
+                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, &ret, str, token_pos, token->len);
                 }
             }
         }
