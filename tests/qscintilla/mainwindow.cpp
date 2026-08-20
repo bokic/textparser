@@ -271,49 +271,13 @@ public:
         }
         else
         {
-            // Incremental parse for single-character typing/deletions.
-            // Find current token, previous token, and next token window to re-parse.
-            size_t parse_start = (size_t)start;
-            size_t parse_end = (size_t)end;
+            size_t edit_offset = (size_t)start;
+            size_t old_len = (m_lastTextLength > text.length()) ? (size_t)(m_lastTextLength - text.length() + (end - start)) : (size_t)(end - start);
+            const char *new_chunk = text.constData() + start;
+            size_t new_len = (size_t)(end - start);
+            textparser_dirty_range dirty = {};
 
-            const textparser_token_item *first = m_parser.get_first_token();
-            const textparser_token_item *prev = nullptr;
-            const textparser_token_item *curr = nullptr;
-            const textparser_token_item *next = nullptr;
-
-            for (const textparser_token_item *t = first; t != nullptr; t = t->next)
-            {
-                size_t t_pos = textparser_get_token_position(t);
-                if (t_pos <= (size_t)start && (t_pos + t->len) >= (size_t)start)
-                {
-                    curr = t;
-                    next = t->next;
-                    break;
-                }
-                prev = t;
-            }
-
-            if (prev)
-                parse_start = textparser_get_token_position(prev);
-            else if (curr)
-                parse_start = textparser_get_token_position(curr);
-            else
-                parse_start = (start > 0) ? (size_t)(start - 1) : 0;
-
-            if (next)
-                parse_end = textparser_get_token_position(next) + next->len;
-            else if (curr)
-                parse_end = textparser_get_token_position(curr) + curr->len;
-            else
-                parse_end = (size_t)end;
-
-            if (parse_end <= parse_start)
-                parse_end = parse_start + 1;
-            if (parse_end > (size_t)text.length())
-                parse_end = (size_t)text.length();
-
-            // Run incremental parse for window [parse_start, parse_end]
-            if (m_parser.parse_incremental(m_definition, nullptr, parse_start, parse_end) == 0)
+            if (m_parser.parse_incremental(m_definition, edit_offset, old_len, new_chunk, new_len, &dirty) == 0)
             {
                 startStyling(0);
                 setStyling(text.length(), 0);
@@ -321,7 +285,6 @@ public:
                 const textparser_token_item *token = m_parser.get_first_token();
                 recursivelyStyleText(token);
             }
-        }
 
         m_lastTextLength = text.length();
     }

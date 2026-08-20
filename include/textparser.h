@@ -99,6 +99,11 @@ typedef struct {
     const struct textparser_token_item *state[];
 } textparser_parser_state;
 
+typedef struct {
+    size_t dirty_start;
+    size_t dirty_end;
+} textparser_dirty_range;
+
 typedef struct textparser_token_item {
     struct textparser_token_item *prev;
     struct textparser_token_item *next;
@@ -251,16 +256,20 @@ EXPORT_TEXTPARSER void textparser_cleanup(textparser_t *handle);
 EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_language_definition *definition);
 
 /**
- * Perform an incremental document parse for a modified range of text.
+ * Perform an incremental document parse for a delta edit.
+ * Slices the modified text chunk into the parser's internal buffer, updates
+ * the CST for the modified region, and optionally reports the dirty repaint range.
  *
  * @param handle The parser handle.
  * @param definition Pointer to the language definition rules.
- * @param state Saved parser state prior to start_pos.
- * @param start_pos Starting byte position of the edited region.
- * @param end_pos Ending byte position of the edited region.
+ * @param edit_offset Starting unit offset where the edit occurred.
+ * @param old_len Length of replaced/deleted text in units.
+ * @param new_text Buffer containing the inserted text (or NULL for deletion).
+ * @param new_len Length of inserted text in units.
+ * @param out_range (Optional) Pointer to receive the dirty repaint range coordinates.
  * @return 0 on success, non-zero error code on failure.
  */
-EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos);
+EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, size_t edit_offset, size_t old_len, const void *new_text, size_t new_len, textparser_dirty_range *out_range);
 
 /**
  * Perform a 2nd AST post-processing pass to collapse/unwrap container nodes marked

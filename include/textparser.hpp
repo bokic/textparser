@@ -118,12 +118,8 @@ public:
         return textparser_parse(m_handle, definition);
     }
 
-    int parse_incremental(const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos) {
-        return textparser_parse_incremental(m_handle, definition, state, start_pos, end_pos);
-    }
-
-    int parse_incremental(const textparser_language_definition *definition, const State &state, size_t start_pos, size_t end_pos) {
-        return textparser_parse_incremental(m_handle, definition, state.get(), start_pos, end_pos);
+    int parse_incremental(const textparser_language_definition *definition, size_t edit_offset, size_t old_len, const void *new_text, size_t new_len, textparser_dirty_range *out_range = nullptr) {
+        return textparser_parse_incremental(m_handle, definition, edit_offset, old_len, new_text, new_len, out_range);
     }
 
     textparser_token_item *get_first_token() const {

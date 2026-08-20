@@ -59,6 +59,7 @@ struct textparser_handle {
     void *mmap_addr;
     size_t mmap_size;
     void *owned_buffer;
+    size_t owned_buffer_capacity;
     enum textparser_bom bom;
     enum textparser_encoding text_format;
     textparser_token_item *first_item;
@@ -1799,11 +1800,6 @@ static const textparser_token_item *find_token_at_position_internal(const textpa
     return best;
 }
 
-static void shift_token_offsets(textparser_token_item *token, ssize_t delta)
-{
-    (void)token;
-    (void)delta;
-}
 
 static const textparser_token_item *find_open_container(const textparser_token_item *token, size_t position, const textparser_language_definition *definition)
 {
@@ -1828,24 +1824,92 @@ static const textparser_token_item *find_open_container(const textparser_token_i
 
 int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
 {
-    return textparser_parse_incremental(handle, definition, NULL, 0, textparser_get_total_units(handle));
-}
-
-EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, textparser_parser_state *state, size_t start_pos, size_t end_pos)
-{
     if (handle == nullptr || definition == nullptr)
         return -1;
+    return textparser_parse_incremental(handle, definition, 0, textparser_get_total_units(handle), handle->text_addr, textparser_get_total_units(handle), nullptr);
+}
 
-    if (handle->text_size >= MAX_PARSE_SIZE)
+EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
+                                                   const textparser_language_definition *definition,
+                                                   size_t edit_offset,
+                                                   size_t old_len,
+                                                   const void *new_text,
+                                                   size_t new_len,
+                                                   textparser_dirty_range *out_range)
+{
+    if (handle == nullptr || definition == nullptr)
         return -1;
 
     // Reset error state
     handle->error = nullptr;
     handle->error_offset = 0;
 
+    size_t unit_size = 1;
+    switch (handle->text_format) {
+    case TEXTPARSER_ENCODING_UNICODE:
+    case TEXTPARSER_ENCODING_UTF_16:
+        unit_size = sizeof(uint16_t);
+        break;
+    case TEXTPARSER_ENCODING_UTF_32:
+        unit_size = sizeof(uint32_t);
+        break;
+    default:
+        unit_size = 1;
+        break;
+    }
+
+    size_t old_total_units = textparser_get_total_units(handle);
+    if (edit_offset > old_total_units || edit_offset + old_len > old_total_units)
+        return -1;
+
+    size_t byte_offset = edit_offset * unit_size;
+    size_t old_byte_len = old_len * unit_size;
+    size_t new_byte_len = new_len * unit_size;
+    ssize_t delta_units = (ssize_t)new_len - (ssize_t)old_len;
+    ssize_t delta_bytes = (ssize_t)new_byte_len - (ssize_t)old_byte_len;
+    size_t new_total_bytes = (size_t)((ssize_t)handle->text_size + delta_bytes);
+
+    if (new_total_bytes >= MAX_PARSE_SIZE)
+        return -1;
+
+    // Splicing the text buffer if this is an actual edit
+    if (new_text != handle->text_addr || delta_bytes != 0) {
+        if (handle->owned_buffer == nullptr) {
+            size_t cap = (new_total_bytes + unit_size + 1024) * 2;
+            void *buf = malloc(cap);
+            if (buf == nullptr) return -1;
+            if (handle->text_addr && handle->text_size > 0) {
+                memcpy(buf, handle->text_addr, handle->text_size);
+            }
+            handle->owned_buffer = buf;
+            handle->owned_buffer_capacity = cap;
+            handle->text_addr = (const char *)buf;
+        } else if (new_total_bytes + unit_size > handle->owned_buffer_capacity) {
+            size_t cap = (new_total_bytes + unit_size + 1024) * 2;
+            void *buf = realloc(handle->owned_buffer, cap);
+            if (buf == nullptr) return -1;
+            handle->owned_buffer = buf;
+            handle->owned_buffer_capacity = cap;
+            handle->text_addr = (const char *)buf;
+        }
+
+        char *buf = (char *)handle->owned_buffer;
+        size_t suffix_bytes = handle->text_size - (byte_offset + old_byte_len);
+        if (suffix_bytes > 0 && delta_bytes != 0) {
+            memmove(buf + byte_offset + new_byte_len, buf + byte_offset + old_byte_len, suffix_bytes);
+        }
+        if (new_byte_len > 0 && new_text != nullptr) {
+            memcpy(buf + byte_offset, new_text, new_byte_len);
+        }
+        memset(buf + new_total_bytes, 0, unit_size);
+        handle->text_size = new_total_bytes;
+        handle->text_addr = buf;
+    }
+
+    size_t start_pos = edit_offset;
+    size_t end_pos = edit_offset + new_len;
+    size_t old_end_bound = edit_offset + old_len;
     size_t total = textparser_get_total_units(handle);
-    if (end_pos > total)
-        end_pos = total;
 
     // If doing a full parse from offset 0 to EOF, reset existing arena tree
     if (start_pos == 0 && end_pos >= total)
@@ -1862,33 +1926,9 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
             return -1;
     }
 
-    // Determine old document length and delta
-    size_t old_total = total;
-    if (handle->first_item != nullptr) {
-        textparser_token_item *curr = handle->first_item;
-        size_t max_end = 0;
-        while (curr) {
-            max_end += curr->len;
-            curr = curr->next;
-        }
-        if (max_end > 0) {
-            old_total = max_end;
-        }
-    } else if (state != nullptr && state->len > 0) {
-        old_total = state->len;
-    }
-
-    ssize_t delta = (ssize_t)total - (ssize_t)old_total;
-    ssize_t old_end_bound = (ssize_t)end_pos - delta;
-    if (old_end_bound < (ssize_t)start_pos) {
-        old_end_bound = (ssize_t)start_pos;
-    }
-
-    // Resolve active token from state or existing AST
+    // Resolve active token from existing AST
     const textparser_token_item *active_token = nullptr;
-    if (state != nullptr && start_pos > 0 && start_pos - 1 < state->len) {
-        active_token = state->state[start_pos - 1];
-    } else if (handle->first_item != nullptr && start_pos > 0) {
+    if (handle->first_item != nullptr && start_pos > 0) {
         active_token = find_token_at_position_internal(handle->first_item, start_pos - 1, 0);
     }
 
@@ -1970,13 +2010,13 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
     }
 
     textparser_token_item *tail_first = nullptr;
-    if (sibling_list != nullptr && end_pos < total)
+    if (sibling_list != nullptr && old_end_bound < old_total_units)
     {
         textparser_token_item *curr = prev_item ? prev_item->next : sibling_list;
         size_t curr_pos = prev_item ? (textparser_get_token_position(prev_item) + prev_item->len) : (parent_container ? textparser_get_token_position(parent_container) : 0);
         while (curr)
         {
-            if ((ssize_t)curr_pos >= old_end_bound)
+            if (curr_pos >= old_end_bound)
             {
                 tail_first = curr;
                 break;
@@ -2081,9 +2121,6 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
             handle->first_item = tail_first;
             tail_first->prev = nullptr;
         }
-        if (delta != 0) {
-            shift_token_offsets(tail_first, delta);
-        }
     } else if (stitch_point) {
         stitch_point->next = nullptr;
     } else if (parent_container) {
@@ -2092,15 +2129,32 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
         handle->first_item = nullptr;
     }
 
-    if (parent_container && delta != 0) {
+    if (parent_container && delta_units != 0) {
         textparser_token_item *p = parent_container;
         while (p) {
-            p->len = (size_t)((ssize_t)p->len + delta);
+            p->len = (size_t)((ssize_t)p->len + delta_units);
             p = p->parent;
         }
     }
 
-    if (handle->lines && (delta != 0 || start_pos == 0)) {
+    if (out_range != nullptr) {
+        size_t d_start = start_pos;
+        if (first_new_token != nullptr) {
+            d_start = textparser_get_token_position(first_new_token);
+        } else if (prev_item != nullptr) {
+            d_start = textparser_get_token_position(prev_item);
+        }
+        size_t d_end = end_pos;
+        if (tail_first != nullptr) {
+            d_end = textparser_get_token_position(tail_first);
+        } else {
+            d_end = textparser_get_total_units(handle);
+        }
+        out_range->dirty_start = d_start;
+        out_range->dirty_end = d_end;
+    }
+
+    if (handle->lines && (delta_units != 0 || start_pos == 0)) {
         free(handle->lines);
         handle->lines = nullptr;
         handle->no_lines = 0;
