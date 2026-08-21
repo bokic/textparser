@@ -168,6 +168,28 @@ typedef struct {
 } textparser_operator_precedence;
 
 typedef struct {
+    const int *regex_tokens;
+    const int *division_tokens;
+    const int *operand_tokens;
+    const char **control_keywords;
+} textparser_regex_disambiguation;
+
+typedef struct {
+    const int *template_open_tokens;
+    const int *template_close_tokens;
+    const int *valid_inner_tokens;
+    const char **invalid_inner_operators;
+    int template_group_token_id;
+} textparser_template_disambiguation;
+
+typedef struct {
+    const int *type_tokens;
+    const char **type_keywords;
+    const char **type_suffixes;
+    int cast_token_id;
+} textparser_cast_disambiguation;
+
+typedef struct {
     const char *name;
     double version;
     const char *empty_segment_language;
@@ -180,6 +202,9 @@ typedef struct {
     bool other_text_inside;
     textparser_sign_merge *sign_merge;
     textparser_operator_precedence *operator_precedence;
+    textparser_regex_disambiguation *regex_disambiguation;
+    textparser_template_disambiguation *template_disambiguation;
+    textparser_cast_disambiguation *cast_disambiguation;
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;

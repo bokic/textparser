@@ -221,3 +221,48 @@ TEST(parse_C, raii_wrapper_class) {
     EXPECT_NE(state.get(), nullptr);
 }
 
+TEST(parse_C, type_cast_vs_call_disambiguation) {
+    // 1. (int)(x) should be disambiguated as TypeCast
+    {
+        auto tokens = TextParser("(int)(x);", &c_definition);
+        tokens.post_process();
+
+        bool found_cast = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
+                found_cast = true;
+            }
+        }
+        EXPECT_TRUE(found_cast);
+    }
+
+    // 2. (uint32_t)(*ptr) should be disambiguated as TypeCast
+    {
+        auto tokens = TextParser("(uint32_t)(*ptr);", &c_definition);
+        tokens.post_process();
+
+        bool found_cast = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
+                found_cast = true;
+            }
+        }
+        EXPECT_TRUE(found_cast);
+    }
+
+    // 3. (my_callback)(x) should remain Parenthesis (function call / expression)
+    {
+        auto tokens = TextParser("(my_callback)(x);", &c_definition);
+        tokens.post_process();
+
+        bool found_cast = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
+                found_cast = true;
+            }
+        }
+        EXPECT_FALSE(found_cast);
+    }
+}
+
+

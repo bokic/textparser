@@ -39,6 +39,36 @@ static uint32_t get_color_or_flag_value(struct json_object *obj, uint32_t defaul
     return (uint32_t)json_object_get_int64(obj);
 }
 
+static int json_get_token_id_by_name(const char *name, const textparser_token *tokens, size_t tokens_cnt)
+{
+    if (!name || !tokens) return -1;
+    for (size_t j = 0; j < tokens_cnt; j++) {
+        if (tokens[j].name && strcmp(tokens[j].name, name) == 0) {
+            return (int)j;
+        }
+    }
+    return -1;
+}
+
+static const char **json_parse_string_array(struct json_object *arr_obj, textparser_string_pool *pool)
+{
+    if (!arr_obj || !json_object_is_type(arr_obj, json_type_array)) return nullptr;
+    int len = json_object_array_length(arr_obj);
+    if (len <= 0) return nullptr;
+    const char **res = calloc(len + 1, sizeof(char *));
+    if (res == nullptr) return nullptr;
+    for (int i = 0; i < len; i++) {
+        struct json_object *item = json_object_array_get_idx(arr_obj, i);
+        if (item && json_object_is_type(item, json_type_string)) {
+            const char *val = json_object_get_string(item);
+            if (val) {
+                res[i] = textparser_string_pool_strdup(pool, val);
+            }
+        }
+    }
+    return res;
+}
+
 static int *json_parse_token_id_array(struct json_object *arr, const textparser_token *tokens, size_t tokens_cnt)
 {
     if (!arr || !json_object_is_type(arr, json_type_array)) return nullptr;
@@ -508,6 +538,82 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             sign_merge->number_tokens = number_list;
             sign_merge->operand_tokens = operand_list;
             (*definition)->sign_merge = sign_merge;
+        }
+    }
+
+    json_object *regdiv_obj = nullptr;
+    if (json_object_object_get_ex(root_obj, "regexVsDivision", &regdiv_obj) && json_object_is_type(regdiv_obj, json_type_object)) {
+        textparser_regex_disambiguation *regdiv = calloc(1, sizeof(textparser_regex_disambiguation));
+        if (regdiv != nullptr) {
+            json_object *arr = nullptr;
+            if (json_object_object_get_ex(regdiv_obj, "regexTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                regdiv->regex_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(regdiv_obj, "divisionTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                regdiv->division_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(regdiv_obj, "operandTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                regdiv->operand_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(regdiv_obj, "controlKeywords", &arr) && json_object_is_type(arr, json_type_array)) {
+                regdiv->control_keywords = json_parse_string_array(arr, pool);
+            }
+            (*definition)->regex_disambiguation = regdiv;
+        }
+    }
+
+    json_object *tpl_obj = nullptr;
+    if (json_object_object_get_ex(root_obj, "templateDisambiguation", &tpl_obj) && json_object_is_type(tpl_obj, json_type_object)) {
+        textparser_template_disambiguation *tpl = calloc(1, sizeof(textparser_template_disambiguation));
+        if (tpl != nullptr) {
+            tpl->template_group_token_id = -1;
+            json_object *arr = nullptr;
+            if (json_object_object_get_ex(tpl_obj, "templateOpenTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                tpl->template_open_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(tpl_obj, "templateCloseTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                tpl->template_close_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(tpl_obj, "validInnerTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                tpl->valid_inner_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(tpl_obj, "invalidInnerOperators", &arr) && json_object_is_type(arr, json_type_array)) {
+                tpl->invalid_inner_operators = json_parse_string_array(arr, pool);
+            }
+            json_object *grp_tok = nullptr;
+            if (json_object_object_get_ex(tpl_obj, "templateGroupToken", &grp_tok) && json_object_is_type(grp_tok, json_type_string)) {
+                const char *grp_name = json_object_get_string(grp_tok);
+                if (grp_name) {
+                    tpl->template_group_token_id = json_get_token_id_by_name(grp_name, (*definition)->tokens, tokens_cnt);
+                }
+            }
+            (*definition)->template_disambiguation = tpl;
+        }
+    }
+
+    json_object *cst_obj = nullptr;
+    if (json_object_object_get_ex(root_obj, "castDisambiguation", &cst_obj) && json_object_is_type(cst_obj, json_type_object)) {
+        textparser_cast_disambiguation *cst = calloc(1, sizeof(textparser_cast_disambiguation));
+        if (cst != nullptr) {
+            cst->cast_token_id = -1;
+            json_object *arr = nullptr;
+            if (json_object_object_get_ex(cst_obj, "typeTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                cst->type_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(cst_obj, "typeKeywords", &arr) && json_object_is_type(arr, json_type_array)) {
+                cst->type_keywords = json_parse_string_array(arr, pool);
+            }
+            if (json_object_object_get_ex(cst_obj, "typeSuffixes", &arr) && json_object_is_type(arr, json_type_array)) {
+                cst->type_suffixes = json_parse_string_array(arr, pool);
+            }
+            json_object *cast_tok = nullptr;
+            if (json_object_object_get_ex(cst_obj, "castToken", &cast_tok) && json_object_is_type(cast_tok, json_type_string)) {
+                const char *cast_name = json_object_get_string(cast_tok);
+                if (cast_name) {
+                    cst->cast_token_id = json_get_token_id_by_name(cast_name, (*definition)->tokens, tokens_cnt);
+                }
+            }
+            (*definition)->cast_disambiguation = cst;
         }
     }
 

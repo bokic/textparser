@@ -87,3 +87,32 @@ TEST(parse_TypeScript, scientific_notation) {
     EXPECT_TRUE(found_pos);
     EXPECT_TRUE(found_upper);
 }
+
+TEST(parse_TypeScript, regex_vs_division_disambiguation) {
+    // 1. Regex literal assignment
+    {
+        auto tokens = TextParser("const pattern: RegExp = /^[a-z]+$/i;", &typescript_definition);
+        bool found_regex = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
+                found_regex = true;
+                EXPECT_EQ(tokens[i].value, "/^[a-z]+$/i");
+            }
+        }
+        EXPECT_TRUE(found_regex);
+    }
+
+    // 2. Division expression
+    {
+        auto tokens = TextParser("const result: number = x / y / z;", &typescript_definition);
+        bool found_regex = false;
+        int div_count = 0;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) found_regex = true;
+            if (tokens[i].type && strcmp(tokens[i].type, "Operator") == 0 && tokens[i].value == "/") div_count++;
+        }
+        EXPECT_FALSE(found_regex);
+        EXPECT_EQ(div_count, 2);
+    }
+}
+

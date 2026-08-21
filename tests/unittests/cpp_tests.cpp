@@ -135,7 +135,7 @@ public:
             if (val == "0b1010") found_bin_num = true;
             if (val == "1e-9") found_sci_num = true;
         }
-        if (type == "Operator") {
+        if (type == "Operator" || type == "ScopeResolution") {
             if (val == "::") found_scope_resolution = true;
         }
     }
@@ -178,3 +178,82 @@ public:
     ASSERT_GE(single_str.children, 1);
     EXPECT_STREQ(single_str[0].type, "StringEscape");
 }
+
+TEST(parse_CPP, template_vs_relational_disambiguation) {
+    // 1. Template argument list should be disambiguated into TemplateGroup
+    {
+        auto tokens = TextParser("std::vector<int> numbers;", &cpp_definition);
+        tokens.post_process();
+
+        bool found_template_group = false;
+        std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+            if (item.type && strcmp(item.type, "TemplateGroup") == 0) {
+                found_template_group = true;
+            }
+            for (size_t c = 0; c < item.children; ++c) scan(item[c]);
+        };
+        for (size_t i = 0; i < tokens.count; ++i) scan(tokens[i]);
+        EXPECT_TRUE(found_template_group);
+    }
+
+    // 2. Relational comparisons should NOT be grouped as templates
+    {
+        auto tokens = TextParser("if (a < b && c > d) { return; }", &cpp_definition);
+        tokens.post_process();
+
+        bool found_template_group = false;
+        std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+            if (item.type && strcmp(item.type, "TemplateGroup") == 0) {
+                found_template_group = true;
+            }
+            for (size_t c = 0; c < item.children; ++c) scan(item[c]);
+        };
+        for (size_t i = 0; i < tokens.count; ++i) scan(tokens[i]);
+        EXPECT_FALSE(found_template_group);
+    }
+}
+
+TEST(parse_CPP, type_cast_vs_call_disambiguation) {
+    // 1. (int)(x) should be disambiguated as TypeCast
+    {
+        auto tokens = TextParser("(int)(x);", &cpp_definition);
+        tokens.post_process();
+
+        bool found_cast = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
+                found_cast = true;
+            }
+        }
+        EXPECT_TRUE(found_cast);
+    }
+
+    // 2. (uint32_t)(*ptr) should be disambiguated as TypeCast
+    {
+        auto tokens = TextParser("(uint32_t)(*ptr);", &cpp_definition);
+        tokens.post_process();
+
+        bool found_cast = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
+                found_cast = true;
+            }
+        }
+        EXPECT_TRUE(found_cast);
+    }
+
+    // 3. (my_func)(x) should remain Parenthesis (function call / expr)
+    {
+        auto tokens = TextParser("(my_func)(x);", &cpp_definition);
+        tokens.post_process();
+
+        bool found_cast = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
+                found_cast = true;
+            }
+        }
+        EXPECT_FALSE(found_cast);
+    }
+}
+

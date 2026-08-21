@@ -459,6 +459,96 @@ static void maybe_merge_sign(struct textparser_handle *handle, textparser_token_
     }
 }
 
+static bool is_regex_valid_in_context(
+    const struct textparser_handle *handle,
+    const textparser_token_item *parent_item,
+    const textparser_token_item *prev_sibling,
+    size_t pos)
+{
+    (void)pos;
+    if (handle == nullptr || handle->language == nullptr) return true;
+    const textparser_regex_disambiguation *reg_div = handle->language->regex_disambiguation;
+    if (reg_div == nullptr) return true;
+
+    // Find the last non-unprocessed, non-comment token before pos
+    const textparser_token_item *curr = prev_sibling;
+    const textparser_token_item *prev = nullptr;
+    while (curr) {
+        if (curr->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && curr->token_id >= 0) {
+            const char *tok_name = handle->language->tokens[curr->token_id].name;
+            if (tok_name && (strstr(tok_name, "Comment") != nullptr || strstr(tok_name, "comment") != nullptr)) {
+                curr = curr->prev;
+                continue;
+            }
+            prev = curr;
+            break;
+        }
+        curr = curr->prev;
+    }
+
+    if (prev == nullptr && parent_item != nullptr) {
+        // At start of container (e.g. inside `(...)` or `{...}` or `[...]`)
+        return true;
+    }
+
+    if (prev == nullptr) {
+        // At start of document
+        return true;
+    }
+
+    // Check if prev token is in operand tokens
+    if (textparser_token_in_id_list(reg_div->operand_tokens, prev->token_id)) {
+        // Check special case: Parenthesis condition for control statements (if, while, for, switch, catch, with)
+        const char *prev_name = handle->language->tokens[prev->token_id].name;
+        if (prev_name && (strcasecmp(prev_name, "Parenthesis") == 0)) {
+            // Find token preceding this parenthesis
+            const textparser_token_item *before_paren = prev->prev;
+            while (before_paren && before_paren->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                before_paren = before_paren->prev;
+            }
+            if (before_paren && before_paren->token_id >= 0 && reg_div->control_keywords != nullptr) {
+                char *kw_text = textparser_get_token_text((textparser_t)handle, before_paren);
+                if (kw_text) {
+                    bool is_ctrl = false;
+                    for (int k = 0; reg_div->control_keywords[k] != nullptr; k++) {
+                        if (strcmp(kw_text, reg_div->control_keywords[k]) == 0) {
+                            is_ctrl = true;
+                            break;
+                        }
+                    }
+                    textparser_free_token_text(kw_text);
+                    if (is_ctrl) {
+                        return true; // e.g. `if (x) /abc/` -> regex allowed
+                    }
+                }
+            }
+        }
+
+        // If prev is an operand, `/` is division, not regex!
+        return false;
+    }
+
+    // If prev is ++ or --, check if it was postfix (preceded by operand)
+    if (prev->token_id >= 0) {
+        char *prev_txt = textparser_get_token_text((textparser_t)handle, prev);
+        if (prev_txt) {
+            bool is_inc_dec = (strcmp(prev_txt, "++") == 0 || strcmp(prev_txt, "--") == 0);
+            textparser_free_token_text(prev_txt);
+            if (is_inc_dec) {
+                const textparser_token_item *before_op = prev->prev;
+                while (before_op && before_op->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                    before_op = before_op->prev;
+                }
+                if (before_op && before_op->token_id >= 0 && textparser_token_in_id_list(reg_div->operand_tokens, before_op->token_id)) {
+                    return false; // postfix operand -> division
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 static ssize_t textparser_find_token(const struct textparser_handle *handle, int token_id, size_t pos, bool other_text_inside, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     if (handle == nullptr || handle->recursion_depth >= MAX_RECURSION_DEPTH) {
@@ -554,6 +644,13 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
             if (adv_regex_find_pattern_ctx(handle->regex_ctx, token->start_regex, (void **)handle->start_regex + token_id, handle->text_format, text, len, &found_at, nullptr, !handle->language->case_sensitivity, true)) {
                 LOGI("found_at token type: [%s] at %zu",  handle->language->tokens[token_id].name, pos + found_at);
                 result = (ssize_t)found_at;
+                if (result == 0 && handle->language && handle->language->regex_disambiguation) {
+                    if (textparser_token_in_id_list(handle->language->regex_disambiguation->regex_tokens, token_id)) {
+                        if (!is_regex_valid_in_context(handle, parent_item, prev_sibling, pos)) {
+                            result = TOKEN_NOT_FOUND;
+                        }
+                    }
+                }
             }
             break;
         default:
@@ -1567,6 +1664,57 @@ void textparser_free_language_definition(textparser_language_definition *definit
         free(definition->operator_precedence);
     }
 
+    if (definition->regex_disambiguation) {
+        if (definition->regex_disambiguation->regex_tokens) free((void *)definition->regex_disambiguation->regex_tokens);
+        if (definition->regex_disambiguation->division_tokens) free((void *)definition->regex_disambiguation->division_tokens);
+        if (definition->regex_disambiguation->operand_tokens) free((void *)definition->regex_disambiguation->operand_tokens);
+        if (definition->regex_disambiguation->control_keywords) {
+            if (!uses_pool) {
+                for (int k = 0; definition->regex_disambiguation->control_keywords[k] != nullptr; k++) {
+                    free((void *)definition->regex_disambiguation->control_keywords[k]);
+                }
+            }
+            free((void *)definition->regex_disambiguation->control_keywords);
+        }
+        free(definition->regex_disambiguation);
+    }
+
+    if (definition->template_disambiguation) {
+        if (definition->template_disambiguation->template_open_tokens) free((void *)definition->template_disambiguation->template_open_tokens);
+        if (definition->template_disambiguation->template_close_tokens) free((void *)definition->template_disambiguation->template_close_tokens);
+        if (definition->template_disambiguation->valid_inner_tokens) free((void *)definition->template_disambiguation->valid_inner_tokens);
+        if (definition->template_disambiguation->invalid_inner_operators) {
+            if (!uses_pool) {
+                for (int k = 0; definition->template_disambiguation->invalid_inner_operators[k] != nullptr; k++) {
+                    free((void *)definition->template_disambiguation->invalid_inner_operators[k]);
+                }
+            }
+            free((void *)definition->template_disambiguation->invalid_inner_operators);
+        }
+        free(definition->template_disambiguation);
+    }
+
+    if (definition->cast_disambiguation) {
+        if (definition->cast_disambiguation->type_tokens) free((void *)definition->cast_disambiguation->type_tokens);
+        if (definition->cast_disambiguation->type_keywords) {
+            if (!uses_pool) {
+                for (int k = 0; definition->cast_disambiguation->type_keywords[k] != nullptr; k++) {
+                    free((void *)definition->cast_disambiguation->type_keywords[k]);
+                }
+            }
+            free((void *)definition->cast_disambiguation->type_keywords);
+        }
+        if (definition->cast_disambiguation->type_suffixes) {
+            if (!uses_pool) {
+                for (int k = 0; definition->cast_disambiguation->type_suffixes[k] != nullptr; k++) {
+                    free((void *)definition->cast_disambiguation->type_suffixes[k]);
+                }
+            }
+            free((void *)definition->cast_disambiguation->type_suffixes);
+        }
+        free(definition->cast_disambiguation);
+    }
+
     if (definition->override_start_tokens) {
         for (int r = 0; definition->override_start_tokens[r].file_extensions != nullptr ||
                         definition->override_start_tokens[r].regex != nullptr ||
@@ -1925,8 +2073,11 @@ void textparser_close(textparser_t handle)
     }
 
     if (handle->first_item) {
-        for (textparser_token_item *it = handle->first_item; it != nullptr; it = it->next) {
+        textparser_token_item *it = handle->first_item;
+        while (it != nullptr) {
+            textparser_token_item *next_item = it->next;
             free_post_processed_tokens(it);
+            it = next_item;
         }
     }
 
@@ -2688,6 +2839,172 @@ static void unwrap_node(textparser_token_item **root, textparser_token_item *cur
     }
 }
 
+static void textparser_disambiguate_casts(textparser_token_item **root, const textparser_language_definition *language)
+{
+    if (root == nullptr || *root == nullptr || language == nullptr || language->cast_disambiguation == nullptr) return;
+    const textparser_cast_disambiguation *cst = language->cast_disambiguation;
+    if (cst->cast_token_id < 0) return;
+
+    for (textparser_token_item *curr = *root; curr != nullptr; curr = curr->next) {
+        if (curr->token_id < 0) continue;
+        const char *name = language->tokens[curr->token_id].name;
+        if (name == nullptr || (strcmp(name, "Parenthesis") != 0 && strcmp(name, "parenthesis") != 0)) continue;
+
+        if (curr->child == nullptr) continue;
+
+        bool has_type_token = false;
+        bool all_valid_types = true;
+
+        for (textparser_token_item *c = curr->child; c != nullptr; c = c->next) {
+            if (c->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) continue;
+            if (c->token_id < 0) {
+                all_valid_types = false;
+                break;
+            }
+            const char *c_name = language->tokens[c->token_id].name;
+            if (c_name == nullptr) {
+                all_valid_types = false;
+                break;
+            }
+
+            if (strcmp(c_name, "Operator") == 0 || strcmp(c_name, "operator") == 0) {
+                continue;
+            }
+
+            if (strcmp(c_name, "Keyword") == 0 || strcmp(c_name, "keyword") == 0) {
+                has_type_token = true;
+                continue;
+            }
+
+            if (textparser_token_in_id_list(cst->type_tokens, c->token_id)) {
+                has_type_token = true;
+                continue;
+            }
+
+            all_valid_types = false;
+            break;
+        }
+
+        if (has_type_token && all_valid_types) {
+            textparser_token_item *after = curr->next;
+            while (after && after->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                after = after->next;
+            }
+            if (after != nullptr && after->token_id >= 0) {
+                curr->token_id = cst->cast_token_id;
+                curr->text_color = language->tokens[cst->cast_token_id].text_color;
+            }
+        }
+    }
+}
+
+static void textparser_disambiguate_templates(textparser_token_item **root, const textparser_language_definition *language)
+{
+    if (root == nullptr || *root == nullptr || language == nullptr || language->template_disambiguation == nullptr) return;
+    const textparser_template_disambiguation *tpl = language->template_disambiguation;
+    if (tpl->template_group_token_id < 0 && tpl->template_open_tokens == nullptr) return;
+
+    textparser_token_item *curr = *root;
+    while (curr) {
+        textparser_token_item *next_item = curr->next;
+
+        if (curr->token_id >= 0 && textparser_token_in_id_list(tpl->template_open_tokens, curr->token_id)) {
+            textparser_token_item *prev = curr->prev;
+            while (prev && prev->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                prev = prev->prev;
+            }
+
+            bool prev_is_qualifying = false;
+            if (prev != nullptr && prev->token_id >= 0) {
+                const char *p_name = language->tokens[prev->token_id].name;
+                if (p_name && (strcmp(p_name, "Variable") == 0 || strcmp(p_name, "variable") == 0 ||
+                               strcmp(p_name, "Keyword") == 0 || strcmp(p_name, "keyword") == 0 ||
+                               strcmp(p_name, "TemplateGroup") == 0)) {
+                    prev_is_qualifying = true;
+                }
+            }
+
+            if (prev_is_qualifying) {
+                int depth = 1;
+                textparser_token_item *scan = curr->next;
+                textparser_token_item *end_bracket = nullptr;
+                bool is_valid_template = true;
+
+                while (scan && depth > 0) {
+                    if (scan->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                        scan = scan->next;
+                        continue;
+                    }
+                    if (scan->token_id < 0) {
+                        is_valid_template = false;
+                        break;
+                    }
+
+                    const char *s_name = language->tokens[scan->token_id].name;
+                    if (s_name && (strcmp(s_name, "CodeBlock") == 0 || strcmp(s_name, "ArrayIndex") == 0)) {
+                        is_valid_template = false;
+                        break;
+                    }
+
+                    if (textparser_token_in_id_list(tpl->template_open_tokens, scan->token_id)) {
+                        depth++;
+                    } else if (textparser_token_in_id_list(tpl->template_close_tokens, scan->token_id)) {
+                        depth--;
+                        if (depth == 0) {
+                            end_bracket = scan;
+                            break;
+                        }
+                    } else if (tpl->valid_inner_tokens && !textparser_token_in_id_list(tpl->valid_inner_tokens, scan->token_id)) {
+                        is_valid_template = false;
+                        break;
+                    }
+
+                    scan = scan->next;
+                }
+
+                if (depth == 0 && end_bracket != nullptr && is_valid_template && tpl->template_group_token_id >= 0) {
+                    textparser_token_item *grp = calloc(1, sizeof(textparser_token_item));
+                    if (grp != nullptr) {
+                        grp->token_id = tpl->template_group_token_id;
+                        grp->text_color = language->tokens[grp->token_id].text_color;
+                        grp->text_flags = language->tokens[grp->token_id].text_flags | 0x80000000;
+                        grp->parent = curr->parent;
+                        grp->prev = curr->prev;
+                        grp->next = end_bracket->next;
+
+                        if (curr->prev) {
+                            curr->prev->next = grp;
+                        } else if (curr->parent) {
+                            curr->parent->child = grp;
+                        } else if (root) {
+                            *root = grp;
+                        }
+
+                        if (end_bracket->next) {
+                            end_bracket->next->prev = grp;
+                        }
+
+                        grp->child = curr;
+                        curr->prev = nullptr;
+                        end_bracket->next = nullptr;
+
+                        size_t total_len = 0;
+                        for (textparser_token_item *c = grp->child; c != nullptr; c = c->next) {
+                            c->parent = grp;
+                            total_len += c->len;
+                        }
+                        grp->len = total_len;
+
+                        next_item = grp->next;
+                        curr = grp;
+                    }
+                }
+            }
+        }
+        curr = next_item;
+    }
+}
+
 void textparser_post_process(textparser_token_item **root, const textparser_language_definition *language)
 {
     if (root == nullptr || *root == nullptr || language == nullptr) return;
@@ -2697,6 +3014,16 @@ void textparser_post_process(textparser_token_item **root, const textparser_lang
         if (c->child) {
             textparser_post_process(&c->child, language);
         }
+    }
+
+    /* Apply Type Cast disambiguation if configured */
+    if (language->cast_disambiguation != nullptr) {
+        textparser_disambiguate_casts(root, language);
+    }
+
+    /* Apply Template / Generics disambiguation if configured */
+    if (language->template_disambiguation != nullptr) {
+        textparser_disambiguate_templates(root, language);
     }
 
     /* Unwrap operator groups before Pratt expression parsing so all operators are direct siblings */

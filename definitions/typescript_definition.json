@@ -13,6 +13,7 @@
     "Keyword",
     "Variable",
     "CodeBlock",
+    "Regex",
     "Operator",
     "SingleString",
     "DoubleString",
@@ -64,12 +65,18 @@
         "Keyword",
         "Variable",
         "CodeBlock",
+        "Regex",
         "Operator",
         "SingleString",
         "DoubleString",
         "TemplateString",
         "Number"
       ]
+    },
+    "Regex": {
+      "type": "SimpleToken",
+      "startRegex": "\\/(?:[^\\/\\\\\r\n]|\\\\.)+\\/[a-zA-Z]*",
+      "textColor": "0xd16969"
     },
     "Operator": {
       "type": "SimpleToken",
@@ -131,6 +138,7 @@
         "Keyword",
         "Variable",
         "CodeBlock",
+        "Regex",
         "Operator",
         "SingleString",
         "DoubleString",
@@ -154,6 +162,7 @@
         "Keyword",
         "Variable",
         "CodeBlock",
+        "Regex",
         "Operator",
         "SingleString",
         "DoubleString",
@@ -181,6 +190,32 @@
       "Parenthesis",
       "ArrayIndex",
       "CodeBlock"
+    ]
+  },
+  "regexVsDivision": {
+    "regexTokens": [
+      "Regex"
+    ],
+    "divisionTokens": [
+      "Operator"
+    ],
+    "operandTokens": [
+      "Number",
+      "Variable",
+      "Boolean",
+      "SingleString",
+      "DoubleString",
+      "TemplateString",
+      "Parenthesis",
+      "ArrayIndex"
+    ],
+    "controlKeywords": [
+      "if",
+      "while",
+      "for",
+      "switch",
+      "catch",
+      "with"
     ]
   }
 }

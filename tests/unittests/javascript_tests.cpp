@@ -165,3 +165,105 @@ TEST(parse_JavaScript, scientific_notation) {
     EXPECT_TRUE(found_pos);
     EXPECT_TRUE(found_upper);
 }
+
+TEST(parse_JavaScript, regex_vs_division_disambiguation) {
+    // 1. Regex literal after assignment operator
+    {
+        auto tokens = TextParser("const re = /abc[0-9]+/gi;", &javascript_definition);
+        bool found_regex = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
+                found_regex = true;
+                EXPECT_EQ(tokens[i].value, "/abc[0-9]+/gi");
+            }
+        }
+        EXPECT_TRUE(found_regex);
+    }
+
+    // 2. Division expression (multiple slashes in operand context)
+    {
+        auto tokens = TextParser("const result = a / b / c;", &javascript_definition);
+        int division_count = 0;
+        int var_count = 0;
+        bool found_regex = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
+                found_regex = true;
+            }
+            if (tokens[i].type && strcmp(tokens[i].type, "Operator") == 0 && tokens[i].value == "/") {
+                division_count++;
+            }
+            if (tokens[i].type && strcmp(tokens[i].type, "Variable") == 0) {
+                var_count++;
+            }
+        }
+        EXPECT_FALSE(found_regex);
+        EXPECT_EQ(division_count, 2);
+        EXPECT_EQ(var_count, 4); // result, a, b, c
+    }
+
+    // 3. Regex literal after return keyword
+    {
+        auto tokens = TextParser("return /hello\\/world/i;", &javascript_definition);
+        bool found_regex = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
+                found_regex = true;
+                EXPECT_EQ(tokens[i].value, "/hello\\/world/i");
+            }
+        }
+        EXPECT_TRUE(found_regex);
+    }
+
+    // 4. Division after parenthesized expression
+    {
+        auto tokens = TextParser("const res = (x + y) / 2;", &javascript_definition);
+        bool found_div = false;
+        bool found_regex = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) found_regex = true;
+            if (tokens[i].type && strcmp(tokens[i].type, "Operator") == 0 && tokens[i].value == "/") found_div = true;
+        }
+        EXPECT_FALSE(found_regex);
+        EXPECT_TRUE(found_div);
+    }
+
+    // 5. Regex after control statement condition (if)
+    {
+        auto tokens = TextParser("if (flag) /foo/.test(str);", &javascript_definition);
+        bool found_regex = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
+                found_regex = true;
+                EXPECT_EQ(tokens[i].value, "/foo/");
+            }
+        }
+        EXPECT_TRUE(found_regex);
+    }
+
+    // 6. Division after array index
+    {
+        auto tokens = TextParser("const val = arr[0] / 4;", &javascript_definition);
+        bool found_div = false;
+        bool found_regex = false;
+        for (size_t i = 0; i < tokens.count; ++i) {
+            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) found_regex = true;
+            if (tokens[i].type && strcmp(tokens[i].type, "Operator") == 0 && tokens[i].value == "/") found_div = true;
+        }
+        EXPECT_FALSE(found_regex);
+        EXPECT_TRUE(found_div);
+    }
+
+    // 7. Regex inside array literal
+    {
+        auto tokens = TextParser("const list = [/first/, /second/g];", &javascript_definition);
+        int regex_count = 0;
+        std::function<void(const TokenParserItem&)> count_regex = [&](const TokenParserItem &item) {
+            if (item.type && strcmp(item.type, "Regex") == 0) regex_count++;
+            for (size_t c = 0; c < item.children; ++c) count_regex(item[c]);
+        };
+        for (size_t i = 0; i < tokens.count; ++i) count_regex(tokens[i]);
+        EXPECT_EQ(regex_count, 2);
+    }
+}
+

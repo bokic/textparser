@@ -3,20 +3,7 @@
 
 ---
 
-## 1. Post-Parsing Contextual Rule Disambiguation
-
-### Motivation & Goals
-Resolve lexical ambiguities that cannot be determined by single-pass regex matching alone.
-
-### Key Enhancements
-* **Contextual Fixup Rules**:
-  * **JavaScript / Rust Regex vs. Division**: Disambiguate `/.../` based on whether the preceding token is an expression operand (division) or an operator/keyword (regular expression literal).
-  * **C/C++ Cast vs. Function Call**: Disambiguate `(type)(x)` vs. `(func)(x)` by checking collected type definitions or pointer syntax.
-  * **C++ Generics vs. Comparison Operators**: Validate `<...>` template arguments vs. binary `<` / `>` comparisons using balanced bracket and delimiter checks.
-
----
-
-## 2. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
+## 1. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
 
 ### Motivation & Goals
 Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON regex patterns into direct native C matching functions.
@@ -31,7 +18,7 @@ Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON r
 
 ---
 
-## 3. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
+## 2. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
 
 ### Motivation & Goals
 Provide a high-throughput, allocation-free API for editors and language servers to retrieve changed token ranges in a single linear pass.
@@ -44,7 +31,7 @@ Provide a high-throughput, allocation-free API for editors and language servers 
 
 ---
 
-## 4. Tree-sitter Compatible Token Schema
+## 3. Tree-sitter Compatible Token Schema
 
 ### Motivation & Goals
 Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.

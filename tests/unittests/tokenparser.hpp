@@ -173,6 +173,24 @@ public:
         return operator[](index);
     }
 
+    void post_process()
+    {
+        if (m_handle && m_definition)
+        {
+            textparser_token_item *root = textparser_get_first_token(m_handle);
+            textparser_post_process(&root, m_definition);
+            count = 0;
+            auto token = textparser_get_first_token(m_handle);
+            while (token)
+            {
+                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                    count++;
+                }
+                token = token->next;
+            }
+        }
+    }
+
     size_t count = 0;
 
 private:

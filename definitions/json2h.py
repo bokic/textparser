@@ -111,6 +111,73 @@ def main(args):
         text += "    .rules = " + name_lowercase + "_prec_rules" + os.linesep
         text += "};" + os.linesep + os.linesep
 
+    if "regexVsDivision" in root and isinstance(root["regexVsDivision"], dict):
+        reg_div = root["regexVsDivision"]
+        for key, list_name in (("regexTokens", "regex_tokens"), ("divisionTokens", "division_tokens"), ("operandTokens", "operand_tokens")):
+            if key in reg_div:
+                text += "static const int " + name_lowercase + "_regdiv_" + list_name + "[] = {"
+                for token_name in reg_div[key]:
+                    text += "TextParser_" + name_lowercase + "_" + token_name + ", "
+                text += "TextParser_END};" + os.linesep
+        if "controlKeywords" in reg_div:
+            text += "static const char *" + name_lowercase + "_regdiv_control_keywords[] = {"
+            for kw in reg_div["controlKeywords"]:
+                text += "\"" + kw + "\", "
+            text += "NULL};" + os.linesep
+        text += "static const textparser_regex_disambiguation " + name_lowercase + "_regex_disambiguation = {" + os.linesep
+        text += "    .regex_tokens = " + (name_lowercase + "_regdiv_regex_tokens" if "regexTokens" in reg_div else "NULL") + "," + os.linesep
+        text += "    .division_tokens = " + (name_lowercase + "_regdiv_division_tokens" if "divisionTokens" in reg_div else "NULL") + "," + os.linesep
+        text += "    .operand_tokens = " + (name_lowercase + "_regdiv_operand_tokens" if "operandTokens" in reg_div else "NULL") + "," + os.linesep
+        text += "    .control_keywords = " + (name_lowercase + "_regdiv_control_keywords" if "controlKeywords" in reg_div else "NULL") + os.linesep
+        text += "};" + os.linesep + os.linesep
+
+    if "templateDisambiguation" in root and isinstance(root["templateDisambiguation"], dict):
+        tpl = root["templateDisambiguation"]
+        for key, list_name in (("templateOpenTokens", "template_open_tokens"), ("templateCloseTokens", "template_close_tokens"), ("validInnerTokens", "template_valid_inner_tokens")):
+            if key in tpl:
+                text += "static const int " + name_lowercase + "_" + list_name + "[] = {"
+                for token_name in tpl[key]:
+                    text += "TextParser_" + name_lowercase + "_" + token_name + ", "
+                text += "TextParser_END};" + os.linesep
+        if "invalidInnerOperators" in tpl:
+            text += "static const char *" + name_lowercase + "_template_invalid_operators[] = {"
+            for op in tpl["invalidInnerOperators"]:
+                text += "\"" + op + "\", "
+            text += "NULL};" + os.linesep
+        tpl_grp_id = ("TextParser_" + name_lowercase + "_" + tpl["templateGroupToken"]) if "templateGroupToken" in tpl else "-1"
+        text += "static const textparser_template_disambiguation " + name_lowercase + "_template_disambiguation = {" + os.linesep
+        text += "    .template_open_tokens = " + (name_lowercase + "_template_open_tokens" if "templateOpenTokens" in tpl else "NULL") + "," + os.linesep
+        text += "    .template_close_tokens = " + (name_lowercase + "_template_close_tokens" if "templateCloseTokens" in tpl else "NULL") + "," + os.linesep
+        text += "    .valid_inner_tokens = " + (name_lowercase + "_template_valid_inner_tokens" if "validInnerTokens" in tpl else "NULL") + "," + os.linesep
+        text += "    .invalid_inner_operators = " + (name_lowercase + "_template_invalid_operators" if "invalidInnerOperators" in tpl else "NULL") + "," + os.linesep
+        text += "    .template_group_token_id = " + tpl_grp_id + os.linesep
+        text += "};" + os.linesep + os.linesep
+
+    if "castDisambiguation" in root and isinstance(root["castDisambiguation"], dict):
+        cst = root["castDisambiguation"]
+        if "typeTokens" in cst:
+            text += "static const int " + name_lowercase + "_cast_type_tokens[] = {"
+            for token_name in cst["typeTokens"]:
+                text += "TextParser_" + name_lowercase + "_" + token_name + ", "
+            text += "TextParser_END};" + os.linesep
+        if "typeKeywords" in cst:
+            text += "static const char *" + name_lowercase + "_cast_type_keywords[] = {"
+            for kw in cst["typeKeywords"]:
+                text += "\"" + kw + "\", "
+            text += "NULL};" + os.linesep
+        if "typeSuffixes" in cst:
+            text += "static const char *" + name_lowercase + "_cast_type_suffixes[] = {"
+            for sfx in cst["typeSuffixes"]:
+                text += "\"" + sfx + "\", "
+            text += "NULL};" + os.linesep
+        cast_tok_id = ("TextParser_" + name_lowercase + "_" + cst["castToken"]) if "castToken" in cst else "-1"
+        text += "static const textparser_cast_disambiguation " + name_lowercase + "_cast_disambiguation = {" + os.linesep
+        text += "    .type_tokens = " + (name_lowercase + "_cast_type_tokens" if "typeTokens" in cst else "NULL") + "," + os.linesep
+        text += "    .type_keywords = " + (name_lowercase + "_cast_type_keywords" if "typeKeywords" in cst else "NULL") + "," + os.linesep
+        text += "    .type_suffixes = " + (name_lowercase + "_cast_type_suffixes" if "typeSuffixes" in cst else "NULL") + "," + os.linesep
+        text += "    .cast_token_id = " + cast_tok_id + os.linesep
+        text += "};" + os.linesep + os.linesep
+
     text += "static const textparser_language_definition " + name_lowercase + "_definition = {" + os.linesep
 
     if "name" in root:
@@ -199,6 +266,21 @@ def main(args):
         text += "    .operator_precedence = (textparser_operator_precedence *)&" + name_lowercase + "_operator_precedence," + os.linesep
     else:
         text += "    .operator_precedence = NULL," + os.linesep
+
+    if "regexVsDivision" in root and isinstance(root["regexVsDivision"], dict):
+        text += "    .regex_disambiguation = (textparser_regex_disambiguation *)&" + name_lowercase + "_regex_disambiguation," + os.linesep
+    else:
+        text += "    .regex_disambiguation = NULL," + os.linesep
+
+    if "templateDisambiguation" in root and isinstance(root["templateDisambiguation"], dict):
+        text += "    .template_disambiguation = (textparser_template_disambiguation *)&" + name_lowercase + "_template_disambiguation," + os.linesep
+    else:
+        text += "    .template_disambiguation = NULL," + os.linesep
+
+    if "castDisambiguation" in root and isinstance(root["castDisambiguation"], dict):
+        text += "    .cast_disambiguation = (textparser_cast_disambiguation *)&" + name_lowercase + "_cast_disambiguation," + os.linesep
+    else:
+        text += "    .cast_disambiguation = NULL," + os.linesep
 
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep

@@ -43,7 +43,7 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "int\\b|char\\b|double\\b|float\\b|void\\b|struct\\b|union\\b|enum\\b|typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b|_Bool\\b",
+      "startRegex": "int\\b|char\\b|double\\b|float\\b|void\\b|short\\b|long\\b|unsigned\\b|signed\\b|struct\\b|union\\b|enum\\b|typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b|_Bool\\b|bool\\b|size_t\\b|ssize_t\\b|uint8_t\\b|uint16_t\\b|uint32_t\\b|uint64_t\\b|int8_t\\b|int16_t\\b|int32_t\\b|int64_t\\b|uintptr_t\\b|intptr_t\\b|ptrdiff_t\\b",
       "textColor": "0xc586c0"
     },
     "Variable": {
@@ -158,6 +158,19 @@
         "Parenthesis",
         "ArrayIndex"
       ]
+    },
+    "TypeCast": {
+      "type": "StartStop",
+      "startRegex": "\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x4ec9b0",
+      "nestedTokens": [
+        "Keyword",
+        "Variable",
+        "Operator"
+      ]
     }
   },
   "mergeSignIntoNumber": {
@@ -177,5 +190,47 @@
       "ArrayIndex",
       "CodeBlock"
     ]
+  },
+  "castDisambiguation": {
+    "typeTokens": [
+      "Keyword"
+    ],
+    "typeKeywords": [
+      "int",
+      "char",
+      "void",
+      "float",
+      "double",
+      "short",
+      "long",
+      "unsigned",
+      "signed",
+      "size_t",
+      "ssize_t",
+      "uint8_t",
+      "uint16_t",
+      "uint32_t",
+      "uint64_t",
+      "int8_t",
+      "int16_t",
+      "int32_t",
+      "int64_t",
+      "uintptr_t",
+      "intptr_t",
+      "ptrdiff_t",
+      "bool",
+      "const",
+      "volatile",
+      "struct",
+      "union",
+      "enum",
+      "auto"
+    ],
+    "typeSuffixes": [
+      "_t",
+      "_ptr",
+      "_type"
+    ],
+    "castToken": "TypeCast"
   }
 }
