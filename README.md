@@ -27,10 +27,10 @@ It has a flexible architecture making it easy to add new languages.
 - **Incremental Delta Parsing (`textparser_parse_incremental`)**: Efficiently re-parses modified buffers in interactive environments (like text editors and IDEs) via delta edit chunks (`edit_offset`, `old_len`, `new_text`, `new_len`), automatically splicing internal buffer memory, reusing unaffected CST branches, and reporting dirty repaint coordinates (`textparser_dirty_range`).
 - **Modern C23 & C++23 Standard**: Engineered natively for ISO C23 (`ISO/IEC 9899:2024`) and C++23 standards (`set(CMAKE_C_STANDARD 23)`, `set(CMAKE_CXX_STANDARD 23)`), utilizing native `nullptr` keywords and C23 clean struct initialization across GCC, Clang, and MSVC compilers.
 - **API Documentation & Error Diagnostics**: Public headers (`textparser.h`, `textparser-json.h`) feature comprehensive Doxygen-style documentation, standardized error enumeration (`enum textparser_error`), and string conversion helpers (`textparser_strerror`, `textparser_json_strerror`) for rich diagnostics across CLI tools.
-- **Python Tooling**: Includes Python scripts for prototyping, validation against the reference C parser, generation of C header files (`json2h.py`), and other parser verification tools.
-- **Rust Implementation & Tooling**: Native Rust implementation (`rust/`) including library crate (`TextParser`), CLI binaries (`parse`, `parsedir`, `validate`), and unit test suite validated against the reference C output.
-- **Java Implementation & Tooling**: Standalone Java implementation (`java/`) including core parser (`TextParser`), CLI entrypoints (`Parse`, `ParseDir`, `Validate`, `ValidateAll`), zero-dependency JSON engine, and unit test suite validated against the reference C output.
-- **WebAssembly Bindings**: Compiled with Emscripten into WebAssembly (`webassembly/`) with JavaScript wrapper library (`TextParserWasm`) for client-side web application consumption.
+- **Python Tooling**: Includes Python scripts (`ports/python/`) for prototyping, validation against the reference C parser, generation of C header files (`definitions/json2h.py`), and other parser verification tools.
+- **Rust Implementation & Tooling**: Native Rust implementation (`ports/rust/`) including library crate (`TextParser`), CLI binaries (`parse`, `parsedir`, `validate`), and unit test suite validated against the reference C output.
+- **Java Implementation & Tooling**: Standalone Java implementation (`ports/java/`) including core parser (`TextParser`), CLI entrypoints (`Parse`, `ParseDir`, `Validate`, `ValidateAll`), zero-dependency JSON engine, and unit test suite validated against the reference C output.
+- **WebAssembly Bindings**: Compiled with Emscripten into WebAssembly (`ports/webassembly/`) with JavaScript wrapper library (`TextParserWasm`) for client-side web application consumption.
 
 ## Project Structure
 
@@ -38,10 +38,11 @@ It has a flexible architecture making it easy to add new languages.
 - **`include/`**: Public header files (`textparser.h`, `textparser-json.h`).
 - **`cli/`**: Command-line tool for testing, debugging, and demonstrating the library.
 - **`definitions/`**: Language definitions (e.g., CFML, JSON).
-- **`python/`**: Python bindings, prototypes, and validation tools.
-- **`rust/`**: Rust library crate, CLI tools (`parse`, `parsedir`, `validate`), and test suite matching the Python parser implementation.
-- **`java/`**: Standalone Java implementation, CLI tools (`Parse`, `ParseDir`, `Validate`), build script (`build.sh`), and unit test suite.
-- **`webassembly/`**: WebAssembly build setup (`textparser_wasm.c`, `build.sh`), JS wrapper API (`textparser_wrapper.js`), and Node/browser unit tests (`test_wasm.js`).
+- **`ports/`**: Multi-language ports and bindings:
+  - **`ports/python/`**: Python bindings, prototypes, and validation tools.
+  - **`ports/rust/`**: Rust library crate, CLI tools (`parse`, `parsedir`, `validate`), and test suite matching the Python parser implementation.
+  - **`ports/java/`**: Standalone Java implementation, CLI tools (`Parse`, `ParseDir`, `Validate`), build script (`build.sh`), and unit test suite.
+  - **`ports/webassembly/`**: WebAssembly build setup (`textparser_wasm.c`, `build.sh`), JS wrapper API (`textparser_wrapper.js`), and Node/browser unit tests (`test_wasm.js`).
 - **`tests/`**: Unit and integration tests, including `tests/compat/` for legacy parser validation.
 - **`ccat/`**: Syntax highlighting CLI utility (color cat).
 

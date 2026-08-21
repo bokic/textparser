@@ -6,12 +6,12 @@ Quick reference to get productive with this repo. Read this before editing or ge
  * Parsing library with logic that lives in `src/` as is built as a shared C library `libtextparser` (see [src/CMakeLists.txt](src/CMakeLists.txt) and [src/textparser.c](src/textparser.c)).
  * A small JSON-backed language definition loader `libtextparser-json` and CLI tools live under `src/` and `cli/`.
  * Language definitions are in `definitions/` in json format, that can be loaded at runtime or generate c headers at compile time.
- * Python parser variant is in `python/` and mirror the C parsing logic for rapid prototyping ([python/textparser.py](python/textparser.py)).
+ * Python parser variant is in `ports/python/` and mirror the C parsing logic for rapid prototyping ([ports/python/textparser.py](ports/python/textparser.py)).
 
 - **Build / test / dev commands:**
   - Preferred quick build: run `./build.sh` (runs `cmake -B build -G Ninja` and `cmake --build build`, and copies `compile_commands.json`). See [build.sh](build.sh).
   - Binaries are emitted to the top-level `bin/` (CMake `CMAKE_RUNTIME_OUTPUT_DIRECTORY` is set to project root). After build run `bin/unittests` or `bin/textparser` directly.
-  - To run the Python parser: `python3 python/parse.py definitions/json_definition.json <somefile.cfm/cfc>` (see `python/parse.py`).
+  - To run the Python parser: `python3 ports/python/parse.py definitions/json_definition.json <somefile.cfm/cfc>` (see `ports/python/parse.py`).
   - After installation, the library can be used via `find_package(textparser)` or `pkg-config --cflags --libs textparser`.
 
 - **Key patterns & conventions:**

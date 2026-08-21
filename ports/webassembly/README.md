@@ -4,23 +4,23 @@ This directory provides WebAssembly bindings for `libtextparser`, allowing clien
 
 ## Directory Contents
 
-- [textparser_wasm.c](file:///home/boris/projects/textparser/webassembly/textparser_wasm.c): C WebAssembly interface exporting textparser functionality (`EMSCRIPTEN_KEEPALIVE`).
-- [textparser_wrapper.js](file:///home/boris/projects/textparser/webassembly/textparser_wrapper.js): High-level JavaScript wrapper class (`TextParserWasm`, `TextParserLanguage`, `TextParserResult`, `TextParserToken`).
-- [build.sh](file:///home/boris/projects/textparser/webassembly/build.sh): Automated Emscripten build script to compile dependencies (`PCRE2` and `json-c` for WASM) and generate `textparser.js` and `textparser.wasm`.
-- [test_wasm.js](file:///home/boris/projects/textparser/webassembly/test_wasm.js): Node.js unit test for verifying the WebAssembly build and API wrapper.
+- [textparser_wasm.c](file:///home/boris/projects/textparser/ports/webassembly/textparser_wasm.c): C WebAssembly interface exporting textparser functionality (`EMSCRIPTEN_KEEPALIVE`).
+- [textparser_wrapper.js](file:///home/boris/projects/textparser/ports/webassembly/textparser_wrapper.js): High-level JavaScript wrapper class (`TextParserWasm`, `TextParserLanguage`, `TextParserResult`, `TextParserToken`).
+- [build.sh](file:///home/boris/projects/textparser/ports/webassembly/build.sh): Automated Emscripten build script to compile dependencies (`PCRE2` and `json-c` for WASM) and generate `textparser.js` and `textparser.wasm`.
+- [test_wasm.js](file:///home/boris/projects/textparser/ports/webassembly/test_wasm.js): Node.js unit test for verifying the WebAssembly build and API wrapper.
 
 ## Build Instructions
 
 Ensure [Emscripten](https://emscripten.org/) (`emcc`, `emcmake`) is installed and available in your environment path:
 
 ```bash
-cd webassembly
+cd ports/webassembly
 ./build.sh
 ```
 
 This generates:
-- `webassembly/textparser.js`: Emscripten module loader script.
-- `webassembly/textparser.wasm`: Binary WebAssembly compiled parser library.
+- `ports/webassembly/textparser.js`: Emscripten module loader script.
+- `ports/webassembly/textparser.wasm`: Binary WebAssembly compiled parser library.
 
 ## Usage in Web Applications & Node.js
 
@@ -65,5 +65,5 @@ run();
 ## Running Tests
 
 ```bash
-node webassembly/test_wasm.js
+node ports/webassembly/test_wasm.js
 ```
