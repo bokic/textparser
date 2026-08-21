@@ -3,22 +3,7 @@
 
 ---
 
-## 1. Structural Statement Recognition & Speculative Backtracking
-
-### Motivation & Goals
-Recognize high-level constructs (like variable declarations, function definitions, and type casts) without the massive multi-megabyte state tables required by GLR parsers.
-
-### Key Enhancements
-* **Composite Declaration Tokens**:
-  * Define structural tokens (e.g., `"Declaration"`) in grammar JSON requiring type specifiers, variable identifiers, and terminators (`=`, `;`, `,`).
-  * Capture modifiers (`const`, `static`, `unsigned`, etc.) and pointer/array qualifiers within the parent declaration node.
-* **Speculative Parsing with Checkpoints**:
-  * Parse statements using ordered candidate branches with lightweight cursor checkpoints (e.g., try `Declaration` first; if it fails, backtrack and try `ExpressionStatement`).
-  * Keep backtracking local to the statement boundary (typically only a few tokens).
-
----
-
-## 2. Post-Parsing Contextual Rule Disambiguation
+## 1. Post-Parsing Contextual Rule Disambiguation
 
 ### Motivation & Goals
 Resolve lexical ambiguities that cannot be determined by single-pass regex matching alone.
@@ -31,7 +16,7 @@ Resolve lexical ambiguities that cannot be determined by single-pass regex match
 
 ---
 
-## 3. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
+## 2. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
 
 ### Motivation & Goals
 Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON regex patterns into direct native C matching functions.
@@ -46,7 +31,7 @@ Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON r
 
 ---
 
-## 4. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
+## 3. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
 
 ### Motivation & Goals
 Provide a high-throughput, allocation-free API for editors and language servers to retrieve changed token ranges in a single linear pass.
@@ -59,7 +44,7 @@ Provide a high-throughput, allocation-free API for editors and language servers 
 
 ---
 
-## 5. Tree-sitter Compatible Token Schema
+## 4. Tree-sitter Compatible Token Schema
 
 ### Motivation & Goals
 Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.

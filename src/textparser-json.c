@@ -284,6 +284,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                  else if (strcasecmp(str_val, "SimpleToken") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN;
                  else if (strcasecmp(str_val, "StartStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
                  else if (strcasecmp(str_val, "StartOptStop") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_START_OPT_STOP;
+                 else if (strcasecmp(str_val, "Sequence") == 0) (*definition)->tokens[token_idx].type = TEXTPARSER_TOKEN_TYPE_SEQUENCE;
                  else {
                      ret_code = TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
                      goto err;

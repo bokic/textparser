@@ -226,6 +226,8 @@ def main(args):
                 text += "TEXTPARSER_TOKEN_TYPE_START_STOP"
             case "StartOptStop":
                 text += "TEXTPARSER_TOKEN_TYPE_START_OPT_STOP"
+            case "Sequence":
+                text += "TEXTPARSER_TOKEN_TYPE_SEQUENCE"
             case _:
                 print("Invalid token type!")
                 exit(1)

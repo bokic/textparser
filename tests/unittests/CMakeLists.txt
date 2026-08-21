@@ -66,6 +66,7 @@ add_executable( unittests
   openfile_tests.cpp
   query_tests.cpp
   incremental_tests.cpp
+  structural_tests.cpp
   ../../src/adv_regex.c
 
   tokenparser.hpp
