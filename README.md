@@ -52,10 +52,10 @@ It has a flexible architecture making it easy to add new languages.
 - CMake (version 3.15 or higher)
 - Ninja build system
 - A C/C++ compiler (GCC or Clang)
-- PCRE2 library (`pcre2-8`)
-  - Ubuntu/Debian: `sudo apt install libpcre2-dev`
-  - Arch Linux: `sudo pacman -S pcre2`
-  - macOS: `brew install pcre2`
+- PCRE2 library (`pcre2-8`, `pcre2-16`, `pcre2-32`) & JSON-C
+  - Ubuntu/Debian: `sudo apt install libpcre2-dev libjson-c-dev`
+  - Arch Linux: `sudo pacman -S pcre2 json-c`
+  - macOS: `brew install pcre2 json-c pkg-config ninja`
 
 ### Building
 

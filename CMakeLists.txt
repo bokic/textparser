@@ -152,9 +152,7 @@ endif()
 add_dependencies(textparser generated_definitions)
 add_dependencies(ccat generated_definitions)
 if(BUILD_TESTS)
-  if(NOT APPLE)
-    add_dependencies(unittests generated_definitions)
-  endif()
+  add_dependencies(unittests generated_definitions)
 endif()
 
 # PkgConfig config
