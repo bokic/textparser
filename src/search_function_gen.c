@@ -8397,6 +8397,7 @@ bool _gen_ada_DataType_start(enum textparser_encoding encoding, const char *star
 
 bool _gen_ada_Boolean_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
+    (void)is_caseless;
     if (only_at_start) {
         if (str_match_at(encoding, start, 0, max_len, "true", true)) {
             if (max_len == 4 || (!is_alnum_codepoint(get_char_at(encoding, start, 4)) && get_char_at(encoding, start, 4) != '_')) {

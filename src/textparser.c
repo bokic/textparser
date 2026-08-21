@@ -1531,6 +1531,8 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         return nullptr;
     }
 
+    textparser_token_item *ret = nullptr;
+
     if (handle->recursion_depth >= MAX_RECURSION_DEPTH) {
         exit_with_error(handle, "Maximum recursion depth exceeded!", offset);
     }
@@ -1540,7 +1542,6 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
     const textparser_token *token_def = &definition->tokens[token_id];
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
-    textparser_token_item *ret = nullptr;
     switch(token_def->type)
     {
         case TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY:             ret = parse_token_group_one_child_only(handle, token_id, parent_token_id, parent_start_stop, offset, parent_item, prev_sibling); break;
