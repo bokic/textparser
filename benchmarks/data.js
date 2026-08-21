@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787294439032,
+  "lastUpdate": 1787295556988,
   "repoUrl": "https://github.com/bokic/textparser",
   "entries": {
     "textparser SQLite C/H Parse Benchmark": [
@@ -1080,6 +1080,78 @@ window.BENCHMARK_DATA = {
             "value": 0.0015546836365578716,
             "unit": "ms/iter",
             "extra": "iterations: 3\ncpu: 0.001473556589402549 ms\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bbarbulovski@gmail.com",
+            "name": "Boris Barbulovski",
+            "username": "bokic"
+          },
+          "committer": {
+            "email": "bbarbulovski@gmail.com",
+            "name": "Boris Barbulovski",
+            "username": "bokic"
+          },
+          "distinct": true,
+          "id": "ec8eb46194826da3e0f1d805d4003645fe05e2fb",
+          "message": "Implement AST Post-Processing with Pratt Parsing.",
+          "timestamp": "2026-08-21T08:57:35+02:00",
+          "tree_id": "fd2f998cd3b5610585a50ddc5eb44ba1cb64050e",
+          "url": "https://github.com/bokic/textparser/commit/ec8eb46194826da3e0f1d805d4003645fe05e2fb"
+        },
+        "date": 1787295556093,
+        "tool": "googlecpp",
+        "benches": [
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_mean",
+            "value": 1252.5638258888894,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1252.424081111111 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_median",
+            "value": 1246.8936403333307,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1246.7601260000001 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 15.246085734487401,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 15.233196604714188 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.012171903275003112,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.0121629700629836 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_mean",
+            "value": 34.900370111110924,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 34.89435633333334 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_median",
+            "value": 35.17052466666826,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 35.17132300000014 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 0.678309289402319,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.6779306192472742 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.01943559014539997,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.01942808781945266 ms\nthreads: 1"
           }
         ]
       }
