@@ -34,18 +34,17 @@ static long read_vm_dirty_kb()
 
 // ── File collection ───────────────────────────────────────────────────────────
 
-struct SourceFile {
+struct FileEntry {
     std::string path;
-    std::string content;
     size_t      bytes;
 };
 
-static std::vector<SourceFile> g_c_files;
-static std::vector<SourceFile> g_h_files;
+static std::vector<FileEntry> g_c_files;
+static std::vector<FileEntry> g_h_files;
 
-static void collect_files(const std::string &root,
-                           const std::string &ext,
-                           std::vector<SourceFile> &out)
+static void collect_file_paths(const std::string &root,
+                               const std::string &ext,
+                               std::vector<FileEntry> &out)
 {
     namespace fs = std::filesystem;
     if (!fs::exists(root)) return;
@@ -54,15 +53,11 @@ static void collect_files(const std::string &root,
     {
         if (!entry.is_regular_file()) continue;
         if (entry.path().extension() != ext) continue;
-        std::ifstream f(entry.path(), std::ios::binary);
-        if (!f.is_open()) continue;
-        std::string content((std::istreambuf_iterator<char>(f)), {});
-        if (content.empty()) continue;
-        out.push_back({entry.path().string(), std::move(content), entry.file_size()});
+        out.push_back({entry.path().string(), entry.file_size()});
     }
 }
 
-// ── Benchmark: parse all .c files ────────────────────────────────────────────
+// ── Benchmark: parse .c files one at a time (load -> parse -> ast -> free) ───
 
 static void BM_ParseC(benchmark::State &state)
 {
@@ -75,13 +70,14 @@ static void BM_ParseC(benchmark::State &state)
     size_t total_bytes = 0;
 
     for (auto _ : state) {
-        for (const auto &sf : g_c_files) {
+        for (const auto &fe : g_c_files) {
             textparser::Parser parser;
-            parser.openmem(sf.content.c_str(),
-                           static_cast<int>(sf.content.size()),
-                           c_definition.default_text_encoding);
-            parser.parse(&c_definition);
-            total_bytes += sf.bytes;
+            if (parser.openfile(fe.path.c_str(), c_definition.default_text_encoding, TEXTPARSER_BOM_ALL) == 0) {
+                parser.parse(&c_definition);
+                // Verify AST root item
+                benchmark::DoNotOptimize(parser.get_first_token());
+            }
+            total_bytes += fe.bytes;
         }
     }
 
@@ -102,7 +98,7 @@ static void BM_ParseC(benchmark::State &state)
         static_cast<double>(g_c_files.size()));
 }
 
-// ── Benchmark: parse all .h files ────────────────────────────────────────────
+// ── Benchmark: parse .h files one at a time (load -> parse -> ast -> free) ───
 
 static void BM_ParseH(benchmark::State &state)
 {
@@ -115,13 +111,14 @@ static void BM_ParseH(benchmark::State &state)
     size_t total_bytes = 0;
 
     for (auto _ : state) {
-        for (const auto &sf : g_h_files) {
+        for (const auto &fe : g_h_files) {
             textparser::Parser parser;
-            parser.openmem(sf.content.c_str(),
-                           static_cast<int>(sf.content.size()),
-                           c_definition.default_text_encoding);
-            parser.parse(&c_definition);
-            total_bytes += sf.bytes;
+            if (parser.openfile(fe.path.c_str(), c_definition.default_text_encoding, TEXTPARSER_BOM_ALL) == 0) {
+                parser.parse(&c_definition);
+                // Verify AST root item
+                benchmark::DoNotOptimize(parser.get_first_token());
+            }
+            total_bytes += fe.bytes;
         }
     }
 
@@ -154,14 +151,12 @@ BENCHMARK(BM_ParseH)
     ->MinWarmUpTime(1.0)
     ->Iterations(3);
 
-// Custom main so we can pre-load files before benchmarks run
 int main(int argc, char **argv)
 {
-    // Pre-load SQLite source files into memory once
     const std::string sqlite_src = SQLITE_SRC_DIR;
 
-    collect_files(sqlite_src, ".c", g_c_files);
-    collect_files(sqlite_src, ".h", g_h_files);
+    collect_file_paths(sqlite_src, ".c", g_c_files);
+    collect_file_paths(sqlite_src, ".h", g_h_files);
 
     fprintf(stdout, "SQLite source: %s\n", sqlite_src.c_str());
     fprintf(stdout, "  .c files: %zu\n", g_c_files.size());
