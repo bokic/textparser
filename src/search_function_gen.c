@@ -1,7 +1,6 @@
 #include "search_function_gen.h"
 #include <string.h>
 #include <ctype.h>
-#include <strings.h>
 #include <stdint.h>
 
 /* --- Multi-encoding Helper Macros --- */
