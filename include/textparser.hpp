@@ -142,6 +142,18 @@ public:
 
     explicit operator bool() const { return m_handle != nullptr; }
 
+    int export_tokens(textparser_token_range *buffer, size_t max_tokens, size_t *out_count) const {
+        return textparser_export_tokens(m_handle, buffer, max_tokens, out_count);
+    }
+
+    int export_tokens_range(size_t start_pos, size_t end_pos, textparser_token_range *buffer, size_t max_tokens, size_t *out_count) const {
+        return textparser_export_tokens_range(m_handle, start_pos, end_pos, buffer, max_tokens, out_count);
+    }
+
+    int export_tokens_lines(size_t start_line, size_t end_line, textparser_token_range *buffer, size_t max_tokens, size_t *out_count) const {
+        return textparser_export_tokens_lines(m_handle, start_line, end_line, buffer, max_tokens, out_count);
+    }
+
     const char *get_parse_error() const {
         return textparser_parse_error(m_handle);
     }

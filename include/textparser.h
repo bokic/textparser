@@ -105,6 +105,19 @@ typedef struct {
     size_t dirty_end;
 } textparser_dirty_range;
 
+typedef struct {
+    size_t start_pos;
+    size_t length;
+    uint32_t start_line;
+    uint32_t start_col;
+    uint32_t end_line;
+    uint32_t end_col;
+    int token_id;
+    uint32_t text_color;
+    uint32_t text_background;
+    uint32_t text_flags;
+} textparser_token_range;
+
 typedef struct textparser_token_item {
     struct textparser_token_item *prev;
     struct textparser_token_item *next;
@@ -614,5 +627,43 @@ EXPORT_TEXTPARSER const textparser_token_item **textparser_query(const textparse
  * @param results Matching token array to free.
  */
 EXPORT_TEXTPARSER void textparser_free_query_result(const textparser_token_item **results);
+
+/**
+ * Export flat token ranges for an entire parsed document into a caller-provided buffer.
+ *
+ * @param handle The parser handle.
+ * @param buffer Array of textparser_token_range structures to populate.
+ * @param max_tokens Capacity of the provided buffer in token entries.
+ * @param out_count Pointer to store total number of tokens matching traversal.
+ * @return 0 on success, non-zero if invalid arguments or buffer is insufficient.
+ */
+EXPORT_TEXTPARSER int textparser_export_tokens(const textparser_t handle, textparser_token_range *buffer, size_t max_tokens, size_t *out_count);
+
+/**
+ * Export flat token ranges intersecting a specific byte range [start_pos, end_pos).
+ *
+ * @param handle The parser handle.
+ * @param start_pos Starting unit offset.
+ * @param end_pos Ending unit offset.
+ * @param buffer Array of textparser_token_range structures to populate.
+ * @param max_tokens Capacity of the provided buffer.
+ * @param out_count Pointer to store number of matching tokens found.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_export_tokens_range(const textparser_t handle, size_t start_pos, size_t end_pos, textparser_token_range *buffer, size_t max_tokens, size_t *out_count);
+
+/**
+ * Export flat token ranges intersecting a specific line range [start_line, end_line] (0-indexed).
+ *
+ * @param handle The parser handle.
+ * @param start_line Starting line index (0-indexed).
+ * @param end_line Ending line index (0-indexed, inclusive).
+ * @param buffer Array of textparser_token_range structures to populate.
+ * @param max_tokens Capacity of the provided buffer.
+ * @param out_count Pointer to store number of matching tokens found.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_export_tokens_lines(const textparser_t handle, size_t start_line, size_t end_line, textparser_token_range *buffer, size_t max_tokens, size_t *out_count);
+
 
 

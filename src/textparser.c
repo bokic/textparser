@@ -3988,3 +3988,165 @@ EXPORT_TEXTPARSER void textparser_free_query_result(const textparser_token_item 
     }
 }
 
+static inline void textparser_calculate_line_col_sequential(const textparser_t handle, size_t pos, size_t *inout_line_idx, uint32_t *out_line, uint32_t *out_col)
+{
+    if (handle == nullptr || handle->lines == nullptr || handle->no_lines == 0) {
+        *out_line = 0;
+        *out_col = (uint32_t)pos;
+        return;
+    }
+
+    size_t line_idx = (inout_line_idx != nullptr) ? *inout_line_idx : 0;
+    if (line_idx > handle->no_lines) {
+        line_idx = handle->no_lines;
+    }
+
+    // Advance if position is past current line's newline
+    while (line_idx < handle->no_lines && pos > handle->lines[line_idx]) {
+        line_idx++;
+    }
+
+    // Rewind if position is before previous line's newline (e.g. non-monotonic queries)
+    while (line_idx > 0 && pos <= handle->lines[line_idx - 1]) {
+        line_idx--;
+    }
+
+    if (inout_line_idx != nullptr) {
+        *inout_line_idx = line_idx;
+    }
+
+    *out_line = (uint32_t)line_idx;
+    size_t line_start = (line_idx == 0) ? 0 : (handle->lines[line_idx - 1] + 1);
+    *out_col = (pos >= line_start) ? (uint32_t)(pos - line_start) : 0;
+}
+
+static void textparser_export_tokens_internal(const textparser_t handle, const textparser_token_item *node, size_t node_start_pos, size_t filter_start_pos, size_t filter_end_pos, textparser_token_range *buffer, size_t max_tokens, size_t *inout_count, size_t *inout_line_idx)
+{
+    if (node == nullptr || handle == nullptr || handle->language == nullptr)
+        return;
+
+    const textparser_language_definition *language = handle->language;
+
+    const textparser_token_item *curr = node;
+    size_t curr_pos = node_start_pos;
+
+    while (curr != nullptr)
+    {
+        size_t curr_end = curr_pos + curr->len;
+
+        // Skip token if entirely before filter range
+        if (curr_end <= filter_start_pos) {
+            curr_pos = curr_end;
+            curr = curr->next;
+            continue;
+        }
+
+        // Stop sibling traversal if past filter range
+        if (curr_pos >= filter_end_pos) {
+            break;
+        }
+
+        // If node has children, recurse into children first
+        if (curr->child != nullptr) {
+            textparser_export_tokens_internal(handle, curr->child, curr_pos, filter_start_pos, filter_end_pos, buffer, max_tokens, inout_count, inout_line_idx);
+        } else {
+            // Leaf token - export if intersects filter range
+            if (curr_end > filter_start_pos && curr_pos < filter_end_pos) {
+                size_t idx = *inout_count;
+                if (buffer != nullptr && idx < max_tokens) {
+                    textparser_token_range *range = &buffer[idx];
+                    range->start_pos = curr_pos;
+                    range->length = curr->len;
+                    range->token_id = curr->token_id;
+
+                    if (curr->token_id >= 0) {
+                        range->text_color = language->tokens[curr->token_id].text_color;
+                        range->text_background = language->tokens[curr->token_id].text_background;
+                        range->text_flags = language->tokens[curr->token_id].text_flags;
+                    } else {
+                        range->text_color = TEXTPARSER_NOCOLOR;
+                        range->text_background = TEXTPARSER_NOCOLOR;
+                        range->text_flags = 0;
+                    }
+
+                    textparser_calculate_line_col_sequential(handle, curr_pos, inout_line_idx, &range->start_line, &range->start_col);
+                    textparser_calculate_line_col_sequential(handle, curr_end, inout_line_idx, &range->end_line, &range->end_col);
+                }
+                (*inout_count)++;
+            }
+        }
+
+        curr_pos = curr_end;
+        curr = curr->next;
+    }
+}
+
+EXPORT_TEXTPARSER int textparser_export_tokens(const textparser_t handle, textparser_token_range *buffer, size_t max_tokens, size_t *out_count)
+{
+    if (handle == nullptr || out_count == nullptr)
+        return -1;
+
+    if (handle->lines == nullptr && handle->text_addr != nullptr && handle->text_size > 0) {
+        textparser_build_line_map(handle);
+    }
+
+    size_t count = 0;
+    size_t line_idx = 0;
+    size_t total_units = textparser_get_total_units(handle);
+
+    textparser_export_tokens_internal(handle, handle->first_item, 0, 0, total_units, buffer, max_tokens, &count, &line_idx);
+
+    *out_count = count;
+    if (buffer != nullptr && count > max_tokens) {
+        return -2; // Buffer too small to fit all tokens
+    }
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_export_tokens_range(const textparser_t handle, size_t start_pos, size_t end_pos, textparser_token_range *buffer, size_t max_tokens, size_t *out_count)
+{
+    if (handle == nullptr || out_count == nullptr)
+        return -1;
+
+    if (start_pos > end_pos)
+        return -1;
+
+    if (handle->lines == nullptr && handle->text_addr != nullptr && handle->text_size > 0) {
+        textparser_build_line_map(handle);
+    }
+
+    size_t count = 0;
+    size_t line_idx = 0;
+
+    textparser_export_tokens_internal(handle, handle->first_item, 0, start_pos, end_pos, buffer, max_tokens, &count, &line_idx);
+
+    *out_count = count;
+    if (buffer != nullptr && count > max_tokens) {
+        return -2;
+    }
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_export_tokens_lines(const textparser_t handle, size_t start_line, size_t end_line, textparser_token_range *buffer, size_t max_tokens, size_t *out_count)
+{
+    if (handle == nullptr || out_count == nullptr)
+        return -1;
+
+    if (start_line > end_line)
+        return -1;
+
+    if (handle->lines == nullptr && handle->text_addr != nullptr && handle->text_size > 0) {
+        textparser_build_line_map(handle);
+    }
+
+    size_t start_pos = textparser_get_line_start_position(handle, start_line);
+    size_t end_pos = (end_line + 1 < textparser_get_line_count(handle))
+                         ? textparser_get_line_start_position(handle, end_line + 1)
+                         : textparser_get_total_units(handle);
+
+    return textparser_export_tokens_range(handle, start_pos, end_pos, buffer, max_tokens, out_count);
+}
+
+

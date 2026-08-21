@@ -131,76 +131,41 @@ static void print_element(const char *text, size_t len, const char *text_backgro
     if (clear_format)    os_write_to_terminal(reset_ansi, strlen(reset_ansi));
 }
 
-static void print_recursive_token(const textparser_t handle, const char *text, const textparser_token_item *token)
+static void print_token_range(const char *text, const textparser_token_range *range)
 {
-    const struct textparser_token_item *child = nullptr;
-    const textparser_language_definition *language = nullptr;
     char ansi_format_background[64] = {0, };
     char ansi_format_text_color[64] = {0, };
     char ansi_format_flags[64] = {0, };
-    uint32_t text_background = 0;
-    uint32_t text_color = 0;
-    uint32_t text_flags = 0;
-    size_t last_pos = 0;
 
-    language = textparser_get_language(handle);
-
-    text_background = language->tokens[token->token_id].text_background;
-    if (text_background != TEXTPARSER_NOCOLOR) {
+    if (range->text_background != TEXTPARSER_NOCOLOR) {
         snprintf(ansi_format_background, sizeof(ansi_format_background),
             "\33[48;2;%u;%u;%um",
-            (text_background >>  0) & 0xff,
-            (text_background >>  8) & 0xff,
-            (text_background >> 16) & 0xff
+            (range->text_background >>  0) & 0xff,
+            (range->text_background >>  8) & 0xff,
+            (range->text_background >> 16) & 0xff
         );
     }
 
-    text_color = language->tokens[token->token_id].text_color;
-    if (text_color != TEXTPARSER_NOCOLOR) {
+    if (range->text_color != TEXTPARSER_NOCOLOR) {
         snprintf(ansi_format_text_color, sizeof(ansi_format_text_color),
             "\33[38;2;%u;%u;%um",
-            (text_color >> 16) & 0xff,
-            (text_color >>  8) & 0xff,
-            (text_color >>  0) & 0xff
+            (range->text_color >> 16) & 0xff,
+            (range->text_color >>  8) & 0xff,
+            (range->text_color >>  0) & 0xff
         );
     }
 
-    text_flags = language->tokens[token->token_id].text_flags;
-    if (text_flags & 0x01) strcat(ansi_format_flags, "\33[1m");
-    if (text_flags & 0x02) strcat(ansi_format_flags, "\33[2m");
-    if (text_flags & 0x04) strcat(ansi_format_flags, "\33[3m");
-    if (text_flags & 0x08) strcat(ansi_format_flags, "\33[4m");
+    if (range->text_flags & 0x01) strcat(ansi_format_flags, "\33[1m");
+    if (range->text_flags & 0x02) strcat(ansi_format_flags, "\33[2m");
+    if (range->text_flags & 0x04) strcat(ansi_format_flags, "\33[3m");
+    if (range->text_flags & 0x08) strcat(ansi_format_flags, "\33[4m");
 
-    child = token->child;
-    size_t token_pos = textparser_get_token_position(token);
-
-    last_pos = token_pos;
-
-    if (child) {
-        while (child) {
-            size_t child_pos = textparser_get_token_position(child);
-            if (child_pos > last_pos) {
-                print_element(text + last_pos, child_pos - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
-            }
-            print_recursive_token(handle, text, child);
-            last_pos = child_pos + child->len;
-            child = child->next;
-        }
-
-        size_t parent_end = token_pos + token->len;
-        if (parent_end > last_pos) {
-            print_element(text + last_pos, parent_end - last_pos, ansi_format_background, ansi_format_text_color, ansi_format_flags);
-        }
-
-    } else {
-        print_element(text + token_pos, token->len, ansi_format_background, ansi_format_text_color, ansi_format_flags);
-    }
+    print_element(text + range->start_pos, range->length, ansi_format_background, ansi_format_text_color, ansi_format_flags);
 }
 
 int main(int argc, const char *argv[])
 {
     const textparser_language_definition *language_def = nullptr;
-    const textparser_token_item *token = nullptr;
     bool should_end_with_newline = false;
     const char *filename = nullptr;
 
@@ -246,27 +211,25 @@ int main(int argc, const char *argv[])
         should_end_with_newline = true;
     }
 
-    token = textparser_get_first_token(handle);
+    size_t token_count = 0;
+    textparser_export_tokens(handle, nullptr, 0, &token_count);
 
-    if (token) {
-        size_t pos = 0;
-
-        do {
-            size_t curr_pos = textparser_get_token_position(token);
-            if (curr_pos > pos) {
-                os_write_to_terminal(text + pos, curr_pos - pos);
+    if (token_count > 0) {
+        textparser_token_range *ranges = malloc(sizeof(textparser_token_range) * token_count);
+        if (ranges && textparser_export_tokens(handle, ranges, token_count, &token_count) == 0) {
+            size_t pos = 0;
+            for (size_t i = 0; i < token_count; i++) {
+                if (ranges[i].start_pos > pos) {
+                    os_write_to_terminal(text + pos, ranges[i].start_pos - pos);
+                }
+                print_token_range(text, &ranges[i]);
+                pos = ranges[i].start_pos + ranges[i].length;
             }
-
-            print_recursive_token(handle, text, token);
-
-            pos = curr_pos + token->len;
-
-            token = token->next;
-        } while(token);
-
-        if (text_size > pos) {
-            os_write_to_terminal(text + pos, text_size - pos);
+            if (text_size > pos) {
+                os_write_to_terminal(text + pos, text_size - pos);
+            }
         }
+        free(ranges);
     } else {
         os_write_to_terminal(text, text_size);
     }

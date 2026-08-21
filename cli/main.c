@@ -143,13 +143,14 @@ static struct json_object *recursivelyAddChildsToJson(const textparser_t handle,
 
 void usage()
 {
-    fprintf(stderr, "Usage: textparser <file> [--no-color|--json|--mute|--version|--definition definition_file.json]\n");
+    fprintf(stderr, "Usage: textparser <file> [--no-color|--json|--tokens|--mute|--version|--definition definition_file.json]\n");
 }
 
 int main(int argc, const char *argv[])
 {
     bool colored = true;
     bool json = false;
+    bool tokens_mode = false;
     bool mute = false;
 
     textparser_language_definition *language_def = nullptr;
@@ -183,6 +184,10 @@ int main(int argc, const char *argv[])
         else if (strcmp(argv[i], "--json") == 0)
         {
             json = true;
+        }
+        else if (strcmp(argv[i], "--tokens") == 0)
+        {
+            tokens_mode = true;
         }
         else if (strcmp(argv[i], "--mute") == 0)
         {
@@ -256,7 +261,31 @@ int main(int argc, const char *argv[])
 
     if (!mute)
     {
-        if (json == true)
+        if (tokens_mode)
+        {
+            size_t token_count = 0;
+            textparser_export_tokens(handle, nullptr, 0, &token_count);
+            if (token_count > 0)
+            {
+                textparser_token_range *ranges = malloc(sizeof(textparser_token_range) * token_count);
+                if (ranges && textparser_export_tokens(handle, ranges, token_count, &token_count) == 0)
+                {
+                    for (size_t i = 0; i < token_count; i++)
+                    {
+                        const char *token_name = (ranges[i].token_id >= 0 && language->tokens[ranges[i].token_id].name)
+                                                     ? language->tokens[ranges[i].token_id].name
+                                                     : "unknown";
+                        printf("[%u:%u - %u:%u] pos:%zu len:%zu id:%d type:%s\n",
+                               ranges[i].start_line + 1, ranges[i].start_col + 1,
+                               ranges[i].end_line + 1, ranges[i].end_col + 1,
+                               ranges[i].start_pos, ranges[i].length,
+                               ranges[i].token_id, token_name);
+                    }
+                }
+                free(ranges);
+            }
+        }
+        else if (json == true)
         {
             struct json_object *jobj = recursivelyAddChildsToJson(handle, textparser_get_first_token(handle));
 

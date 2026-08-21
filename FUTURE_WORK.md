@@ -18,20 +18,7 @@ Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON r
 
 ---
 
-## 2. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
-
-### Motivation & Goals
-Provide a high-throughput, allocation-free API for editors and language servers to retrieve changed token ranges in a single linear pass.
-
-### Key Enhancements
-* **Single-Pass Flat Token Array**:
-  * Populate a caller-provided reusable scratch buffer with flat token coordinates: `[start_line, start_col, end_line, end_col, token_type_id]`.
-  * Avoid per-token heap allocations during viewport rendering and syntax recoloring.
-* **Changed Range Invalidation**: Compute diff ranges between old and new trees quickly via pointer-equality checks on shared subtrees, restricting recoloring queries to modified lines only.
-
----
-
-## 3. Tree-sitter Compatible Token Schema
+## 2. Tree-sitter Compatible Token Schema
 
 ### Motivation & Goals
 Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.

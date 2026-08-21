@@ -228,22 +228,22 @@ public:
         return ret;
     }
 
-    void recursivelyStyleText(const textparser_token_item *token)
+    void styleTokensRange(size_t start_pos, size_t end_pos)
     {
-        if (token == nullptr)
+        size_t count = 0;
+        // First pass: query token count
+        m_parser.export_tokens_range(start_pos, end_pos, nullptr, 0, &count);
+        if (count == 0)
             return;
 
-        startStyling(textparser_get_token_position(token));
-        setStyling(token->len, token->token_id + 1);
-
-        if (token->child)
+        std::vector<textparser_token_range> token_buf(count);
+        if (m_parser.export_tokens_range(start_pos, end_pos, token_buf.data(), count, &count) == 0)
         {
-            recursivelyStyleText(token->child);
-        }
-
-        if (token->next)
-        {
-            recursivelyStyleText(token->next);
+            for (size_t i = 0; i < count; ++i)
+            {
+                startStyling((int)token_buf[i].start_pos);
+                setStyling((int)token_buf[i].length, token_buf[i].token_id + 1);
+            }
         }
     }
 
@@ -266,8 +266,7 @@ public:
             startStyling(0);
             setStyling(text.length(), 0);
 
-            const textparser_token_item *token = m_parser.get_first_token();
-            recursivelyStyleText(token);
+            styleTokensRange(0, (size_t)text.length());
         }
         else
         {
@@ -279,12 +278,15 @@ public:
 
             if (m_parser.parse_incremental(m_definition, edit_offset, old_len, new_chunk, new_len, &dirty) == 0)
             {
-                startStyling(0);
-                setStyling(text.length(), 0);
+                size_t rep_start = (dirty.dirty_start < (size_t)text.length()) ? dirty.dirty_start : 0;
+                size_t rep_end = (dirty.dirty_end <= (size_t)text.length() && dirty.dirty_end > rep_start) ? dirty.dirty_end : (size_t)text.length();
 
-                const textparser_token_item *token = m_parser.get_first_token();
-                recursivelyStyleText(token);
+                startStyling((int)rep_start);
+                setStyling((int)(rep_end - rep_start), 0);
+
+                styleTokensRange(rep_start, rep_end);
             }
+        }
 
         m_lastTextLength = text.length();
     }
