@@ -58,18 +58,17 @@ static bool load_pcre2_dyn(pcre2_width_t width_idx)
     if (api->loaded) return true;
     if (api->failed) return false;
 
-    const char *names[PCRE2_WIDTH_COUNT][4] = {
-        { "libpcre2-8.so.0", "libpcre2-8.so", "pcre2-8.dll", NULL },
-        { "libpcre2-16.so.0", "libpcre2-16.so", "pcre2-16.dll", NULL },
-        { "libpcre2-32.so.0", "libpcre2-32.so", "pcre2-32.dll", NULL }
-    };
+#if defined(_WIN32)
+    static const char *const names[PCRE2_WIDTH_COUNT] = { "pcre2-8.dll",       "pcre2-16.dll",       "pcre2-32.dll"       };
+#elif defined(__APPLE__)
+    static const char *const names[PCRE2_WIDTH_COUNT] = { "libpcre2-8.dylib",  "libpcre2-16.dylib",  "libpcre2-32.dylib"  };
+#else
+    static const char *const names[PCRE2_WIDTH_COUNT] = { "libpcre2-8.so",     "libpcre2-16.so",     "libpcre2-32.so"     };
+#endif
     const char *suffix[PCRE2_WIDTH_COUNT] = { "8", "16", "32" };
     const char *sfx = suffix[width_idx];
 
-    for (int i = 0; names[width_idx][i] != NULL; i++) {
-        api->lib_handle = os_dlopen(names[width_idx][i]);
-        if (api->lib_handle) break;
-    }
+    api->lib_handle = os_dlopen(names[width_idx]);
 
     if (!api->lib_handle) {
         fprintf(stderr, "adv_regex: Failed to dynamically load PCRE2 %s library.\n", sfx);
