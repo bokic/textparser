@@ -90,7 +90,14 @@ target_link_libraries( unittests
   css
   GTest::gtest_main
 )
-if(NOT WIN32)
+if(WIN32)
+  target_link_directories(unittests PRIVATE ../../bin)
+  target_link_libraries(unittests
+    pcre2-8.lib
+    pcre2-16.lib
+    pcre2-32.lib
+  )
+else()
   target_link_libraries(unittests
     PkgConfig::libpcre2-8
     PkgConfig::libpcre2-16

@@ -65,7 +65,14 @@ target_link_libraries(benchmark_cfml PRIVATE
     libtextparser
     cfml
 )
-if(NOT WIN32)
+if(WIN32)
+    target_link_directories(benchmark_cfml PRIVATE ../../bin)
+    target_link_libraries(benchmark_cfml PRIVATE
+        pcre2-8.lib
+        pcre2-16.lib
+        pcre2-32.lib
+    )
+else()
     target_link_libraries(benchmark_cfml PRIVATE
         PkgConfig::libpcre2-8
         PkgConfig::libpcre2-16
@@ -91,7 +98,14 @@ target_link_libraries(benchmark_sqlite PRIVATE
     libtextparser
     benchmark::benchmark_main
 )
-if(NOT WIN32)
+if(WIN32)
+    target_link_directories(benchmark_sqlite PRIVATE ../../bin)
+    target_link_libraries(benchmark_sqlite PRIVATE
+        pcre2-8.lib
+        pcre2-16.lib
+        pcre2-32.lib
+    )
+else()
     target_link_libraries(benchmark_sqlite PRIVATE
         PkgConfig::libpcre2-8
         PkgConfig::libpcre2-16

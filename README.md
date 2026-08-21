@@ -59,10 +59,18 @@ It has a flexible architecture making it easy to add new languages.
 
 ### Building
 
-You can use the provided build script for a quick start:
+You can use the provided build script for a quick start on Linux/macOS:
 
 ```bash
 ./build.sh
+```
+
+On Windows, use the batch scripts in `windows/`:
+
+```cmd
+cd windows
+build_deps.bat
+build.bat
 ```
 
 Alternatively, build using standard CMake commands:
@@ -86,6 +94,12 @@ Or execute the unit test binary directly:
 
 ```bash
 bin/unittests
+```
+
+On Windows:
+
+```cmd
+bin\unittests.exe
 ```
 
 ## Performance
