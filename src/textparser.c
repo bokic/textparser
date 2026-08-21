@@ -376,19 +376,15 @@ static void maybe_merge_sign(struct textparser_handle *handle, textparser_token_
         }
     }
 
-    size_t sign_pos = textparser_get_token_position(sign);
-    size_t n_pos = textparser_get_token_position(n);
-
-    // Adjacency only: the sign must touch the number directly.
-    if (sign_pos + sign->len != n_pos) return;
-
     // Only literal "+" and "-" are signs; never absorb other operators (e.g. "!3").
     if (sign->len != 1) return;
-    uint32_t sign_ch = textparser_get_unit_at(handle, sign_pos);
-    if (sign_ch != '+' && sign_ch != '-') return;
 
     // Unary context: the token before the sign must not be an operand.
     if (context != nullptr && textparser_token_in_id_list(sign_merge->operand_tokens, context->token_id)) return;
+
+    size_t sign_pos = textparser_get_token_position(sign);
+    uint32_t sign_ch = textparser_get_unit_at(handle, sign_pos);
+    if (sign_ch != '+' && sign_ch != '-') return;
 
     // Absorb the sign into the number.
     n->len += sign->len;

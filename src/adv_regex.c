@@ -15,9 +15,10 @@ typedef enum {
     PCRE2_WIDTH_COUNT = 3,  /* total number of supported widths; use for array sizing */
 } pcre2_width_t;
 
-/* Compile-context slots, one per supported PCRE2 code-unit width. */
+/* Compile-context and match-data slots, one per supported PCRE2 code-unit width. */
 struct adv_regex_context {
     void *ccontext[PCRE2_WIDTH_COUNT];
+    void *match_data[PCRE2_WIDTH_COUNT];
 };
 
 adv_regex_context *adv_regex_context_create(void)
@@ -28,6 +29,9 @@ adv_regex_context *adv_regex_context_create(void)
 void adv_regex_context_free(adv_regex_context *ctx)
 {
     if (!ctx) return;
+    if (ctx->match_data[PCRE2_WIDTH_8])  pcre2_match_data_free_8(ctx->match_data[PCRE2_WIDTH_8]);
+    if (ctx->match_data[PCRE2_WIDTH_16]) pcre2_match_data_free_16(ctx->match_data[PCRE2_WIDTH_16]);
+    if (ctx->match_data[PCRE2_WIDTH_32]) pcre2_match_data_free_32(ctx->match_data[PCRE2_WIDTH_32]);
     if (ctx->ccontext[PCRE2_WIDTH_8])  pcre2_compile_context_free_8(ctx->ccontext[PCRE2_WIDTH_8]);
     if (ctx->ccontext[PCRE2_WIDTH_16]) pcre2_compile_context_free_16(ctx->ccontext[PCRE2_WIDTH_16]);
     if (ctx->ccontext[PCRE2_WIDTH_32]) pcre2_compile_context_free_32(ctx->ccontext[PCRE2_WIDTH_32]);
@@ -127,7 +131,7 @@ typedef struct {
     void *(*compile)(const void *pattern, PCRE2_SIZE len, uint32_t options,
                      int *errcode, PCRE2_SIZE *erroffset, void *cctx);
     int   (*jit_compile)(void *code, uint32_t options);
-    void *(*match_data_create)(const void *code, void *gctx);
+    void *(*match_data_create)(uint32_t ovecsize, void *gctx);
     int   (*match)(const void *code, const void *subject, PCRE2_SIZE length,
                    PCRE2_SIZE startoffset, uint32_t options,
                    void *match_data, void *mctx);
@@ -150,8 +154,8 @@ static void *_vt_compile_##bits(const void *p, PCRE2_SIZE l, uint32_t o,        
     { return pcre2_compile_##bits((PCRE2_SPTR##bits)p, l, o, e, eo, c); }                            \
 static int   _vt_jit_##bits(void *c, uint32_t o)                                                     \
     { return pcre2_jit_compile_##bits(c, o); }                                                        \
-static void *_vt_mdata_create_##bits(const void *c, void *g)                                         \
-    { return pcre2_match_data_create_from_pattern_##bits(c, g); }                                     \
+static void *_vt_mdata_create_##bits(uint32_t ovecsize, void *g)                                      \
+    { return pcre2_match_data_create_##bits(ovecsize, g); }                                           \
 static int   _vt_match_##bits(const void *c, const void *s, PCRE2_SIZE l,                            \
     PCRE2_SIZE so, uint32_t o, void *md, void *mc)                                                    \
     { return pcre2_match_##bits(c, (PCRE2_SPTR##bits)s, l, so, o, md, mc); }                         \
@@ -226,8 +230,12 @@ static bool adv_regex_find_pattern_impl(
         api->jit_compile(*regex, PCRE2_JIT_COMPLETE);
     }
 
-    void *match_data = api->match_data_create(*regex, nullptr);
-    if (!match_data) return false;
+    void **mdata_slot = &ctx->match_data[api->index];
+    if (*mdata_slot == nullptr) {
+        *mdata_slot = api->match_data_create(16, nullptr);
+        if (!*mdata_slot) return false;
+    }
+    void *match_data = *mdata_slot;
 
     bool ret = false;
     int  rc  = api->match(*regex, (const void *)start, max_len, 0,
@@ -249,7 +257,6 @@ static bool adv_regex_find_pattern_impl(
         }
     }
 
-    api->match_data_free(match_data);
     return ret;
 }
 
