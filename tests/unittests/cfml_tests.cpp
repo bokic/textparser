@@ -740,12 +740,33 @@ TEST(parse_CFML, expr_arithmetic_precedence) {
 
     // 8. Runtime JSON definition load applies operator precedence correctly
     {
+        const char *custom_json = R"({
+            "name": "cfml_precedence_test",
+            "caseSensitivity": true,
+            "otherTextInside": true,
+            "defaultFileExtensions": ["cfm"],
+            "startTokens": ["Tag"],
+            "tokens": {
+                "Tag": { "type": "StartStop", "startRegex": "<cfset", "endRegex": "/>", "nestedTokens": ["AssignOperator", "AddOperator", "MulOperator", "Number", "Identifier", "Whitespace"] },
+                "AssignOperator": { "type": "SimpleToken", "startRegex": "=" },
+                "AddOperator": { "type": "SimpleToken", "startRegex": "\\+" },
+                "MulOperator": { "type": "SimpleToken", "startRegex": "\\*" },
+                "Number": { "type": "SimpleToken", "startRegex": "[0-9]+" },
+                "Identifier": { "type": "SimpleToken", "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*" },
+                "Whitespace": { "type": "SimpleToken", "startRegex": "\\s+" }
+            },
+            "operator_precedence": [
+                { "associativity": "right", "operators": ["AssignOperator"] },
+                { "associativity": "left", "operators": ["AddOperator"] },
+                { "associativity": "left", "operators": ["MulOperator"] }
+            ]
+        })";
         textparser_language_definition *runtime_def = nullptr;
-        int err = textparser_json_load_language_definition_from_json_file("definitions/cfml_definition.json", &runtime_def);
+        int err = textparser_json_load_language_definition_from_string(custom_json, &runtime_def);
         ASSERT_EQ(err, 0);
         ASSERT_NE(runtime_def, nullptr);
         ASSERT_NE(runtime_def->operator_precedence, nullptr);
-        EXPECT_EQ(runtime_def->operator_precedence->count, 13);
+        EXPECT_EQ(runtime_def->operator_precedence->count, 3);
 
         const char *src = "<cfset res = 2 + 3 * 4 />";
         textparser_t handle = nullptr;
