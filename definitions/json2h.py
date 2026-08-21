@@ -94,6 +94,23 @@ def main(args):
                 text += "TextParser_END};" + os.linesep
         text += "" + os.linesep
 
+    if "operator_precedence" in root and isinstance(root["operator_precedence"], list) and len(root["operator_precedence"]) > 0:
+        prec_list = root["operator_precedence"]
+        for idx, item in enumerate(prec_list):
+            text += "static const int " + name_lowercase + "_prec_ops_" + str(idx) + "[] = {"
+            for op_name in item.get("operators", []):
+                text += "TextParser_" + name_lowercase + "_" + op_name + ", "
+            text += "TextParser_END};" + os.linesep
+        text += "static const textparser_precedence_rule " + name_lowercase + "_prec_rules[] = {" + os.linesep
+        for idx, item in enumerate(prec_list):
+            assoc_str = "TEXTPARSER_ASSOC_RIGHT" if item.get("associativity", "").lower() == "right" else "TEXTPARSER_ASSOC_LEFT"
+            text += "    { .operators = " + name_lowercase + "_prec_ops_" + str(idx) + ", .associativity = " + assoc_str + " }," + os.linesep
+        text += "};" + os.linesep
+        text += "static const textparser_operator_precedence " + name_lowercase + "_operator_precedence = {" + os.linesep
+        text += "    .count = " + str(len(prec_list)) + "," + os.linesep
+        text += "    .rules = " + name_lowercase + "_prec_rules" + os.linesep
+        text += "};" + os.linesep + os.linesep
+
     text += "static const textparser_language_definition " + name_lowercase + "_definition = {" + os.linesep
 
     if "name" in root:
@@ -177,6 +194,11 @@ def main(args):
         text += "    }}," + os.linesep
     else:
         text += "    .sign_merge = NULL," + os.linesep
+
+    if "operator_precedence" in root and isinstance(root["operator_precedence"], list) and len(root["operator_precedence"]) > 0:
+        text += "    .operator_precedence = (textparser_operator_precedence *)&" + name_lowercase + "_operator_precedence," + os.linesep
+    else:
+        text += "    .operator_precedence = NULL," + os.linesep
 
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep

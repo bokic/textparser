@@ -1379,6 +1379,18 @@ void textparser_free_language_definition(textparser_language_definition *definit
         free((void *)definition->sign_merge);
     }
 
+    if (definition->operator_precedence) {
+        if (definition->operator_precedence->rules) {
+            for (size_t r = 0; r < definition->operator_precedence->count; r++) {
+                if (definition->operator_precedence->rules[r].operators) {
+                    free((void *)definition->operator_precedence->rules[r].operators);
+                }
+            }
+            free((void *)definition->operator_precedence->rules);
+        }
+        free(definition->operator_precedence);
+    }
+
     if (definition->override_start_tokens) {
         for (int r = 0; definition->override_start_tokens[r].file_extensions != nullptr ||
                         definition->override_start_tokens[r].regex != nullptr ||
@@ -1700,6 +1712,20 @@ EXPORT_TEXTPARSER int textparser_set_text(textparser_t handle, const char *text,
     return 0;
 }
 
+static void free_post_processed_tokens(textparser_token_item *node)
+{
+    if (node == nullptr) return;
+    textparser_token_item *c = node->child;
+    while (c != nullptr) {
+        textparser_token_item *next_sibling = c->next;
+        free_post_processed_tokens(c);
+        c = next_sibling;
+    }
+    if (node->text_flags & 0x80000000) {
+        free(node);
+    }
+}
+
 void textparser_close(textparser_t handle)
 {
     void *mmap_addr = nullptr;
@@ -1720,6 +1746,12 @@ void textparser_close(textparser_t handle)
     if (handle->owned_buffer) {
         free(handle->owned_buffer);
         handle->owned_buffer = nullptr;
+    }
+
+    if (handle->first_item) {
+        for (textparser_token_item *it = handle->first_item; it != nullptr; it = it->next) {
+            free_post_processed_tokens(it);
+        }
     }
 
     free_arena(handle);
@@ -2159,19 +2191,346 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     return 0;
 }
 
+static bool get_operator_info(
+    const textparser_language_definition *language,
+    int token_id,
+    int *out_precedence,
+    enum textparser_associativity *out_assoc,
+    bool *out_is_prefix
+)
+{
+    if (language == nullptr || language->operator_precedence == nullptr || token_id < 0) {
+        return false;
+    }
+
+    const textparser_operator_precedence *op_prec = language->operator_precedence;
+    for (size_t r = 0; r < op_prec->count; r++) {
+        const textparser_precedence_rule *rule = &op_prec->rules[r];
+        if (rule->operators == nullptr) continue;
+        for (int i = 0; rule->operators[i] != TextParser_END; i++) {
+            if (rule->operators[i] == token_id) {
+                if (out_precedence) *out_precedence = (int)(r + 1);
+                if (out_assoc) *out_assoc = rule->associativity;
+                if (out_is_prefix) {
+                    const char *name = (language->tokens != nullptr) ? language->tokens[token_id].name : nullptr;
+                    *out_is_prefix = (name != nullptr && (strstr(name, "Not") != nullptr || strstr(name, "Unary") != nullptr));
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static textparser_token_item *make_unary_node(
+    textparser_token_item *op_token,
+    textparser_token_item *operand
+)
+{
+    if (op_token == nullptr) return operand;
+
+    textparser_token_item *parent_node = calloc(1, sizeof(textparser_token_item));
+    if (parent_node == nullptr) return op_token;
+
+    parent_node->token_id = op_token->token_id;
+    parent_node->text_color = op_token->text_color;
+    parent_node->text_background = op_token->text_background;
+    parent_node->text_flags = op_token->text_flags | 0x80000000;
+
+    op_token->prev = nullptr;
+    op_token->next = operand;
+    if (operand != nullptr) {
+        operand->prev = op_token;
+    }
+
+    parent_node->child = op_token;
+
+    size_t total_len = 0;
+    for (textparser_token_item *c = op_token; c != nullptr; c = c->next) {
+        c->parent = parent_node;
+        total_len += c->len;
+    }
+    parent_node->len = total_len;
+
+    return parent_node;
+}
+
+static textparser_token_item *make_binary_node(
+    textparser_token_item *left,
+    textparser_token_item *op_token,
+    textparser_token_item *right
+)
+{
+    if (op_token == nullptr) return left ? left : right;
+    if (left == nullptr) return make_unary_node(op_token, right);
+
+    textparser_token_item *parent_node = calloc(1, sizeof(textparser_token_item));
+    if (parent_node == nullptr) return op_token;
+
+    parent_node->token_id = op_token->token_id;
+    parent_node->text_color = op_token->text_color;
+    parent_node->text_background = op_token->text_background;
+    parent_node->text_flags = op_token->text_flags | 0x80000000;
+
+    textparser_token_item *left_last = left;
+    while (left_last->next != nullptr) {
+        left_last = left_last->next;
+    }
+
+    left_last->next = op_token;
+    op_token->prev = left_last;
+
+    if (right != nullptr) {
+        op_token->next = right;
+        right->prev = op_token;
+    } else {
+        op_token->next = nullptr;
+    }
+
+    parent_node->child = left;
+
+    size_t total_len = 0;
+    for (textparser_token_item *c = left; c != nullptr; c = c->next) {
+        c->parent = parent_node;
+        total_len += c->len;
+    }
+    parent_node->len = total_len;
+
+    return parent_node;
+}
+
+static textparser_token_item *pratt_parse_expression_stream(
+    const textparser_language_definition *language,
+    textparser_token_item **items,
+    int count,
+    int *idx,
+    int min_precedence
+)
+{
+    if (*idx >= count) return nullptr;
+
+    textparser_token_item *left = nullptr;
+
+    // Collect any leading trivia before first operand/operator
+    textparser_token_item *leading_trivia_head = nullptr;
+    textparser_token_item *leading_trivia_tail = nullptr;
+    while (*idx < count && items[*idx]->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+        textparser_token_item *t = items[(*idx)++];
+        t->prev = leading_trivia_tail;
+        t->next = nullptr;
+        if (leading_trivia_tail) leading_trivia_tail->next = t;
+        else leading_trivia_head = t;
+        leading_trivia_tail = t;
+    }
+
+    if (*idx >= count) {
+        return leading_trivia_head;
+    }
+
+    textparser_token_item *token = items[(*idx)++];
+
+    int op_prec = 0;
+    enum textparser_associativity assoc = TEXTPARSER_ASSOC_LEFT;
+    bool is_prefix = false;
+
+    if (get_operator_info(language, token->token_id, &op_prec, &assoc, &is_prefix) && is_prefix) {
+        token->prev = nullptr;
+        token->next = nullptr;
+        textparser_token_item *operand = pratt_parse_expression_stream(language, items, count, idx, op_prec);
+        left = make_unary_node(token, operand);
+    } else {
+        token->prev = nullptr;
+        token->next = nullptr;
+        left = token;
+    }
+
+    if (leading_trivia_head != nullptr) {
+        leading_trivia_tail->next = left;
+        left->prev = leading_trivia_tail;
+        left = leading_trivia_head;
+    }
+
+    while (*idx < count) {
+        int scan_idx = *idx;
+        while (scan_idx < count && items[scan_idx]->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+            scan_idx++;
+        }
+        if (scan_idx >= count) break;
+
+        textparser_token_item *op_cand = items[scan_idx];
+        int cand_prec = 0;
+        enum textparser_associativity cand_assoc = TEXTPARSER_ASSOC_LEFT;
+        bool cand_is_prefix = false;
+
+        if (!get_operator_info(language, op_cand->token_id, &cand_prec, &cand_assoc, &cand_is_prefix) || cand_is_prefix) {
+            break;
+        }
+
+        if (cand_prec < min_precedence) {
+            break;
+        }
+
+        while (*idx < scan_idx) {
+            textparser_token_item *trivia = items[(*idx)++];
+            trivia->prev = nullptr;
+            trivia->next = nullptr;
+            textparser_token_item *left_last = left;
+            while (left_last->next != nullptr) left_last = left_last->next;
+            left_last->next = trivia;
+            trivia->prev = left_last;
+        }
+
+        textparser_token_item *op_token = items[(*idx)++];
+        op_token->prev = nullptr;
+        op_token->next = nullptr;
+
+        int next_min_prec = (cand_assoc == TEXTPARSER_ASSOC_LEFT) ? (cand_prec + 1) : cand_prec;
+        textparser_token_item *right = pratt_parse_expression_stream(language, items, count, idx, next_min_prec);
+
+        left = make_binary_node(left, op_token, right);
+    }
+
+    return left;
+}
+
+static void textparser_post_process_expressions(textparser_token_item **head, const textparser_language_definition *language)
+{
+    if (head == nullptr || *head == nullptr || language == nullptr || language->operator_precedence == nullptr) return;
+
+    bool has_operator = false;
+    int count = 0;
+    for (textparser_token_item *curr = *head; curr != nullptr; curr = curr->next) {
+        count++;
+        if (curr->token_id >= 0) {
+            int prec = 0;
+            if (get_operator_info(language, curr->token_id, &prec, nullptr, nullptr)) {
+                has_operator = true;
+            }
+        }
+    }
+
+    if (!has_operator || count <= 1) return;
+
+    textparser_token_item **items = malloc(count * sizeof(textparser_token_item *));
+    if (items == nullptr) return;
+
+    int i = 0;
+    for (textparser_token_item *curr = *head; curr != nullptr; curr = curr->next) {
+        items[i++] = curr;
+    }
+
+    int idx = 0;
+    textparser_token_item *new_head = nullptr;
+    textparser_token_item *new_tail = nullptr;
+
+    while (idx < count) {
+        textparser_token_item *parsed = pratt_parse_expression_stream(language, items, count, &idx, 0);
+        if (parsed == nullptr) break;
+
+        if (new_head == nullptr) {
+            new_head = parsed;
+            new_tail = parsed;
+        } else {
+            new_tail->next = parsed;
+            parsed->prev = new_tail;
+            new_tail = parsed;
+        }
+        while (new_tail->next != nullptr) {
+            new_tail = new_tail->next;
+        }
+    }
+
+    textparser_token_item *orig_parent = (*head)->parent;
+    for (textparser_token_item *c = new_head; c != nullptr; c = c->next) {
+        c->parent = orig_parent;
+    }
+
+    *head = new_head;
+    free(items);
+}
+
+static bool is_operator_group(const textparser_token_item *node, const textparser_language_definition *language)
+{
+    if (node == nullptr || node->token_id < 0 || language == nullptr || language->tokens == nullptr) return false;
+    enum textparser_token_type ttype = language->tokens[node->token_id].type;
+    if (ttype != TEXTPARSER_TOKEN_TYPE_GROUP &&
+        ttype != TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER &&
+        ttype != TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY) {
+        return false;
+    }
+    const char *name = language->tokens[node->token_id].name;
+    if (name != nullptr && strcmp(name, "Operator") == 0) return true;
+
+    if (node->child == nullptr) return false;
+    for (const textparser_token_item *c = node->child; c != nullptr; c = c->next) {
+        if (c->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) continue;
+        int prec = 0;
+        if (!get_operator_info(language, c->token_id, &prec, nullptr, nullptr)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void unwrap_node(textparser_token_item **root, textparser_token_item *curr)
+{
+    if (curr == nullptr || curr->child == nullptr) return;
+    textparser_token_item *first_child = curr->child;
+    textparser_token_item *last_child = curr->child;
+    while (last_child->next) {
+        last_child->parent = curr->parent;
+        last_child = last_child->next;
+    }
+    last_child->parent = curr->parent;
+    first_child->prev = curr->prev;
+    last_child->next = curr->next;
+
+    if (curr->prev) {
+        curr->prev->next = first_child;
+    } else if (curr->parent) {
+        curr->parent->child = first_child;
+    } else if (root) {
+        *root = first_child;
+    }
+
+    if (curr->next) {
+        curr->next->prev = last_child;
+    }
+}
+
 void textparser_post_process(textparser_token_item **root, const textparser_language_definition *language)
 {
     if (root == nullptr || *root == nullptr || language == nullptr) return;
+
+    /* First recursively process child subtrees */
+    for (textparser_token_item *c = *root; c != nullptr; c = c->next) {
+        if (c->child) {
+            textparser_post_process(&c->child, language);
+        }
+    }
+
+    /* Unwrap operator groups before Pratt expression parsing so all operators are direct siblings */
+    textparser_token_item *it = *root;
+    while (it) {
+        textparser_token_item *next_sibling = it->next;
+        if (is_operator_group(it, language) && it->child) {
+            textparser_token_item *last_c = it->child;
+            while (last_c->next) last_c = last_c->next;
+            unwrap_node(root, it);
+            it = last_c;
+        }
+        it = next_sibling;
+    }
+
+    /* Apply operator precedence Pratt parsing to current sibling list if applicable */
+    if (language->operator_precedence != nullptr && language->operator_precedence->count > 0) {
+        textparser_post_process_expressions(root, language);
+    }
 
     textparser_token_item *curr = *root;
 
     while (curr) {
         textparser_token_item *next_sibling = curr->next;
-
-        /* First recursively process child subtree */
-        if (curr->child) {
-            textparser_post_process(&curr->child, language);
-        }
 
         /* Check if this node has delete_if_only_one_child condition */
         if (curr->token_id >= 0 && language->tokens[curr->token_id].delete_if_only_one_child &&

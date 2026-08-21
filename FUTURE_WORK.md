@@ -3,21 +3,7 @@
 
 ---
 
-## 1. Pratt Parsing for Mathematical & Logical Expression Trees
-
-### Motivation & Goals
-Replace flat token sequences in mathematical and logical expressions with exact binary/unary expression trees using **Pratt Parsing (Top-Down Operator Precedence)**.
-
-### Key Enhancements
-* **Dynamic Precedence Configurations**:
-  * Define `operator_precedence` tables in JSON grammars.
-  * Map operator table indices directly to numerical binding power weights on internal token structures.
-* **Associativity Controls**: Support explicit `left` and `right` associativity (e.g., left-associative exponentiation `^` in Adobe ColdFusion).
-* **Unary vs. Binary Operator Disambiguation**: Differentiate prefix operators (unary `+`/`-`, logical `NOT`/`!`) from infix/postfix operators based on stream position.
-
----
-
-## 2. Structural Statement Recognition & Speculative Backtracking
+## 1. Structural Statement Recognition & Speculative Backtracking
 
 ### Motivation & Goals
 Recognize high-level constructs (like variable declarations, function definitions, and type casts) without the massive multi-megabyte state tables required by GLR parsers.
@@ -32,7 +18,7 @@ Recognize high-level constructs (like variable declarations, function definition
 
 ---
 
-## 3. Post-Parsing Contextual Rule Disambiguation
+## 2. Post-Parsing Contextual Rule Disambiguation
 
 ### Motivation & Goals
 Resolve lexical ambiguities that cannot be determined by single-pass regex matching alone.
@@ -45,7 +31,7 @@ Resolve lexical ambiguities that cannot be determined by single-pass regex match
 
 ---
 
-## 4. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
+## 3. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
 
 ### Motivation & Goals
 Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON regex patterns into direct native C matching functions.
@@ -60,7 +46,7 @@ Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON r
 
 ---
 
-## 5. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
+## 4. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
 
 ### Motivation & Goals
 Provide a high-throughput, allocation-free API for editors and language servers to retrieve changed token ranges in a single linear pass.
@@ -73,7 +59,7 @@ Provide a high-throughput, allocation-free API for editors and language servers 
 
 ---
 
-## 6. Tree-sitter Compatible Token Schema
+## 5. Tree-sitter Compatible Token Schema
 
 ### Motivation & Goals
 Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.

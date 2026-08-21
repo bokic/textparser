@@ -498,10 +498,291 @@ TEST(parse_CFML, expr_word_operators) {
 }
 
 TEST(parse_CFML, expr_arithmetic_precedence) {
-    textparser_suppress_errors() = true;
-    auto tokens = TextParser(R"(<cfset x = a + b * c - d / e />)", &cfml_definition);
-    textparser_suppress_errors() = false;
-    
+    // 1. Multiplication higher precedence than addition: 2 + 3 * 4 -> AddOperator wraps MulOperator
+    {
+        const char *src = "<cfset res = 2 + 3 * 4 />";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, &cfml_definition);
+
+        // Find AssignOperator node under StartTag
+        textparser_token_item *assign = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0) {
+                    assign = c;
+                    break;
+                }
+            }
+        }
+        ASSERT_NE(assign, nullptr);
+        // Inside AssignOperator children, find AddOperator
+        textparser_token_item *add = nullptr;
+        for (textparser_token_item *c = assign->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AddOperator") == 0) {
+                add = c;
+                break;
+            }
+        }
+        ASSERT_NE(add, nullptr);
+        // Inside AddOperator children, find MulOperator
+        textparser_token_item *mul = nullptr;
+        for (textparser_token_item *c = add->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "MulOperator") == 0) {
+                mul = c;
+                break;
+            }
+        }
+        ASSERT_NE(mul, nullptr);
+        textparser_close(handle);
+    }
+
+    // 2. Exponentiation higher precedence than multiplication: 2 ^ 3 * 2 -> MulOperator wraps PowerOperator
+    {
+        const char *src = "<cfset res = 2 ^ 3 * 2 />";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, &cfml_definition);
+
+        textparser_token_item *mul = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                for (textparser_token_item *sub = c->child; sub; sub = sub->next) {
+                    if (sub->token_id >= 0 && strcmp(cfml_definition.tokens[sub->token_id].name, "MulOperator") == 0) {
+                        mul = sub;
+                        break;
+                    }
+                }
+            }
+        }
+        ASSERT_NE(mul, nullptr);
+        // MulOperator has child PowerOperator
+        textparser_token_item *power = nullptr;
+        for (textparser_token_item *c = mul->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "PowerOperator") == 0) {
+                power = c;
+                break;
+            }
+        }
+        ASSERT_NE(power, nullptr);
+        textparser_close(handle);
+    }
+
+    // 3. Comparison higher precedence than logical NOT: NOT 0 GT 3 -> LogicalNotOperator wraps CompareOperator
+    {
+        const char *src = "<cfset res = NOT 0 GT 3 />";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, &cfml_definition);
+
+        textparser_token_item *not_op = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                for (textparser_token_item *sub = c->child; sub; sub = sub->next) {
+                    if (sub->token_id >= 0 && strcmp(cfml_definition.tokens[sub->token_id].name, "LogicalNotOperator") == 0) {
+                        not_op = sub;
+                        break;
+                    }
+                }
+            }
+        }
+        ASSERT_NE(not_op, nullptr);
+        textparser_token_item *cmp = nullptr;
+        for (textparser_token_item *c = not_op->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "CompareOperator") == 0) {
+                cmp = c;
+                break;
+            }
+        }
+        ASSERT_NE(cmp, nullptr);
+        textparser_close(handle);
+    }
+
+    // 4. Left-associative exponentiation: 2 ^ 3 ^ 2 -> Outer PowerOperator wraps Left PowerOperator
+    {
+        const char *src = "<cfset res = 2 ^ 3 ^ 2 />";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, &cfml_definition);
+
+        textparser_token_item *outer_power = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                for (textparser_token_item *sub = c->child; sub; sub = sub->next) {
+                    if (sub->token_id >= 0 && strcmp(cfml_definition.tokens[sub->token_id].name, "PowerOperator") == 0) {
+                        outer_power = sub;
+                        break;
+                    }
+                }
+            }
+        }
+        ASSERT_NE(outer_power, nullptr);
+        textparser_token_item *inner_power = nullptr;
+        for (textparser_token_item *c = outer_power->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "PowerOperator") == 0) {
+                inner_power = c;
+                break;
+            }
+        }
+        ASSERT_NE(inner_power, nullptr);
+        textparser_close(handle);
+    }
+
+    // 5. String concatenation vs Addition: "A" & 2 + 3 -> ConcatOperator wraps AddOperator
+    {
+        const char *src = R"(<cfset res = "A" & 2 + 3 />)";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, &cfml_definition);
+
+        textparser_token_item *concat = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                for (textparser_token_item *sub = c->child; sub; sub = sub->next) {
+                    if (sub->token_id >= 0 && strcmp(cfml_definition.tokens[sub->token_id].name, "ConcatOperator") == 0) {
+                        concat = sub;
+                        break;
+                    }
+                }
+            }
+        }
+        ASSERT_NE(concat, nullptr);
+        textparser_token_item *add = nullptr;
+        for (textparser_token_item *c = concat->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AddOperator") == 0) {
+                add = c;
+                break;
+            }
+        }
+        ASSERT_NE(add, nullptr);
+        textparser_close(handle);
+    }
+
+    // 6. Logical AND vs Logical OR: true OR true AND false -> LogicalOrOperator wraps LogicalAndOperator
+    {
+        const char *src = "<cfset res = true OR true AND false />";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, &cfml_definition);
+
+        textparser_token_item *or_op = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                for (textparser_token_item *sub = c->child; sub; sub = sub->next) {
+                    if (sub->token_id >= 0 && strcmp(cfml_definition.tokens[sub->token_id].name, "LogicalOrOperator") == 0) {
+                        or_op = sub;
+                        break;
+                    }
+                }
+            }
+        }
+        ASSERT_NE(or_op, nullptr);
+        textparser_token_item *and_op = nullptr;
+        for (textparser_token_item *c = or_op->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "LogicalAndOperator") == 0) {
+                and_op = c;
+                break;
+            }
+        }
+        ASSERT_NE(and_op, nullptr);
+        textparser_close(handle);
+    }
+
+    // 7. Right-associative multi-assignment: x = y = z = 10 -> x = (y = (z = 10))
+    {
+        const char *src = "<cfset x = y = z = 10 />";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, &cfml_definition);
+
+        textparser_token_item *assign1 = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0 && c->child != nullptr) {
+                    assign1 = c;
+                    break;
+                }
+            }
+        }
+        ASSERT_NE(assign1, nullptr);
+        textparser_token_item *assign2 = nullptr;
+        for (textparser_token_item *c = assign1->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0 && c->child != nullptr) {
+                assign2 = c;
+                break;
+            }
+        }
+        ASSERT_NE(assign2, nullptr);
+        textparser_token_item *assign3 = nullptr;
+        for (textparser_token_item *c = assign2->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0 && c->child != nullptr) {
+                assign3 = c;
+                break;
+            }
+        }
+        ASSERT_NE(assign3, nullptr);
+        textparser_close(handle);
+    }
+
+    // 8. Runtime JSON definition load applies operator precedence correctly
+    {
+        textparser_language_definition *runtime_def = nullptr;
+        int err = textparser_json_load_language_definition_from_json_file("definitions/cfml_definition.json", &runtime_def);
+        ASSERT_EQ(err, 0);
+        ASSERT_NE(runtime_def, nullptr);
+        ASSERT_NE(runtime_def->operator_precedence, nullptr);
+        EXPECT_EQ(runtime_def->operator_precedence->count, 13);
+
+        const char *src = "<cfset res = 2 + 3 * 4 />";
+        textparser_t handle = nullptr;
+        ASSERT_EQ(textparser_openmem(src, strlen(src), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, runtime_def), 0);
+        textparser_token_item *root = textparser_get_first_token(handle);
+        textparser_post_process(&root, runtime_def);
+
+        textparser_token_item *assign = nullptr;
+        for (textparser_token_item *t = root; t; t = t->next) {
+            for (textparser_token_item *c = t->child; c; c = c->next) {
+                if (c->token_id >= 0 && strcmp(runtime_def->tokens[c->token_id].name, "AssignOperator") == 0) {
+                    assign = c;
+                    break;
+                }
+            }
+        }
+        ASSERT_NE(assign, nullptr);
+        textparser_token_item *add = nullptr;
+        for (textparser_token_item *c = assign->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(runtime_def->tokens[c->token_id].name, "AddOperator") == 0) {
+                add = c;
+                break;
+            }
+        }
+        ASSERT_NE(add, nullptr);
+        textparser_token_item *mul = nullptr;
+        for (textparser_token_item *c = add->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(runtime_def->tokens[c->token_id].name, "MulOperator") == 0) {
+                mul = c;
+                break;
+            }
+        }
+        ASSERT_NE(mul, nullptr);
+        textparser_close(handle);
+        textparser_free_language_definition(runtime_def);
+    }
 }
 
 TEST(parse_CFML, expr_function_calls) {

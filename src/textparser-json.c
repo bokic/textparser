@@ -510,6 +510,44 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         }
     }
 
+    json_object *prec_arr = nullptr;
+    if (json_object_object_get_ex(root_obj, "operator_precedence", &prec_arr) && json_object_is_type(prec_arr, json_type_array)) {
+        int rule_count = json_object_array_length(prec_arr);
+        if (rule_count > 0) {
+            textparser_operator_precedence *op_prec = calloc(1, sizeof(textparser_operator_precedence));
+            textparser_precedence_rule *rules = calloc(rule_count, sizeof(textparser_precedence_rule));
+            if (op_prec == nullptr || rules == nullptr) {
+                free(op_prec);
+                free(rules);
+                (*definition)->error_string = "calloc for operator_precedence FAILED!";
+                ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                goto err;
+            }
+            op_prec->count = (size_t)rule_count;
+            op_prec->rules = rules;
+            for (int r = 0; r < rule_count; r++) {
+                json_object *rule_obj = json_object_array_get_idx(prec_arr, r);
+                if (!rule_obj || !json_object_is_type(rule_obj, json_type_object)) continue;
+
+                json_object *assoc_val = nullptr;
+                if (json_object_object_get_ex(rule_obj, "associativity", &assoc_val) && json_object_is_type(assoc_val, json_type_string)) {
+                    const char *assoc_str = json_object_get_string(assoc_val);
+                    if (assoc_str && strcasecmp(assoc_str, "right") == 0) {
+                        rules[r].associativity = TEXTPARSER_ASSOC_RIGHT;
+                    } else {
+                        rules[r].associativity = TEXTPARSER_ASSOC_LEFT;
+                    }
+                }
+
+                json_object *ops_arr = nullptr;
+                if (json_object_object_get_ex(rule_obj, "operators", &ops_arr) && json_object_is_type(ops_arr, json_type_array)) {
+                    rules[r].operators = json_parse_token_id_array(ops_arr, (*definition)->tokens, tokens_cnt);
+                }
+            }
+            (*definition)->operator_precedence = op_prec;
+        }
+    }
+
     json_object *override_arr = nullptr;
     if (json_object_object_get_ex(root_obj, "overrideStartTokens", &override_arr) && json_object_is_type(override_arr, json_type_array)) {
         int rule_count = json_object_array_length(override_arr);

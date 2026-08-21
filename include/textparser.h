@@ -151,6 +151,21 @@ typedef struct {
     const int *operand_tokens;
 } textparser_sign_merge;
 
+enum textparser_associativity {
+    TEXTPARSER_ASSOC_LEFT = 0,
+    TEXTPARSER_ASSOC_RIGHT = 1,
+};
+
+typedef struct {
+    const int *operators;
+    enum textparser_associativity associativity;
+} textparser_precedence_rule;
+
+typedef struct {
+    size_t count;
+    const textparser_precedence_rule *rules;
+} textparser_operator_precedence;
+
 typedef struct {
     const char *name;
     double version;
@@ -163,6 +178,7 @@ typedef struct {
     textparser_override_start_token_rule *override_start_tokens;
     bool other_text_inside;
     textparser_sign_merge *sign_merge;
+    textparser_operator_precedence *operator_precedence;
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;
