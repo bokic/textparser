@@ -17,18 +17,15 @@ if(NOT WIN32)
     include(GNUInstallDirs)
 
     find_package(json-c CONFIG REQUIRED)
-    find_package(PkgConfig)
-
-    foreach(width 8 16 32)
-        pkg_search_module(libpcre2-${width} REQUIRED IMPORTED_TARGET libpcre2-${width}>=10.42)
-    endforeach()
 endif()
 
 add_library(libtextparser SHARED
     textparser.c
     adv_regex.c
     adv_regex.h
+    search_function_gen.c
 
+    ../include/search_function_gen.h
     ../include/textparser.h
     ../include/textparser.hpp
 
@@ -48,15 +45,8 @@ if(WIN32)
     )
 endif()
 
-if(WIN32)
-    target_link_directories(libtextparser PRIVATE ../bin)
-    target_link_libraries(libtextparser PRIVATE pcre2-8.lib pcre2-16.lib pcre2-32.lib)
-else()
-    target_link_libraries(libtextparser PRIVATE
-        PkgConfig::libpcre2-8
-        PkgConfig::libpcre2-16
-        PkgConfig::libpcre2-32
-    )
+if(NOT WIN32)
+    target_link_libraries(libtextparser PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
 set_target_properties(libtextparser PROPERTIES

@@ -136,11 +136,23 @@ typedef struct textparser_token_item {
     int *nested_tokens;
 } textparser_context_nested_tokens;
 
+typedef bool (*textparser_fast_regex_fn)(
+    enum textparser_encoding encoding,
+    const char *start,
+    size_t max_len,
+    size_t *offset,
+    size_t *length,
+    bool is_caseless,
+    bool only_at_start
+);
+
 typedef struct {
     const char *name;
     enum textparser_token_type type;
     const char *start_regex;
     const char *end_regex;
+    textparser_fast_regex_fn startRegexFunction;
+    textparser_fast_regex_fn endRegexFunction;
     bool other_text_inside;
     bool delete_if_only_one_child;
     bool must_have_one_child;

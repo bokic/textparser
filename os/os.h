@@ -37,3 +37,7 @@ void os_unmap(void *addr, size_t size);
 ssize_t os_write_to_terminal(const void *buffer, size_t len);
 
 void os_file_cleanup(void *fd);
+
+void *os_dlopen(const char *filename);
+void *os_dlsym(void *handle, const char *symbol);
+void os_dlclose(void *handle);

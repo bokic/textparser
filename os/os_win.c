@@ -138,3 +138,22 @@ void os_file_cleanup(void *fd) {
     }
 }
 
+void *os_dlopen(const char *filename) {
+    wchar_t *wpath = utf8_to_wchar(filename);
+    if (!wpath) return NULL;
+    HMODULE mod = LoadLibraryW(wpath);
+    HeapFree(GetProcessHeap(), 0, wpath);
+    return (void *)mod;
+}
+
+void *os_dlsym(void *handle, const char *symbol) {
+    if (!handle || !symbol) return NULL;
+    return (void *)GetProcAddress((HMODULE)handle, symbol);
+}
+
+void os_dlclose(void *handle) {
+    if (handle) {
+        FreeLibrary((HMODULE)handle);
+    }
+}
+

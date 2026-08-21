@@ -25,12 +25,7 @@ endif()
 
 enable_testing()
 
-if(NOT WIN32)
-    find_package(PkgConfig REQUIRED)
-    foreach(width 8 16 32)
-        pkg_search_module(libpcre2-${width} REQUIRED IMPORTED_TARGET libpcre2-${width}>=10.42)
-    endforeach()
-endif()
+
 
 add_executable( unittests
   cfml_tests.cpp
@@ -68,7 +63,6 @@ add_executable( unittests
   incremental_tests.cpp
   structural_tests.cpp
   token_export_tests.cpp
-  ../../src/adv_regex.c
 
   tokenparser.hpp
 )
@@ -91,20 +85,6 @@ target_link_libraries( unittests
   css
   GTest::gtest_main
 )
-if(WIN32)
-  target_link_directories(unittests PRIVATE ../../bin)
-  target_link_libraries(unittests
-    pcre2-8.lib
-    pcre2-16.lib
-    pcre2-32.lib
-  )
-else()
-  target_link_libraries(unittests
-    PkgConfig::libpcre2-8
-    PkgConfig::libpcre2-16
-    PkgConfig::libpcre2-32
-  )
-endif()
 
 include(GoogleTest)
 gtest_discover_tests(unittests)

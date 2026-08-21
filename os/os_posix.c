@@ -120,3 +120,19 @@ void os_file_cleanup(void *fd) {
         *fd_int = -1;
     }
 }
+
+#include <dlfcn.h>
+
+void *os_dlopen(const char *filename) {
+    return dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+}
+
+void *os_dlsym(void *handle, const char *symbol) {
+    return dlsym(handle, symbol);
+}
+
+void os_dlclose(void *handle) {
+    if (handle) {
+        dlclose(handle);
+    }
+}

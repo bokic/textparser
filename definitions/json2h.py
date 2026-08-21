@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import base64
 import json
 import os
 import sys
@@ -71,9 +72,25 @@ def main(args):
     text = "#pragma once" + os.linesep
     text += "" + os.linesep
     text += "#include \"textparser.h\"" + os.linesep
+    text += "#include \"search_function_gen.h\"" + os.linesep
     text += "#include <stddef.h>" + os.linesep
     text += "" + os.linesep
     text += "" + os.linesep
+
+    # Load search_function_gen.h to check available _gen_* symbols
+    gen_header_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "include", "search_function_gen.h"),
+        os.path.join(os.path.dirname(__file__), "include", "search_function_gen.h"),
+        os.path.join(os.path.dirname(__file__), "search_function_gen.h"),
+        "include/search_function_gen.h",
+        "search_function_gen.h",
+    ]
+    gen_header_content = ""
+    for path in gen_header_paths:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as gf:
+                gen_header_content = gf.read()
+            break
 
     name_lowercase = root["name"].lower()
 
@@ -328,6 +345,35 @@ def main(args):
         else:
             text += "            .end_regex = NULL," + os.linesep
 
+        start_regex_val = current_token.get("startRegex") or current_token.get("regex")
+        end_regex_val = current_token.get("endRegex")
+
+        has_start_regex = (start_regex_val is not None)
+        has_end_regex = (end_regex_val is not None)
+
+        start_fn_name = f"_gen_{name_lowercase}_{token}_start"
+        end_fn_name = f"_gen_{name_lowercase}_{token}_end"
+
+        if has_start_regex:
+            b64_start = base64.b64encode(start_regex_val.encode("utf-8")).decode("utf-8")
+            start_tag = f"{start_fn_name}_{b64_start}"
+            if start_tag in gen_header_content and start_fn_name in gen_header_content:
+                text += "            .startRegexFunction = " + start_fn_name + "," + os.linesep
+            else:
+                text += "            .startRegexFunction = NULL," + os.linesep
+        else:
+            text += "            .startRegexFunction = NULL," + os.linesep
+
+        if has_end_regex:
+            b64_end = base64.b64encode(end_regex_val.encode("utf-8")).decode("utf-8")
+            end_tag = f"{end_fn_name}_{b64_end}"
+            if end_tag in gen_header_content and end_fn_name in gen_header_content:
+                text += "            .endRegexFunction = " + end_fn_name + "," + os.linesep
+            else:
+                text += "            .endRegexFunction = NULL," + os.linesep
+        else:
+            text += "            .endRegexFunction = NULL," + os.linesep
+
         # immediate_start
         if "otherTextInside" in current_token:
             text += "            .other_text_inside = " + python_bool_to_c_string(current_token["otherTextInside"]) + "," + os.linesep
@@ -411,6 +457,8 @@ def main(args):
     text += "            .type = TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN," + os.linesep
     text += "            .start_regex = NULL," + os.linesep
     text += "            .end_regex = NULL," + os.linesep
+    text += "            .startRegexFunction = NULL," + os.linesep
+    text += "            .endRegexFunction = NULL," + os.linesep
     text += "            .other_text_inside = false," + os.linesep
     text += "            .delete_if_only_one_child = false," + os.linesep
     text += "            .must_have_one_child = false," + os.linesep

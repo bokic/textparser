@@ -226,6 +226,76 @@ static inline void textparser_checkpoint_restore(struct textparser_handle *handl
     handle->token_count = cp->token_count;
 }
 
+static inline bool textparser_match_start_token(
+    const struct textparser_handle *handle,
+    int token_id,
+    const char *text,
+    size_t len,
+    size_t *offset,
+    size_t *match_len,
+    bool only_at_start)
+{
+    const textparser_token *token_def = &handle->language->tokens[token_id];
+    if (token_def->startRegexFunction != NULL) {
+        return token_def->startRegexFunction(
+            handle->text_format,
+            text,
+            len,
+            offset,
+            match_len,
+            !handle->language->case_sensitivity,
+            only_at_start
+        );
+    }
+    return adv_regex_find_pattern_ctx(
+        handle->regex_ctx,
+        token_def->start_regex,
+        (void **)handle->start_regex + token_id,
+        handle->text_format,
+        text,
+        len,
+        offset,
+        match_len,
+        !handle->language->case_sensitivity,
+        only_at_start
+    );
+}
+
+static inline bool textparser_match_end_token(
+    const struct textparser_handle *handle,
+    int token_id,
+    const char *text,
+    size_t len,
+    size_t *offset,
+    size_t *match_len,
+    bool only_at_start)
+{
+    const textparser_token *token_def = &handle->language->tokens[token_id];
+    if (token_def->endRegexFunction != NULL) {
+        return token_def->endRegexFunction(
+            handle->text_format,
+            text,
+            len,
+            offset,
+            match_len,
+            !handle->language->case_sensitivity,
+            only_at_start
+        );
+    }
+    return adv_regex_find_pattern_ctx(
+        handle->regex_ctx,
+        token_def->end_regex,
+        (void **)handle->end_regex + token_id,
+        handle->text_format,
+        text,
+        len,
+        offset,
+        match_len,
+        !handle->language->case_sensitivity,
+        only_at_start
+    );
+}
+
 static textparser_token_item *textparser_alloc_token(struct textparser_handle *handle, int token_id, size_t len)
 {
     size_t token_size = sizeof(textparser_token_item);
@@ -641,7 +711,7 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
             /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
-            if (adv_regex_find_pattern_ctx(handle->regex_ctx, token->start_regex, (void **)handle->start_regex + token_id, handle->text_format, text, len, &found_at, nullptr, !handle->language->case_sensitivity, true)) {
+            if (textparser_match_start_token(handle, token_id, text, len, &found_at, nullptr, true)) {
                 LOGI("found_at token type: [%s] at %zu",  handle->language->tokens[token_id].name, pos + found_at);
                 result = (ssize_t)found_at;
                 if (result == 0 && handle->language && handle->language->regex_disambiguation) {
@@ -676,11 +746,11 @@ static bool check_parent_token_boundary(
 
     if (parent_start_stop == TEXTPARSER_SEARCH_END_TOKEN)
     {
-        if (parent_def->end_regex != nullptr)
+        if (parent_def->end_regex != nullptr || parent_def->endRegexFunction != NULL)
         {
             size_t token_end = 0;
             size_t end_len = 0;
-            bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, parent_def->end_regex, (void **)handle->end_regex + parent_token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, !handle->language->case_sensitivity, false);
+            bool found_end = textparser_match_end_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, false);
             if (found_end && token_end == 0)
             {
                 return true;
@@ -689,11 +759,11 @@ static bool check_parent_token_boundary(
     }
     else if (parent_start_stop == TEXTPARSER_SEARCH_START_TOKEN)
     {
-        if (parent_def->start_regex != nullptr)
+        if (parent_def->start_regex != nullptr || parent_def->startRegexFunction != NULL)
         {
             size_t token_start = 0;
             size_t start_len = 0;
-            bool found_start = adv_regex_find_pattern_ctx(handle->regex_ctx, parent_def->start_regex, (void **)handle->start_regex + parent_token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_start, &start_len, !handle->language->case_sensitivity, false);
+            bool found_start = textparser_match_start_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_start, &start_len, false);
             if (found_start && token_start == 0)
             {
                 return true;
@@ -1201,9 +1271,6 @@ static textparser_token_item *parse_token_simple_token(struct textparser_handle 
         return nullptr;
     }
 
-    const textparser_language_definition *definition = handle->language;
-    const textparser_token *token_def = &definition->tokens[token_id];
-
     LOGV("enter TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
 
     if (offset >= textparser_get_total_units(handle)) {
@@ -1216,7 +1283,7 @@ static textparser_token_item *parse_token_simple_token(struct textparser_handle 
     }
 
     size_t len = 0;
-    if (!adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
+    if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true)) {
         exit_with_error(handle, "Can't find start of the token!", offset);
     }
 
@@ -1272,7 +1339,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     ret->prev = (textparser_token_item *)prev_sibling;
 
     // Search for start token
-    if (!adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->start_regex, (void **)handle->start_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, !handle->language->case_sensitivity, true)) {
+    if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true)) {
         exit_with_error(handle, "Can't find start of the token!", offset);
     }
 
@@ -1312,7 +1379,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             if (token_def->search_parent_end_token_last == false)
             {
                 size_t end_match_len = 0;
-                bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
+                bool found_end = textparser_match_end_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, true);
                 if (found_end)
                 {
                     break;
@@ -1324,7 +1391,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                 if (token_def->search_parent_end_token_last == true)
                 {
                     size_t end_match_len = 0;
-                    bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
+                    bool found_end = textparser_match_end_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, true);
                     if (found_end)
                     {
                         break;
@@ -1401,7 +1468,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             if (token_def->search_parent_end_token_last == true)
             {
                 size_t end_match_len = 0;
-                bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, !handle->language->case_sensitivity, true);
+                bool found_end = textparser_match_end_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &end_match_len, true);
                 if (found_end)
                 {
                     break;
@@ -1425,7 +1492,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     }
 
     size_t end_len = 0;
-    bool found_end = adv_regex_find_pattern_ctx(handle->regex_ctx, token_def->end_regex, (void **)handle->end_regex + token_id, handle->text_format, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, !handle->language->case_sensitivity, false);
+    bool found_end = textparser_match_end_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, false);
 
     if (!found_end) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
