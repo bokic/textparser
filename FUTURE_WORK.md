@@ -3,21 +3,7 @@
 
 ---
 
-## 1. Concrete Syntax Tree (CST) & Full Token Retention [COMPLETED]
-
-### Motivation & Goals
-Transform `textparser` into a 100% lossless Concrete Syntax Tree (CST) engine that records every token, delimiter, punctuation mark, and leading trivia/padding so that the source code can be reproduced byte-for-byte from the tree.
-
-* **Syntax Trivia & Unprocessed Node Retention** *(Implemented)*:
-  * Preserves delimiters, punctuation, whitespace, and plain unparsed text as explicit **Unprocessed** token nodes (`TEXTPARSER_TOKEN_ID_UNPROCESSED` = -2), ensuring gapless, byte-for-byte fidelity ($\sum \text{token.len} == \text{document\_length}$).
-* **Relative Sizing (`len` only) & Dynamic Position** *(Implemented)*:
-  * Stores only relative node length (`len`) inside token structures; removed absolute `position` field to prevent $O(N)$ position-invalidation cascades during incremental parsing.
-  * Computes absolute offsets on demand during traversal via `textparser_get_token_position(token)`.
-* **Tree-sitter Compatible Token Schema**: Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.
-
----
-
-## 2. Pratt Parsing for Mathematical & Logical Expression Trees
+## 1. Pratt Parsing for Mathematical & Logical Expression Trees
 
 ### Motivation & Goals
 Replace flat token sequences in mathematical and logical expressions with exact binary/unary expression trees using **Pratt Parsing (Top-Down Operator Precedence)**.
@@ -31,7 +17,7 @@ Replace flat token sequences in mathematical and logical expressions with exact 
 
 ---
 
-## 3. Structural Statement Recognition & Speculative Backtracking
+## 2. Structural Statement Recognition & Speculative Backtracking
 
 ### Motivation & Goals
 Recognize high-level constructs (like variable declarations, function definitions, and type casts) without the massive multi-megabyte state tables required by GLR parsers.
@@ -46,7 +32,7 @@ Recognize high-level constructs (like variable declarations, function definition
 
 ---
 
-## 4. Post-Parsing Contextual Rule Disambiguation
+## 3. Post-Parsing Contextual Rule Disambiguation
 
 ### Motivation & Goals
 Resolve lexical ambiguities that cannot be determined by single-pass regex matching alone.
@@ -59,7 +45,7 @@ Resolve lexical ambiguities that cannot be determined by single-pass regex match
 
 ---
 
-## 5. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
+## 4. Three-Way Native C Regex Bypass (Zero-Dependency Lexing)
 
 ### Motivation & Goals
 Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON regex patterns into direct native C matching functions.
@@ -74,7 +60,7 @@ Eliminate `libpcre2` dependency entirely by having LLMs/codegen translate JSON r
 
 ---
 
-## 6. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
+## 5. High-Speed Token Range Export for Editors (LSP & Highlight Buffers)
 
 ### Motivation & Goals
 Provide a high-throughput, allocation-free API for editors and language servers to retrieve changed token ranges in a single linear pass.
@@ -84,3 +70,10 @@ Provide a high-throughput, allocation-free API for editors and language servers 
   * Populate a caller-provided reusable scratch buffer with flat token coordinates: `[start_line, start_col, end_line, end_col, token_type_id]`.
   * Avoid per-token heap allocations during viewport rendering and syntax recoloring.
 * **Changed Range Invalidation**: Compute diff ranges between old and new trees quickly via pointer-equality checks on shared subtrees, restricting recoloring queries to modified lines only.
+
+---
+
+## 6. Tree-sitter Compatible Token Schema
+
+### Motivation & Goals
+Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.
