@@ -1,13 +1,11 @@
 # Roadmap
 
-## 1.0
-
-- Implement code validator for each computer language.
-
 ## 1.1
 
-- Code cleanup(deslobification). Cleanup AI slob, old architecture decisions and other.
-- AI regenerate parser to JavaScript/TypeScript language, so it can be used in Electron(VSCode plugin for example), Node.js, web applications, etc.
-- Implement bindings to other languages(Python, Rust,Java, Zig, C3, etc.).
+- Implement code validator for each computer language.
+- Tree-sitter Compatible Token Schema
+  - Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.
 
-## 2.0
+## 1.2
+
+- Code cleanup(deslobification). Cleanup AI slob, old architecture decisions and other.
