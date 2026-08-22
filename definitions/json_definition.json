@@ -33,7 +33,7 @@
       "endRegex": "\\]",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0x179fff",
+      "textColor": "0xffd700",
       "nestedTokens": [
         "String",
         "Number",
@@ -53,7 +53,8 @@
         "Array",
         "Bool",
         "Null"
-      ]
+      ],
+      "textColor": "0xce9178"
     },
     "Key": {
       "type": "StartStop",
@@ -88,20 +89,22 @@
     "Bool": {
       "type": "SimpleToken",
       "startRegex": "true|false",
-      "textColor": "0x088c54"
+      "textColor": "0x569cd6"
     },
     "Null": {
       "type": "SimpleToken",
       "startRegex": "null",
-      "textColor": "0x0000ff"
+      "textColor": "0x569cd6"
     },
     "ValueSeparator": {
       "type": "SimpleToken",
-      "startRegex": ","
+      "startRegex": ",",
+      "textColor": "0xd4d4d4"
     },
     "KeyValueSeparator": {
       "type": "SimpleToken",
-      "startRegex": ":"
+      "startRegex": ":",
+      "textColor": "0xd4d4d4"
     }
   }
 }

@@ -49,7 +49,7 @@
     "Register": {
       "type": "SimpleToken",
       "startRegex": "[re]?[abcd]x\\b|[re]?[bs]p\\b|[re]?[bs]i\\b|[re]?[di]p\\b|r[0-9]+\\b|e?[abcd]x\\b|e?[bs]p\\b|e?[bs]i\\b|e?[di]p\\b|r[0-9]+[dw]?\\b|st\\([0-9]+\\)\\b|mm[0-7]\\b|xmm[0-9]+\\b|ymm[0-9]+\\b|zmm[0-9]+\\b|cr[0-8]\\b|dr[0-7]\\b|cs\\b|ds\\b|es\\b|fs\\b|gs\\b|ss\\b|ax\\b|bx\\b|cx\\b|dx\\b|si\\b|di\\b|bp\\b|sp\\b|ip\\b|ah\\b|al\\b|bh\\b|bl\\b|ch\\b|cl\\b|dh\\b|dl\\b",
-      "textColor": "0x569cd6"
+      "textColor": "0x4ec9b0"
     },
     "Number": {
       "type": "SimpleToken",
@@ -72,7 +72,7 @@
     "Operator": {
       "type": "SimpleToken",
       "startRegex": "\\+|-|\\*|\\/|,|:|;",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "Parenthesis": {
       "type": "StartStop",

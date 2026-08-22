@@ -4132,9 +4132,29 @@ static void textparser_export_tokens_internal(const textparser_t handle, const t
                         range->text_background = language->tokens[curr->token_id].text_background;
                         range->text_flags = language->tokens[curr->token_id].text_flags;
                     } else {
-                        range->text_color = TEXTPARSER_NOCOLOR;
-                        range->text_background = TEXTPARSER_NOCOLOR;
-                        range->text_flags = 0;
+                        // Inherit color/background/flags from parent token if available (e.g. string literals)
+                        uint32_t eff_color = TEXTPARSER_NOCOLOR;
+                        uint32_t eff_bg = TEXTPARSER_NOCOLOR;
+                        uint32_t eff_flags = 0;
+                        const textparser_token_item *p = curr->parent;
+                        while (p != nullptr) {
+                            if (p->token_id >= 0) {
+                                if (eff_color == TEXTPARSER_NOCOLOR && language->tokens[p->token_id].text_color != TEXTPARSER_NOCOLOR) {
+                                    eff_color = language->tokens[p->token_id].text_color;
+                                }
+                                if (eff_bg == TEXTPARSER_NOCOLOR && language->tokens[p->token_id].text_background != TEXTPARSER_NOCOLOR) {
+                                    eff_bg = language->tokens[p->token_id].text_background;
+                                }
+                                if (eff_flags == 0 && language->tokens[p->token_id].text_flags != 0) {
+                                    eff_flags = language->tokens[p->token_id].text_flags;
+                                }
+                                if (eff_color != TEXTPARSER_NOCOLOR) break;
+                            }
+                            p = p->parent;
+                        }
+                        range->text_color = eff_color;
+                        range->text_background = eff_bg;
+                        range->text_flags = eff_flags;
                     }
 
                     textparser_calculate_line_col_sequential(handle, curr_pos, inout_line_idx, &range->start_line, &range->start_col);

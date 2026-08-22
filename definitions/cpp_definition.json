@@ -14,7 +14,9 @@
     "BlockComment",
     "Preprocessor",
     "Boolean",
+    "TaggedType",
     "Keyword",
+    "DataType",
     "Variable",
     "CodeBlock",
     "ScopeResolution",
@@ -34,14 +36,16 @@
     "LineComment": {
       "type": "SimpleToken",
       "startRegex": "\\/\\/[^\\r\\n]*",
-      "otherTextInside": true
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
     },
     "BlockComment": {
       "type": "StartStop",
       "startRegex": "\\/\\*",
       "endRegex": "\\*\\/",
       "multiLine": true,
-      "otherTextInside": true
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
     },
     "Preprocessor": {
       "type": "SimpleToken",
@@ -50,7 +54,7 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "class\\b|namespace\\b|template\\b|typename\\b|using\\b|public\\b|private\\b|protected\\b|virtual\\b|override\\b|final\\b|friend\\b|operator\\b|this\\b|new\\b|delete\\b|throw\\b|catch\\b|try\\b|constexpr\\b|consteval\\b|constinit\\b|decltype\\b|explicit\\b|export\\b|import\\b|module\\b|mutable\\b|noexcept\\b|nullptr\\b|static_cast\\b|dynamic_cast\\b|const_cast\\b|reinterpret_cast\\b|thread_local\\b|concept\\b|requires\\b|co_await\\b|co_return\\b|co_yield\\b|char8_t\\b|char16_t\\b|char32_t\\b|wchar_t\\b|int\\b|char\\b|double\\b|float\\b|void\\b|short\\b|long\\b|unsigned\\b|signed\\b|struct\\b|union\\b|enum\\b|typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b|_Bool\\b|bool\\b|size_t\\b|ssize_t\\b|uint8_t\\b|uint16_t\\b|uint32_t\\b|uint64_t\\b|int8_t\\b|int16_t\\b|int32_t\\b|int64_t\\b|uintptr_t\\b|intptr_t\\b|ptrdiff_t\\b",
+      "startRegex": "namespace\\b|template\\b|typename\\b|using\\b|public\\b|private\\b|protected\\b|virtual\\b|override\\b|final\\b|friend\\b|operator\\b|this\\b|new\\b|delete\\b|throw\\b|catch\\b|try\\b|constexpr\\b|consteval\\b|constinit\\b|decltype\\b|explicit\\b|export\\b|import\\b|module\\b|mutable\\b|noexcept\\b|nullptr\\b|static_cast\\b|dynamic_cast\\b|const_cast\\b|reinterpret_cast\\b|thread_local\\b|concept\\b|requires\\b|co_await\\b|co_return\\b|co_yield\\b|typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b",
       "textColor": "0xc586c0"
     },
     "Variable": {
@@ -70,7 +74,9 @@
         "BlockComment",
         "Preprocessor",
         "Boolean",
+        "TaggedType",
         "Keyword",
+        "DataType",
         "Variable",
         "CodeBlock",
         "ScopeResolution",
@@ -87,32 +93,32 @@
     "ScopeResolution": {
       "type": "SimpleToken",
       "startRegex": "::",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "Operator": {
       "type": "SimpleToken",
       "startRegex": "\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2}=|<{2}|>{2}|\\+\\+|\\-\\-|&&|\\|\\||<=>|<=|>=|==|!=|->\\*|->|\\.\\*|\\.|[=!|^~+\\-/%\\?:;.]",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "PointerOrRef": {
       "type": "SimpleToken",
       "startRegex": "[*&]",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "TemplateOpen": {
       "type": "SimpleToken",
       "startRegex": "<",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "TemplateClose": {
       "type": "SimpleToken",
       "startRegex": ">",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "Comma": {
       "type": "SimpleToken",
       "startRegex": ",",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "SingleString": {
       "type": "StartStop",
@@ -148,7 +154,7 @@
     "Boolean": {
       "type": "SimpleToken",
       "startRegex": "true\\b|false\\b",
-      "textColor": "0x088c54"
+      "textColor": "0x569cd6"
     },
     "Parenthesis": {
       "type": "StartStop",
@@ -162,7 +168,9 @@
         "BlockComment",
         "Preprocessor",
         "Boolean",
+        "TaggedType",
         "Keyword",
+        "DataType",
         "Variable",
         "CodeBlock",
         "ScopeResolution",
@@ -190,7 +198,9 @@
         "BlockComment",
         "Preprocessor",
         "Boolean",
+        "TaggedType",
         "Keyword",
+        "DataType",
         "Variable",
         "CodeBlock",
         "ScopeResolution",
@@ -216,7 +226,9 @@
       "nestedTokens": [
         "LineComment",
         "BlockComment",
+        "TaggedType",
         "Keyword",
+        "DataType",
         "Variable",
         "ScopeResolution",
         "Operator",
@@ -236,13 +248,37 @@
       "otherTextInside": true,
       "textColor": "0x4ec9b0",
       "nestedTokens": [
+        "TaggedType",
         "Keyword",
+        "DataType",
         "Variable",
         "ScopeResolution",
         "PointerOrRef",
         "Comma",
         "Operator"
       ]
+    },
+    "DataType": {
+      "type": "SimpleToken",
+      "startRegex": "char8_t\\b|char16_t\\b|char32_t\\b|wchar_t\\b|int\\b|char\\b|double\\b|float\\b|void\\b|short\\b|long\\b|unsigned\\b|signed\\b|_Bool\\b|bool\\b|size_t\\b|ssize_t\\b|uint8_t\\b|uint16_t\\b|uint32_t\\b|uint64_t\\b|int8_t\\b|int16_t\\b|int32_t\\b|int64_t\\b|uintptr_t\\b|intptr_t\\b|ptrdiff_t\\b|[a-zA-Z_][a-zA-Z0-9_]*_(?:t|type|enum|e|s)\\b",
+      "textColor": "0x4ec9b0"
+    },
+    "TagSpecifier": {
+      "type": "SimpleToken",
+      "startRegex": "struct\\b|union\\b|enum\\b|class\\b",
+      "textColor": "0xc586c0"
+    },
+    "TaggedType": {
+      "type": "Sequence",
+      "nestedTokens": [
+        "TagSpecifier",
+        "TypeName"
+      ]
+    },
+    "TypeName": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0x4ec9b0"
     }
   },
   "mergeSignIntoNumber": {
@@ -271,6 +307,9 @@
       "TemplateClose"
     ],
     "validInnerTokens": [
+      "TypeName",
+      "TaggedType",
+      "DataType",
       "Keyword",
       "Variable",
       "Comma",
@@ -306,7 +345,11 @@
   },
   "castDisambiguation": {
     "typeTokens": [
-      "Keyword"
+      "Keyword",
+      "DataType",
+      "TaggedType",
+      "TypeName",
+      "TagSpecifier"
     ],
     "typeKeywords": [
       "int",

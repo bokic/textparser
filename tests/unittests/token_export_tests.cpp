@@ -115,3 +115,96 @@ TEST(token_export_tests, empty_file_handling) {
     EXPECT_EQ(parser.export_tokens(nullptr, 0, &count), 0);
     EXPECT_EQ(count, 0u);
 }
+
+TEST(token_export_tests, string_token_color_inheritance) {
+    const char *code = "const char *str = \"Hello world\";";
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_LATIN1), 0);
+    ASSERT_EQ(parser.parse(&c_definition), 0);
+
+    size_t count = 0;
+    ASSERT_EQ(parser.export_tokens(nullptr, 0, &count), 0);
+    ASSERT_GT(count, 0u);
+
+    std::vector<textparser_token_range> tokens(count);
+    ASSERT_EQ(parser.export_tokens(tokens.data(), count, &count), 0);
+
+    // Verify DataType (char) color is 0x4ec9b0 and Keyword (const) color is 0xc586c0
+    // Verify DoubleString (containing "Hello world") color is 0xce9178
+    bool found_char_type = false;
+    bool found_const_kw = false;
+    bool found_string = false;
+
+    for (const auto &tok : tokens) {
+        if (tok.start_pos == 0 && tok.length == 5) { // "const"
+            EXPECT_EQ(tok.text_color, 0xc586c0);
+            found_const_kw = true;
+        }
+        if (tok.start_pos == 6 && tok.length == 4) { // "char"
+            EXPECT_EQ(tok.text_color, 0x4ec9b0);
+            found_char_type = true;
+        }
+        if (tok.start_pos >= 18 && tok.start_pos + tok.length <= 31) { // inside "Hello world"
+            EXPECT_EQ(tok.text_color, 0xce9178);
+            found_string = true;
+        }
+    }
+
+    EXPECT_TRUE(found_const_kw);
+    EXPECT_TRUE(found_char_type);
+    EXPECT_TRUE(found_string);
+}
+
+TEST(token_export_tests, tagged_type_and_type_suffix_coloring) {
+    const char *code = "enum textparser_encoding encoding, textparser_t handle;";
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_LATIN1), 0);
+    ASSERT_EQ(parser.parse(&c_definition), 0);
+
+    size_t count = 0;
+    ASSERT_EQ(parser.export_tokens(nullptr, 0, &count), 0);
+    ASSERT_GT(count, 0u);
+
+    std::vector<textparser_token_range> tokens(count);
+    ASSERT_EQ(parser.export_tokens(tokens.data(), count, &count), 0);
+
+    // "enum" -> TagSpecifier (0xc586c0)
+    // "textparser_encoding" -> TypeName inside TaggedType (0x4ec9b0)
+    // "encoding" -> Variable (0x9cdcfe)
+    // "textparser_t" -> DataType due to _t suffix (0x4ec9b0)
+    // "handle" -> Variable (0x9cdcfe)
+    bool found_enum_kw = false;
+    bool found_tag_type = false;
+    bool found_encoding_var = false;
+    bool found_custom_t_type = false;
+    bool found_handle_var = false;
+
+    for (const auto &tok : tokens) {
+        if (tok.start_pos == 0 && tok.length == 4) { // "enum"
+            EXPECT_EQ(tok.text_color, 0xc586c0);
+            found_enum_kw = true;
+        }
+        if (tok.start_pos == 5 && tok.length == 19) { // "textparser_encoding"
+            EXPECT_EQ(tok.text_color, 0x4ec9b0);
+            found_tag_type = true;
+        }
+        if (tok.start_pos == 25 && tok.length == 8) { // "encoding"
+            EXPECT_EQ(tok.text_color, 0x9cdcfe);
+            found_encoding_var = true;
+        }
+        if (tok.start_pos == 35 && tok.length == 12) { // "textparser_t"
+            EXPECT_EQ(tok.text_color, 0x4ec9b0);
+            found_custom_t_type = true;
+        }
+        if (tok.start_pos == 48 && tok.length == 6) { // "handle"
+            EXPECT_EQ(tok.text_color, 0x9cdcfe);
+            found_handle_var = true;
+        }
+    }
+
+    EXPECT_TRUE(found_enum_kw);
+    EXPECT_TRUE(found_tag_type);
+    EXPECT_TRUE(found_encoding_var);
+    EXPECT_TRUE(found_custom_t_type);
+    EXPECT_TRUE(found_handle_var);
+}

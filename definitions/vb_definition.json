@@ -35,12 +35,12 @@
     "DataType": {
       "type": "SimpleToken",
       "startRegex": "boolean\\b|byte\\b|char\\b|cdate\\b|date\\b|decimal\\b|double\\b|integer\\b|long\\b|object\\b|sbyte\\b|short\\b|single\\b|string\\b|uinteger\\b|ulong\\b|ushort\\b",
-      "textColor": "0x569cd6"
+      "textColor": "0x4ec9b0"
     },
     "Boolean": {
       "type": "SimpleToken",
       "startRegex": "true\\b|false\\b",
-      "textColor": "0x088c54"
+      "textColor": "0x569cd6"
     },
     "DoubleString": {
       "type": "StartStop",
@@ -71,7 +71,7 @@
     "Operator": {
       "type": "SimpleToken",
       "startRegex": "<<|>>|<=|>=|<>|:=|\\+=|\\-=|[=<>+\\-*/\\\\^&.,;:]",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "Parenthesis": {
       "type": "StartStop",

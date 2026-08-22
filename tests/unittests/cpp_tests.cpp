@@ -58,6 +58,14 @@ public:
                 found_class_keyword = true;
             }
         }
+        if (type == "TaggedType") {
+            if (tokens[i].children >= 2 && tokens[i][0].value == "class") {
+                found_class_keyword = true;
+            }
+            if (tokens[i].children >= 2 && tokens[i][1].value == "Hello") {
+                found_variable_root = true;
+            }
+        }
         if (type == "Variable") {
             if (tokens[i].value == "Hello") {
                 found_variable_root = true;

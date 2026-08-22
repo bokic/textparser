@@ -63,12 +63,12 @@
     "DataType": {
       "type": "SimpleToken",
       "startRegex": "integer\\b|cardinal\\b|shortint\\b|smallint\\b|longint\\b|int64\\b|byte\\b|word\\b|fixedint\\b|fixeduint\\b|real\\b|single\\b|double\\b|extended\\b|comp\\b|currency\\b|char\\b|ansichar\\b|widechar\\b|boolean\\b|bytebool\\b|wordbool\\b|longbool\\b|string\\b|ansistring\\b|widestring\\b|unicodestring\\b|shortstring\\b|pointer\\b|variant\\b|tobject\\b|tclass\\b",
-      "textColor": "0x569cd6"
+      "textColor": "0x4ec9b0"
     },
     "Boolean": {
       "type": "SimpleToken",
       "startRegex": "true\\b|false\\b",
-      "textColor": "0x088c54"
+      "textColor": "0x569cd6"
     },
     "CharLiteral": {
       "type": "SimpleToken",
@@ -104,7 +104,7 @@
     "Operator": {
       "type": "SimpleToken",
       "startRegex": ":=|==|<=|>=|<>|\\+=|\\-=|\\*=|\\/=|[@\\^.\\,:;\\+\\-\\*\\/=<>]",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "Parenthesis": {
       "type": "StartStop",

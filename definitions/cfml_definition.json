@@ -66,7 +66,7 @@
       "startRegex": "<cfscript(?=[\\>\\s])",
       "endRegex": "\\/?>",
       "multiLine": true,
-      "textColor": "0xabd90c",
+      "textColor": "0x569cd6",
       "nestedTokens": [
         "Expression"
       ]
@@ -74,7 +74,7 @@
     "ScriptEndTag": {
       "type": "SimpleToken",
       "startRegex": "<\\/cfscript>",
-      "textColor": "0xabd90c"
+      "textColor": "0x569cd6"
     },
     "OutputTagPair": {
       "type": "GroupAllChildrenInSameOrder",
@@ -91,7 +91,7 @@
       "startRegex": "<cfoutput(?=[\\>\\s])",
       "endRegex": "\\/?>",
       "multiLine": true,
-      "textColor": "0xabd90c",
+      "textColor": "0x569cd6",
       "nestedTokens": [
         "Expression"
       ]
@@ -99,7 +99,7 @@
     "OutputEndTag": {
       "type": "SimpleToken",
       "startRegex": "<\\/cfoutput>",
-      "textColor": "0xabd90c"
+      "textColor": "0x569cd6"
     },
     "QueryTagPair": {
       "type": "GroupAllChildrenInSameOrder",
@@ -115,7 +115,7 @@
       "startRegex": "<cfquery(?=[\\>\\s])",
       "endRegex": "\\/?>",
       "multiLine": true,
-      "textColor": "0xabd90c",
+      "textColor": "0x569cd6",
       "nestedTokens": [
         "Expression"
       ]
@@ -123,7 +123,7 @@
     "QueryEndTag": {
       "type": "SimpleToken",
       "startRegex": "<\\/cfquery>",
-      "textColor": "0xabd90c"
+      "textColor": "0x569cd6"
     },
     "LoopTagPair": {
       "type": "GroupAllChildrenInSameOrder",
@@ -139,7 +139,7 @@
       "startRegex": "<cfloop(?=[\\>\\s])",
       "endRegex": "\\/?>",
       "multiLine": true,
-      "textColor": "0xabd90c",
+      "textColor": "0x569cd6",
       "nestedTokens": [
         "Expression"
       ]
@@ -147,14 +147,14 @@
     "LoopEndTag": {
       "type": "SimpleToken",
       "startRegex": "<\\/cfloop>",
-      "textColor": "0xabd90c"
+      "textColor": "0x569cd6"
     },
     "StartTag": {
       "type": "StartStop",
       "startRegex": "<cf[a-z0-9_]+",
       "endRegex": "\\/?>",
       "multiLine": true,
-      "textColor": "0xabd90c",
+      "textColor": "0x569cd6",
       "nestedTokens": [
         "Expression"
       ]
@@ -164,7 +164,7 @@
       "startRegex": "<\\/cf(?!output)(?!script)(?!query)(?!loop)[a-z0-9_]+",
       "endRegex": "\\/?>",
       "multiLine": true,
-      "textColor": "0xabd90c",
+      "textColor": "0x569cd6",
       "nestedTokens": [
         "Expression"
       ]
@@ -177,7 +177,8 @@
       "otherTextInside": true,
       "nestedTokens": [
         "Comment"
-      ]
+      ],
+      "textColor": "0x6a9955"
     },
     "SingleString": {
       "type": "StartStop",
@@ -210,12 +211,12 @@
     "SingleChar": {
       "type": "SimpleToken",
       "startRegex": "''",
-      "textColor": "0xd7ba7d"
+      "textColor": "0xce9178"
     },
     "DoubleChar": {
       "type": "SimpleToken",
       "startRegex": "\"\"",
-      "textColor": "0xd7ba7d"
+      "textColor": "0xce9178"
     },
     "SharpChar": {
       "type": "SimpleToken",
@@ -354,15 +355,18 @@
       "startRegex": "\\/\\*",
       "endRegex": "\\*\\/",
       "otherTextInside": true,
-      "multiLine": true
+      "multiLine": true,
+      "textColor": "0x6a9955"
     },
     "ScriptLineComment": {
       "type": "SimpleToken",
-      "startRegex": "\\/\\/.*[^\\r\\n]"
+      "startRegex": "\\/\\/.*[^\\r\\n]",
+      "textColor": "0x6a9955"
     },
     "ExpressionEnd": {
       "type": "SimpleToken",
-      "startRegex": ";"
+      "startRegex": ";",
+      "textColor": "0xd4d4d4"
     },
     "Number": {
       "type": "SimpleToken",
@@ -371,20 +375,23 @@
     },
     "Boolean": {
       "type": "SimpleToken",
-      "startRegex": "true\\b|false\\b|yes\\b|no\\b"
+      "startRegex": "true\\b|false\\b|yes\\b|no\\b",
+      "textColor": "0x569cd6"
     },
     "ObjectMember": {
       "type": "SimpleToken",
-      "startRegex": "\\."
+      "startRegex": "\\.",
+      "textColor": "0xd4d4d4"
     },
     "Function": {
       "type": "SimpleToken",
       "startRegex": "([a-z_]+[a-z0-9_]*)[\\s]*\\(",
-      "textColor": "0xc5f566"
+      "textColor": "0xdcdcaa"
     },
     "Separator": {
       "type": "SimpleToken",
-      "startRegex": ","
+      "startRegex": ",",
+      "textColor": "0xd4d4d4"
     },
     "Variable": {
       "type": "SimpleToken",
@@ -394,67 +401,67 @@
     "AssignOperator": {
       "type": "SimpleToken",
       "startRegex": "\\+=|\\-=|\\*=|\\/=|%=|&=|=",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "TernaryOperator": {
       "type": "SimpleToken",
       "startRegex": "\\?:|\\?|\\:",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "LogicalImpOperator": {
       "type": "SimpleToken",
       "startRegex": "imp\\b",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "LogicalEqvOperator": {
       "type": "SimpleToken",
       "startRegex": "eqv\\b",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "LogicalXorOperator": {
       "type": "SimpleToken",
       "startRegex": "xor\\b",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "LogicalOrOperator": {
       "type": "SimpleToken",
       "startRegex": "\\|\\||or\\b",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "LogicalAndOperator": {
       "type": "SimpleToken",
       "startRegex": "\\&\\&|and\\b",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "LogicalNotOperator": {
       "type": "SimpleToken",
       "startRegex": "not\\b|!",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "CompareOperator": {
       "type": "SimpleToken",
       "startRegex": "greater\\s+than\\s+or\\s+equal\\s+to\\b|less\\s+than\\s+or\\s+equal\\s+to\\b|does\\s+not\\s+contain\\b|is\\s+not\\b|contains\\b|less\\s+than\\b|greater\\s+than\\b|not\\s+equal\\b|equal\\b|neq\\b|lte\\b|gte\\b|eq\\b|==|>=|<=|!=|ge\\b|lt\\b|gt\\b|le\\b|\\bis\\b|>|<",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "ConcatOperator": {
       "type": "SimpleToken",
       "startRegex": "\\&",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "AddOperator": {
       "type": "SimpleToken",
       "startRegex": "\\+|-",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "MulOperator": {
       "type": "SimpleToken",
       "startRegex": "\\*|\\/|\\\\|mod\\b|\\%",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "PowerOperator": {
       "type": "SimpleToken",
       "startRegex": "\\^",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "Operator": {
       "type": "Group",
@@ -473,7 +480,8 @@
         "AddOperator",
         "MulOperator",
         "PowerOperator"
-      ]
+      ],
+      "textColor": "0xd4d4d4"
     },
     "CodeBlock": {
       "type": "StartStop",

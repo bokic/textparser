@@ -116,6 +116,7 @@ int main(void) {
     EXPECT_TRUE(found.contains("BlockComment"));
     EXPECT_TRUE(found.contains("Preprocessor"));
     EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("DataType"));
     EXPECT_TRUE(found.contains("Variable"));
     EXPECT_TRUE(found.contains("CodeBlock"));
     EXPECT_TRUE(found.contains("Operator"));
@@ -263,6 +264,65 @@ TEST(parse_C, type_cast_vs_call_disambiguation) {
         }
         EXPECT_FALSE(found_cast);
     }
+}
+
+TEST(parse_C, token_colors_distinct) {
+    // Verify that key token types have distinct and modern colors defined
+    auto find_token = [](const char *name) -> const textparser_token * {
+        for (size_t i = 0; c_definition.tokens[i].name != nullptr; ++i) {
+            if (strcmp(c_definition.tokens[i].name, name) == 0) {
+                return &c_definition.tokens[i];
+            }
+        }
+        return nullptr;
+    };
+
+    const textparser_token *tok_comment = find_token("LineComment");
+    const textparser_token *tok_preproc = find_token("Preprocessor");
+    const textparser_token *tok_keyword = find_token("Keyword");
+    const textparser_token *tok_type = find_token("DataType");
+    const textparser_token *tok_var = find_token("Variable");
+    const textparser_token *tok_op = find_token("Operator");
+    const textparser_token *tok_str = find_token("DoubleString");
+    const textparser_token *tok_num = find_token("Number");
+    const textparser_token *tok_bool = find_token("Boolean");
+    const textparser_token *tok_cast = find_token("TypeCast");
+
+    ASSERT_NE(tok_comment, nullptr);
+    ASSERT_NE(tok_preproc, nullptr);
+    ASSERT_NE(tok_keyword, nullptr);
+    ASSERT_NE(tok_type, nullptr);
+    ASSERT_NE(tok_var, nullptr);
+    ASSERT_NE(tok_op, nullptr);
+    ASSERT_NE(tok_str, nullptr);
+    ASSERT_NE(tok_num, nullptr);
+    ASSERT_NE(tok_bool, nullptr);
+    ASSERT_NE(tok_cast, nullptr);
+
+    EXPECT_EQ(tok_comment->text_color, 0x6a9955);
+    EXPECT_EQ(tok_preproc->text_color, 0xd7ba7d);
+    EXPECT_EQ(tok_keyword->text_color, 0xc586c0);
+    EXPECT_EQ(tok_type->text_color, 0x4ec9b0);
+    EXPECT_EQ(tok_var->text_color, 0x9cdcfe);
+    EXPECT_EQ(tok_op->text_color, 0xd4d4d4);
+    EXPECT_EQ(tok_str->text_color, 0xce9178);
+    EXPECT_EQ(tok_num->text_color, 0xb5cea8);
+    EXPECT_EQ(tok_bool->text_color, 0x569cd6);
+    EXPECT_EQ(tok_cast->text_color, 0x4ec9b0);
+
+    // Verify all key token types have different colors
+    std::set<uint32_t> colors = {
+        tok_comment->text_color,
+        tok_preproc->text_color,
+        tok_keyword->text_color,
+        tok_type->text_color,
+        tok_var->text_color,
+        tok_op->text_color,
+        tok_str->text_color,
+        tok_num->text_color,
+        tok_bool->text_color
+    };
+    EXPECT_EQ(colors.size(), 9u);
 }
 
 

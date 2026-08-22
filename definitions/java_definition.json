@@ -26,14 +26,16 @@
     "LineComment": {
       "type": "SimpleToken",
       "startRegex": "\\/\\/[^\\r\\n]*",
-      "otherTextInside": true
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
     },
     "BlockComment": {
       "type": "StartStop",
       "startRegex": "\\/\\*",
       "endRegex": "\\*\\/",
       "multiLine": true,
-      "otherTextInside": true
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
     },
     "Annotation": {
       "type": "SimpleToken",
@@ -74,7 +76,7 @@
     "Operator": {
       "type": "SimpleToken",
       "startRegex": "\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2,3}=|\\+\\+|\\-\\-|&&|\\|\\||<=|>=|==|!=|->|::|[=<>!&|^~+\\-*/%\\?:;.,]",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "SingleString": {
       "type": "StartStop",
@@ -110,7 +112,7 @@
     "Boolean": {
       "type": "SimpleToken",
       "startRegex": "true\\b|false\\b",
-      "textColor": "0x088c54"
+      "textColor": "0x569cd6"
     },
     "Parenthesis": {
       "type": "StartStop",

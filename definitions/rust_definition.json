@@ -45,7 +45,7 @@
       "endRegex": "\\]",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0xd7ba7d",
+      "textColor": "0x9cdcfe",
       "nestedTokens": [
         "LineComment",
         "BlockComment",
@@ -71,7 +71,7 @@
     "Boolean": {
       "type": "SimpleToken",
       "startRegex": "true\\b|false\\b|Some\\b|None\\b|Ok\\b|Err\\b",
-      "textColor": "0x088c54"
+      "textColor": "0x569cd6"
     },
     "CharLiteral": {
       "type": "SimpleToken",
@@ -116,7 +116,7 @@
     "Operator": {
       "type": "SimpleToken",
       "startRegex": "::|:=|:|===|==|!=|<=|>=|&&|\\|\\||\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|->|<<|>>|=>|[=<>!&|^~+\\-*/%\\?:;.,]",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "DoubleString": {
       "type": "StartStop",

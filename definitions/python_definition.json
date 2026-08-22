@@ -84,7 +84,7 @@
       "endRegex": "\\}",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0x35b2dd",
+      "textColor": "0x569cd6",
       "nestedTokens": [
         "Keyword",
         "Boolean",
@@ -109,7 +109,7 @@
     "Boolean": {
       "type": "SimpleToken",
       "startRegex": "True\\b|False\\b",
-      "textColor": "0x088c54"
+      "textColor": "0x569cd6"
     },
     "Number": {
       "type": "SimpleToken",
@@ -124,7 +124,7 @@
     "Operator": {
       "type": "SimpleToken",
       "startRegex": ":=|\\.\\.\\.|->|//|\\*\\*|<<|>>|==|!=|<=|>=|\\+=|\\-=|\\*=|\\/=|//=|%=|@=|&=|\\|=|\\^=|<<=|>>=|\\*\\*=|[=<>!&|^~+\\-*/%@.,;:]",
-      "textColor": "0x35b2dd"
+      "textColor": "0xd4d4d4"
     },
     "Parenthesis": {
       "type": "StartStop",
