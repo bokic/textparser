@@ -7,8 +7,8 @@ It has a flexible architecture making it easy to add new languages.
 
 ## Features
 
-- **High Performance**: Written in optimized C for fast parsing of large codebases.
-- **Small Footprint**: The library is designed to be small and easy to integrate into other projects.
+- **High Performance**: Written in optimized C for fast parsing(upto 100MB/s) of large codebases.
+- **Small Footprint**: The library is designed to be small(<100KB for both parser and language definition) and easy to integrate into other projects.
 - **Zero Dependencies for Built-in Languages**: The library has zero external library dependencies (`libtextparser.so` links strictly against standard `libc`). All 29 built-in language grammars are lexed via 100% native C matchers. External PCRE2 libraries are only loaded dynamically at runtime on demand via `os_dlopen` if custom un-bypassed JSON grammar definitions are loaded.
 - **Concrete Syntax Tree (CST) & Gapless Trivia Retention**: Preserves 100% byte-for-byte source fidelity including delimiters, punctuation, whitespace, and unparsed text as explicit `UNPROCESSED` token nodes (`TEXTPARSER_TOKEN_ID_UNPROCESSED` = -2) such that $\sum \text{token.len} == \text{document\_length}$.
 - **Relative Node Length & Dynamic Offsets**: Tokens store only relative node length (`len`); absolute document offsets are computed dynamically on demand via `textparser_get_token_position(token)`. This eliminates $O(N)$ position-invalidation cascades after edit locations during incremental parsing.
