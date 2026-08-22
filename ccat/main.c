@@ -17,6 +17,7 @@
 #include <javascript_definition.json.h>
 #include <json_definition.json.h>
 #include <matlab_definition.json.h>
+#include <md_definition.json.h>
 #include <pascal_definition.json.h>
 #include <perl_definition.json.h>
 #include <php_definition.json.h>
@@ -60,6 +61,7 @@ const textparser_language_definition *definitions[] = {
     &javascript_definition,
     &json_definition,
     &matlab_definition,
+    &md_definition,
     &pascal_definition,
     &perl_definition,
     &php_definition,

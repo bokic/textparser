@@ -1331,6 +1331,74 @@ EXPORT_TEXTPARSER bool _gen_scratch_CodeBlock_start(enum textparser_encoding enc
 /* _gen_scratch_CodeBlock_end_XH0= */
 EXPORT_TEXTPARSER bool _gen_scratch_CodeBlock_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 
+/* MD Grammar Matchers */
+/* _gen_md_HtmlComment_start_PCEtLQ== */
+EXPORT_TEXTPARSER bool _gen_md_HtmlComment_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_HtmlComment_end_LS0+ */
+EXPORT_TEXTPARSER bool _gen_md_HtmlComment_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_FencedCodeBlock_start_YGBgfH5+fg== */
+EXPORT_TEXTPARSER bool _gen_md_FencedCodeBlock_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_FencedCodeBlock_end_YGBgfH5+fg== */
+EXPORT_TEXTPARSER bool _gen_md_FencedCodeBlock_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Heading_start_I3sxLDZ9WyBcdF0rW15cclxuXSo= */
+EXPORT_TEXTPARSER bool _gen_md_Heading_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_HorizontalRule_start_LS0tWyBcdF0qfFwqXCpcKlsgXHRdKnxfX19bIFx0XSo= */
+EXPORT_TEXTPARSER bool _gen_md_HorizontalRule_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Blockquote_start_PlsgXHRdKlteXHJcbl0q */
+EXPORT_TEXTPARSER bool _gen_md_Blockquote_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_HtmlTag_start_PFwvP1thLXpBLVowLTk6LV0r */
+EXPORT_TEXTPARSER bool _gen_md_HtmlTag_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_HtmlTag_end_XC8/Pg== */
+EXPORT_TEXTPARSER bool _gen_md_HtmlTag_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_DoubleString_start_Ig== */
+EXPORT_TEXTPARSER bool _gen_md_DoubleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_DoubleString_end_Ig== */
+EXPORT_TEXTPARSER bool _gen_md_DoubleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_SingleString_start_Jw== */
+EXPORT_TEXTPARSER bool _gen_md_SingleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_SingleString_end_Jw== */
+EXPORT_TEXTPARSER bool _gen_md_SingleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Equal_start_PQ== */
+EXPORT_TEXTPARSER bool _gen_md_Equal_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_AttributeName_start_W2EtekEtWjAtOTotXSs= */
+EXPORT_TEXTPARSER bool _gen_md_AttributeName_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_TaskCheckbox_start_XFtbIHhYXVxd */
+EXPORT_TEXTPARSER bool _gen_md_TaskCheckbox_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Footnote_start_XFtcXlthLXpBLVowLTlfLV0rXF0= */
+EXPORT_TEXTPARSER bool _gen_md_Footnote_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Image_start_IVxb */
+EXPORT_TEXTPARSER bool _gen_md_Image_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Image_end_XF0oPzpcKFteKV0qXCl8XFtbXlxdXSpcXSk/ */
+EXPORT_TEXTPARSER bool _gen_md_Image_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Link_start_XFs= */
+EXPORT_TEXTPARSER bool _gen_md_Link_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Link_end_XF0oPzpcKFteKV0qXCl8XFtbXlxdXSpcXSk/ */
+EXPORT_TEXTPARSER bool _gen_md_Link_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_InlineCode_start_YA== */
+EXPORT_TEXTPARSER bool _gen_md_InlineCode_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_InlineCode_end_YA== */
+EXPORT_TEXTPARSER bool _gen_md_InlineCode_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Bold_start_XCpcKnxfXw== */
+EXPORT_TEXTPARSER bool _gen_md_Bold_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Bold_end_XCpcKnxfXw== */
+EXPORT_TEXTPARSER bool _gen_md_Bold_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Italic_start_XCp8Xw== */
+EXPORT_TEXTPARSER bool _gen_md_Italic_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Italic_end_XCp8Xw== */
+EXPORT_TEXTPARSER bool _gen_md_Italic_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Strikethrough_start_fn4= */
+EXPORT_TEXTPARSER bool _gen_md_Strikethrough_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_Strikethrough_end_fn4= */
+EXPORT_TEXTPARSER bool _gen_md_Strikethrough_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_UnorderedList_start_Wy0qK11bIFx0XSs= */
+EXPORT_TEXTPARSER bool _gen_md_UnorderedList_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_OrderedList_start_WzAtOV0rWy4pXVsgXHRdKw== */
+EXPORT_TEXTPARSER bool _gen_md_OrderedList_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_TablePipe_start_XHw= */
+EXPORT_TEXTPARSER bool _gen_md_TablePipe_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_md_BackslashEscape_start_XFxbXFxgKl97fVxbXF0oKSMrXC0uIXx+PiInXQ== */
+EXPORT_TEXTPARSER bool _gen_md_BackslashEscape_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+
 #ifdef __cplusplus
 }
 #endif

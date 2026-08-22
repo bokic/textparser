@@ -1,0 +1,204 @@
+{
+  "name": "md",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "md",
+    "markdown"
+  ],
+  "defaultTextEncoding": "latin1",
+  "startTokens": [
+    "HtmlComment",
+    "FencedCodeBlock",
+    "Heading",
+    "HorizontalRule",
+    "Blockquote",
+    "HtmlTag",
+    "UnorderedList",
+    "OrderedList",
+    "TaskCheckbox",
+    "Footnote",
+    "Image",
+    "Link",
+    "InlineCode",
+    "Bold",
+    "Italic",
+    "Strikethrough",
+    "TablePipe",
+    "BackslashEscape"
+  ],
+  "otherTextInside": true,
+  "tokens": {
+    "HtmlComment": {
+      "type": "StartStop",
+      "startRegex": "<!--",
+      "endRegex": "-->",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "FencedCodeBlock": {
+      "type": "StartStop",
+      "startRegex": "```|~~~",
+      "endRegex": "```|~~~",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "Heading": {
+      "type": "SimpleToken",
+      "startRegex": "#{1,6}[ \\t]+[^\\r\\n]*",
+      "textColor": "0x569cd6"
+    },
+    "HorizontalRule": {
+      "type": "SimpleToken",
+      "startRegex": "---[ \\t]*|\\*\\*\\*[ \\t]*|___[ \\t]*",
+      "textColor": "0x808080"
+    },
+    "Blockquote": {
+      "type": "SimpleToken",
+      "startRegex": ">[ \\t]*[^\\r\\n]*",
+      "otherTextInside": true,
+      "textColor": "0x6a9955"
+    },
+    "HtmlTag": {
+      "type": "StartStop",
+      "startRegex": "<\\/?[a-zA-Z0-9:-]+",
+      "endRegex": "\\/?>",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x569cd6",
+      "nestedTokens": [
+        "DoubleString",
+        "SingleString",
+        "Equal",
+        "AttributeName"
+      ]
+    },
+    "DoubleString": {
+      "type": "StartStop",
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "SingleString": {
+      "type": "StartStop",
+      "startRegex": "'",
+      "endRegex": "'",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "Equal": {
+      "type": "SimpleToken",
+      "startRegex": "=",
+      "textColor": "0xd4d4d4"
+    },
+    "AttributeName": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z0-9:-]+",
+      "textColor": "0x9cdcfe"
+    },
+    "TaskCheckbox": {
+      "type": "SimpleToken",
+      "startRegex": "\\[[ xX]\\]",
+      "textColor": "0x4ec9b0"
+    },
+    "Footnote": {
+      "type": "SimpleToken",
+      "startRegex": "\\[\\^[a-zA-Z0-9_-]+\\]",
+      "textColor": "0xd7ba7d"
+    },
+    "Image": {
+      "type": "StartStop",
+      "startRegex": "!\\[",
+      "endRegex": "\\](?:\\([^)]*\\)|\\[[^\\]]*\\])?",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x4ec9b0",
+      "nestedTokens": [
+        "InlineCode",
+        "Bold",
+        "Italic"
+      ]
+    },
+    "Link": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\](?:\\([^)]*\\)|\\[[^\\]]*\\])?",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x9cdcfe",
+      "nestedTokens": [
+        "InlineCode",
+        "Bold",
+        "Italic",
+        "Strikethrough"
+      ]
+    },
+    "InlineCode": {
+      "type": "StartStop",
+      "startRegex": "`",
+      "endRegex": "`",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178"
+    },
+    "Bold": {
+      "type": "StartStop",
+      "startRegex": "\\*\\*|__",
+      "endRegex": "\\*\\*|__",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "Italic",
+        "InlineCode",
+        "Strikethrough"
+      ]
+    },
+    "Italic": {
+      "type": "StartStop",
+      "startRegex": "\\*|_",
+      "endRegex": "\\*|_",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xc586c0",
+      "nestedTokens": [
+        "Bold",
+        "InlineCode",
+        "Strikethrough"
+      ]
+    },
+    "Strikethrough": {
+      "type": "StartStop",
+      "startRegex": "~~",
+      "endRegex": "~~",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x808080"
+    },
+    "UnorderedList": {
+      "type": "SimpleToken",
+      "startRegex": "[-*+][ \\t]+",
+      "textColor": "0xd7ba7d"
+    },
+    "OrderedList": {
+      "type": "SimpleToken",
+      "startRegex": "[0-9]+[.)][ \\t]+",
+      "textColor": "0xb5cea8"
+    },
+    "TablePipe": {
+      "type": "SimpleToken",
+      "startRegex": "\\|",
+      "textColor": "0xd4d4d4"
+    },
+    "BackslashEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\[\\\\`*_{}\\[\\]()#+\\-.!|~>\"']",
+      "textColor": "0xd7ba7d"
+    }
+  }
+}

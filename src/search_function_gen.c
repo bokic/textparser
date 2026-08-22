@@ -10671,3 +10671,713 @@ bool _gen_asm_CodeBlock_end(enum textparser_encoding encoding, const char *start
 {
     return _gen_c_CodeBlock_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
+
+/* ========================================================================= */
+/* === MD (Markdown) Matchers Implementation ===                             */
+/* ========================================================================= */
+
+// HtmlComment: <!-- to -->
+bool _gen_md_HtmlComment_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_html_Comment_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_md_HtmlComment_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_html_Comment_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// FencedCodeBlock: ```|~~~
+static size_t md_fenced_code_block_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 3 > max_len) return 0;
+    uint32_t c0 = get_char_at(encoding, start, pos);
+    uint32_t c1 = get_char_at(encoding, start, pos + 1);
+    uint32_t c2 = get_char_at(encoding, start, pos + 2);
+    if ((c0 == '`' && c1 == '`' && c2 == '`') || (c0 == '~' && c1 == '~' && c2 == '~')) {
+        return 3;
+    }
+    return 0;
+}
+
+bool _gen_md_FencedCodeBlock_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_fenced_code_block_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 2 < max_len; pos++) {
+        size_t m = md_fenced_code_block_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_md_FencedCodeBlock_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_md_FencedCodeBlock_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// Heading: #{1,6}[ \t]+[^\r\n]*
+static size_t md_heading_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos >= max_len) return 0;
+    size_t i = pos;
+    size_t hashes = 0;
+    while (i < max_len && get_char_at(encoding, start, i) == '#' && hashes < 6) {
+        hashes++;
+        i++;
+    }
+    if (hashes == 0) return 0;
+    size_t spaces = 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (c == ' ' || c == '\t') {
+            spaces++;
+            i++;
+        } else {
+            break;
+        }
+    }
+    if (spaces == 0) return 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (c == '\r' || c == '\n') break;
+        i++;
+    }
+    return i - pos;
+}
+
+bool _gen_md_Heading_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_heading_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = md_heading_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// HorizontalRule: ---[ \t]*|\*\*\*[ \t]*|___[ \t]*
+static size_t md_hr_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 3 > max_len) return 0;
+    uint32_t c0 = get_char_at(encoding, start, pos);
+    uint32_t c1 = get_char_at(encoding, start, pos + 1);
+    uint32_t c2 = get_char_at(encoding, start, pos + 2);
+    if (!((c0 == '-' && c1 == '-' && c2 == '-') ||
+          (c0 == '*' && c1 == '*' && c2 == '*') ||
+          (c0 == '_' && c1 == '_' && c2 == '_'))) {
+        return 0;
+    }
+    size_t i = pos + 3;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (c == ' ' || c == '\t') {
+            i++;
+        } else {
+            break;
+        }
+    }
+    return i - pos;
+}
+
+bool _gen_md_HorizontalRule_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_hr_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 2 < max_len; pos++) {
+        size_t m = md_hr_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Blockquote: >[ \t]*[^\r\n]*
+static size_t md_blockquote_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos >= max_len || get_char_at(encoding, start, pos) != '>') return 0;
+    size_t i = pos + 1;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (c == '\r' || c == '\n') break;
+        i++;
+    }
+    return i - pos;
+}
+
+bool _gen_md_Blockquote_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_blockquote_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = md_blockquote_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// HtmlTag: </?[a-zA-Z0-9:-]+ end=\/?>
+static size_t md_html_tag_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 1 >= max_len || get_char_at(encoding, start, pos) != '<') return 0;
+    size_t i = pos + 1;
+    if (i < max_len && get_char_at(encoding, start, i) == '/') i++;
+    size_t tag_chars = 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (is_alnum_codepoint(c) || c == ':' || c == '-') {
+            i++;
+            tag_chars++;
+        } else break;
+    }
+    if (tag_chars == 0) return 0;
+    return i - pos;
+}
+
+bool _gen_md_HtmlTag_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_html_tag_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = md_html_tag_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_md_HtmlTag_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_html_Tag_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// HtmlTag nested: DoubleString, SingleString, Equal, AttributeName
+bool _gen_md_DoubleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_DoubleString_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_md_DoubleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_DoubleString_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_md_SingleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_SingleString_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_md_SingleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_SingleString_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_md_Equal_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_html_Equal_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_md_AttributeName_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_html_AttributeName_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// TaskCheckbox: \[[ xX]\]
+static size_t md_task_checkbox_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 3 > max_len) return 0;
+    if (get_char_at(encoding, start, pos) != '[') return 0;
+    uint32_t c1 = get_char_at(encoding, start, pos + 1);
+    if (c1 != ' ' && c1 != 'x' && c1 != 'X') return 0;
+    if (get_char_at(encoding, start, pos + 2) != ']') return 0;
+    return 3;
+}
+
+bool _gen_md_TaskCheckbox_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_task_checkbox_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 2 < max_len; pos++) {
+        size_t m = md_task_checkbox_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Footnote: \[\^[a-zA-Z0-9_-]+\]
+static size_t md_footnote_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 3 > max_len) return 0;
+    if (get_char_at(encoding, start, pos) != '[' || get_char_at(encoding, start, pos + 1) != '^') return 0;
+    size_t i = pos + 2;
+    size_t fn_chars = 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (is_alnum_codepoint(c) || c == '_' || c == '-') {
+            i++;
+            fn_chars++;
+        } else break;
+    }
+    if (fn_chars == 0) return 0;
+    if (i < max_len && get_char_at(encoding, start, i) == ']') {
+        return (i + 1) - pos;
+    }
+    return 0;
+}
+
+bool _gen_md_Footnote_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_footnote_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 2 < max_len; pos++) {
+        size_t m = md_footnote_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Image: start=!\[ end=\](?:\([^)]*\)|\[[^\]]*\])?
+bool _gen_md_Image_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 2 && get_char_at(encoding, start, 0) == '!' && get_char_at(encoding, start, 1) == '[') {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 1 < max_len; pos++) {
+        if (get_char_at(encoding, start, pos) == '!' && get_char_at(encoding, start, pos + 1) == '[') {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Link/Image end: \](?:\([^)]*\)|\[[^\]]*\])?
+static size_t md_link_end_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos >= max_len || get_char_at(encoding, start, pos) != ']') return 0;
+    size_t i = pos + 1;
+    if (i < max_len && get_char_at(encoding, start, i) == '(') {
+        i++;
+        while (i < max_len) {
+            uint32_t c = get_char_at(encoding, start, i);
+            if (c == ')') {
+                return (i + 1) - pos;
+            }
+            if (c == '\r' || c == '\n') break;
+            i++;
+        }
+    } else if (i < max_len && get_char_at(encoding, start, i) == '[') {
+        i++;
+        while (i < max_len) {
+            uint32_t c = get_char_at(encoding, start, i);
+            if (c == ']') {
+                return (i + 1) - pos;
+            }
+            if (c == '\r' || c == '\n') break;
+            i++;
+        }
+    }
+    return 1;
+}
+
+bool _gen_md_Image_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_link_end_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = md_link_end_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Link: start=\[ end=\](?:\([^)]*\)|\[[^\]]*\])?
+bool _gen_md_Link_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_ArrayIndex_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_md_Link_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_md_Image_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// InlineCode: ` to `
+bool _gen_md_InlineCode_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 1 && get_char_at(encoding, start, 0) == '`') {
+            if (offset) *offset = 0;
+            if (length) *length = 1;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        if (get_char_at(encoding, start, pos) == '`') {
+            if (offset) *offset = pos;
+            if (length) *length = 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_md_InlineCode_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_md_InlineCode_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// Bold: \*\*|__
+static size_t md_bold_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 2 > max_len) return 0;
+    uint32_t c0 = get_char_at(encoding, start, pos);
+    uint32_t c1 = get_char_at(encoding, start, pos + 1);
+    if ((c0 == '*' && c1 == '*') || (c0 == '_' && c1 == '_')) {
+        return 2;
+    }
+    return 0;
+}
+
+bool _gen_md_Bold_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_bold_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 1 < max_len; pos++) {
+        size_t m = md_bold_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_md_Bold_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_md_Bold_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// Italic: \*|_
+bool _gen_md_Italic_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 1) {
+            uint32_t c = get_char_at(encoding, start, 0);
+            if (c == '*' || c == '_') {
+                if (offset) *offset = 0;
+                if (length) *length = 1;
+                return true;
+            }
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        uint32_t c = get_char_at(encoding, start, pos);
+        if (c == '*' || c == '_') {
+            if (offset) *offset = pos;
+            if (length) *length = 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_md_Italic_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_md_Italic_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// Strikethrough: ~~
+bool _gen_md_Strikethrough_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 2 && get_char_at(encoding, start, 0) == '~' && get_char_at(encoding, start, 1) == '~') {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 1 < max_len; pos++) {
+        if (get_char_at(encoding, start, pos) == '~' && get_char_at(encoding, start, pos + 1) == '~') {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_md_Strikethrough_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_md_Strikethrough_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// UnorderedList: [-*+][ \t]+
+static size_t md_unordered_list_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 1 >= max_len) return 0;
+    uint32_t c0 = get_char_at(encoding, start, pos);
+    if (c0 != '-' && c0 != '*' && c0 != '+') return 0;
+    size_t i = pos + 1;
+    size_t spaces = 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (c == ' ' || c == '\t') {
+            spaces++;
+            i++;
+        } else break;
+    }
+    if (spaces == 0) return 0;
+    return i - pos;
+}
+
+bool _gen_md_UnorderedList_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_unordered_list_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = md_unordered_list_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// OrderedList: [0-9]+[.)][ \t]+
+static size_t md_ordered_list_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos >= max_len) return 0;
+    size_t i = pos;
+    size_t digits = 0;
+    while (i < max_len && is_digit_codepoint(get_char_at(encoding, start, i))) {
+        digits++;
+        i++;
+    }
+    if (digits == 0 || i >= max_len) return 0;
+    uint32_t sep = get_char_at(encoding, start, i);
+    if (sep != '.' && sep != ')') return 0;
+    i++;
+    size_t spaces = 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (c == ' ' || c == '\t') {
+            spaces++;
+            i++;
+        } else break;
+    }
+    if (spaces == 0) return 0;
+    return i - pos;
+}
+
+bool _gen_md_OrderedList_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_ordered_list_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = md_ordered_list_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// TablePipe: \|
+bool _gen_md_TablePipe_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 1 && get_char_at(encoding, start, 0) == '|') {
+            if (offset) *offset = 0;
+            if (length) *length = 1;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        if (get_char_at(encoding, start, pos) == '|') {
+            if (offset) *offset = pos;
+            if (length) *length = 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+// BackslashEscape: \\[\`*_{}\[\]()#+\-.!|~>"']
+static size_t md_escape_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos + 2 > max_len) return 0;
+    if (get_char_at(encoding, start, pos) != '\\') return 0;
+    uint32_t c2 = get_char_at(encoding, start, pos + 1);
+    if (c2 == '\\' || c2 == '`' || c2 == '*' || c2 == '_' ||
+        c2 == '{'  || c2 == '}' || c2 == '[' || c2 == ']' ||
+        c2 == '('  || c2 == ')' || c2 == '#' || c2 == '+' ||
+        c2 == '-'  || c2 == '.' || c2 == '!' || c2 == '|' ||
+        c2 == '~'  || c2 == '>' || c2 == '"' || c2 == '\'') {
+        return 2;
+    }
+    return 0;
+}
+
+bool _gen_md_BackslashEscape_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = md_escape_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 1 < max_len; pos++) {
+        size_t m = md_escape_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
