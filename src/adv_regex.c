@@ -71,6 +71,21 @@ static bool load_pcre2_dyn(pcre2_width_t width_idx)
 
     api->lib_handle = os_dlopen(names[width_idx]);
 
+#if defined(__APPLE__)
+    if (!api->lib_handle) {
+        static const char *const macos_search_paths[] = {
+            "/opt/homebrew/lib",
+            "/usr/local/lib",
+            NULL
+        };
+        for (int p = 0; macos_search_paths[p] && !api->lib_handle; p++) {
+            char full[512];
+            snprintf(full, sizeof(full), "%s/%s", macos_search_paths[p], names[width_idx]);
+            api->lib_handle = os_dlopen(full);
+        }
+    }
+#endif
+
     if (!api->lib_handle) {
         fprintf(stderr, "adv_regex: Failed to dynamically load PCRE2 %s library.\n", sfx);
         api->failed = true;
