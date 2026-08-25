@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <ctype.h>
+#include <time.h>
 
 #ifndef SSIZE_MAX
 #define SSIZE_MAX ((ssize_t)((((size_t)-1) << 1) >> 1))
@@ -145,6 +146,101 @@ static size_t textparser_char_len(const struct textparser_handle *handle, size_t
     return 1;
 }
 
+static size_t textparser_get_end_of_line_units(const struct textparser_handle *handle, size_t pos)
+{
+    size_t total = textparser_get_total_units(handle);
+    size_t cur = pos;
+    while (cur < total) {
+        uint32_t ch = textparser_get_unit_at(handle, cur);
+        if (ch == '\n' || ch == '\r')
+            break;
+        cur++;
+    }
+    return cur - pos;
+}
+
+static size_t textparser_get_search_len(const struct textparser_handle *handle, size_t pos, const textparser_token *token_def)
+{
+    size_t len = textparser_get_total_units(handle) - pos;
+    if (token_def != nullptr && token_def->multi_line == false) {
+        size_t line_len = textparser_get_end_of_line_units(handle, pos);
+        if (line_len < len)
+            len = line_len;
+    }
+    return len;
+}
+
+static bool textparser_validate_utf8(const char *text, size_t len)
+{
+    size_t i = 0;
+    while (i < len) {
+        unsigned char c = (unsigned char)text[i];
+        if (c < 0x80) { i += 1; continue; }
+        size_t extra;
+        uint32_t cp;
+        if ((c & 0xE0) == 0xC0)       { extra = 1; cp = c & 0x1F; }
+        else if ((c & 0xF0) == 0xE0)  { extra = 2; cp = c & 0x0F; }
+        else if ((c & 0xF8) == 0xF0)  { extra = 3; cp = c & 0x07; }
+        else return false;
+        if (i + extra >= len) return false;
+        for (size_t k = 1; k <= extra; k++) {
+            unsigned char cc = (unsigned char)text[i + k];
+            if ((cc & 0xC0) != 0x80) return false;
+            cp = (cp << 6) | (cc & 0x3F);
+        }
+        if ((extra == 1 && cp < 0x80) || (extra == 2 && cp < 0x800) ||
+            (extra == 3 && cp < 0x10000) || cp > 0x10FFFF ||
+            (cp >= 0xD800 && cp <= 0xDFFF))
+            return false;
+        i += extra + 1;
+    }
+    return true;
+}
+
+static bool textparser_validate_utf16(const struct textparser_handle *handle)
+{
+    size_t units = textparser_get_total_units(handle);
+    const uint16_t *u = (const uint16_t *)handle->text_addr;
+    for (size_t i = 0; i < units; i++) {
+        uint16_t w = u[i];
+        if (w >= 0xD800 && w <= 0xDBFF) {
+            if (i + 1 >= units) return false;
+            uint16_t low = u[i + 1];
+            if (!(low >= 0xDC00 && low <= 0xDFFF)) return false;
+            i++;
+        } else if (w >= 0xDC00 && w <= 0xDFFF) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool textparser_validate_utf32(const struct textparser_handle *handle)
+{
+    size_t units = textparser_get_total_units(handle);
+    const uint32_t *u = (const uint32_t *)handle->text_addr;
+    for (size_t i = 0; i < units; i++) {
+        uint32_t c = u[i];
+        if (c > 0x10FFFF || (c >= 0xD800 && c <= 0xDFFF)) return false;
+    }
+    return true;
+}
+
+static bool textparser_validate_text_encoding(const struct textparser_handle *handle)
+{
+    switch (handle->text_format) {
+    case TEXTPARSER_ENCODING_UTF_8:
+        return textparser_validate_utf8(handle->text_addr, handle->text_size);
+    case TEXTPARSER_ENCODING_UTF_16:
+    case TEXTPARSER_ENCODING_UNICODE:
+        return textparser_validate_utf16(handle);
+    case TEXTPARSER_ENCODING_UTF_32:
+        return textparser_validate_utf32(handle);
+    default:
+        return true; // LATIN1: pcre2 runs without the UTF flag
+    }
+}
+
 
 
 
@@ -226,6 +322,57 @@ static inline void textparser_checkpoint_restore(struct textparser_handle *handl
     handle->token_count = cp->token_count;
 }
 
+static bool textparser_search_trace_enabled(void)
+{
+    static int enabled = -1;
+    if (enabled < 0) {
+        const char *env = getenv("TEXTPARSER_TRACE_SEARCH");
+        enabled = (env != nullptr && env[0] != '\0' && env[0] != '0') ? 1 : 0;
+    }
+    return enabled == 1;
+}
+
+typedef struct {
+    const char *name;
+    uint64_t calls;
+    uint64_t total_ns;
+} textparser_trace_stat;
+
+#define TEXTPARSER_TRACE_STATS_MAX 256
+static textparser_trace_stat g_trace_stats[TEXTPARSER_TRACE_STATS_MAX];
+static int g_trace_stats_count = 0;
+
+static void textparser_trace_accumulate(const char *name, uint64_t ns)
+{
+    if (name == nullptr) return;
+    for (int i = 0; i < g_trace_stats_count; i++) {
+        if (strcmp(g_trace_stats[i].name, name) == 0) {
+            g_trace_stats[i].calls++;
+            g_trace_stats[i].total_ns += ns;
+            return;
+        }
+    }
+    if (g_trace_stats_count < TEXTPARSER_TRACE_STATS_MAX) {
+        g_trace_stats[g_trace_stats_count].name = name;
+        g_trace_stats[g_trace_stats_count].calls = 1;
+        g_trace_stats[g_trace_stats_count].total_ns = ns;
+        g_trace_stats_count++;
+    }
+}
+
+static void textparser_trace_print_stats(void)
+{
+    if (!textparser_search_trace_enabled()) return;
+    fprintf(stderr, "=== TEXTPARSER match time by token ===\n");
+    for (int i = 0; i < g_trace_stats_count; i++) {
+        fprintf(stderr, "  %-24s calls=%7llu total=%.2f ms avg=%.1f ns\n",
+                g_trace_stats[i].name,
+                (unsigned long long)g_trace_stats[i].calls,
+                (double)g_trace_stats[i].total_ns / 1e6,
+                (double)g_trace_stats[i].total_ns / (double)g_trace_stats[i].calls);
+    }
+}
+
 static inline bool textparser_match_start_token(
     const struct textparser_handle *handle,
     int token_id,
@@ -236,8 +383,28 @@ static inline bool textparser_match_start_token(
     bool only_at_start)
 {
     const textparser_token *token_def = &handle->language->tokens[token_id];
+    bool ret;
+    uint64_t start_ns = 0;
+    if (textparser_search_trace_enabled()) {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        start_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+    }
     if (token_def->startRegexFunction != NULL) {
-        return token_def->startRegexFunction(
+        ret = token_def->startRegexFunction(
+            handle->text_format,
+            text,
+            len,
+            offset,
+            match_len,
+            !handle->language->case_sensitivity,
+            only_at_start
+        );
+    } else {
+        ret = adv_regex_find_pattern_ctx(
+            handle->regex_ctx,
+            token_def->start_regex,
+            (void **)handle->start_regex + token_id,
             handle->text_format,
             text,
             len,
@@ -247,18 +414,20 @@ static inline bool textparser_match_start_token(
             only_at_start
         );
     }
-    return adv_regex_find_pattern_ctx(
-        handle->regex_ctx,
-        token_def->start_regex,
-        (void **)handle->start_regex + token_id,
-        handle->text_format,
-        text,
-        len,
-        offset,
-        match_len,
-        !handle->language->case_sensitivity,
-        only_at_start
-    );
+    if (textparser_search_trace_enabled()) {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        uint64_t end_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+        textparser_trace_accumulate(token_def->name ? token_def->name : "?", end_ns - start_ns);
+        fprintf(stderr, "TRACE start [%s] pos=%zu win=%zu scope=%s multi=%d => %s\n",
+                token_def->name ? token_def->name : "?",
+                (size_t)(text - handle->text_addr),
+                len,
+                only_at_start ? "0-pos-only" : "to-eof",
+                token_def->multi_line ? 1 : 0,
+                ret ? "MATCH" : "no");
+    }
+    return ret;
 }
 
 static inline bool textparser_match_end_token(
@@ -271,8 +440,28 @@ static inline bool textparser_match_end_token(
     bool only_at_start)
 {
     const textparser_token *token_def = &handle->language->tokens[token_id];
+    bool ret;
+    uint64_t start_ns = 0;
+    if (textparser_search_trace_enabled()) {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        start_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+    }
     if (token_def->endRegexFunction != NULL) {
-        return token_def->endRegexFunction(
+        ret = token_def->endRegexFunction(
+            handle->text_format,
+            text,
+            len,
+            offset,
+            match_len,
+            !handle->language->case_sensitivity,
+            only_at_start
+        );
+    } else {
+        ret = adv_regex_find_pattern_ctx(
+            handle->regex_ctx,
+            token_def->end_regex,
+            (void **)handle->end_regex + token_id,
             handle->text_format,
             text,
             len,
@@ -282,18 +471,20 @@ static inline bool textparser_match_end_token(
             only_at_start
         );
     }
-    return adv_regex_find_pattern_ctx(
-        handle->regex_ctx,
-        token_def->end_regex,
-        (void **)handle->end_regex + token_id,
-        handle->text_format,
-        text,
-        len,
-        offset,
-        match_len,
-        !handle->language->case_sensitivity,
-        only_at_start
-    );
+    if (textparser_search_trace_enabled()) {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        uint64_t end_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+        textparser_trace_accumulate(token_def->name ? token_def->name : "?", end_ns - start_ns);
+        fprintf(stderr, "TRACE end   [%s] pos=%zu win=%zu scope=%s multi=%d => %s\n",
+                token_def->name ? token_def->name : "?",
+                (size_t)(text - handle->text_addr),
+                len,
+                only_at_start ? "0-pos-only" : "to-eof",
+                token_def->multi_line ? 1 : 0,
+                ret ? "MATCH" : "no");
+    }
+    return ret;
 }
 
 static textparser_token_item *textparser_alloc_token(struct textparser_handle *handle, int token_id, size_t len)
@@ -642,7 +833,7 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
 
     token = &definition->tokens[token_id];
     text = handle->text_addr + textparser_get_byte_offset(handle, pos);
-    len = textparser_get_total_units(handle) - pos;
+    len = textparser_get_search_len(handle, pos, token);
 
     LOGV("textparser_find_token token->type [%s] pos %zu", token->name, pos);
 
@@ -750,7 +941,7 @@ static bool check_parent_token_boundary(
         {
             size_t token_end = 0;
             size_t end_len = 0;
-            bool found_end = textparser_match_end_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, false);
+            bool found_end = textparser_match_end_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, true);
             if (found_end && token_end == 0)
             {
                 return true;
@@ -763,7 +954,7 @@ static bool check_parent_token_boundary(
         {
             size_t token_start = 0;
             size_t start_len = 0;
-            bool found_start = textparser_match_start_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_start, &start_len, false);
+            bool found_start = textparser_match_start_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_start, &start_len, true);
             if (found_start && token_start == 0)
             {
                 return true;
@@ -1492,7 +1683,28 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     }
 
     size_t end_len = 0;
-    bool found_end = textparser_match_end_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, false);
+    bool end_only_at_start = false;
+    size_t end_search_len = textparser_get_total_units(handle) - offset;
+    bool found_end = false;
+
+    if (token_def->other_text_inside == false && effective_nested != nullptr) {
+        // Structured content (nested tokens only): the parser loop stops exactly
+        // at the end token, so match it at the current position only.
+        end_only_at_start = true;
+        end_search_len = textparser_get_search_len(handle, offset, token_def);
+    } else if (token_def->other_text_inside == true && token_def->multi_line == false) {
+        // Single-line token with arbitrary text inside: bound the search to the
+        // current line; if the end token is not there, fall back to the full
+        // remainder so the multi-line-span validation can still raise its
+        // specific error for malformed input.
+        end_search_len = textparser_get_search_len(handle, offset, token_def);
+    }
+
+    found_end = textparser_match_end_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), end_search_len, &token_end, &end_len, end_only_at_start);
+
+    if (!found_end && token_def->other_text_inside == true && token_def->multi_line == false) {
+        found_end = textparser_match_end_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_end, &end_len, false);
+    }
 
     if (!found_end) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
@@ -2127,6 +2339,7 @@ void textparser_close(textparser_t handle)
         return;
 
     textparser_free_regex(handle);
+    textparser_trace_print_stats();
 
     mmap_addr = handle->mmap_addr;
     mmap_size = handle->mmap_size;
@@ -2348,6 +2561,10 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         handle->language = definition;
         if (textparser_init_regex(handle) != 0)
             return -1;
+    }
+
+    if (handle->regex_ctx) {
+        adv_regex_set_utf8_valid(handle->regex_ctx, textparser_validate_text_encoding(handle));
     }
 
     // Resolve active token from existing AST

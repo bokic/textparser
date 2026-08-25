@@ -116,6 +116,28 @@ Parsing performance is tracked on every push to `master` using the [Google Bench
 
 📊 **[View benchmark charts](https://bokic.github.io/textparser/benchmarks/)**
 
+### Search-scope optimization
+
+Token matching distinguishes between three scopes:
+
+- **Offset-0 only** — anchored (`PCRE2_ANCHORED`) start-token checks at the current position. For tokens flagged `multiLine: false`, the regex subject window is clamped to the end of the current line (`\n` or `\r`), since a single-line token can never span a newline. This is the dominant search type and the main performance lever for runtime-loaded definitions.
+- **Same-line end search** — for `StartStop` tokens with `otherTextInside: false` *and* nested tokens, the closing-token search is anchored at the current position only (the parser loop guarantees the end token sits there), avoiding a full scan to end-of-file. For `StartStop` tokens with `otherTextInside: true` *and* `multiLine: false` (single-line strings), the closing-token search is bounded to the current line, falling back to a full scan only when the end token is absent there so the *"Token spans multiple lines but multi_line flag is not set!"* validation can still fire.
+- **To-EOF end search** — kept for `otherTextInside: true` multi-line tokens (e.g. strings) that legitimately span newlines, and for `StartStop` tokens without nested tokens (e.g. `#...#` sharp expressions) whose end must be located by scanning ahead.
+
+All bounds are computed in encoding-aware units, so they behave identically for LATIN1, UTF-8, UTF-16 and UTF-32.
+
+### UTF-validity check elimination
+
+The single largest cost for runtime-loaded definitions was PCRE2 re-validating the **entire subject** for valid UTF-8 on *every* `pcre2_match` call (`PCRE2_UTF` set without `PCRE2_NO_UTF_CHECK`) — roughly 8µs per call on a ~20 KB window. The parser now validates the whole document once per parse (in the appropriate encoding: UTF-8/16/32) and passes `PCRE2_NO_UTF_CHECK` to every subsequent match when the text is valid. If the text contains invalid UTF-8/16/32, the flag is not used and the previous per-call checked behavior is preserved exactly.
+
+Combined with the search-scope work above, this took a runtime-loaded CFML parse of a 39 KB file from ~1360 ms to ~10 ms (over 100x), with identical parse results.
+
+For debugging the search behavior, set the environment variable `TEXTPARSER_TRACE_SEARCH=1` to log every regex attempt (`start`/`end`, byte position, window size, scope, whether it matched, and per-token match time) to stderr:
+
+```bash
+TEXTPARSER_TRACE_SEARCH=1 bin/textparser file.cfm --mute
+```
+
 ## Installation
 
 ### Arch Linux

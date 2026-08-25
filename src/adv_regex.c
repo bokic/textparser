@@ -10,6 +10,7 @@
 #define PCRE2_ANCHORED            0x80000000u
 #define PCRE2_CASELESS            0x00000008u
 #define PCRE2_UTF                 0x00080000u
+#define PCRE2_NO_UTF_CHECK        0x40000000u
 #define PCRE2_NEWLINE_ANY         0x00040000u
 #define PCRE2_ZERO_TERMINATED     (~((size_t)0))
 #define PCRE2_UNSET               (~((size_t)0))
@@ -109,11 +110,17 @@ static bool load_pcre2_dyn(pcre2_width_t width_idx)
 struct adv_regex_context {
     void *ccontext[PCRE2_WIDTH_COUNT];
     void *match_data[PCRE2_WIDTH_COUNT];
+    bool utf8_valid;
 };
 
 adv_regex_context *adv_regex_context_create(void)
 {
     return (adv_regex_context *)calloc(1, sizeof(adv_regex_context));
+}
+
+void adv_regex_set_utf8_valid(adv_regex_context *ctx, bool valid)
+{
+    if (ctx) ctx->utf8_valid = valid;
 }
 
 void adv_regex_context_free(adv_regex_context *ctx)
@@ -280,8 +287,9 @@ static bool adv_regex_find_pattern_impl(
     void *match_data = *mdata_slot;
 
     bool ret = false;
-    int  rc  = api->match(*regex, (const void *)start, max_len, 0,
-                          only_at_start ? PCRE2_ANCHORED : 0, match_data, NULL);
+    uint32_t match_options = (only_at_start ? PCRE2_ANCHORED : 0);
+    if (is_utf && ctx->utf8_valid) match_options |= PCRE2_NO_UTF_CHECK;
+    int  rc  = api->match(*regex, (const void *)start, max_len, 0, match_options, match_data, NULL);
 
     if (rc == 1) {
         PCRE2_SIZE *ov = api->get_ovector_pointer(match_data);

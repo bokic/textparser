@@ -4,6 +4,8 @@
 #include <textparser.hpp>
 #include <set>
 #include <string>
+#include <vector>
+#include <cstring>
 
 #include <scratch_definition.json.h>
 #include <cfml_definition.json.h>
@@ -215,6 +217,240 @@ TEST(parse_MultiLine, token_multiline_validation) {
 
     err = textparser_parse(handle, &lang);
     EXPECT_EQ(err, 0);
+    textparser_close(handle);
+}
+
+// ---------------------------------------------------------------------------
+// Same-line search scope for multi_line=false tokens (all encodings).
+// The engine bounds anchored start-token searches to the end of the current
+// line, so single-line tokens must parse identically across encodings and
+// still report a "Token spans multiple lines" error when they cross a newline.
+// ---------------------------------------------------------------------------
+
+static textparser_language_definition make_single_line_string_lang(void) {
+    static textparser_token tokens[1] = {};
+    static const int start_tokens[] = { 0, TextParser_END };
+    tokens[0].name = "SingleLineString";
+    tokens[0].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
+    tokens[0].start_regex = "'";
+    tokens[0].end_regex = "'";
+    tokens[0].other_text_inside = true;
+    tokens[0].multi_line = false;
+    static textparser_language_definition lang = {};
+    lang.name = "test_single_line";
+    lang.version = 1.0;
+    lang.case_sensitivity = true;
+    lang.other_text_inside = true;
+    lang.default_text_encoding = TEXTPARSER_ENCODING_UTF_8;
+    lang.starts_with = (int *)start_tokens;
+    lang.tokens = tokens;
+    return lang;
+}
+
+static std::vector<char> to_utf16le(const std::string &s) {
+    std::vector<char> out;
+    for (unsigned char c : s) {
+        out.push_back((char)c);
+        out.push_back(0);
+    }
+    return out;
+}
+
+static std::vector<char> to_utf32le(const std::string &s) {
+    std::vector<char> out;
+    for (unsigned char c : s) {
+        out.push_back((char)c);
+        out.push_back(0);
+        out.push_back(0);
+        out.push_back(0);
+    }
+    return out;
+}
+
+static textparser_language_definition single_line_lang = make_single_line_string_lang();
+
+static void expect_first_token_len(const char *text, enum textparser_encoding enc, size_t expected_len) {
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), enc, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, 0);
+    EXPECT_EQ(first->len, expected_len);
+    textparser_close(handle);
+}
+
+static void expect_first_token_len(const std::vector<char> &buf, enum textparser_encoding enc, size_t expected_len) {
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(buf.data(), (int)buf.size(), enc, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, 0);
+    EXPECT_EQ(first->len, expected_len);
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, closes_on_same_line_utf8) {
+    expect_first_token_len("'hello'", TEXTPARSER_ENCODING_UTF_8, 7);
+}
+
+TEST(parse_SameLine, closes_on_same_line_utf16) {
+    expect_first_token_len(to_utf16le("'hello'"), TEXTPARSER_ENCODING_UTF_16, 7);
+}
+
+TEST(parse_SameLine, closes_on_same_line_utf32) {
+    expect_first_token_len(to_utf32le("'hello'"), TEXTPARSER_ENCODING_UTF_32, 7);
+}
+
+TEST(parse_SameLine, next_line_becomes_unprocessed_utf8) {
+    const char *text = "'hello'\nworld";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, 0);
+    EXPECT_EQ(first->len, 7);
+    const textparser_token_item *next = textparser_get_token_next(first);
+    ASSERT_NE(next, nullptr);
+    EXPECT_EQ(next->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
+    EXPECT_EQ(next->len, 6);
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, next_line_becomes_unprocessed_utf16) {
+    textparser_t handle = nullptr;
+    auto buf = to_utf16le("'hello'\nworld");
+    ASSERT_EQ(textparser_openmem(buf.data(), (int)buf.size(), TEXTPARSER_ENCODING_UTF_16, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, 0);
+    EXPECT_EQ(first->len, 7);
+    const textparser_token_item *next = textparser_get_token_next(first);
+    ASSERT_NE(next, nullptr);
+    EXPECT_EQ(next->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
+    EXPECT_EQ(next->len, 6);
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, crlf_line_ending_utf8) {
+    const char *text = "'hello'\r\nworld";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, 0);
+    EXPECT_EQ(first->len, 7);
+    const textparser_token_item *next = textparser_get_token_next(first);
+    ASSERT_NE(next, nullptr);
+    EXPECT_EQ(next->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
+    EXPECT_EQ(next->len, 7);   // "\r\nworld"
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, end_of_file_no_trailing_newline_utf8) {
+    const char *text = "'hello'world";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, 0);
+    EXPECT_EQ(first->len, 7);
+    const textparser_token_item *next = textparser_get_token_next(first);
+    ASSERT_NE(next, nullptr);
+    EXPECT_EQ(next->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
+    EXPECT_EQ(next->len, 5);
+    textparser_close(handle);
+}
+
+static void expect_multiline_error(const std::vector<char> &buf, enum textparser_encoding enc) {
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(buf.data(), (int)buf.size(), enc, &handle), 0);
+    int err = textparser_parse(handle, &single_line_lang);
+    EXPECT_NE(err, 0);
+    EXPECT_STREQ(textparser_parse_error(handle), "Token spans multiple lines but multi_line flag is not set!");
+    EXPECT_EQ(textparser_parse_error_position(handle), 0);
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, spanning_newline_still_errors_utf8) {
+    expect_multiline_error(std::vector<char>("'hello\nworld'", "'hello\nworld'" + 13), TEXTPARSER_ENCODING_UTF_8);
+}
+
+TEST(parse_SameLine, spanning_newline_still_errors_utf16) {
+    expect_multiline_error(to_utf16le("'hello\nworld'"), TEXTPARSER_ENCODING_UTF_16);
+}
+
+TEST(parse_SameLine, spanning_newline_still_errors_utf32) {
+    expect_multiline_error(to_utf32le("'hello\nworld'"), TEXTPARSER_ENCODING_UTF_32);
+}
+
+TEST(parse_SameLine, closing_quote_on_next_line_errors_utf8) {
+    textparser_t handle = nullptr;
+    const char *text = "'abc\n'";
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    int err = textparser_parse(handle, &single_line_lang);
+    EXPECT_NE(err, 0);
+    EXPECT_STREQ(textparser_parse_error(handle), "Token spans multiple lines but multi_line flag is not set!");
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, unclosed_on_same_line_errors_cant_find_end) {
+    textparser_t handle = nullptr;
+    const char *text = "'abc";
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    int err = textparser_parse(handle, &single_line_lang);
+    EXPECT_NE(err, 0);
+    EXPECT_STREQ(textparser_parse_error(handle), "Can't find end of the token!");
+    EXPECT_EQ(textparser_parse_error_position(handle), 1);
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, unclosed_spanning_newline_errors_cant_find_end) {
+    // Closing quote missing entirely: even though a newline is spanned, the
+    // fallback must report "Can't find end of the token!" (not a span error)
+    // because there is no end token anywhere.
+    textparser_t handle = nullptr;
+    const char *text = "'abc\ndef";
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    int err = textparser_parse(handle, &single_line_lang);
+    EXPECT_NE(err, 0);
+    EXPECT_STREQ(textparser_parse_error(handle), "Can't find end of the token!");
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, valid_utf8_multibyte_content) {
+    // UTF-8 multibyte content inside a single-line string must parse correctly
+    // on the fast (PCRE2_NO_UTF_CHECK) path: "caf\xC3\xA9" = c,a,f,é(2B) = 5 bytes.
+    const char *text = "'caf\xC3\xA9'";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, 0);
+    EXPECT_EQ(first->len, 7);
+    textparser_close(handle);
+}
+
+TEST(parse_SameLine, invalid_utf8_falls_back_to_checked_path) {
+    // Invalid UTF-8 (lone 0xFF, truncated 0xE2 0x82) must take the checked
+    // (non-NO_UTF_CHECK) path and keep the pre-optimization behavior: pcre2
+    // rejects the invalid subject, so no string token matches and the whole
+    // buffer becomes unprocessed text (no crash, err == 0).
+    const char buf[] = { '\'', (char)0xFF, '\'', (char)0xE2, (char)0x82 };
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(buf, (int)sizeof(buf), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &single_line_lang), 0);
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
+    EXPECT_EQ(first->len, 6);
+    EXPECT_EQ(textparser_get_token_next(first), nullptr);
     textparser_close(handle);
 }
 
