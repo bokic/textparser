@@ -322,57 +322,6 @@ static inline void textparser_checkpoint_restore(struct textparser_handle *handl
     handle->token_count = cp->token_count;
 }
 
-static bool textparser_search_trace_enabled(void)
-{
-    static int enabled = -1;
-    if (enabled < 0) {
-        const char *env = getenv("TEXTPARSER_TRACE_SEARCH");
-        enabled = (env != nullptr && env[0] != '\0' && env[0] != '0') ? 1 : 0;
-    }
-    return enabled == 1;
-}
-
-typedef struct {
-    const char *name;
-    uint64_t calls;
-    uint64_t total_ns;
-} textparser_trace_stat;
-
-#define TEXTPARSER_TRACE_STATS_MAX 256
-static textparser_trace_stat g_trace_stats[TEXTPARSER_TRACE_STATS_MAX];
-static int g_trace_stats_count = 0;
-
-static void textparser_trace_accumulate(const char *name, uint64_t ns)
-{
-    if (name == nullptr) return;
-    for (int i = 0; i < g_trace_stats_count; i++) {
-        if (strcmp(g_trace_stats[i].name, name) == 0) {
-            g_trace_stats[i].calls++;
-            g_trace_stats[i].total_ns += ns;
-            return;
-        }
-    }
-    if (g_trace_stats_count < TEXTPARSER_TRACE_STATS_MAX) {
-        g_trace_stats[g_trace_stats_count].name = name;
-        g_trace_stats[g_trace_stats_count].calls = 1;
-        g_trace_stats[g_trace_stats_count].total_ns = ns;
-        g_trace_stats_count++;
-    }
-}
-
-static void textparser_trace_print_stats(void)
-{
-    if (!textparser_search_trace_enabled()) return;
-    fprintf(stderr, "=== TEXTPARSER match time by token ===\n");
-    for (int i = 0; i < g_trace_stats_count; i++) {
-        fprintf(stderr, "  %-24s calls=%7llu total=%.2f ms avg=%.1f ns\n",
-                g_trace_stats[i].name,
-                (unsigned long long)g_trace_stats[i].calls,
-                (double)g_trace_stats[i].total_ns / 1e6,
-                (double)g_trace_stats[i].total_ns / (double)g_trace_stats[i].calls);
-    }
-}
-
 static inline bool textparser_match_start_token(
     const struct textparser_handle *handle,
     int token_id,
@@ -384,12 +333,6 @@ static inline bool textparser_match_start_token(
 {
     const textparser_token *token_def = &handle->language->tokens[token_id];
     bool ret;
-    uint64_t start_ns = 0;
-    if (textparser_search_trace_enabled()) {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        start_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
-    }
     if (token_def->startRegexFunction != NULL) {
         ret = token_def->startRegexFunction(
             handle->text_format,
@@ -414,19 +357,6 @@ static inline bool textparser_match_start_token(
             only_at_start
         );
     }
-    if (textparser_search_trace_enabled()) {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        uint64_t end_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
-        textparser_trace_accumulate(token_def->name ? token_def->name : "?", end_ns - start_ns);
-        fprintf(stderr, "TRACE start [%s] pos=%zu win=%zu scope=%s multi=%d => %s\n",
-                token_def->name ? token_def->name : "?",
-                (size_t)(text - handle->text_addr),
-                len,
-                only_at_start ? "0-pos-only" : "to-eof",
-                token_def->multi_line ? 1 : 0,
-                ret ? "MATCH" : "no");
-    }
     return ret;
 }
 
@@ -441,12 +371,6 @@ static inline bool textparser_match_end_token(
 {
     const textparser_token *token_def = &handle->language->tokens[token_id];
     bool ret;
-    uint64_t start_ns = 0;
-    if (textparser_search_trace_enabled()) {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        start_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
-    }
     if (token_def->endRegexFunction != NULL) {
         ret = token_def->endRegexFunction(
             handle->text_format,
@@ -470,19 +394,6 @@ static inline bool textparser_match_end_token(
             !handle->language->case_sensitivity,
             only_at_start
         );
-    }
-    if (textparser_search_trace_enabled()) {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        uint64_t end_ns = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
-        textparser_trace_accumulate(token_def->name ? token_def->name : "?", end_ns - start_ns);
-        fprintf(stderr, "TRACE end   [%s] pos=%zu win=%zu scope=%s multi=%d => %s\n",
-                token_def->name ? token_def->name : "?",
-                (size_t)(text - handle->text_addr),
-                len,
-                only_at_start ? "0-pos-only" : "to-eof",
-                token_def->multi_line ? 1 : 0,
-                ret ? "MATCH" : "no");
     }
     return ret;
 }
@@ -2339,7 +2250,6 @@ void textparser_close(textparser_t handle)
         return;
 
     textparser_free_regex(handle);
-    textparser_trace_print_stats();
 
     mmap_addr = handle->mmap_addr;
     mmap_size = handle->mmap_size;

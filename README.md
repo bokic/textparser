@@ -132,12 +132,6 @@ The single largest cost for runtime-loaded definitions was PCRE2 re-validating t
 
 Combined with the search-scope work above, this took a runtime-loaded CFML parse of a 39 KB file from ~1360 ms to ~10 ms (over 100x), with identical parse results.
 
-For debugging the search behavior, set the environment variable `TEXTPARSER_TRACE_SEARCH=1` to log every regex attempt (`start`/`end`, byte position, window size, scope, whether it matched, and per-token match time) to stderr:
-
-```bash
-TEXTPARSER_TRACE_SEARCH=1 bin/textparser file.cfm --mute
-```
-
 ## Installation
 
 ### Arch Linux
