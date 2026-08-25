@@ -84,25 +84,26 @@ def main(args):
     text = "#pragma once" + os.linesep
     text += "" + os.linesep
     text += "#include \"textparser.h\"" + os.linesep
-    text += "#include \"search_function_gen.h\"" + os.linesep
+    if not skip_native_regex:
+        text += "#include \"search_function_gen.h\"" + os.linesep
     text += "#include <stddef.h>" + os.linesep
     text += "" + os.linesep
     text += "" + os.linesep
 
-    # Load search_function_gen.h to check available _gen_* symbols
-    gen_header_paths = [
-        os.path.join(os.path.dirname(__file__), "..", "include", "search_function_gen.h"),
-        os.path.join(os.path.dirname(__file__), "include", "search_function_gen.h"),
-        os.path.join(os.path.dirname(__file__), "search_function_gen.h"),
-        "include/search_function_gen.h",
-        "search_function_gen.h",
-    ]
     gen_header_content = ""
-    for path in gen_header_paths:
-        if os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as gf:
-                gen_header_content = gf.read()
-            break
+    if not skip_native_regex:
+        gen_header_paths = [
+            os.path.join(os.path.dirname(__file__), "..", "include", "search_function_gen.h"),
+            os.path.join(os.path.dirname(__file__), "include", "search_function_gen.h"),
+            os.path.join(os.path.dirname(__file__), "search_function_gen.h"),
+            "include/search_function_gen.h",
+            "search_function_gen.h",
+        ]
+        for path in gen_header_paths:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as gf:
+                    gen_header_content = gf.read()
+                break
 
     name_lowercase = root["name"].lower()
 
