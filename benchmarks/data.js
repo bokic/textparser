@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787637606822,
+  "lastUpdate": 1787641200282,
   "repoUrl": "https://github.com/bokic/textparser",
   "entries": {
     "textparser SQLite C/H Parse Benchmark": [
@@ -2160,6 +2160,78 @@ window.BENCHMARK_DATA = {
             "value": 0.007011734528458222,
             "unit": "ms/iter",
             "extra": "iterations: 3\ncpu: 0.006993184112077708 ms\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bbarbulovski@gmail.com",
+            "name": "Boris Barbulovski",
+            "username": "bokic"
+          },
+          "committer": {
+            "email": "bbarbulovski@gmail.com",
+            "name": "Boris Barbulovski",
+            "username": "bokic"
+          },
+          "distinct": true,
+          "id": "3732550ce911034c8b159da73c12258999e79d17",
+          "message": "update json2h.py script.",
+          "timestamp": "2026-08-25T08:56:15+02:00",
+          "tree_id": "c959b214d820ceaa56841bb62db5ce68b61734bb",
+          "url": "https://github.com/bokic/textparser/commit/3732550ce911034c8b159da73c12258999e79d17"
+        },
+        "date": 1787641199942,
+        "tool": "googlecpp",
+        "benches": [
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_mean",
+            "value": 1660.246816999999,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1659.9946407777777 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_median",
+            "value": 1661.507456,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1661.2285893333335 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 8.475653241750644,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 8.50116356296041 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseC/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.005105056160906134,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.005121199402774732 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_mean",
+            "value": 50.63546400000026,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 50.63078166666656 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_median",
+            "value": 50.43091200000068,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 50.42158533333326 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 0.42631701396959093,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.4257147940880861 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_ParseH/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.008419336573465363,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.00840822085052582 ms\nthreads: 1"
           }
         ]
       }
