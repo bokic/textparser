@@ -312,6 +312,14 @@ python3 definitions/json2h.py definitions/your_definition.json
 
 This generates a C header file (e.g., `definitions/your_definition.json.h`) containing the C struct and tags enum.
 
+By default, tokens whose `startRegex`/`endRegex` have a matching generated native C matcher in `include/search_function_gen.h` get a `.startRegexFunction` / `.endRegexFunction` function pointer (the "Native C Regex Bypass"). Pass `--no-native-regex` to skip those native function calls so the parser uses the regex strings directly instead:
+
+```bash
+python3 definitions/json2h.py --no-native-regex definitions/your_definition.json
+```
+
+With `--no-native-regex`, `.startRegexFunction` and `.endRegexFunction` are always set to `NULL` while `.start_regex`/`.end_regex` are preserved. This is useful for testing/validating the pure-regex code path against the native function bypass.
+
 ### Regenerating All Headers
 
 Run the helper script [regenerate.sh](file:///home/boris/projects/textparser/definitions/regenerate.sh) from the `definitions/` directory:

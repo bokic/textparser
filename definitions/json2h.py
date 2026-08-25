@@ -61,7 +61,19 @@ def bom_mask_to_c_string(root):
 
 
 def main(args):
-    in_file = args[0]
+    skip_native_regex = False
+    in_file = None
+    for arg in args:
+        if arg == "--no-native-regex":
+            skip_native_regex = True
+        else:
+            in_file = arg
+
+    if in_file is None:
+        print("No input json definition file specified.")
+        print("Usage: json2h.py [--no-native-regex] <definition.json>")
+        exit(1)
+
     out_file = in_file + ".h"
     if not in_file.endswith(".json"):
         print("Not json extension.")
@@ -357,7 +369,7 @@ def main(args):
         if has_start_regex:
             b64_start = base64.b64encode(start_regex_val.encode("utf-8")).decode("utf-8")
             start_tag = f"{start_fn_name}_{b64_start}"
-            if start_tag in gen_header_content and start_fn_name in gen_header_content:
+            if not skip_native_regex and start_tag in gen_header_content and start_fn_name in gen_header_content:
                 text += "            .startRegexFunction = " + start_fn_name + "," + os.linesep
             else:
                 text += "            .startRegexFunction = NULL," + os.linesep
@@ -367,7 +379,7 @@ def main(args):
         if has_end_regex:
             b64_end = base64.b64encode(end_regex_val.encode("utf-8")).decode("utf-8")
             end_tag = f"{end_fn_name}_{b64_end}"
-            if end_tag in gen_header_content and end_fn_name in gen_header_content:
+            if not skip_native_regex and end_tag in gen_header_content and end_fn_name in gen_header_content:
                 text += "            .endRegexFunction = " + end_fn_name + "," + os.linesep
             else:
                 text += "            .endRegexFunction = NULL," + os.linesep
