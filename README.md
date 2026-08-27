@@ -146,10 +146,9 @@ Or view the package details at [https://aur.archlinux.org/packages/textparser](h
 
 ### macOS (Homebrew)
 
-Install from the local formula repository:
-
 ```bash
-brew install --build-from-source ./MacOS/textparser.rb
+brew tap bokic/textparser
+brew install textparser
 ```
 
 ### Windows
