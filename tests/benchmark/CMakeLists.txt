@@ -96,6 +96,9 @@ FetchContent_Declare(
     GIT_SHALLOW    TRUE
     SOURCE_SUBDIR  lib
 )
+# Tree-sitter v0.24.7 does not export its C API with __declspec(dllexport) on
+# Windows. Build it static so benchmark_sqlite can link the API symbols there.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(treesitter)
 
 FetchContent_Declare(
