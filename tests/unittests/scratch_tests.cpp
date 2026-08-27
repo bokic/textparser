@@ -378,7 +378,8 @@ static void expect_multiline_error(const std::vector<char> &buf, enum textparser
 }
 
 TEST(parse_SameLine, spanning_newline_still_errors_utf8) {
-    expect_multiline_error(std::vector<char>("'hello\nworld'", "'hello\nworld'" + 13), TEXTPARSER_ENCODING_UTF_8);
+    const char text[] = "'hello\nworld'";
+    expect_multiline_error(std::vector<char>(text, text + strlen(text)), TEXTPARSER_ENCODING_UTF_8);
 }
 
 TEST(parse_SameLine, spanning_newline_still_errors_utf16) {
@@ -795,7 +796,5 @@ TEST(parse_CST, gapless_tree_and_dynamic_offsets) {
 
     textparser_close(handle);
 }
-
-
 
 

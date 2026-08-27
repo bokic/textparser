@@ -286,15 +286,16 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     // Pass 1: Load basic token data
     {
         size_t token_idx = 0;
-        json_object_object_foreach(tokens, key, val) {
-            json_object *token_item = val;
+        json_object_iter iter;
+        json_object_object_foreachC(tokens, iter) {
+            json_object *token_item = iter.val;
             struct json_object *key_value = nullptr;
             const char *str_val = nullptr;
 
             key_value = nullptr;
             json_object_object_get_ex(token_item, "name", &key_value);
             str_val = json_object_get_string(key_value);
-            const char *target_name = str_val ? str_val : key;
+            const char *target_name = str_val ? str_val : iter.key;
             if (target_name) {
                 (*definition)->tokens[token_idx].name = textparser_string_pool_strdup(pool, target_name);
                 if ((*definition)->tokens[token_idx].name == nullptr) {
@@ -393,10 +394,10 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     // Pass 2: Resolve nested tokens names to indices
     {
         size_t token_idx = 0;
-        json_object_object_foreach(tokens, key, val) {
-            json_object *token_item = val;
+        json_object_iter iter;
+        json_object_object_foreachC(tokens, iter) {
+            json_object *token_item = iter.val;
             struct json_object *nested_tokens_json = nullptr;
-            (void)key;
 
             nested_tokens_json = nullptr;
             json_object_object_get_ex(token_item, "nestedTokens", &nested_tokens_json);
