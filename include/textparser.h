@@ -19,6 +19,33 @@
 #define TextParser_END (-1)
 #define MAX_RECURSION_DEPTH 1000
 
+/**
+ * Get the version of the textparser library.
+ *
+ * @return NUL-terminated version string owned by the library.
+ */
+EXPORT_TEXTPARSER const char *textparser_version(void);
+
+/**
+ * Get the major version number of the textparser library.
+ */
+EXPORT_TEXTPARSER int textparser_version_major(void);
+
+/**
+ * Get the minor version number of the textparser library.
+ */
+EXPORT_TEXTPARSER int textparser_version_minor(void);
+
+/**
+ * Get the patch version number of the textparser library.
+ */
+EXPORT_TEXTPARSER int textparser_version_patch(void);
+
+/**
+ * Get the packed integer version number (major * 10000 + minor * 100 + patch).
+ */
+EXPORT_TEXTPARSER int textparser_version_int(void);
+
 #define TEXTPARSER_TOKEN_ID_ERROR (-1)
 #define TEXTPARSER_TOKEN_ID_UNPROCESSED (-2)
 #define TEXTPARSER_NOCOLOR 0xffffffff
@@ -676,6 +703,4 @@ EXPORT_TEXTPARSER int textparser_export_tokens_range(const textparser_t handle, 
  * @return 0 on success, non-zero on failure.
  */
 EXPORT_TEXTPARSER int textparser_export_tokens_lines(const textparser_t handle, size_t start_line, size_t end_line, textparser_token_range *buffer, size_t max_tokens, size_t *out_count);
-
-
 

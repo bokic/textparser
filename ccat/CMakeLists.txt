@@ -24,6 +24,10 @@ target_include_directories(ccat PRIVATE
     ../definitions
 )
 
+target_compile_definitions(ccat PRIVATE
+    TEXTPARSER_BINARY_VERSION="${TEXTPARSER_VERSION_TAG}"
+)
+
 target_link_libraries(ccat PRIVATE
     libtextparser
 )
@@ -36,3 +40,10 @@ install(TARGETS ccat
     RUNTIME DESTINATION bin
     COMPONENT cli
 )
+
+if(BUILD_TESTS)
+    add_test(NAME ccat_version COMMAND ccat --version)
+    set_tests_properties(ccat_version PROPERTIES
+        PASS_REGULAR_EXPRESSION "^ccat version "
+    )
+endif()

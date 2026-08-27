@@ -1,8 +1,5 @@
 #include <textparser-json.h>
 #include <textparser.h>
-#if __has_include("version.h")
-#include "version.h"
-#endif
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
 #include <php_definition.json.h>
@@ -167,11 +164,11 @@ int main(int argc, const char *argv[])
 
     if (strcmp(argv[1], "--version") == 0)
     {
-#ifdef TEXTPARSER_VERSION
-        printf("textparser version: " TEXTPARSER_VERSION "\n");
-#else
-        printf("textparser (version unknown)\n");
-#endif
+        const char *library_version = textparser_version();
+        if (strcmp(TEXTPARSER_BINARY_VERSION, library_version) == 0)
+            printf("textparser version %s\n", TEXTPARSER_BINARY_VERSION);
+        else
+            printf("textparser version %s(executable), %s(library)\n", TEXTPARSER_BINARY_VERSION, library_version);
         return EXIT_SUCCESS;
     }
 

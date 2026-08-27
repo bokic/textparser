@@ -176,8 +176,18 @@ int main(int argc, const char *argv[])
 
     if (argc != 2)
     {
-        fprintf(stderr, "Usage ccat <text file>.\n");
+        fprintf(stderr, "Usage ccat <text file>|--version.\n");
         return EXIT_FAILURE;
+    }
+
+    if (strcmp(argv[1], "--version") == 0)
+    {
+        const char *library_version = textparser_version();
+        if (strcmp(TEXTPARSER_BINARY_VERSION, library_version) == 0)
+            printf("ccat version %s\n", TEXTPARSER_BINARY_VERSION);
+        else
+            printf("ccat version %s(executable), %s(library)\n", TEXTPARSER_BINARY_VERSION, library_version);
+        return EXIT_SUCCESS;
     }
 
     filename = argv[1];

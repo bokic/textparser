@@ -25,6 +25,10 @@ target_include_directories(textparser PRIVATE
     ../definitions
 )
 
+target_compile_definitions(textparser PRIVATE
+    TEXTPARSER_BINARY_VERSION="${TEXTPARSER_VERSION_TAG}"
+)
+
 target_link_libraries(textparser PRIVATE
     libtextparser-json
     libtextparser
@@ -44,3 +48,10 @@ install(TARGETS textparser
     RUNTIME DESTINATION bin
     COMPONENT cli
 )
+
+if(BUILD_TESTS)
+    add_test(NAME textparser_cli_version COMMAND textparser --version)
+    set_tests_properties(textparser_cli_version PROPERTIES
+        PASS_REGULAR_EXPRESSION "^textparser version "
+    )
+endif()

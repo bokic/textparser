@@ -28,6 +28,7 @@ enable_testing()
 
 
 add_executable( unittests
+  version_tests.cpp
   cfml_tests.cpp
   json_tests.cpp
   php_tests.cpp
@@ -73,6 +74,13 @@ target_include_directories( unittests PRIVATE
     ../../src
     ../../src/validation
     ../compat
+)
+target_compile_definitions(unittests PRIVATE
+  TEXTPARSER_EXPECTED_VERSION="${GIT_COMMIT_NAME}"
+  TEXTPARSER_EXPECTED_VERSION_MAJOR=${TEXTPARSER_VERSION_MAJOR}
+  TEXTPARSER_EXPECTED_VERSION_MINOR=${TEXTPARSER_VERSION_MINOR}
+  TEXTPARSER_EXPECTED_VERSION_PATCH=${TEXTPARSER_VERSION_PATCH}
+  TEXTPARSER_EXPECTED_VERSION_INT=${TEXTPARSER_VERSION_INT}
 )
 if(NOT MSVC)
   target_compile_options(unittests PRIVATE -Wno-pedantic)

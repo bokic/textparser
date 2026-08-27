@@ -66,8 +66,8 @@ math(EXPR TEXTPARSER_VERSION_INT "${TEXTPARSER_VERSION_MAJOR}*10000 + ${TEXTPARS
 project(textparser VERSION ${TEXTPARSER_VERSION_TAG} LANGUAGES C CXX)
 
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/version.c.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/version.c"
     @ONLY
 )
 

@@ -1,0 +1,26 @@
+#include <textparser.h>
+
+EXPORT_TEXTPARSER const char *textparser_version(void)
+{
+    return "@GIT_COMMIT_NAME@";
+}
+
+EXPORT_TEXTPARSER int textparser_version_major(void)
+{
+    return @PROJECT_VERSION_MAJOR@;
+}
+
+EXPORT_TEXTPARSER int textparser_version_minor(void)
+{
+    return @PROJECT_VERSION_MINOR@;
+}
+
+EXPORT_TEXTPARSER int textparser_version_patch(void)
+{
+    return @PROJECT_VERSION_PATCH@;
+}
+
+EXPORT_TEXTPARSER int textparser_version_int(void)
+{
+    return @TEXTPARSER_VERSION_INT@;
+}

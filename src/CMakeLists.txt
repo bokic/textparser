@@ -20,6 +20,7 @@ if(NOT WIN32)
 endif()
 
 add_library(libtextparser SHARED
+    ${CMAKE_BINARY_DIR}/version.c
     textparser.c
     adv_regex.c
     adv_regex.h
@@ -50,7 +51,7 @@ if(NOT WIN32)
 endif()
 
 set_target_properties(libtextparser PROPERTIES
-    PUBLIC_HEADER "../include/textparser.h;../include/textparser.hpp;${CMAKE_BINARY_DIR}/include/version.h"
+    PUBLIC_HEADER "../include/textparser.h;../include/textparser.hpp"
     C_VISIBILITY_PRESET hidden
     OUTPUT_NAME "textparser"
     VERSION "${TEXTPARSER_VERSION_TAG}"
