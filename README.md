@@ -11,35 +11,15 @@ It has a flexible architecture making it easy to add new languages.
 
 - **High Performance**: Written in optimized C for fast parsing(upto 100MB/s) of large codebases.
 - **Small Footprint**: The library is designed to be small(<100KB for both parser and language definition) and easy to integrate into other projects.
-- **Zero Dependencies for Built-in Languages**: The library has zero external library dependencies (`libtextparser.so` links strictly against standard `libc`). All 30 built-in language grammars are lexed via 100% native C matchers. External PCRE2 libraries are only loaded dynamically at runtime on demand via `os_dlopen` if custom un-bypassed JSON grammar definitions are loaded.
-- **Concrete Syntax Tree (CST) & Gapless Trivia Retention**: Preserves 100% byte-for-byte source fidelity including delimiters, punctuation, whitespace, and unparsed text as explicit `UNPROCESSED` token nodes (`TEXTPARSER_TOKEN_ID_UNPROCESSED` = -2) such that $\sum \text{token.len} == \text{document\_length}$.
-- **Relative Node Length & Dynamic Offsets**: Tokens store only relative node length (`len`); absolute document offsets are computed dynamically on demand via `textparser_get_token_position(token)`. This eliminates $O(N)$ position-invalidation cascades after edit locations during incremental parsing.
+- **Zero Dependencies for Built-in Languages**: All 30 built-in language grammars use pure C matchers with no external libraries. PCRE2 is only loaded at runtime when custom JSON grammar definitions require it.
 - **Hierarchical AST/CST**: Generates a structured tree of tokens (`textparser_token_item`) representing the code structure.
-- **Syntax Highlighting Support**: Tokens track rich styling metadata (24-bit RGB text color, background, and font styling flags) based on a modern, high-contrast dark theme palette (distinct colors for keywords, identifiers, types/casts, comments, strings, numbers, booleans, operators, and preprocessors), making it ideal for CLI syntax viewers (`ccat`), LSP servers, and code editors.
+- **Syntax Highlighting Support**: Tokens carry styling metadata (text color, background, font style) based on a modern dark theme, making it ideal for CLI syntax viewers, LSP servers, and code editors.
 - **Extensibility**: Language definitions are decoupled from the core parsing logic, constructed with JSON, and can be loaded at compile time (by generated header file) or at runtime (by loading JSON file).
-- **Conditional Start Tokens (`overrideStartTokens`)**: Dynamic start token override rules based on file extension and regex pattern matching at document start (used e.g. for modern ColdFusion script components).
-- **Context-Sensitive Token Replacement (`contextNestedTokens`)**: Tokens can dynamically specify context-sensitive child token lists based on enclosing parent token types in the parsing stack.
-- **Non-Fatal Error Resynchronization**: Recovers gracefully from malformed syntax without aborting parsing, grouping contiguous invalid input into merged `AST_NODE_ERROR` nodes (`TEXTPARSER_TOKEN_ID_ERROR`).
-- **BOM Specification (`SupportedBom`)**: Grammar-level specification of allowed Byte Order Marks (e.g., UTF-8, UTF-16-LE, UTF-16-BE).
-- **Native Query Engine (`textparser_query`)**: High-performance C selector engine to query AST nodes using intuitive CSS-like selector syntax (`"Parent > Child"`, `"Ancestor Descendant"`, `"TypeA, TypeB"`).
-- **Sign Merging (`mergeSignIntoNumber`)**: Per-definition rule (enabled for all arithmetic languages, e.g. C, Java, JavaScript, Python, CFML, ...) that absorbs a leading `+`/`-` sign into the following number token (e.g. `x = -1` → `Number("-1")`) while leaving true binary subtraction untouched (`10-10` → `Number(10) Operator(-) Number(10)`). The merge is decided in the parse pass by the preceding context (unary only when the sign is *not* preceded by an operand), requires sign/number adjacency, only applies to literal `+`/`-` (never e.g. `!3`), and also handles a sign that is the last child of an operator group (`12 +-43` → `Number(12) Operator(+) Number(-43)`). Configured via `signTokens`, `numberTokens`, and `operandTokens` in the JSON definition.
-- **Thread-Safe Regex Engine (`adv_regex.c`)**: PCRE2 compile contexts (`pcre2_compile_context_8/16/32`) are bound to the `textparser_t` handle via `adv_regex_context` instead of global state. The three-width PCRE2 API surface (8/16/32 bit) is abstracted behind a `pcre2_api_t` vtable; a single `adv_regex_find_pattern_impl()` function handles all widths without code duplication.
-- **Standalone AST Post-Processing & Pratt Parsing (`textparser_post_process`)**: Opt-in 2nd-pass AST transformation that applies grammar-driven **Pratt Parsing (Top-Down Operator Precedence)** to pivot flat expression token sequences into hierarchical binary/unary expression trees with configurable binding power and associativity (`left`/`right`), and performs `deleteIfOnlyOneChild` unwrapping for static analysis tools without breaking token pointer snapshot stability for interactive incremental text editor sessions (`textparser_parse_incremental`).
-- **Contextual Rule Disambiguation (`regexVsDivision`, `templateDisambiguation`, `castDisambiguation`)**: Resolves syntactic and lexical ambiguities across languages through lookbehind and AST restructuring passes:
-  - **JavaScript / TypeScript Regex vs. Division**: Disambiguates `/pattern/flags` vs. arithmetic division (`/`) by verifying that preceding non-trivia tokens are non-operands (or control-flow conditions), correctly parsing `a / b / c` as division and `return /pattern/i;` or `if (x) /abc/` as regex literals.
-  - **C++ Generics / Templates vs. Relational Operators**: Validates template argument brackets `<...>` vs. relational `<` and `>` comparisons, bundling matching template parameter subtrees into `TemplateGroup` nodes.
-  - **C / C++ Type Cast vs. Call Expression**: Differentiates cast expressions `(type)(expr)` from function invocations and grouped expressions `(func)(arg)` by inspecting inner parenthesized tokens against defined type keywords and pointer/reference qualifiers.
-- **Structural Statement Recognition & Speculative Backtracking (`Sequence`)**: Grammar-driven composite statement parsing that combines ordered sequence tokens with zero-heap arena checkpoint snapshots (`textparser_checkpoint_t`). Allows language grammars (C, Rust, Go, TypeScript, Zig, CFML, etc.) to define complex multi-token statements (declarations, type annotations, assignment statements) and attempt candidate branches speculatively, seamlessly rolling back upon mismatch without the overhead of massive GLR state tables.
-- **Incremental Delta Parsing (`textparser_parse_incremental`)**: Efficiently re-parses modified buffers in interactive environments (like text editors and IDEs) via delta edit chunks (`edit_offset`, `old_len`, `new_text`, `new_len`), automatically splicing internal buffer memory, reusing unaffected CST branches, and reporting dirty repaint coordinates (`textparser_dirty_range`).
-- **High-Speed Flat Token Range Export (`textparser_export_tokens`, `textparser_export_tokens_range`, `textparser_export_tokens_lines`)**: Allocation-free, high-throughput C & C++ API designed for editors (LSP servers, QScintilla, VS Code highlight buffers) to export flattened token ranges `[start_pos, length, start_line, start_col, end_line, end_col, token_id, ...]` in a single sequential pass into a caller-provided scratch buffer. Supports full documents, byte range queries, or line-bounded queries with $O(1)$ amortized line/column resolution.
-- **Modern C23 & C++23 Standard**: Engineered natively for ISO C23 (`ISO/IEC 9899:2024`) and C++23 standards (`set(CMAKE_C_STANDARD 23)`, `set(CMAKE_CXX_STANDARD 23)`), utilizing native `nullptr` keywords and C23 clean struct initialization across GCC, Clang, and MSVC compilers.
-- **API Documentation & Error Diagnostics**: Public headers (`textparser.h`, `textparser-json.h`) feature comprehensive Doxygen-style documentation, standardized error enumeration (`enum textparser_error`), and string conversion helpers (`textparser_strerror`, `textparser_json_strerror`) for rich diagnostics across CLI tools.
-- **Native C Regex Bypass & Zero-Dependency Fast Path (`search_function_gen`)**: Token rules support direct native C matcher functions (`startRegexFunction` and `endRegexFunction` conforming to `textparser_fast_regex_fn`). Generated language definitions automatically integrate with `include/search_function_gen.h` and `src/search_function_gen.c` using the `_gen_{lang}_{token}_{start|end}` naming convention, bypassing regular expressions with $O(1)$ native multi-encoding dispatch across 3-way representations (8-bit Latin-1 / UTF-8, 16-bit UTF-16, and 32-bit UTF-32). Full 100% native coverage is implemented across **all 30 built-in grammars**: **`c`**, **`cpp`**, **`cfml`**, **`json`**, **`html`**, **`css`**, **`python`**, **`javascript`**, **`rust`**, **`typescript`**, **`java`**, **`csharp`**, **`php`**, **`go`**, **`sql`**, **`bash`**, **`c3`**, **`zig`**, **`swift`**, **`pascal`**, **`perl`**, **`fortran`**, **`ada`**, **`asm`**, **`matlab`**, **`r`**, **`jai`**, **`vb`**, **`scratch`**, and **`md`** (650 / 650 total regexes eliminated, **100.0% zero-regex native C lexing**).
-- **Zero-Dependency Shared Library & Lazy PCRE2 Dynamic Loading**: `libtextparser.so` / `textparser.dll` has zero static dependencies on external regular expression libraries (`readelf -d libtextparser.so` reports strictly `libc.so.6`). PCRE2 is only dynamically loaded on demand via `os_dlopen` / `os_dlsym` if custom runtime JSON definitions with un-bypassed patterns are explicitly loaded by the user.
-- **Python Tooling**: Includes Python scripts (`ports/python/`) for prototyping, validation against the reference C parser, generation of C header files (`definitions/json2h.py`), and other parser verification tools.
-- **Rust Implementation & Tooling**: Native Rust implementation (`ports/rust/`) including library crate (`TextParser`), CLI binaries (`parse`, `parsedir`, `validate`), and unit test suite validated against the reference C output.
-- **Java Implementation & Tooling**: Standalone Java implementation (`ports/java/`) including core parser (`TextParser`), CLI entrypoints (`Parse`, `ParseDir`, `Validate`, `ValidateAll`), zero-dependency JSON engine, and unit test suite validated against the reference C output.
-- **WebAssembly Bindings**: Compiled with Emscripten into WebAssembly (`ports/webassembly/`) with JavaScript wrapper library (`TextParserWasm`) for client-side web application consumption.
+- **BOM Specification**: Each grammar can specify which Byte Order Marks it accepts (e.g., UTF-8, UTF-16).
+- **Native Query Engine**: Query AST nodes using CSS-like selectors (`"Parent > Child"`, `"Ancestor Descendant"`, `"TypeA, TypeB"`).
+- **Incremental Delta Parsing**: Efficiently re-parses modified sections of a buffer, reusing unchanged parts of the tree and reporting which areas need repainting.
+- **Modern C23 & C++23 Standard**: Written for C23 and C++23, using features like `nullptr` and clean struct initialization across GCC, Clang, and MSVC.
+- **Native C Fast Path**: All 30 built-in grammars use hand-written C matchers instead of regex, eliminating 650 regexes for maximum parsing speed. Custom JSON definitions can also plug in native C matchers.
 
 ## Project Structure
 
@@ -112,28 +92,6 @@ On Windows:
 bin\unittests.exe
 ```
 
-## Performance
-
-Parsing performance is tracked on every push to `master` using the [Google Benchmark](https://github.com/google/benchmark) framework against the SQLite 3.53.0 source tree (312 `.c` + 42 `.h` files, ~13.7 MB).
-
-📊 **[View benchmark charts](https://bokic.github.io/textparser/benchmarks/)**
-
-### Search-scope optimization
-
-Token matching distinguishes between three scopes:
-
-- **Offset-0 only** — anchored (`PCRE2_ANCHORED`) start-token checks at the current position. For tokens flagged `multiLine: false`, the regex subject window is clamped to the end of the current line (`\n` or `\r`), since a single-line token can never span a newline. This is the dominant search type and the main performance lever for runtime-loaded definitions.
-- **Same-line end search** — for `StartStop` tokens with `otherTextInside: false` *and* nested tokens, the closing-token search is anchored at the current position only (the parser loop guarantees the end token sits there), avoiding a full scan to end-of-file. For `StartStop` tokens with `otherTextInside: true` *and* `multiLine: false` (single-line strings), the closing-token search is bounded to the current line, falling back to a full scan only when the end token is absent there so the *"Token spans multiple lines but multi_line flag is not set!"* validation can still fire.
-- **To-EOF end search** — kept for `otherTextInside: true` multi-line tokens (e.g. strings) that legitimately span newlines, and for `StartStop` tokens without nested tokens (e.g. `#...#` sharp expressions) whose end must be located by scanning ahead.
-
-All bounds are computed in encoding-aware units, so they behave identically for LATIN1, UTF-8, UTF-16 and UTF-32.
-
-### UTF-validity check elimination
-
-The single largest cost for runtime-loaded definitions was PCRE2 re-validating the **entire subject** for valid UTF-8 on *every* `pcre2_match` call (`PCRE2_UTF` set without `PCRE2_NO_UTF_CHECK`) — roughly 8µs per call on a ~20 KB window. The parser now validates the whole document once per parse (in the appropriate encoding: UTF-8/16/32) and passes `PCRE2_NO_UTF_CHECK` to every subsequent match when the text is valid. If the text contains invalid UTF-8/16/32, the flag is not used and the previous per-call checked behavior is preserved exactly.
-
-Combined with the search-scope work above, this took a runtime-loaded CFML parse of a 39 KB file from ~1360 ms to ~10 ms (over 100x), with identical parse results.
-
 ## Installation
 
 ### Arch Linux
@@ -148,10 +106,9 @@ Or view the package details at [https://aur.archlinux.org/packages/textparser](h
 
 ### macOS (Homebrew)
 
-Install from the local formula repository:
-
 ```bash
-brew install --build-from-source ./MacOS/textparser.rb
+brew tap bokic/textparser
+brew install textparser
 ```
 
 ### Windows
@@ -308,13 +265,13 @@ python3 definitions/json2h.py definitions/your_definition.json
 
 This generates a C header file (e.g., `definitions/your_definition.json.h`) containing the C struct and tags enum.
 
-By default, tokens whose `startRegex`/`endRegex` have a matching generated native C matcher in `include/search_function_gen.h` get a `.startRegexFunction` / `.endRegexFunction` function pointer (the "Native C Regex Bypass"). Pass `--no-native-regex` to skip those native function calls so the parser uses the regex strings directly instead:
+By default, tokens with a matching native C matcher get a fast-path function pointer. Pass `--no-native-regex` to skip the native matchers so the parser uses regex strings directly (useful for testing):
 
 ```bash
 python3 definitions/json2h.py --no-native-regex definitions/your_definition.json
 ```
 
-With `--no-native-regex`, `.startRegexFunction` and `.endRegexFunction` are always set to `NULL` while `.start_regex`/`.end_regex` are preserved. This is useful for testing/validating the pure-regex code path against the native function bypass.
+With `--no-native-regex`, native function pointers are set to `NULL` while the regex strings are preserved.
 
 ### Regenerating All Headers
 

@@ -15,6 +15,14 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_INSTALL   OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googlebenchmark)
 
+# Suppress -Wc2y-extensions triggered by __COUNTER__ in benchmark headers on newer Clang (19+)
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-c2y-extensions HAS_C2Y_WARNING_FLAG)
+if(HAS_C2Y_WARNING_FLAG)
+    target_compile_options(benchmark PRIVATE -Wno-c2y-extensions)
+    target_compile_options(benchmark_main PRIVATE -Wno-c2y-extensions)
+endif()
+
 # ── SQLite source download & extraction ──────────────────────────────────────
 set(SQLITE_VERSION   "3.53.0")
 set(SQLITE_ZIP_URL   "https://github.com/sqlite/sqlite/archive/refs/tags/version-${SQLITE_VERSION}.zip")
