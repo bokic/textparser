@@ -103,7 +103,25 @@ FetchContent_Declare(
     GIT_TAG        v0.23.4
     GIT_SHALLOW    TRUE
 )
-FetchContent_MakeAvailable(treesitter_c)
+FetchContent_GetProperties(treesitter_c)
+if(NOT treesitter_c_POPULATED)
+    # tree-sitter-c ships a generated parser.c. Do not enter its CMake project,
+    # which tries to regenerate the file and requires the tree-sitter CLI.
+    cmake_policy(PUSH)
+    if(POLICY CMP0169)
+        cmake_policy(SET CMP0169 OLD)
+    endif()
+    FetchContent_Populate(treesitter_c)
+    cmake_policy(POP)
+endif()
+
+add_library(tree-sitter-c STATIC
+    ${treesitter_c_SOURCE_DIR}/src/parser.c
+)
+target_include_directories(tree-sitter-c PRIVATE
+    ${treesitter_c_SOURCE_DIR}/src
+)
+target_compile_options(tree-sitter-c PRIVATE -w)
 
 # ── SQLite C/H benchmark (Google Benchmark) ──────────────────────────────────
 add_executable(benchmark_sqlite
