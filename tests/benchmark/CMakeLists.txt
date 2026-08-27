@@ -130,6 +130,7 @@ add_executable(benchmark_sqlite
 target_include_directories(benchmark_sqlite PRIVATE
     ../../include
     ../../definitions
+    ${treesitter_SOURCE_DIR}/lib/include
 )
 target_compile_definitions(benchmark_sqlite PRIVATE
     SQLITE_SRC_DIR="${SQLITE_INNER_DIR}"
