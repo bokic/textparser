@@ -94,6 +94,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/tree-sitter/tree-sitter.git
     GIT_TAG        v0.24.7
     GIT_SHALLOW    TRUE
+    SOURCE_SUBDIR  lib
 )
 FetchContent_MakeAvailable(treesitter)
 
