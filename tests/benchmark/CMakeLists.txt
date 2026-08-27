@@ -88,7 +88,15 @@ else()
     )
 endif()
 
-# ── tree-sitter-c grammar ──────────────────────────────────────────────────
+# ── Tree-sitter runtime and C grammar ───────────────────────────────────────
+FetchContent_Declare(
+    treesitter
+    GIT_REPOSITORY https://github.com/tree-sitter/tree-sitter.git
+    GIT_TAG        v0.24.7
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(treesitter)
+
 FetchContent_Declare(
     treesitter_c
     GIT_REPOSITORY https://github.com/tree-sitter/tree-sitter-c.git
@@ -97,9 +105,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(treesitter_c)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(TREE_SITTER REQUIRED tree-sitter)
-
 # ── SQLite C/H benchmark (Google Benchmark) ──────────────────────────────────
 add_executable(benchmark_sqlite
     benchmark_sqlite.cpp
@@ -107,7 +112,6 @@ add_executable(benchmark_sqlite
 target_include_directories(benchmark_sqlite PRIVATE
     ../../include
     ../../definitions
-    ${TREE_SITTER_INCLUDE_DIRS}
 )
 target_compile_definitions(benchmark_sqlite PRIVATE
     SQLITE_SRC_DIR="${SQLITE_INNER_DIR}"
@@ -118,8 +122,8 @@ if(NOT MSVC)
 endif()
 target_link_libraries(benchmark_sqlite PRIVATE
     libtextparser-json
+    tree-sitter
     tree-sitter-c
-    ${TREE_SITTER_LIBRARIES}
     benchmark::benchmark_main
 )
 if(WIN32)
