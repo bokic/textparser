@@ -2430,18 +2430,23 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     }
 
     size_t old_total_units = textparser_get_total_units(handle);
-    if (edit_offset > old_total_units || edit_offset + old_len > old_total_units)
+    if (edit_offset > old_total_units || old_len > old_total_units - edit_offset)
+        return -1;
+
+    if (new_len > (MAX_PARSE_SIZE / unit_size))
         return -1;
 
     size_t byte_offset = edit_offset * unit_size;
     size_t old_byte_len = old_len * unit_size;
     size_t new_byte_len = new_len * unit_size;
+
+    size_t remaining_bytes = handle->text_size - old_byte_len;
+    if (new_byte_len >= MAX_PARSE_SIZE || remaining_bytes + new_byte_len >= MAX_PARSE_SIZE)
+        return -1;
+
+    size_t new_total_bytes = remaining_bytes + new_byte_len;
     ssize_t delta_units = (ssize_t)new_len - (ssize_t)old_len;
     ssize_t delta_bytes = (ssize_t)new_byte_len - (ssize_t)old_byte_len;
-    size_t new_total_bytes = (size_t)((ssize_t)handle->text_size + delta_bytes);
-
-    if (new_total_bytes >= MAX_PARSE_SIZE)
-        return -1;
 
     // Splicing the text buffer if this is an actual edit
     if (new_text != handle->text_addr || delta_bytes != 0) {

@@ -228,3 +228,33 @@ TEST(IncrementalParsing, InvalidArguments) {
     EXPECT_EQ(textparser_state_generate(nullptr, 0), nullptr);
     textparser_close(handle);
 }
+
+TEST(IncrementalParsing, IntegerOverflowProtection) {
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem("<cfset a = 1>", 13, TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+
+    // 1. old_len wrapping around SIZE_MAX
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 5, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 5, (size_t)-5, nullptr, 0, nullptr), -1);
+
+    // 2. edit_offset near SIZE_MAX
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, (size_t)-1, 0, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, (size_t)-1, (size_t)-1, nullptr, 0, nullptr), -1);
+
+    // 3. new_len near SIZE_MAX / overflow unit multiplication
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", (size_t)-1, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", (size_t)-1 / 2, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", 16 * 1024 * 1024, nullptr), -1);
+
+    textparser_close(handle);
+
+    // 4. Multi-byte encoding (UTF-16) overflow protection
+    static const uint16_t u16_code[] = { '<', 'c', 'f', 's', 'e', 't', ' ', 'a', '=', '1', '>', 0 };
+    ASSERT_EQ(textparser_openmem((const char *)u16_code, -1, TEXTPARSER_ENCODING_UTF_16, &handle), 0);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 2, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", (size_t)-1 / sizeof(uint16_t) + 1, nullptr), -1);
+    textparser_close(handle);
+}
+
