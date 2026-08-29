@@ -52,6 +52,7 @@ function run_build() {
 
 TEST(parse_Bash, parameter_expansions_and_special_variables) {
     auto tokens = TextParser(R"bash(
+BUILD_TYPE="${BUILD_TYPE:-Release}"
 echo ${#array[@]}
 echo ${VAR:-default}
 echo ${VAR:=default}
@@ -73,8 +74,11 @@ echo $! $$ $# $@ $* $? $- $_ $0 $1
         scan_tokens(tokens[i], found);
     }
 
+    EXPECT_TRUE(found.contains("ParameterExpansion"));
     EXPECT_TRUE(found.contains("Variable"));
+    EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("Number"));
 }
 
 TEST(parse_Bash, command_substitution_and_ansi_strings) {

@@ -6532,16 +6532,6 @@ static size_t bash_var_match_at(enum textparser_encoding encoding, const void *s
     if (get_char_at(encoding, start, pos) == '$') {
         if (pos + 1 >= max_len) return 0;
         uint32_t c1 = get_char_at(encoding, start, pos + 1);
-        if (c1 == '{') {
-            size_t i = pos + 2;
-            while (i < max_len) {
-                uint32_t c = get_char_at(encoding, start, i);
-                if (c == '\r' || c == '\n') return 0;
-                if (c == '}') return (i + 1) - pos;
-                i++;
-            }
-            return 0;
-        }
         if (is_alpha_codepoint(c1) || c1 == '_') {
             size_t i = pos + 2;
             while (i < max_len) {
@@ -6565,9 +6555,11 @@ static size_t bash_var_match_at(enum textparser_encoding encoding, const void *s
             else break;
         }
         if (i < max_len) {
-            uint32_t eq = get_char_at(encoding, start, i);
-            if (eq == '=') return i - pos;
-            if (eq == '+' && i + 1 < max_len && get_char_at(encoding, start, i + 1) == '=') {
+            uint32_t ch = get_char_at(encoding, start, i);
+            if (ch == '=' || ch == ':' || ch == '/' || ch == '#' || ch == '%' || ch == '^' || ch == ',' || ch == '[' || ch == ']' || ch == '}') {
+                return i - pos;
+            }
+            if (ch == '+' && i + 1 < max_len && get_char_at(encoding, start, i + 1) == '=') {
                 return i - pos;
             }
         }
@@ -6596,6 +6588,32 @@ bool _gen_bash_Variable_start(enum textparser_encoding encoding, const char *sta
         }
     }
     return false;
+}
+
+bool _gen_bash_ParameterExpansion_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 2 && get_char_at(encoding, start, 0) == '$' && get_char_at(encoding, start, 1) == '{') {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 1 < max_len; pos++) {
+        if (get_char_at(encoding, start, pos) == '$' && get_char_at(encoding, start, pos + 1) == '{') {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_bash_ParameterExpansion_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_CodeBlock_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
 
 bool _gen_bash_CommandSubstitution_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
@@ -6645,7 +6663,8 @@ static size_t bash_op_match_at(enum textparser_encoding encoding, const void *st
         static const char *const bops2[] = {
             "&&", "||", ">>", "<<", "==", "!=", "+=", "-=", "*=", "/=",
             "%=", "&=", "|=", "^=", "++", "--", ";;", ";&", "|&", ">&",
-            "<&", "<=", ">=", "=~", NULL
+            "<&", "<=", ">=", "=~", ":-", ":=", ":+", ":?", "//", "##",
+            "%%", "^^", ",,", NULL
         };
         for (int k = 0; bops2[k] != NULL; k++) {
             if (str_match_at(encoding, start, pos, max_len, bops2[k], false)) return 2;
@@ -6655,7 +6674,7 @@ static size_t bash_op_match_at(enum textparser_encoding encoding, const void *st
     if (c == '-' || c == '+' || c == '*' || c == '/' || c == '%' ||
         c == '&' || c == '|' || c == '^' || c == '~' || c == '<' ||
         c == '>' || c == '!' || c == '=' || c == ';' || c == '.' ||
-        c == ',') {
+        c == ',' || c == ':' || c == '#' || c == '?') {
         return 1;
     }
     return 0;

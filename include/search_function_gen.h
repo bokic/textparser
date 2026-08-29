@@ -790,8 +790,12 @@ EXPORT_TEXTPARSER bool _gen_bash_LineComment_start(enum textparser_encoding enco
 EXPORT_TEXTPARSER bool _gen_bash_Keyword_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_Boolean_start_dHJ1ZVxifGZhbHNlXGI= */
 EXPORT_TEXTPARSER bool _gen_bash_Boolean_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_Variable_start_XCRbYS16QS1aX11bYS16QS1aMC05X10qfFwkXHtbXn1cclxuXStcfXxcJFtAKiM/JCFfMC05LV18W2EtekEtWl9dW2EtekEtWjAtOV9dKig/PVwrPXw9KQ== */
+/* _gen_bash_Variable_start_XCRbYS16QS1aX11bYS16QS1aMC05X10qfFwkW0AqIz8kIV8wLTktXXxbYS16QS1aX11bYS16QS1aMC05X10qKD89XCs9fD18Oi18Oj18OlwrfDpcP3w6fC98I3wlfFxefCx8XFt8XF18XH0p */
 EXPORT_TEXTPARSER bool _gen_bash_Variable_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_ParameterExpansion_start_XCRcew== */
+EXPORT_TEXTPARSER bool _gen_bash_ParameterExpansion_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_ParameterExpansion_end_XH0= */
+EXPORT_TEXTPARSER bool _gen_bash_ParameterExpansion_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_CommandSubstitution_start_YA== */
 EXPORT_TEXTPARSER bool _gen_bash_CommandSubstitution_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_CommandSubstitution_end_YA== */
@@ -800,7 +804,7 @@ EXPORT_TEXTPARSER bool _gen_bash_CommandSubstitution_end(enum textparser_encodin
 EXPORT_TEXTPARSER bool _gen_bash_CodeBlock_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_CodeBlock_end_XH0= */
 EXPORT_TEXTPARSER bool _gen_bash_CodeBlock_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_Operator_start_JiZ8XHxcfHw+Pnw8PHw9PXwhPXxcKz18XC09fFwqPXwvPXwlPXwmPXxcfD18XF49fDw8PXw+Pj18XCtcK3xcLVwtfDs7fDsmfDs7JnxcfCZ8PDw8fD4mfDwmfDw9fD49fD1+fFstKyovJSZ8Xn48PiE9Oy4sfF0= */
+/* _gen_bash_Operator_start_JiZ8XHxcfHw+Pnw8PHw9PXwhPXxcKz18XC09fFwqPXwvPXwlPXwmPXxcfD18XF49fDw8PXw+Pj18XCtcK3xcLVwtfDs7fDsmfDs7JnxcfCZ8PDw8fD4mfDwmfDw9fD49fD1+fDotfDo9fDpcK3w6XD98Ly98IyN8JSV8XF5cXnwsLHxbLSsqLyUmfF5+PD4hPTsuLHw6XQ== */
 EXPORT_TEXTPARSER bool _gen_bash_Operator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_SingleString_start_XCQ/Jw== */
 EXPORT_TEXTPARSER bool _gen_bash_SingleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);

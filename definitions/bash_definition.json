@@ -12,6 +12,7 @@
     "Boolean",
     "Keyword",
     "Variable",
+    "ParameterExpansion",
     "CommandSubstitution",
     "CodeBlock",
     "Operator",
@@ -41,8 +42,27 @@
     },
     "Variable": {
       "type": "SimpleToken",
-      "startRegex": "\\$[a-zA-Z_][a-zA-Z0-9_]*|\\$\\{[^}\\r\\n]+\\}|\\$[@*#?$!_0-9-]|[a-zA-Z_][a-zA-Z0-9_]*(?=\\+=|=)",
+      "startRegex": "\\$[a-zA-Z_][a-zA-Z0-9_]*|\\$[@*#?$!_0-9-]|[a-zA-Z_][a-zA-Z0-9_]*(?=\\+=|=|:-|:=|:\\+|:\\?|:|/|#|%|\\^|,|\\[|\\]|\\})",
       "textColor": "0x9cdcfe"
+    },
+    "ParameterExpansion": {
+      "type": "StartStop",
+      "startRegex": "\\$\\{",
+      "endRegex": "\\}",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0x9cdcfe",
+      "nestedTokens": [
+        "Variable",
+        "ParameterExpansion",
+        "Operator",
+        "Number",
+        "SingleString",
+        "DoubleString",
+        "CommandSubstitution",
+        "Parenthesis",
+        "ArrayIndex"
+      ]
     },
     "CommandSubstitution": {
       "type": "StartStop",
@@ -56,6 +76,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
         "Operator",
@@ -79,6 +100,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
         "Operator",
@@ -91,7 +113,7 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "&&|\\|\\||>>|<<|==|!=|\\+=|\\-=|\\*=|/=|%=|&=|\\|=|\\^=|<<=|>>=|\\+\\+|\\-\\-|;;|;&|;;&|\\|&|<<<|>&|<&|<=|>=|=~|[-+*/%&|^~<>!=;.,|]",
+      "startRegex": "&&|\\|\\||>>|<<|==|!=|\\+=|\\-=|\\*=|/=|%=|&=|\\|=|\\^=|<<=|>>=|\\+\\+|\\-\\-|;;|;&|;;&|\\|&|<<<|>&|<&|<=|>=|=~|:-|:=|:\\+|:\\?|//|##|%%|\\^\\^|,,|[-+*/%&|^~<>!=;.,|:]",
       "textColor": "0xd4d4d4"
     },
     "SingleString": {
@@ -115,6 +137,7 @@
       "nestedTokens": [
         "StringEscape",
         "Variable",
+        "ParameterExpansion",
         "CommandSubstitution"
       ]
     },
@@ -140,6 +163,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
         "Operator",
@@ -162,6 +186,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
         "Operator",
@@ -183,6 +208,7 @@
     "operandTokens": [
       "Number",
       "Variable",
+      "ParameterExpansion",
       "Boolean",
       "SingleString",
       "DoubleString",
