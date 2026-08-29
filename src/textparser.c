@@ -1974,6 +1974,10 @@ void textparser_free_language_definition(textparser_language_definition *definit
 
 int textparser_openfile(const char *pathname, int default_text_format, int bom_mask, textparser_t *handle)
 {
+    if (handle == nullptr || pathname == nullptr) {
+        return TEXTPARSER_ERROR_INVALID_ARGUMENT;
+    }
+
     struct textparser_handle local_hnd;
     int err = TEXTPARSER_OK;
 
