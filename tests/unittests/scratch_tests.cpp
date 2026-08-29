@@ -228,7 +228,7 @@ TEST(parse_MultiLine, token_multiline_validation) {
 // ---------------------------------------------------------------------------
 
 static textparser_language_definition make_single_line_string_lang(void) {
-    static textparser_token tokens[1] = {};
+    static textparser_token tokens[2] = {};
     static const int start_tokens[] = { 0, TextParser_END };
     tokens[0].name = "SingleLineString";
     tokens[0].type = TEXTPARSER_TOKEN_TYPE_START_STOP;
