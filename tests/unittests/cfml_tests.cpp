@@ -1841,4 +1841,249 @@ TEST(parse_CFML, concurrent_multi_threaded_parse_and_cleanup) {
     }
 }
 
+TEST(parse_CFML, category_1_safe_navigation_operator) {
+    // 1.1 Safe Navigation (?.)
+    auto tokens = TextParser(R"(<cfscript>res = user?.profile?.name;</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
 
+    // Check that ?. is parsed as ObjectMember and not error
+    bool found_member = false;
+    for (int i = 0; i < tokens[0][1].children; ++i) {
+        if (strcmp(tokens[0][1][i].type, "ObjectMember") == 0) {
+            found_member = true;
+        }
+    }
+    EXPECT_TRUE(found_member);
+}
+
+TEST(parse_CFML, category_1_null_coalescing_operator) {
+    // 1.2 Null Coalescing (??)
+    auto tokens = TextParser(R"(<cfscript>res = missingVar ?? "Fallback";</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    bool found_null_coalesce = false;
+    for (int i = 0; i < tokens[0][1].children; ++i) {
+        if (strcmp(tokens[0][1][i].type, "TernaryOperator") == 0) {
+            found_null_coalesce = true;
+            EXPECT_EQ(tokens[0][1][i].length, 2);
+        }
+    }
+    EXPECT_TRUE(found_null_coalesce);
+}
+
+TEST(parse_CFML, category_1_identity_comparison_operators) {
+    // 1.3 Identity Comparison (=== and !==)
+    auto tokens = TextParser(R"(<cfscript>a = (1 === 1); b = (1 !== "1");</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    int compare_ops = 0;
+    for (size_t i = 0; i < tokens[0][1].children; ++i) {
+        if (strcmp(tokens[0][1][i].type, "Parenthesis") == 0) {
+            // Parenthesis -> [StartDelimiter, ScriptExpression, EndDelimiter]
+            for (size_t j = 0; j < tokens[0][1][i].children; ++j) {
+                if (strcmp(tokens[0][1][i][j].type, "ScriptExpression") == 0) {
+                    for (size_t k = 0; k < tokens[0][1][i][j].children; ++k) {
+                        if (strcmp(tokens[0][1][i][j][k].type, "CompareOperator") == 0) {
+                            compare_ops++;
+                            EXPECT_EQ(tokens[0][1][i][j][k].length, 3);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_EQ(compare_ops, 2);
+}
+
+TEST(parse_CFML, category_1_spread_operator) {
+    // 1.4 Spread / Rest Operator (...)
+    auto tokens = TextParser(R"(<cfscript>arr2 = [1, ...arr1, 4];</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    bool found_spread = false;
+    for (size_t i = 0; i < tokens[0][1].children; ++i) {
+        if (strcmp(tokens[0][1][i].type, "ArrayIndex") == 0) {
+            // ArrayIndex -> [StartDelimiter, ScriptExpression, EndDelimiter]
+            for (size_t j = 0; j < tokens[0][1][i].children; ++j) {
+                if (strcmp(tokens[0][1][i][j].type, "ScriptExpression") == 0) {
+                    for (size_t k = 0; k < tokens[0][1][i][j].children; ++k) {
+                        if (strcmp(tokens[0][1][i][j][k].type, "SpreadOperator") == 0) {
+                            found_spread = true;
+                            EXPECT_EQ(tokens[0][1][i][j][k].length, 3);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_TRUE(found_spread);
+}
+
+TEST(parse_CFML, category_1_unary_increment_decrement) {
+    // 1.5 Unary Increment / Decrement (++, --)
+    auto tokens = TextParser(R"(<cfscript>x++; ++x; y--; --y;</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    int inc_dec_count = 0;
+    for (size_t i = 0; i < tokens[0][1].children; ++i) {
+        if (strcmp(tokens[0][1][i].type, "IncDecOperator") == 0 ||
+            (strcmp(tokens[0][1][i].type, "Operator") == 0 && tokens[0][1][i].length == 2)) {
+            inc_dec_count++;
+            EXPECT_EQ(tokens[0][1][i].length, 2);
+        }
+    }
+    EXPECT_EQ(inc_dec_count, 4);
+}
+
+TEST(parse_CFML, category_2_control_flow_keywords) {
+    // 2.1 Control Flow (switch, case, default, break, continue)
+    auto tokens = TextParser(R"(<cfscript>switch(val) { case "B": res = "Got B"; break; default: continue; }</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "switch"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "case"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "break"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "default"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "continue"));
+}
+
+TEST(parse_CFML, category_2_iteration_keywords) {
+    // 2.2 Iteration (while, do, for, in)
+    auto tokens = TextParser(R"(<cfscript>for (i in list) { while(c < 3) { c++; } do { d++; } while (d < 3); }</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "for"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "in"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "while"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "do"));
+}
+
+TEST(parse_CFML, category_2_exception_and_return_keywords) {
+    // 2.3 Exception & Flow (return, throw, rethrow, retry, try, catch, finally)
+    auto tokens = TextParser(R"(<cfscript>try { throw("E"); } catch (any e) { rethrow; retry; } finally { return; }</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "try"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "catch"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "finally"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "throw"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "rethrow"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "retry"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "return"));
+}
+
+TEST(parse_CFML, category_2_declarations_and_modifiers) {
+    // 2.4 & 2.5 Declarations, Modifiers & OOP
+    auto tokens = TextParser(R"(<cfscript>import java.util.*; pageencoding "UTF-8"; include "helper.cfm"; public static final function test() {}</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "import"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "pageencoding"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "include"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "public"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "static"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "final"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "function"));
+}
+
+TEST(parse_CFML, category_2_properties_parameters_concurrency) {
+    // 2.6 & 2.7 Properties, Params & Concurrency
+    auto tokens = TextParser(R"(<cfscript>property name="id" required="true"; param name="p" default="1"; lock name="L" { super.init(); null; } transaction { thread name="T" {} }</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "property"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "required"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "param"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "default"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "lock"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "transaction"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "thread"));
+}
+
+TEST(parse_CFML, category_3_arrow_functions_single_and_multi_param) {
+    // 3.1 & 3.2 Arrow functions (single param, multi-param, block body)
+    auto tokens = TextParser(R"(<cfscript>doubleFn = x => x * 2; addFn = (a, b) => a + b; blockFn = (x, y) => { return x * y; };</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "LambdaOperator", "=>"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "doubleFn"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "addFn"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "blockFn"));
+    EXPECT_TRUE(has_token_value(tokens, "Keyword", "return"));
+}
+
+TEST(parse_CFML, category_3_array_destructuring) {
+    // 3.3 Array destructuring assignment
+    auto tokens = TextParser(R"(<cfscript>[first, second, ...rest] = [100, 200, 300, 400];</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "SpreadOperator", "..."));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "first"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "second"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "rest"));
+    EXPECT_TRUE(has_token_value(tokens, "AssignOperator", "="));
+}
+
+TEST(parse_CFML, category_3_struct_literals_and_ordered_structs) {
+    // 3.4 & 3.5 Struct literals (: and =) and ordered struct literals
+    auto tokens = TextParser(R"(<cfscript>s1 = { "a": 1, b: 2 }; s2 = { "a" = 1, b = 2 }; ord = [ a = 1, b = 2, c = 3 ];</cfscript>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
+
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "s1"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "s2"));
+    EXPECT_TRUE(has_token_value(tokens, "Variable", "ord"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "1"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "2"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "3"));
+}
+
+TEST(parse_CFML, category_4_cfc_script_components) {
+    // 4.1 Script Component Headers
+    const char *cfc_code = "component accessors=\"true\" extends=\"BaseComponent\" implements=\"IService\" {\n"
+                           "    property name=\"id\" type=\"numeric\";\n"
+                           "}\n";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(cfc_code, strlen(cfc_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    // Emulate .cfc file extension
+    textparser_set_filename(handle, "TestService.cfc");
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&cfml_definition, first), "ScriptExpression");
+    textparser_close(handle);
+}
+
+TEST(parse_CFML, category_4_cfc_annotations_and_modifiers) {
+    // 4.2 & 4.3 Annotations, Access Modifiers and Function Signatures
+    const char *cfc_code = "/**\n"
+                           " * @displayname UserService\n"
+                           " */\n"
+                           "public class component {\n"
+                           "    public static string function findUser(required numeric userId) output=false {\n"
+                           "        return \"User #userId#\";\n"
+                           "    }\n"
+                           "}\n";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(cfc_code, strlen(cfc_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    textparser_set_filename(handle, "UserService.cfc");
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+
+    const textparser_token_item *first = textparser_get_first_token(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&cfml_definition, first), "ScriptExpression");
+    textparser_close(handle);
+}

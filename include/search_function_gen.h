@@ -255,17 +255,21 @@ EXPORT_TEXTPARSER bool _gen_cfml_ExpressionEnd_start(enum textparser_encoding en
 EXPORT_TEXTPARSER bool _gen_cfml_Number_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_Boolean_start_dHJ1ZVxifGZhbHNlXGJ8eWVzXGJ8bm9cYg== */
 EXPORT_TEXTPARSER bool _gen_cfml_Boolean_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_cfml_ObjectMember_start_XC4= */
+/* _gen_cfml_ObjectMember_start_XD9cLnxcLg== */
 EXPORT_TEXTPARSER bool _gen_cfml_ObjectMember_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_Function_start_KFthLXpfXStbYS16MC05X10qKVtcc10qXCg= */
 EXPORT_TEXTPARSER bool _gen_cfml_Function_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_Separator_start_LA== */
 EXPORT_TEXTPARSER bool _gen_cfml_Separator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_cfml_SpreadOperator_start_XC5cLlwu */
+EXPORT_TEXTPARSER bool _gen_cfml_SpreadOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_Variable_start_W2Etel9cJF0rW2EtejAtOV9cJF0q */
 EXPORT_TEXTPARSER bool _gen_cfml_Variable_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_cfml_LambdaOperator_start_PT4= */
+EXPORT_TEXTPARSER bool _gen_cfml_LambdaOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_AssignOperator_start_XCs9fFwtPXxcKj18XC89fCU9fCY9fD0= */
 EXPORT_TEXTPARSER bool _gen_cfml_AssignOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_cfml_TernaryOperator_start_XD86fFw/fFw6 */
+/* _gen_cfml_TernaryOperator_start_XD9cP3xcPzp8XD98XDo= */
 EXPORT_TEXTPARSER bool _gen_cfml_TernaryOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_LogicalImpOperator_start_aW1wXGI= */
 EXPORT_TEXTPARSER bool _gen_cfml_LogicalImpOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
@@ -279,10 +283,12 @@ EXPORT_TEXTPARSER bool _gen_cfml_LogicalOrOperator_start(enum textparser_encodin
 EXPORT_TEXTPARSER bool _gen_cfml_LogicalAndOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_LogicalNotOperator_start_bm90XGJ8IQ== */
 EXPORT_TEXTPARSER bool _gen_cfml_LogicalNotOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_cfml_CompareOperator_start_Z3JlYXRlclxzK3RoYW5ccytvclxzK2VxdWFsXHMrdG9cYnxsZXNzXHMrdGhhblxzK29yXHMrZXF1YWxccyt0b1xifGRvZXNccytub3Rccytjb250YWluXGJ8aXNccytub3RcYnxjb250YWluc1xifGxlc3Nccyt0aGFuXGJ8Z3JlYXRlclxzK3RoYW5cYnxub3RccytlcXVhbFxifGVxdWFsXGJ8bmVxXGJ8bHRlXGJ8Z3RlXGJ8ZXFcYnw9PXw+PXw8PXwhPXxnZVxifGx0XGJ8Z3RcYnxsZVxifFxiaXNcYnw+fDw= */
+/* _gen_cfml_CompareOperator_start_Z3JlYXRlclxzK3RoYW5ccytvclxzK2VxdWFsXHMrdG9cYnxsZXNzXHMrdGhhblxzK29yXHMrZXF1YWxccyt0b1xifGRvZXNccytub3Rccytjb250YWluXGJ8aXNccytub3RcYnxjb250YWluc1xifGxlc3Nccyt0aGFuXGJ8Z3JlYXRlclxzK3RoYW5cYnxub3RccytlcXVhbFxifGVxdWFsXGJ8bmVxXGJ8bHRlXGJ8Z3RlXGJ8ZXFcYnw9PT18IT09fD09fD49fDw9fCE9fGdlXGJ8bHRcYnxndFxifGxlXGJ8XGJpc1xifD58PA== */
 EXPORT_TEXTPARSER bool _gen_cfml_CompareOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_ConcatOperator_start_XCY= */
 EXPORT_TEXTPARSER bool _gen_cfml_ConcatOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_cfml_IncDecOperator_start_XCtcK3xcLVwt */
+EXPORT_TEXTPARSER bool _gen_cfml_IncDecOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_AddOperator_start_XCt8LQ== */
 EXPORT_TEXTPARSER bool _gen_cfml_AddOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_MulOperator_start_XCp8XC98XFx8bW9kXGJ8XCU= */
@@ -293,7 +299,7 @@ EXPORT_TEXTPARSER bool _gen_cfml_PowerOperator_start(enum textparser_encoding en
 EXPORT_TEXTPARSER bool _gen_cfml_CodeBlock_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_CodeBlock_end_XH0= */
 EXPORT_TEXTPARSER bool _gen_cfml_CodeBlock_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_cfml_Keyword_start_dmFyXGJ8ZnVuY3Rpb25cYnx0aGlzXGJ8dHJ5XGJ8Y2F0Y2hcYnxpZlxifHRoZW5cYnxlbHNlXGI= */
+/* _gen_cfml_Keyword_start_dmFyXGJ8ZnVuY3Rpb25cYnx0aGlzXGJ8c3VwZXJcYnxudWxsXGJ8dHJ5XGJ8Y2F0Y2hcYnxmaW5hbGx5XGJ8aWZcYnx0aGVuXGJ8ZWxzZVxifHN3aXRjaFxifGNhc2VcYnxkZWZhdWx0XGJ8YnJlYWtcYnxjb250aW51ZVxifHdoaWxlXGJ8ZG9cYnxmb3JcYnxpblxifHJldHVyblxifHRocm93XGJ8cmV0aHJvd1xifHJldHJ5XGJ8Y29tcG9uZW50XGJ8aW50ZXJmYWNlXGJ8cHJvcGVydHlcYnxwYWdlZW5jb2RpbmdcYnxpbXBvcnRcYnxpbmNsdWRlXGJ8cGFyYW1cYnxsb2NrXGJ8dHJhbnNhY3Rpb25cYnx0aHJlYWRcYnxwdWJsaWNcYnxwcml2YXRlXGJ8cmVtb3RlXGJ8cGFja2FnZVxifHN0YXRpY1xifGZpbmFsXGJ8YWJzdHJhY3RcYnxyZXF1aXJlZFxi */
 EXPORT_TEXTPARSER bool _gen_cfml_Keyword_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_cfml_Parenthesis_start_XCg= */
 EXPORT_TEXTPARSER bool _gen_cfml_Parenthesis_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);

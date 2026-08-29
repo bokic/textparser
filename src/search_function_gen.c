@@ -2317,11 +2317,16 @@ bool _gen_cfml_Boolean_start(enum textparser_encoding encoding, const char *star
     return false;
 }
 
-// ObjectMember: \.
+// ObjectMember: \?\.|\.
 bool _gen_cfml_ObjectMember_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     (void)is_caseless;
     if (only_at_start) {
+        if (str_match_at(encoding, start, 0, max_len, "?.", false)) {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
         if (max_len > 0 && get_char_at(encoding, start, 0) == '.') {
             if (offset) *offset = 0;
             if (length) *length = 1;
@@ -2330,6 +2335,11 @@ bool _gen_cfml_ObjectMember_start(enum textparser_encoding encoding, const char 
         return false;
     }
     for (size_t pos = 0; pos < max_len; pos++) {
+        if (str_match_at(encoding, start, pos, max_len, "?.", false)) {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
+            return true;
+        }
         if (get_char_at(encoding, start, pos) == '.') {
             if (offset) *offset = pos;
             if (length) *length = 1;
@@ -2388,6 +2398,28 @@ bool _gen_cfml_Separator_start(enum textparser_encoding encoding, const char *st
     return _gen_json_ValueSeparator_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
 
+// SpreadOperator: \.\.\.
+bool _gen_cfml_SpreadOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (str_match_at(encoding, start, 0, max_len, "...", false)) {
+            if (offset) *offset = 0;
+            if (length) *length = 3;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        if (str_match_at(encoding, start, pos, max_len, "...", false)) {
+            if (offset) *offset = pos;
+            if (length) *length = 3;
+            return true;
+        }
+    }
+    return false;
+}
+
 // Variable: [a-z_\$]+[a-z0-9_\$]*
 static size_t cfml_var_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
 {
@@ -2420,6 +2452,28 @@ bool _gen_cfml_Variable_start(enum textparser_encoding encoding, const char *sta
         if (m > 0) {
             if (offset) *offset = pos;
             if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// LambdaOperator: =>
+bool _gen_cfml_LambdaOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (str_match_at(encoding, start, 0, max_len, "=>", false)) {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        if (str_match_at(encoding, start, pos, max_len, "=>", false)) {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
             return true;
         }
     }
@@ -2463,10 +2517,11 @@ bool _gen_cfml_AssignOperator_start(enum textparser_encoding encoding, const cha
     return false;
 }
 
-// TernaryOperator: \?:|\?|\:
+// TernaryOperator: \?\?|\?:|\?|\:
 static size_t cfml_ternary_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
 {
     if (pos >= max_len) return 0;
+    if (str_match_at(encoding, start, pos, max_len, "??", false)) return 2;
     if (str_match_at(encoding, start, pos, max_len, "?:", false)) return 2;
     uint32_t c = get_char_at(encoding, start, pos);
     if (c == '?' || c == ':') return 1;
@@ -2682,7 +2737,7 @@ static size_t cfml_match_words_sequence(enum textparser_encoding encoding, const
     return 0;
 }
 
-// CompareOperator: greater\s+than\s+or\s+equal\s+to\b|less\s+than\s+or\s+equal\s+to\b|does\s+not\s+contain\b|is\s+not\b|contains\b|less\s+than\b|greater\s+than\b|not\s+equal\b|equal\b|neq\b|lte\b|gte\b|eq\b|==|>=|<=|!=|ge\b|lt\b|gt\b|le\b|\bis\b|>|<
+// CompareOperator: greater\s+than\s+or\s+equal\s+to\b|less\s+than\s+or\s+equal\s+to\b|does\s+not\s+contain\b|is\s+not\b|contains\b|less\s+than\b|greater\s+than\b|not\s+equal\b|equal\b|neq\b|lte\b|gte\b|eq\b|===|!==|==|>=|<=|!=|ge\b|lt\b|gt\b|le\b|\bis\b|>|<
 static size_t cfml_compare_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless)
 {
     if (pos >= max_len) return 0;
@@ -2710,6 +2765,12 @@ static size_t cfml_compare_match_at(enum textparser_encoding encoding, const voi
         if (wm > 0) return wm;
     }
 
+    if (pos + 3 <= max_len) {
+        if (str_match_at(encoding, start, pos, max_len, "===", false) ||
+            str_match_at(encoding, start, pos, max_len, "!==", false)) {
+            return 3;
+        }
+    }
     if (pos + 2 <= max_len) {
         if (str_match_at(encoding, start, pos, max_len, "==", false) ||
             str_match_at(encoding, start, pos, max_len, ">=", false) ||
@@ -2761,6 +2822,30 @@ bool _gen_cfml_ConcatOperator_start(enum textparser_encoding encoding, const cha
         if (get_char_at(encoding, start, pos) == '&') {
             if (offset) *offset = pos;
             if (length) *length = 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+// IncDecOperator: \+\+|\-\-
+bool _gen_cfml_IncDecOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (str_match_at(encoding, start, 0, max_len, "++", false) ||
+            str_match_at(encoding, start, 0, max_len, "--", false)) {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        if (str_match_at(encoding, start, pos, max_len, "++", false) ||
+            str_match_at(encoding, start, pos, max_len, "--", false)) {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
             return true;
         }
     }
@@ -2857,10 +2942,17 @@ bool _gen_cfml_CodeBlock_end(enum textparser_encoding encoding, const char *star
     return _gen_c_CodeBlock_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
 
-// Keyword: var\b|function\b|this\b|try\b|catch\b|if\b|then\b|else\b
+// Keyword: var\b|function\b|this\b|super\b|null\b|try\b|catch\b|finally\b|if\b|then\b|else\b|switch\b|case\b|default\b|break\b|continue\b|while\b|do\b|for\b|in\b|return\b|throw\b|rethrow\b|retry\b|component\b|interface\b|property\b|pageencoding\b|import\b|include\b|param\b|lock\b|transaction\b|thread\b|public\b|private\b|remote\b|package\b|static\b|final\b|abstract\b|required\b
 static size_t cfml_kw_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless)
 {
-    static const char *const kws[] = { "function", "catch", "this", "then", "else", "var", "try", "if", NULL };
+    static const char *const kws[] = {
+        "pageencoding", "transaction", "component", "interface", "abstract", "required",
+        "continue", "property", "function", "package", "finally", "rethrow", "private",
+        "default", "include", "thread", "return", "public", "remote", "static", "import",
+        "switch", "catch", "retry", "param", "throw", "while", "super", "break",
+        "final", "this", "then", "else", "lock", "null", "case", "var", "try", "for",
+        "in", "if", "do", NULL
+    };
     for (int k = 0; kws[k] != NULL; k++) {
         size_t wm = cfml_word_op_match(encoding, start, pos, max_len, kws[k], caseless);
         if (wm > 0) return wm;
