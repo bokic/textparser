@@ -2208,7 +2208,7 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
 
     ret = malloc(sizeof(struct textparser_handle));
     if (ret == nullptr) {
-        return 6;
+        return TEXTPARSER_ERROR_OUT_OF_MEMORY;
     }
 
     memset(ret, 0, sizeof(struct textparser_handle));
