@@ -1849,7 +1849,7 @@ TEST(parse_CFML, category_1_safe_navigation_operator) {
 
     // Check that ?. is parsed as ObjectMember and not error
     bool found_member = false;
-    for (int i = 0; i < tokens[0][1].children; ++i) {
+    for (size_t i = 0; i < tokens[0][1].children; ++i) {
         if (strcmp(tokens[0][1][i].type, "ObjectMember") == 0) {
             found_member = true;
         }
@@ -1864,7 +1864,7 @@ TEST(parse_CFML, category_1_null_coalescing_operator) {
     EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
 
     bool found_null_coalesce = false;
-    for (int i = 0; i < tokens[0][1].children; ++i) {
+    for (size_t i = 0; i < tokens[0][1].children; ++i) {
         if (strcmp(tokens[0][1][i].type, "TernaryOperator") == 0) {
             found_null_coalesce = true;
             EXPECT_EQ(tokens[0][1][i].length, 2);
