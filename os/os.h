@@ -9,8 +9,8 @@
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
 typedef HANDLE file_hnd_fd;
-#define FILE_HND_FD_NULL NULL
-#define ERROR_FILE_HND_FD NULL
+#define FILE_HND_FD_NULL INVALID_HANDLE_VALUE
+#define ERROR_FILE_HND_FD INVALID_HANDLE_VALUE
 #if !defined(_SSIZE_T_DEFINED) && !defined(__ssize_t_defined) && !defined(_SSIZE_T_)
 typedef SSIZE_T ssize_t;
 #define _SSIZE_T_DEFINED
@@ -20,8 +20,8 @@ typedef SSIZE_T ssize_t;
 #include <unistd.h>
 #include <strings.h>
 typedef int file_hnd_fd;
-#define FILE_HND_FD_NULL 0
-#define ERROR_FILE_HND_FD -1
+#define FILE_HND_FD_NULL (-1)
+#define ERROR_FILE_HND_FD (-1)
 #endif
 
 #define os_file_defer(var) file_hnd_fd var __attribute__((cleanup(os_file_cleanup))) = FILE_HND_FD_NULL

@@ -25,7 +25,9 @@ file_hnd_fd os_creat_file(const char* pathname)
 
 void os_file_close(file_hnd_fd hnd_fd)
 {
-    close(hnd_fd);
+    if (hnd_fd >= 0) {
+        close(hnd_fd);
+    }
 }
 
 ssize_t os_write(file_hnd_fd hnd_fd, const void *buffer, size_t len)
@@ -115,7 +117,7 @@ ssize_t os_write_to_terminal(const void *buffer, size_t len)
 
 void os_file_cleanup(void *fd) {
     int *fd_int = (int *) fd;
-    if (fd_int) {
+    if (fd_int && *fd_int >= 0) {
         close(*fd_int);
         *fd_int = -1;
     }
