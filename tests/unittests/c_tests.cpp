@@ -325,4 +325,152 @@ TEST(parse_C, token_colors_distinct) {
     EXPECT_EQ(colors.size(), 9u);
 }
 
+TEST(parse_C, c23_keywords_and_types) {
+    const char *code = R"(
+        #embed "data.bin"
+        #elifdef FEATURE
+        #elifndef OTHER_FEATURE
 
+        [[nodiscard]] constexpr int get_val(void) {
+            return 42;
+        }
+
+        [[maybe_unused, deprecated("reason")]] static_assert(sizeof(int) >= 4, "size check");
+
+        int main(void) {
+            nullptr_t np = nullptr;
+            bool flag = true;
+            constexpr auto x = 100;
+            typeof(x) y = 200;
+            typeof_unqual(const int) z = 300;
+            _BitInt(128) big_val = 0;
+            thread_local int tl_val = 1;
+            alignas(16) int aligned_val = 2;
+            size_t sz = alignof(int);
+            return (int)sz;
+        }
+    )";
+
+    auto tokens = TextParser(code, &c_definition);
+
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("Preprocessor"));
+    EXPECT_TRUE(found.contains("Attribute"));
+    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("DataType"));
+    EXPECT_TRUE(found.contains("Boolean"));
+    EXPECT_TRUE(found.contains("Number"));
+
+    // Check specific tokens
+    bool found_nullptr = false;
+    bool found_constexpr = false;
+    bool found_typeof = false;
+    bool found_typeof_unqual = false;
+    bool found_static_assert = false;
+    bool found_thread_local = false;
+    bool found_alignas = false;
+    bool found_alignof = false;
+    bool found_nullptr_t = false;
+    bool found_bitint = false;
+
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Keyword") == 0) {
+            if (item.value == "nullptr") found_nullptr = true;
+            if (item.value == "constexpr") found_constexpr = true;
+            if (item.value == "typeof") found_typeof = true;
+            if (item.value == "typeof_unqual") found_typeof_unqual = true;
+            if (item.value == "static_assert") found_static_assert = true;
+            if (item.value == "thread_local") found_thread_local = true;
+            if (item.value == "alignas") found_alignas = true;
+            if (item.value == "alignof") found_alignof = true;
+        }
+        if (item.type && strcmp(item.type, "DataType") == 0) {
+            if (item.value == "nullptr_t") found_nullptr_t = true;
+            if (item.value == "_BitInt") found_bitint = true;
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+
+    EXPECT_TRUE(found_nullptr);
+    EXPECT_TRUE(found_constexpr);
+    EXPECT_TRUE(found_typeof);
+    EXPECT_TRUE(found_typeof_unqual);
+    EXPECT_TRUE(found_static_assert);
+    EXPECT_TRUE(found_thread_local);
+    EXPECT_TRUE(found_alignas);
+    EXPECT_TRUE(found_alignof);
+    EXPECT_TRUE(found_nullptr_t);
+    EXPECT_TRUE(found_bitint);
+}
+
+TEST(parse_C, c23_literals_and_separators) {
+    const char *code = R"(
+        int bin = 0b1010'1100;
+        int hex = 0xFF'EE'DD;
+        int dec = 1'000'000;
+        double float_dec = 3.1415'9265;
+        double float_hex = 0x1.f'ap-2;
+        unsigned int u = 42u;
+        unsigned long long ull = 1'000ULL;
+        size_t sz = 100uz;
+        _BitInt(64) wb = 100wb;
+        const char *u8str = u8"UTF-8 string with \x41 \u0041 \U00000041 \e \a \b \f \v \0";
+        const char16_t *u16str = u"UTF-16 string";
+        const char32_t *u32str = U"UTF-32 string";
+        const wchar_t *wstr = L"Wide string";
+        char u8c = u8'a';
+        char16_t u16c = u'b';
+        char32_t u32c = U'c';
+        wchar_t wc = L'd';
+    )";
+
+    auto tokens = TextParser(code, &c_definition);
+
+    bool found_bin = false;
+    bool found_hex = false;
+    bool found_dec = false;
+    bool found_float_dec = false;
+    bool found_float_hex = false;
+    bool found_ull = false;
+    bool found_uz = false;
+    bool found_wb = false;
+
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Number") == 0) {
+            if (item.value == "0b1010'1100") found_bin = true;
+            if (item.value == "0xFF'EE'DD") found_hex = true;
+            if (item.value == "1'000'000") found_dec = true;
+            if (item.value == "3.1415'9265") found_float_dec = true;
+            if (item.value == "0x1.f'ap-2") found_float_hex = true;
+            if (item.value == "1'000ULL") found_ull = true;
+            if (item.value == "100uz") found_uz = true;
+            if (item.value == "100wb") found_wb = true;
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+
+    EXPECT_TRUE(found_bin);
+    EXPECT_TRUE(found_hex);
+    EXPECT_TRUE(found_dec);
+    EXPECT_TRUE(found_float_dec);
+    EXPECT_TRUE(found_float_hex);
+    EXPECT_TRUE(found_ull);
+    EXPECT_TRUE(found_uz);
+    EXPECT_TRUE(found_wb);
+}

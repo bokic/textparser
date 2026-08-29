@@ -11,6 +11,7 @@
     "LineComment",
     "BlockComment",
     "Preprocessor",
+    "Attribute",
     "Boolean",
     "TaggedType",
     "Keyword",
@@ -45,9 +46,28 @@
       "startRegex": "#[ \\t]*[a-zA-Z_][a-zA-Z0-9_]*",
       "textColor": "0xd7ba7d"
     },
+    "Attribute": {
+      "type": "StartStop",
+      "startRegex": "\\[\\[",
+      "endRegex": "\\]\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xd7ba7d",
+      "nestedTokens": [
+        "LineComment",
+        "BlockComment",
+        "Keyword",
+        "Variable",
+        "Parenthesis",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Operator"
+      ]
+    },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b",
+      "startRegex": "typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b|constexpr\\b|nullptr\\b|typeof\\b|typeof_unqual\\b|static_assert\\b|thread_local\\b|alignas\\b|alignof\\b|_Alignas\\b|_Alignof\\b|_Atomic\\b|_Generic\\b|_Noreturn\\b|_Static_assert\\b|_Thread_local\\b|_Decimal32\\b|_Decimal64\\b|_Decimal128\\b",
       "textColor": "0xc586c0"
     },
     "Variable": {
@@ -66,6 +86,7 @@
         "LineComment",
         "BlockComment",
         "Preprocessor",
+        "Attribute",
         "Boolean",
         "TaggedType",
         "Keyword",
@@ -85,7 +106,7 @@
     },
     "SingleString": {
       "type": "StartStop",
-      "startRegex": "'",
+      "startRegex": "(?:u8|u|U|L)?'",
       "endRegex": "'",
       "otherTextInside": true,
       "textColor": "0xce9178",
@@ -95,7 +116,7 @@
     },
     "DoubleString": {
       "type": "StartStop",
-      "startRegex": "\"",
+      "startRegex": "(?:u8|u|U|L)?\"",
       "endRegex": "\"",
       "multiLine": true,
       "otherTextInside": true,
@@ -106,12 +127,12 @@
     },
     "StringEscape": {
       "type": "SimpleToken",
-      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-fA-F]{4}|\\\\x[0-9a-fA-F]{2}",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\v|\\\\f|\\\\a|\\\\b|\\\\e|\\\\0|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}|\\\\x[0-9a-fA-F]+|\\[0-7]{1,3}",
       "textColor": "0xd7ba7d"
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?[fFdDlL]?",
+      "startRegex": "0[xX][0-9a-fA-F](?:'?[0-9a-fA-F])*(?:\\.[0-9a-fA-F](?:'?[0-9a-fA-F])*)?(?:[pP][+-]?[0-9](?:'?[0-9])*)?[uUlLzZwWbBfFdD]*|0[bB][01](?:'?[01])*[uUlLzZwWbB]*|[0-9](?:'?[0-9])*(?:\\.[0-9](?:'?[0-9])*)?(?:[eE][+-]?[0-9](?:'?[0-9])*)?[uUlLzZwWbBfFdD]*|\\.[0-9](?:'?[0-9])*(?:[eE][+-]?[0-9](?:'?[0-9])*)?[uUlLzZwWbBfFdD]*",
       "textColor": "0xb5cea8"
     },
     "Boolean": {
@@ -130,6 +151,7 @@
         "LineComment",
         "BlockComment",
         "Preprocessor",
+        "Attribute",
         "Boolean",
         "TaggedType",
         "Keyword",
@@ -155,6 +177,7 @@
         "LineComment",
         "BlockComment",
         "Preprocessor",
+        "Attribute",
         "Boolean",
         "TaggedType",
         "Keyword",
@@ -186,7 +209,7 @@
     },
     "DataType": {
       "type": "SimpleToken",
-      "startRegex": "int\\b|char\\b|double\\b|float\\b|void\\b|short\\b|long\\b|unsigned\\b|signed\\b|_Bool\\b|bool\\b|size_t\\b|ssize_t\\b|uint8_t\\b|uint16_t\\b|uint32_t\\b|uint64_t\\b|int8_t\\b|int16_t\\b|int32_t\\b|int64_t\\b|uintptr_t\\b|intptr_t\\b|ptrdiff_t\\b|[a-zA-Z_][a-zA-Z0-9_]*_(?:t|type|enum|e|s)\\b",
+      "startRegex": "int\\b|char\\b|double\\b|float\\b|void\\b|short\\b|long\\b|unsigned\\b|signed\\b|_Bool\\b|bool\\b|nullptr_t\\b|_BitInt\\b|size_t\\b|ssize_t\\b|uint8_t\\b|uint16_t\\b|uint32_t\\b|uint64_t\\b|int8_t\\b|int16_t\\b|int32_t\\b|int64_t\\b|uintptr_t\\b|intptr_t\\b|ptrdiff_t\\b|intmax_t\\b|uintmax_t\\b|char8_t\\b|char16_t\\b|char32_t\\b|wchar_t\\b|_Complex\\b|_Imaginary\\b|[a-zA-Z_][a-zA-Z0-9_]*_(?:t|type|enum|e|s)\\b",
       "textColor": "0x4ec9b0"
     },
     "TaggedType": {
@@ -256,9 +279,23 @@
       "uintptr_t",
       "intptr_t",
       "ptrdiff_t",
+      "intmax_t",
+      "uintmax_t",
+      "char8_t",
+      "char16_t",
+      "char32_t",
+      "wchar_t",
       "bool",
+      "_Bool",
+      "nullptr_t",
+      "_BitInt",
+      "_Complex",
+      "_Imaginary",
       "const",
       "volatile",
+      "constexpr",
+      "typeof",
+      "typeof_unqual",
       "struct",
       "union",
       "enum",

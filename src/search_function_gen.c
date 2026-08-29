@@ -183,15 +183,58 @@ bool _gen_c_Preprocessor_start(enum textparser_encoding encoding, const char *st
     return false;
 }
 
+// Attribute: start=[[ end=]]
+bool _gen_c_Attribute_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 2 && get_char_at(encoding, start, 0) == '[' && get_char_at(encoding, start, 1) == '[') {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 1 < max_len; pos++) {
+        if (get_char_at(encoding, start, pos) == '[' && get_char_at(encoding, start, pos + 1) == '[') {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_c_Attribute_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        if (max_len >= 2 && get_char_at(encoding, start, 0) == ']' && get_char_at(encoding, start, 1) == ']') {
+            if (offset) *offset = 0;
+            if (length) *length = 2;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos + 1 < max_len; pos++) {
+        if (get_char_at(encoding, start, pos) == ']' && get_char_at(encoding, start, pos + 1) == ']') {
+            if (offset) *offset = pos;
+            if (length) *length = 2;
+            return true;
+        }
+    }
+    return false;
+}
+
 // Keyword:
 static const char *const c_keywords[] = {
-    "int", "char", "double", "float", "void", "short", "long", "unsigned", "signed",
-    "struct", "union", "enum", "typedef", "const", "static", "extern", "volatile",
-    "if", "else", "for", "while", "do", "switch", "case", "default", "break",
-    "continue", "return", "sizeof", "goto", "register", "auto", "inline", "restrict",
-    "_Bool", "bool", "size_t", "ssize_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t",
-    "int8_t", "int16_t", "int32_t", "int64_t", "uintptr_t", "intptr_t", "ptrdiff_t",
-    NULL
+    "typedef", "const", "static", "extern", "volatile", "if", "else", "for",
+    "while", "do", "switch", "case", "default", "break", "continue", "return",
+    "sizeof", "goto", "register", "auto", "inline", "restrict", "constexpr",
+    "nullptr", "typeof", "typeof_unqual", "static_assert", "thread_local",
+    "alignas", "alignof", "_Alignas", "_Alignof", "_Atomic", "_Generic",
+    "_Noreturn", "_Static_assert", "_Thread_local", "_Decimal32", "_Decimal64",
+    "_Decimal128", NULL
 };
 
 static size_t c_keyword_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless) {
@@ -364,8 +407,48 @@ bool _gen_c_Operator_start(enum textparser_encoding encoding, const char *start,
     return false;
 }
 
-// SingleString: '
+// SingleString: (?:u8|u|U|L)?'
+static size_t c_single_string_start_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len) {
+    if (pos >= max_len) return 0;
+    if (get_char_at(encoding, start, pos) == '\'') return 1;
+    if (pos + 1 < max_len) {
+        uint32_t c0 = get_char_at(encoding, start, pos);
+        uint32_t c1 = get_char_at(encoding, start, pos + 1);
+        if ((c0 == 'u' || c0 == 'U' || c0 == 'L') && c1 == '\'') return 2;
+    }
+    if (pos + 2 < max_len) {
+        uint32_t c0 = get_char_at(encoding, start, pos);
+        uint32_t c1 = get_char_at(encoding, start, pos + 1);
+        uint32_t c2 = get_char_at(encoding, start, pos + 2);
+        if (c0 == 'u' && c1 == '8' && c2 == '\'') return 3;
+    }
+    return 0;
+}
+
 bool _gen_c_SingleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = c_single_string_start_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = c_single_string_start_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_c_SingleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     (void)is_caseless;
     if (only_at_start) {
@@ -385,13 +468,49 @@ bool _gen_c_SingleString_start(enum textparser_encoding encoding, const char *st
     }
     return false;
 }
-bool _gen_c_SingleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_SingleString_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+
+// DoubleString: (?:u8|u|U|L)?"
+static size_t c_double_string_start_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len) {
+    if (pos >= max_len) return 0;
+    if (get_char_at(encoding, start, pos) == '"') return 1;
+    if (pos + 1 < max_len) {
+        uint32_t c0 = get_char_at(encoding, start, pos);
+        uint32_t c1 = get_char_at(encoding, start, pos + 1);
+        if ((c0 == 'u' || c0 == 'U' || c0 == 'L') && c1 == '"') return 2;
+    }
+    if (pos + 2 < max_len) {
+        uint32_t c0 = get_char_at(encoding, start, pos);
+        uint32_t c1 = get_char_at(encoding, start, pos + 1);
+        uint32_t c2 = get_char_at(encoding, start, pos + 2);
+        if (c0 == 'u' && c1 == '8' && c2 == '"') return 3;
+    }
+    return 0;
 }
 
-// DoubleString: "
 bool _gen_c_DoubleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = c_double_string_start_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = c_double_string_start_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_c_DoubleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     (void)is_caseless;
     if (only_at_start) {
@@ -411,20 +530,18 @@ bool _gen_c_DoubleString_start(enum textparser_encoding encoding, const char *st
     }
     return false;
 }
-bool _gen_c_DoubleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_DoubleString_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
 
-// StringEscape: \\\\|\\\"|\\\'|\\n|\\r|\\t|\\u[0-9a-fA-F]{4}|\\x[0-9a-fA-F]{2}
+// StringEscape: \\\\|\\\"|\\\'|\\n|\\r|\\t|\\v|\\f|\\a|\\b|\\e|\\0|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\x[0-9a-fA-F]+|\[0-7]{1,3}
 static size_t c_escape_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len) {
     if (pos + 1 >= max_len || get_char_at(encoding, start, pos) != '\\') return 0;
     uint32_t c = get_char_at(encoding, start, pos + 1);
-    if (c == '\\' || c == '"' || c == '\'' || c == 'n' || c == 'r' || c == 't') return 2;
-    if (c == 'x' && pos + 4 <= max_len &&
-        is_xdigit_codepoint(get_char_at(encoding, start, pos + 2)) &&
-        is_xdigit_codepoint(get_char_at(encoding, start, pos + 3))) {
-        return 4;
+    if (c == '\\' || c == '"' || c == '\'' || c == 'n' || c == 'r' || c == 't' ||
+        c == 'v' || c == 'f' || c == 'a' || c == 'b' || c == 'e' || c == '0') return 2;
+    if (c == 'x') {
+        size_t i = pos + 2;
+        while (i < max_len && is_xdigit_codepoint(get_char_at(encoding, start, i))) i++;
+        if (i > pos + 2) return i - pos;
+        return 0;
     }
     if (c == 'u' && pos + 6 <= max_len &&
         is_xdigit_codepoint(get_char_at(encoding, start, pos + 2)) &&
@@ -432,6 +549,27 @@ static size_t c_escape_match_at(enum textparser_encoding encoding, const void *s
         is_xdigit_codepoint(get_char_at(encoding, start, pos + 4)) &&
         is_xdigit_codepoint(get_char_at(encoding, start, pos + 5))) {
         return 6;
+    }
+    if (c == 'U' && pos + 10 <= max_len &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 2)) &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 3)) &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 4)) &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 5)) &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 6)) &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 7)) &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 8)) &&
+        is_xdigit_codepoint(get_char_at(encoding, start, pos + 9))) {
+        return 10;
+    }
+    if (c >= '0' && c <= '7') {
+        size_t i = pos + 2;
+        size_t count = 1;
+        while (i < max_len && count < 3) {
+            uint32_t oct = get_char_at(encoding, start, i);
+            if (oct >= '0' && oct <= '7') { i++; count++; }
+            else break;
+        }
+        return i - pos;
     }
     return 0;
 }
@@ -459,45 +597,194 @@ bool _gen_c_StringEscape_start(enum textparser_encoding encoding, const char *st
     return false;
 }
 
-// Number: [0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?[fFdDlL]?
+// Number: Hex (0x/0X), Binary (0b/0B), Decimal/Float with digit separators (') and suffixes (u, l, z, wb, f, d)
 static size_t c_number_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len) {
     if (pos >= max_len) return 0;
     size_t i = pos;
+    uint32_t c0 = get_char_at(encoding, start, i);
+
+    // Hex numbers: 0[xX]...
+    if (c0 == '0' && i + 1 < max_len) {
+        uint32_t c1 = get_char_at(encoding, start, i + 1);
+        if (c1 == 'x' || c1 == 'X') {
+            if (i + 2 >= max_len) return 0;
+            size_t h = i + 2;
+            bool has_hex = false;
+            while (h < max_len) {
+                uint32_t ch = get_char_at(encoding, start, h);
+                if (is_xdigit_codepoint(ch)) {
+                    has_hex = true;
+                    h++;
+                } else if (ch == '\'' && h + 1 < max_len && is_xdigit_codepoint(get_char_at(encoding, start, h + 1))) {
+                    h += 2;
+                    has_hex = true;
+                } else {
+                    break;
+                }
+            }
+            if (!has_hex && get_char_at(encoding, start, h) != '.') return 0;
+            if (h < max_len && get_char_at(encoding, start, h) == '.') {
+                if (h + 1 < max_len && is_xdigit_codepoint(get_char_at(encoding, start, h + 1))) {
+                    h += 2;
+                    has_hex = true;
+                    while (h < max_len) {
+                        uint32_t ch = get_char_at(encoding, start, h);
+                        if (is_xdigit_codepoint(ch)) {
+                            h++;
+                        } else if (ch == '\'' && h + 1 < max_len && is_xdigit_codepoint(get_char_at(encoding, start, h + 1))) {
+                            h += 2;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!has_hex) return 0;
+            // Optional exponent [pP][+-]?digits
+            if (h < max_len) {
+                uint32_t p = get_char_at(encoding, start, h);
+                if (p == 'p' || p == 'P') {
+                    size_t p_pos = h++;
+                    if (h < max_len) {
+                        uint32_t s = get_char_at(encoding, start, h);
+                        if (s == '+' || s == '-') h++;
+                    }
+                    size_t p_digits = 0;
+                    while (h < max_len) {
+                        uint32_t ch = get_char_at(encoding, start, h);
+                        if (is_digit_codepoint(ch)) {
+                            p_digits++;
+                            h++;
+                        } else if (ch == '\'' && h + 1 < max_len && is_digit_codepoint(get_char_at(encoding, start, h + 1))) {
+                            h += 2;
+                            p_digits++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (p_digits == 0) h = p_pos;
+                }
+            }
+            // Suffixes: u, l, z, wb, f, d
+            while (h < max_len) {
+                uint32_t suf = get_char_at(encoding, start, h);
+                if (suf == 'u' || suf == 'U' || suf == 'l' || suf == 'L' ||
+                    suf == 'z' || suf == 'Z' || suf == 'w' || suf == 'W' ||
+                    suf == 'b' || suf == 'B' || suf == 'f' || suf == 'F' ||
+                    suf == 'd' || suf == 'D') {
+                    h++;
+                } else {
+                    break;
+                }
+            }
+            return h - pos;
+        }
+
+        // Binary numbers: 0[bB]...
+        if (c1 == 'b' || c1 == 'B') {
+            if (i + 2 >= max_len) return 0;
+            size_t b = i + 2;
+            bool has_bin = false;
+            while (b < max_len) {
+                uint32_t ch = get_char_at(encoding, start, b);
+                if (ch == '0' || ch == '1') {
+                    has_bin = true;
+                    b++;
+                } else if (ch == '\'' && b + 1 < max_len) {
+                    uint32_t next = get_char_at(encoding, start, b + 1);
+                    if (next == '0' || next == '1') {
+                        b += 2;
+                        has_bin = true;
+                    } else break;
+                } else {
+                    break;
+                }
+            }
+            if (!has_bin) return 0;
+            while (b < max_len) {
+                uint32_t suf = get_char_at(encoding, start, b);
+                if (suf == 'u' || suf == 'U' || suf == 'l' || suf == 'L' ||
+                    suf == 'z' || suf == 'Z' || suf == 'w' || suf == 'W' ||
+                    suf == 'b' || suf == 'B') {
+                    b++;
+                } else {
+                    break;
+                }
+            }
+            return b - pos;
+        }
+    }
+
+    // Decimal or Floating point (.123 or 123.456 or 123)
     bool has_digits = false;
-    while (i < max_len && is_digit_codepoint(get_char_at(encoding, start, i))) {
-        i++;
-        has_digits = true;
+    while (i < max_len) {
+        uint32_t ch = get_char_at(encoding, start, i);
+        if (is_digit_codepoint(ch)) {
+            has_digits = true;
+            i++;
+        } else if (ch == '\'' && i + 1 < max_len && is_digit_codepoint(get_char_at(encoding, start, i + 1))) {
+            has_digits = true;
+            i += 2;
+        } else {
+            break;
+        }
     }
     if (i < max_len && get_char_at(encoding, start, i) == '.') {
         if (i + 1 < max_len && is_digit_codepoint(get_char_at(encoding, start, i + 1))) {
             i += 2;
-            while (i < max_len && is_digit_codepoint(get_char_at(encoding, start, i))) i++;
             has_digits = true;
+            while (i < max_len) {
+                uint32_t ch = get_char_at(encoding, start, i);
+                if (is_digit_codepoint(ch)) {
+                    i++;
+                } else if (ch == '\'' && i + 1 < max_len && is_digit_codepoint(get_char_at(encoding, start, i + 1))) {
+                    i += 2;
+                } else {
+                    break;
+                }
+            }
         } else if (!has_digits) {
             return 0;
         }
     }
     if (!has_digits) return 0;
+
+    // Optional exponent [eE][+-]?digits
     if (i < max_len) {
         uint32_t c = get_char_at(encoding, start, i);
         if (c == 'e' || c == 'E') {
-            size_t e_pos = i;
-            i++;
+            size_t e_pos = i++;
             if (i < max_len) {
                 uint32_t sign = get_char_at(encoding, start, i);
                 if (sign == '+' || sign == '-') i++;
             }
             size_t exp_digits = 0;
-            while (i < max_len && is_digit_codepoint(get_char_at(encoding, start, i))) {
-                i++;
-                exp_digits++;
+            while (i < max_len) {
+                uint32_t ch = get_char_at(encoding, start, i);
+                if (is_digit_codepoint(ch)) {
+                    i++;
+                    exp_digits++;
+                } else if (ch == '\'' && i + 1 < max_len && is_digit_codepoint(get_char_at(encoding, start, i + 1))) {
+                    i += 2;
+                    exp_digits++;
+                } else {
+                    break;
+                }
             }
             if (exp_digits == 0) i = e_pos;
         }
     }
-    if (i < max_len) {
+    // Suffixes
+    while (i < max_len) {
         uint32_t suf = get_char_at(encoding, start, i);
-        if (suf == 'f' || suf == 'F' || suf == 'd' || suf == 'D' || suf == 'l' || suf == 'L') i++;
+        if (suf == 'u' || suf == 'U' || suf == 'l' || suf == 'L' ||
+            suf == 'z' || suf == 'Z' || suf == 'w' || suf == 'W' ||
+            suf == 'b' || suf == 'B' || suf == 'f' || suf == 'F' ||
+            suf == 'd' || suf == 'D') {
+            i++;
+        } else {
+            break;
+        }
     }
     return i - pos;
 }
@@ -657,6 +944,107 @@ bool _gen_c_TypeCast_start(enum textparser_encoding encoding, const char *start,
 bool _gen_c_TypeCast_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     return _gen_c_Parenthesis_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// DataType:
+static const char *const c_datatypes[] = {
+    "int", "char", "double", "float", "void", "short", "long", "unsigned", "signed",
+    "_Bool", "bool", "nullptr_t", "_BitInt", "size_t", "ssize_t", "uint8_t", "uint16_t",
+    "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "uintptr_t",
+    "intptr_t", "ptrdiff_t", "intmax_t", "uintmax_t", "char8_t", "char16_t", "char32_t",
+    "wchar_t", "_Complex", "_Imaginary", NULL
+};
+
+static size_t c_datatype_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless) {
+    if (pos >= max_len) return 0;
+    uint32_t c = get_char_at(encoding, start, pos);
+    if (!is_alpha_codepoint(c) && c != '_') return 0;
+    for (int k = 0; c_datatypes[k] != NULL; k++) {
+        size_t dt_len = strlen(c_datatypes[k]);
+        if (str_match_at(encoding, start, pos, max_len, c_datatypes[k], caseless)) {
+            if (pos + dt_len == max_len) return dt_len;
+            uint32_t after = get_char_at(encoding, start, pos + dt_len);
+            if (!is_alnum_codepoint(after) && after != '_') {
+                return dt_len;
+            }
+        }
+    }
+    // Check [a-zA-Z_][a-zA-Z0-9_]*_(?:t|type|enum|e|s)\b
+    size_t id_len = c_var_match_at(encoding, start, pos, max_len);
+    if (id_len > 2) {
+        static const char *const sfx[] = {"_t", "_type", "_enum", "_e", "_s", NULL};
+        for (int s = 0; sfx[s] != NULL; s++) {
+            size_t slen = strlen(sfx[s]);
+            if (id_len > slen && str_match_at(encoding, start, pos + id_len - slen, max_len, sfx[s], caseless)) {
+                return id_len;
+            }
+        }
+    }
+    return 0;
+}
+
+bool _gen_c_DataType_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        size_t m = c_datatype_match_at(encoding, start, 0, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = c_datatype_match_at(encoding, start, pos, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// TypeName:
+bool _gen_c_TypeName_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_Variable_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// TagSpecifier: struct\b|union\b|enum\b
+static size_t c_tagspec_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless) {
+    static const char *const specs[] = {"struct", "union", "enum", NULL};
+    for (int k = 0; specs[k] != NULL; k++) {
+        size_t len = strlen(specs[k]);
+        if (str_match_at(encoding, start, pos, max_len, specs[k], caseless)) {
+            if (pos + len == max_len) return len;
+            uint32_t after = get_char_at(encoding, start, pos + len);
+            if (!is_alnum_codepoint(after) && after != '_') return len;
+        }
+    }
+    return 0;
+}
+
+bool _gen_c_TagSpecifier_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        size_t m = c_tagspec_match_at(encoding, start, 0, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = c_tagspec_match_at(encoding, start, pos, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
 }
 
 /* ========================================================================= */
