@@ -349,14 +349,14 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
             while (paren_token != nullptr && paren_token->token_id != TextParser_END &&
                    (paren_token->token_id == ids->ScriptLineComment ||
                     paren_token->token_id == ids->ScriptBlockComment ||
-                    paren_token->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED)) {
+                    paren_token->token_id < 0)) {
                 paren_token = paren_token->next;
             }
 
             if (paren_token != nullptr && paren_token->token_id != TextParser_END && paren_token->token_id == ids->Parenthesis) {
                 int arg_count = 0;
                 textparser_token_item *paren_child = paren_token->child;
-                while (paren_child != nullptr && paren_child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                while (paren_child != nullptr && paren_child->token_id < 0) {
                     paren_child = paren_child->next;
                 }
                 if (paren_child != nullptr) {
@@ -371,7 +371,7 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
                             } else if (arg_item->token_id != TextParser_END &&
                                        arg_item->token_id != ids->ScriptLineComment &&
                                        arg_item->token_id != ids->ScriptBlockComment &&
-                                       arg_item->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                                       arg_item->token_id >= 0) {
                                 has_non_comment_children = true;
                             }
                             arg_item = arg_item->next;
@@ -383,7 +383,7 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
                         if (paren_child->token_id != TextParser_END &&
                             paren_child->token_id != ids->ScriptLineComment &&
                             paren_child->token_id != ids->ScriptBlockComment &&
-                            paren_child->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                            paren_child->token_id >= 0) {
                             arg_count = 1;
                         }
                     }

@@ -9,6 +9,7 @@
 
 #include <scratch_definition.json.h>
 #include <cfml_definition.json.h>
+#include <bash_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -561,7 +562,7 @@ TEST(parse_DeleteIfOnlyOneChild, token_delete_if_only_one_child_validation) {
     textparser_post_process(&root, &lang);
 
     const textparser_token_item *first = root;
-    while (first && first->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) first = first->next;
+    while (first && first->token_id < 0) first = first->next;
     ASSERT_NE(first, nullptr);
     EXPECT_STREQ(textparser_get_token_type_str(&lang, first), "ChildToken");
     EXPECT_EQ(first->parent, nullptr);
@@ -579,7 +580,7 @@ TEST(parse_DeleteIfOnlyOneChild, token_delete_if_only_one_child_validation) {
     EXPECT_STREQ(textparser_get_token_type_str(&lang, first), "ParentGroup");
     size_t semantic_children = 0;
     for (const textparser_token_item *c = first->child; c; c = c->next) {
-        if (c->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) semantic_children++;
+        if (c->token_id >= 0) semantic_children++;
     }
     EXPECT_EQ(semantic_children, 2);
     textparser_close(handle);
@@ -805,6 +806,33 @@ TEST(parse_CST, gapless_tree_and_dynamic_offsets) {
 
     size_t total_len = verify_cst_subtree(handle, first, 0);
     EXPECT_EQ(total_len, strlen(code));
+
+    textparser_close(handle);
+}
+
+TEST(parse_Delimiters, container_start_end_delimiters) {
+    const char *bash_code = R"(${BUILD_TYPE:-Release})";
+    textparser_t handle = nullptr;
+    int err = textparser_openmem(bash_code, strlen(bash_code), TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(err, 0);
+    err = textparser_parse(handle, &bash_definition);
+    EXPECT_EQ(err, 0);
+
+    const textparser_token_item *root = textparser_get_first_token(handle);
+    ASSERT_NE(root, nullptr);
+    EXPECT_STREQ(textparser_get_token_type_str(&bash_definition, root), "ParameterExpansion");
+
+    const textparser_token_item *c0 = root->child;
+    ASSERT_NE(c0, nullptr);
+    EXPECT_EQ(c0->token_id, TEXTPARSER_TOKEN_ID_START_DELIMITER);
+    EXPECT_STREQ(textparser_get_token_type_str(&bash_definition, c0), "StartDelimiter");
+    EXPECT_EQ(c0->len, 2u); // "${"
+
+    const textparser_token_item *last = c0;
+    while (last->next) last = last->next;
+    EXPECT_EQ(last->token_id, TEXTPARSER_TOKEN_ID_END_DELIMITER);
+    EXPECT_STREQ(textparser_get_token_type_str(&bash_definition, last), "EndDelimiter");
+    EXPECT_EQ(last->len, 1u); // "}"
 
     textparser_close(handle);
 }

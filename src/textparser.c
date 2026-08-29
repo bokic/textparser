@@ -49,7 +49,10 @@ static size_t textparser_skip_whitespace(const struct textparser_handle *handle,
 
 static inline bool is_trivia_token_id(int token_id)
 {
-    return token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED || token_id == TEXTPARSER_TOKEN_ID_WHITESPACE;
+    return token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED ||
+           token_id == TEXTPARSER_TOKEN_ID_WHITESPACE ||
+           token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER ||
+           token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER;
 }
 
 enum parent_start_stop{
@@ -902,6 +905,32 @@ static void append_child_to_ast(
     }
 }
 
+static void append_start_delimiter(
+    struct textparser_handle *handle,
+    textparser_token_item *parent,
+    textparser_token_item **head,
+    textparser_token_item **tail,
+    size_t len)
+{
+    if (len == 0) return;
+    textparser_token_item *item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_START_DELIMITER, len);
+    if (item == nullptr) return;
+    append_child_to_ast(parent, head, tail, item);
+}
+
+static void append_end_delimiter(
+    struct textparser_handle *handle,
+    textparser_token_item *parent,
+    textparser_token_item **head,
+    textparser_token_item **tail,
+    size_t len)
+{
+    if (len == 0) return;
+    textparser_token_item *item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_END_DELIMITER, len);
+    if (item == nullptr) return;
+    append_child_to_ast(parent, head, tail, item);
+}
+
 static void append_whitespace_if_needed(
     struct textparser_handle *handle,
     textparser_token_item *parent,
@@ -1469,7 +1498,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     }
 
     textparser_token_item *last_child = nullptr;
-    append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, len);
+    append_start_delimiter(handle, ret, &ret->child, &last_child, len);
     offset += len;
 
     if (handle->callback) {
@@ -1651,11 +1680,25 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     }
 
     LOGV("TEXTPARSER_TOKEN_TYPE_START_(OPT)_STOP - Found [%s]", handle->language->tokens[ret->token_id].name);
-    append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, token_end + end_len);
+    if (token_end > 0) {
+        append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, token_end);
+    }
+    if (end_len > 0) {
+        append_end_delimiter(handle, ret, &ret->child, &last_child, end_len);
+    }
     offset += token_end + end_len;
     ret->len = offset - start_offset;
 
-    if (ret->child && ret->child->next == nullptr && ret->child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED && ret->child->len == ret->len) {
+    if (ret->child && ret->child->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER &&
+        ret->child->next && ret->child->next->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED &&
+        ret->child->next->next && ret->child->next->next->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER &&
+        ret->child->next->next->next == nullptr) {
+        ret->child = nullptr;
+    } else if (ret->child && ret->child->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER &&
+               ret->child->next && ret->child->next->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER &&
+               ret->child->next->next == nullptr) {
+        ret->child = nullptr;
+    } else if (ret->child && ret->child->next == nullptr && ret->child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED && ret->child->len == ret->len) {
         ret->child = nullptr;
     }
 
@@ -3361,29 +3404,29 @@ void textparser_post_process(textparser_token_item **root, const textparser_lang
         /* Check if this node has delete_if_only_one_child condition */
         if (curr->token_id >= 0 && language->tokens[curr->token_id].delete_if_only_one_child &&
             curr->child && textparser_get_semantic_children_count(curr) == 1) {
-            textparser_token_item *first_child = curr->child;
-            textparser_token_item *last_child = curr->child;
-            while (last_child->next) {
-                last_child->parent = curr->parent;
-                last_child = last_child->next;
+            textparser_token_item *semantic_child = curr->child;
+            while (semantic_child && is_trivia_token_id(semantic_child->token_id)) {
+                semantic_child = semantic_child->next;
             }
-            last_child->parent = curr->parent;
-            first_child->prev = curr->prev;
-            last_child->next = curr->next;
+            if (semantic_child != nullptr) {
+                semantic_child->parent = curr->parent;
+                semantic_child->prev = curr->prev;
+                semantic_child->next = curr->next;
 
-            if (curr->prev) {
-                curr->prev->next = first_child;
-            } else if (curr->parent) {
-                curr->parent->child = first_child;
-            } else {
-                *root = first_child;
+                if (curr->prev) {
+                    curr->prev->next = semantic_child;
+                } else if (curr->parent) {
+                    curr->parent->child = semantic_child;
+                } else {
+                    *root = semantic_child;
+                }
+
+                if (next_sibling) {
+                    next_sibling->prev = semantic_child;
+                }
+
+                curr = semantic_child;
             }
-
-            if (next_sibling) {
-                next_sibling->prev = last_child;
-            }
-
-            curr = last_child;
         }
 
         curr = next_sibling;
@@ -3695,6 +3738,12 @@ const char *textparser_get_token_type_str(const textparser_language_definition *
 
     if (token == nullptr)
         return nullptr;
+
+    if (token->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER)
+        return "StartDelimiter";
+
+    if (token->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER)
+        return "EndDelimiter";
 
     if (token->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE)
         return "Whitespace";

@@ -65,7 +65,7 @@ public:
             children = 0;
             const textparser_token_item *c = token->child;
             while (c) {
-                if (c->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && c->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE) {
+                if (c->token_id >= 0) {
                     children++;
                 }
                 c = c->next;
@@ -89,7 +89,7 @@ public:
         size_t c = 0;
         while (token != nullptr)
         {
-            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE)
+            if (token->token_id >= 0)
             {
                 if (c == index) break;
                 c++;
@@ -126,7 +126,7 @@ public:
             auto token = textparser_get_first_token(m_handle);
             while(token)
             {
-                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE) {
+                if (token->token_id >= 0) {
                     count++;
                 }
                 token = token->next;
@@ -159,7 +159,7 @@ public:
         size_t c = 0;
         while (token != nullptr)
         {
-            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE)
+            if (token->token_id >= 0)
             {
                 if (c == index) break;
                 c++;
@@ -185,7 +185,7 @@ public:
             auto token = textparser_get_first_token(m_handle);
             while (token)
             {
-                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE) {
+                if (token->token_id >= 0) {
                     count++;
                 }
                 token = token->next;
