@@ -1113,19 +1113,68 @@ TEST(parse_CFML, validation_tag_at_eof) {
 
 TEST(parse_CFML, openmem_invalid_params) {
     textparser_t handle = nullptr;
-    // 1. Negative length
-    int res = textparser_openmem("test", -1, TEXTPARSER_ENCODING_LATIN1, &handle);
-    ASSERT_EQ(res, -1);
-    ASSERT_EQ(handle, nullptr);
 
-    // 2. nullptr handle
-    res = textparser_openmem("test", 4, TEXTPARSER_ENCODING_LATIN1, nullptr);
+    // 1. nullptr handle
+    int res = textparser_openmem("test", 4, TEXTPARSER_ENCODING_LATIN1, nullptr);
     ASSERT_EQ(res, -1);
 
-    // 3. nullptr text
+    // 2. nullptr text
     res = textparser_openmem(nullptr, 4, TEXTPARSER_ENCODING_LATIN1, &handle);
     ASSERT_EQ(res, -1);
     ASSERT_EQ(handle, nullptr);
+
+    // 3. invalid encoding
+    res = textparser_openmem("test", 4, 9999, &handle);
+    ASSERT_EQ(res, -1);
+    ASSERT_EQ(handle, nullptr);
+}
+
+TEST(parse_CFML, openmem_null_terminated_strings) {
+    textparser_t handle = nullptr;
+
+    // 1. Latin1 null-terminated (len = -1)
+    const char *latin1_str = "<cfset x = 1>";
+    int res = textparser_openmem(latin1_str, -1, TEXTPARSER_ENCODING_LATIN1, &handle);
+    ASSERT_EQ(res, 0);
+    ASSERT_NE(handle, nullptr);
+    EXPECT_EQ(textparser_get_text_size(handle), strlen(latin1_str));
+    textparser_close(handle);
+    handle = nullptr;
+
+    // 2. UTF-8 null-terminated (len = -1)
+    const char *utf8_str = "hello world <cfoutput>#test#</cfoutput>";
+    res = textparser_openmem(utf8_str, -1, TEXTPARSER_ENCODING_UTF_8, &handle);
+    ASSERT_EQ(res, 0);
+    ASSERT_NE(handle, nullptr);
+    EXPECT_EQ(textparser_get_text_size(handle), strlen(utf8_str));
+    textparser_close(handle);
+    handle = nullptr;
+
+    // 3. Empty null-terminated string (len = -1)
+    res = textparser_openmem("", -1, TEXTPARSER_ENCODING_UTF_8, &handle);
+    ASSERT_EQ(res, 0);
+    ASSERT_NE(handle, nullptr);
+    EXPECT_EQ(textparser_get_text_size(handle), 0u);
+    textparser_close(handle);
+    handle = nullptr;
+
+    // 4. UTF-16 null-terminated (len = -1)
+    static const uint16_t u16_str[] = { 'h', 'e', 'l', 'l', 'o', 0 };
+    res = textparser_openmem((const char *)u16_str, -1, TEXTPARSER_ENCODING_UTF_16, &handle);
+    ASSERT_EQ(res, 0);
+    ASSERT_NE(handle, nullptr);
+    EXPECT_EQ(textparser_get_text_size(handle), 5 * sizeof(uint16_t));
+    textparser_close(handle);
+    handle = nullptr;
+
+    // 5. UTF-32 null-terminated (len = -1)
+    static const uint32_t u32_str[] = { 't', 'e', 's', 't', 0 };
+    res = textparser_openmem((const char *)u32_str, -1, TEXTPARSER_ENCODING_UTF_32, &handle);
+    ASSERT_EQ(res, 0);
+    ASSERT_NE(handle, nullptr);
+    EXPECT_EQ(textparser_get_text_size(handle), 4 * sizeof(uint32_t));
+    textparser_close(handle);
+    handle = nullptr;
 }
 
 TEST(parse_CFML, context_nested_tokens_cfloop_top_level) {

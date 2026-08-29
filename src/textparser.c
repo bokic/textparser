@@ -2155,11 +2155,7 @@ err:
 
 int textparser_openmem(const char *text, int len, int text_format, textparser_t *handle)
 {
-    if (len < 0 || handle == nullptr || text == nullptr) {
-        return -1;
-    }
-
-    if ((size_t)len >= MAX_PARSE_SIZE) {
+    if (handle == nullptr || text == nullptr) {
         return -1;
     }
 
@@ -2171,6 +2167,30 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     case TEXTPARSER_ENCODING_UTF_32:
         break;
     default:
+        return -1;
+    }
+
+    if (len < 0) {
+        if (text_format == TEXTPARSER_ENCODING_UTF_16 || text_format == TEXTPARSER_ENCODING_UNICODE) {
+            const uint16_t *p = (const uint16_t *)text;
+            size_t count = 0;
+            while (*p++) {
+                count++;
+            }
+            len = (int)(count * sizeof(uint16_t));
+        } else if (text_format == TEXTPARSER_ENCODING_UTF_32) {
+            const uint32_t *p = (const uint32_t *)text;
+            size_t count = 0;
+            while (*p++) {
+                count++;
+            }
+            len = (int)(count * sizeof(uint32_t));
+        } else {
+            len = (int)strlen(text);
+        }
+    }
+
+    if ((size_t)len >= MAX_PARSE_SIZE) {
         return -1;
     }
 
