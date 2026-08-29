@@ -114,7 +114,7 @@ static bool is_token_self_closing(const char *text, textparser_token_item *token
 
 static const cfml_tag_info *find_tag_info(const char *tag_name, size_t tag_len) {
     for (int i = 0; i < cfml_tag_count; i++) {
-        if (strncmp(tag_name, cfml_tags[i].name, tag_len) == 0 && cfml_tags[i].name[tag_len] == '\0') {
+        if (strncasecmp(tag_name, cfml_tags[i].name, tag_len) == 0 && cfml_tags[i].name[tag_len] == '\0') {
             return &cfml_tags[i];
         }
     }
@@ -137,7 +137,7 @@ static bool has_matching_end_tag(const cfml_dynamic_token_ids *ids, const char *
                     curr_name[curr_len] == '_')) {
                 curr_len++;
             }
-            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+            if (curr_len == tag_len && strncasecmp(curr_name, tag_name, tag_len) == 0) {
                 if (!is_token_self_closing(text, curr)) {
                     nesting++;
                 }
@@ -155,7 +155,7 @@ static bool has_matching_end_tag(const cfml_dynamic_token_ids *ids, const char *
                     curr_name[curr_len] == '_')) {
                 curr_len++;
             }
-            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+            if (curr_len == tag_len && strncasecmp(curr_name, tag_name, tag_len) == 0) {
                 nesting--;
                 if (nesting == 0) {
                     return true;
@@ -183,7 +183,7 @@ static bool has_matching_start_tag(const cfml_dynamic_token_ids *ids, const char
                     curr_name[curr_len] == '_')) {
                 curr_len++;
             }
-            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+            if (curr_len == tag_len && strncasecmp(curr_name, tag_name, tag_len) == 0) {
                 nesting++;
             }
         }
@@ -199,7 +199,7 @@ static bool has_matching_start_tag(const cfml_dynamic_token_ids *ids, const char
                     curr_name[curr_len] == '_')) {
                 curr_len++;
             }
-            if (curr_len == tag_len && strncmp(curr_name, tag_name, tag_len) == 0) {
+            if (curr_len == tag_len && strncasecmp(curr_name, tag_name, tag_len) == 0) {
                 if (!is_token_self_closing(text, curr)) {
                     nesting--;
                     if (nesting == 0) {

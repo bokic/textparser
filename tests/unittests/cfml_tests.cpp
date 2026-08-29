@@ -910,6 +910,56 @@ TEST(parse_CFML, validation_closing_tags) {
         EXPECT_EQ(validation, nullptr);
         textparser_close(handle);
     }
+
+    // 6. Case-insensitive matching tags (<cfoutput></CFOUTPUT> and <CFCOMPONENT></cfcomponent>)
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<cfoutput></CFOUTPUT><CFCOMPONENT></cfcomponent>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        EXPECT_EQ(validation, nullptr);
+        textparser_close(handle);
+    }
+
+    // 7. Case-insensitive uppercase unclosed tag (<CFCOMPONENT>)
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<CFCOMPONENT>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "CFML tag [CFCOMPONENT] requires a closing tag </CFCOMPONENT>");
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+
+    // 8. Case-insensitive forbidden end tag (<CFSET></CFSET>)
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<CFSET x = 1></CFSET>";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
+        ASSERT_EQ(res, 0);
+        res = textparser_parse(handle, &cfml_definition);
+        ASSERT_EQ(res, 0);
+        
+        textparser_validation *validation = textparser_validate_cfml(handle);
+        ASSERT_NE(validation, nullptr);
+        EXPECT_EQ(validation->len, 1);
+        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(validation->items[0]->text, "Ending tag </CFSET> is forbidden");
+        textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
 }
 
 TEST(parse_CFML, validation_functions) {
