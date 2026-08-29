@@ -297,6 +297,129 @@ TEST(parse_Bash, prune_redundant_unprocessed_leaf) {
     EXPECT_EQ(interp_str[0][0].value, "$USER");
 }
 
+TEST(parse_Bash, path_and_arithmetic_expression) {
+    auto tokens = TextParser(R"bash(
+if [ -f build/compile_commands.json ]; then
+    ./regenerate.sh
+    cp /dev/null /tmp/out.log
+fi
 
+val=$(( 10 / 2 + 5 * 3 ))
+(( count += 1 ))
+)bash", &bash_definition);
 
+    ASSERT_GT(tokens.count, 0);
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("Path"));
+    EXPECT_TRUE(found.contains("ArithmeticExpression"));
+    EXPECT_TRUE(found.contains("ArithmeticOperator"));
+
+    // Find the ArrayIndex `[ -f build/compile_commands.json ]`
+    bool found_path_in_test = false;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        if (tokens[i].type && std::string(tokens[i].type) == "ArrayIndex") {
+            for (size_t j = 0; j < tokens[i].children; ++j) {
+                if (tokens[i][j].type && std::string(tokens[i][j].type) == "Path") {
+                    EXPECT_EQ(tokens[i][j].value, "build/compile_commands.json");
+                    found_path_in_test = true;
+                }
+            }
+        }
+    }
+    EXPECT_TRUE(found_path_in_test);
+}
+
+TEST(parse_Bash, command_substitution_and_process_substitution) {
+    auto tokens = TextParser(R"bash(
+output=$(echo "Current dir: $(pwd)")
+diff -u <(sort file1.txt) <(sort file2.txt)
+tee >(logger -t myapp) > /dev/null
+legacy=`hostname -s`
+)bash", &bash_definition);
+
+    ASSERT_GT(tokens.count, 0);
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("CommandSubstitution"));
+    EXPECT_TRUE(found.contains("ProcessSubstitution"));
+    EXPECT_TRUE(found.contains("BacktickSubstitution"));
+    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("Variable"));
+}
+
+TEST(parse_Bash, extended_test_expression) {
+    auto tokens = TextParser(R"bash(
+if [[ "$str" =~ ^[0-9]+$ && -f "$file" || ! -d "$dir" ]]; then
+    echo "Pattern matched"
+fi
+)bash", &bash_definition);
+
+    ASSERT_GT(tokens.count, 0);
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("TestExpression"));
+    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("Variable"));
+}
+
+TEST(parse_Bash, ansi_c_escapes_and_base_numbers) {
+    auto tokens = TextParser(R"bash(
+ansi_escapes=$'Alert:\a Bell:\b Esc:\e \E FormFeed:\f Unicode:\u0041 \U00000041 Control:\cA Hex:\x7f Octal:\033 Quest:\?'
+num_b64=64#@_12
+num_b16=16#DEAD_BEEF
+num_b2=2#101010
+num_oct=0755
+)bash", &bash_definition);
+
+    ASSERT_GT(tokens.count, 0);
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("Number"));
+    EXPECT_TRUE(found.contains("Variable"));
+}
+
+TEST(parse_Bash, extended_builtins_and_redirections) {
+    auto tokens = TextParser(R"bash(
+mapfile -t lines < input.txt
+readarray -t entries < <(find . -type f)
+shopt -s extglob nullglob
+pushd /tmp >/dev/null && popd >/dev/null
+complete -F _my_comp my_cmd
+disown -h %1
+kill -9 "$pid"
+cmd &> all_output.log
+cmd &>> append_all.log
+cat <<-EOF >| force_overwrite.txt
+	tab-indented heredoc
+EOF
+)bash", &bash_definition);
+
+    ASSERT_GT(tokens.count, 0);
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("ProcessSubstitution"));
+    EXPECT_TRUE(found.contains("Variable"));
+}
 

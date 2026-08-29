@@ -786,28 +786,48 @@ EXPORT_TEXTPARSER bool _gen_sql_CodeBlock_end(enum textparser_encoding encoding,
 /* === BASH Grammar Matchers === */
 /* _gen_bash_LineComment_start_I1teXHJcbl0q */
 EXPORT_TEXTPARSER bool _gen_bash_LineComment_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_Keyword_start_aWZcYnx0aGVuXGJ8ZWxzZVxifGVsaWZcYnxmaVxifGZvclxifHdoaWxlXGJ8dW50aWxcYnxkb1xifGRvbmVcYnxpblxifGNhc2VcYnxlc2FjXGJ8c2VsZWN0XGJ8ZnVuY3Rpb25cYnx0aW1lXGJ8bG9jYWxcYnxkZWNsYXJlXGJ8ZXhwb3J0XGJ8cmVhZG9ubHlcYnxyZXR1cm5cYnxleGl0XGJ8YnJlYWtcYnxjb250aW51ZVxifGFsaWFzXGJ8dW5hbGlhc1xifGJ1aWx0aW5cYnxjb21tYW5kXGJ8ZXZhbFxifGV4ZWNcYnxzaGlmdFxifHNvdXJjZVxifGNvcHJvY1xifGxldFxifHNldFxifHVuc2V0XGJ8dHJhcFxifHR5cGVzZXRcYnx0ZXN0XGJ8ZWNob1xifHByaW50ZlxifHJlYWRcYnxjZFxifHB3ZFxi */
+/* _gen_bash_Keyword_start_aWZcYnx0aGVuXGJ8ZWxzZVxifGVsaWZcYnxmaVxifGZvclxifHdoaWxlXGJ8dW50aWxcYnxkb1xifGRvbmVcYnxpblxifGNhc2VcYnxlc2FjXGJ8c2VsZWN0XGJ8ZnVuY3Rpb25cYnx0aW1lXGJ8Y29wcm9jXGJ8YWxpYXNcYnxiZ1xifGJpbmRcYnxicmVha1xifGJ1aWx0aW5cYnxjYWxsZXJcYnxjZFxifGNvbW1hbmRcYnxjb21wZ2VuXGJ8Y29tcGxldGVcYnxjb21wb3B0XGJ8Y29udGludWVcYnxkZWNsYXJlXGJ8ZGlyc1xifGRpc293blxifGVjaG9cYnxlbmFibGVcYnxldmFsXGJ8ZXhlY1xifGV4aXRcYnxleHBvcnRcYnxmY1xifGZnXGJ8Z2V0b3B0c1xifGhhc2hcYnxoZWxwXGJ8aGlzdG9yeVxifGpvYnNcYnxraWxsXGJ8bGV0XGJ8bG9jYWxcYnxtYXBmaWxlXGJ8cG9wZFxifHByaW50ZlxifHB1c2hkXGJ8cHdkXGJ8cmVhZFxifHJlYWRhcnJheVxifHJlYWRvbmx5XGJ8cmV0dXJuXGJ8c2V0XGJ8c2hpZnRcYnxzaG9wdFxifHNvdXJjZVxifHN1c3BlbmRcYnx0ZXN0XGJ8dGltZXNcYnx0cmFwXGJ8dHlwZVxifHR5cGVzZXRcYnx1bGltaXRcYnx1bWFza1xifHVuYWxpYXNcYnx1bnNldFxifHdhaXRcYg== */
 EXPORT_TEXTPARSER bool _gen_bash_Keyword_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_Boolean_start_dHJ1ZVxifGZhbHNlXGI= */
 EXPORT_TEXTPARSER bool _gen_bash_Boolean_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_ArithmeticExpression_start_XCRcKFwofFwoXCg= */
+EXPORT_TEXTPARSER bool _gen_bash_ArithmeticExpression_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_ArithmeticExpression_end_XClcKQ== */
+EXPORT_TEXTPARSER bool _gen_bash_ArithmeticExpression_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_CommandSubstitution_start_XCRcKCg/IVwoKQ== */
+EXPORT_TEXTPARSER bool _gen_bash_CommandSubstitution_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_CommandSubstitution_end_XCk= */
+EXPORT_TEXTPARSER bool _gen_bash_CommandSubstitution_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_ProcessSubstitution_start_PFwofD5cKA== */
+EXPORT_TEXTPARSER bool _gen_bash_ProcessSubstitution_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_ProcessSubstitution_end_XCk= */
+EXPORT_TEXTPARSER bool _gen_bash_ProcessSubstitution_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_BacktickSubstitution_start_YA== */
+EXPORT_TEXTPARSER bool _gen_bash_BacktickSubstitution_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_BacktickSubstitution_end_YA== */
+EXPORT_TEXTPARSER bool _gen_bash_BacktickSubstitution_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_TestExpression_start_XFtcWw== */
+EXPORT_TEXTPARSER bool _gen_bash_TestExpression_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_TestExpression_end_XF1cXQ== */
+EXPORT_TEXTPARSER bool _gen_bash_TestExpression_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_Variable_start_XCRbYS16QS1aX11bYS16QS1aMC05X10qfFwkW0AqIz8kIV8wLTktXXxbYS16QS1aX11bYS16QS1aMC05X10qKD89XCs9fD18Oi18Oj18OlwrfDpcPyk= */
 EXPORT_TEXTPARSER bool _gen_bash_Variable_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_Path_start_W2EtekEtWjAtOV8ufi1dKlwvW2EtekEtWjAtOV8ufi8tXSs= */
+EXPORT_TEXTPARSER bool _gen_bash_Path_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_Identifier_start_W2EtekEtWl9dW2EtekEtWjAtOV9dKg== */
 EXPORT_TEXTPARSER bool _gen_bash_Identifier_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_ParameterExpansion_start_XCRcew== */
 EXPORT_TEXTPARSER bool _gen_bash_ParameterExpansion_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_ParameterExpansion_end_XH0= */
 EXPORT_TEXTPARSER bool _gen_bash_ParameterExpansion_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_CommandSubstitution_start_YA== */
-EXPORT_TEXTPARSER bool _gen_bash_CommandSubstitution_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_CommandSubstitution_end_YA== */
-EXPORT_TEXTPARSER bool _gen_bash_CommandSubstitution_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_CodeBlock_start_XHs= */
 EXPORT_TEXTPARSER bool _gen_bash_CodeBlock_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_CodeBlock_end_XH0= */
 EXPORT_TEXTPARSER bool _gen_bash_CodeBlock_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_Operator_start_JiZ8XHxcfHw+Pnw8PHw9PXwhPXxcKz18XC09fFwqPXwvPXwlPXwmPXxcfD18XF49fDw8PXw+Pj18XCtcK3xcLVwtfDs7fDsmfDs7JnxcfCZ8PDw8fD4mfDwmfDw9fD49fD1+fDotfDo9fDpcK3w6XD98Ly98IyN8JSV8XF5cXnwsLHxbLSsqLyUmfF5+PD4hPTsuLHw6XQ== */
+/* _gen_bash_Operator_start_JiZ8XHxcfHw+Pnw8PHw9PXwhPXxcKz18XC09fFwqPXwvPXwlPXwmPXxcfD18XF49fDw8PXw+Pj18XCtcK3xcLVwtfDs7fDsmfDs7JnxcfCZ8PDw8fDw8LXw+Jnw8JnwmPj58Jj58Plx8fDw+fDw9fD49fD1+fDotfDo9fDpcK3w6XD98Ly98IyN8JSV8XF5cXnwsLHxbLSsqLyUmfF5+PD4hPTsuLHw6XQ== */
 EXPORT_TEXTPARSER bool _gen_bash_Operator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_ArithmeticOperator_start_XCpcKnw8PD18Pj49fFwrPXxcLT18XCo9fC89fCU9fCY9fFx8PXxcXj18XCtcK3xcLVwtfDw8fD4+fDw9fD49fD09fCE9fCYmfFx8XHx8Wy0rKi8lJnxefjw+IT0/Oj1d */
+EXPORT_TEXTPARSER bool _gen_bash_ArithmeticOperator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_SingleString_start_XCQ/Jw== */
 EXPORT_TEXTPARSER bool _gen_bash_SingleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_SingleString_end_Jw== */
@@ -816,9 +836,9 @@ EXPORT_TEXTPARSER bool _gen_bash_SingleString_end(enum textparser_encoding encod
 EXPORT_TEXTPARSER bool _gen_bash_DoubleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_DoubleString_end_Ig== */
 EXPORT_TEXTPARSER bool _gen_bash_DoubleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_StringEscape_start_XFxcXHxcXFwifFxcXCd8XFxufFxccnxcXHR8XFxcJHxcXFxgfFxcYXxcXGJ8XFxlfFxcZnxcXHZ8XFx4WzAtOWEtZkEtRl17MSwyfXxcXFswLTddezEsM30= */
+/* _gen_bash_StringEscape_start_XFxcXHxcXFwifFxcXCd8XFxufFxccnxcXHR8XFxcJHxcXFxgfFxcYXxcXGJ8XFxbZUVdfFxcZnxcXHZ8XFxcP3xcXHhbMC05YS1mQS1GXXsxLDJ9fFxcdVswLTlhLWZBLUZdezEsNH18XFxVWzAtOWEtZkEtRl17MSw4fXxcXGNbYS16QS1aXXxcXFswLTddezEsM30= */
 EXPORT_TEXTPARSER bool _gen_bash_StringEscape_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_Number_start_MFt4WF1bMC05YS1mQS1GXSt8MFtvT11bMC03XSt8MFtiQl1bMDFdK3xbMC05XSsjWzAtOWEtekEtWl0rfFswLTldKlwuP1swLTldKyg/OltlRV1bLStdP1swLTldKyk/ */
+/* _gen_bash_Number_start_MFt4WF1bMC05YS1mQS1GXSt8MFtvT11bMC03XSt8MFtiQl1bMDFdK3xbMC05XSsjWzAtOWEtekEtWkBfXSt8WzAtOV0qXC4/WzAtOV0rKD86W2VFXVstK10/WzAtOV0rKT8= */
 EXPORT_TEXTPARSER bool _gen_bash_Number_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_Parenthesis_start_XCg= */
 EXPORT_TEXTPARSER bool _gen_bash_Parenthesis_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);

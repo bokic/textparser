@@ -11,10 +11,15 @@
     "LineComment",
     "Boolean",
     "Keyword",
+    "ArithmeticExpression",
+    "CommandSubstitution",
+    "ProcessSubstitution",
+    "BacktickSubstitution",
     "Variable",
     "ParameterExpansion",
-    "CommandSubstitution",
+    "TestExpression",
     "CodeBlock",
+    "Path",
     "Operator",
     "SingleString",
     "DoubleString",
@@ -33,7 +38,7 @@
     },
     "Keyword": {
       "type": "SimpleToken",
-      "startRegex": "if\\b|then\\b|else\\b|elif\\b|fi\\b|for\\b|while\\b|until\\b|do\\b|done\\b|in\\b|case\\b|esac\\b|select\\b|function\\b|time\\b|local\\b|declare\\b|export\\b|readonly\\b|return\\b|exit\\b|break\\b|continue\\b|alias\\b|unalias\\b|builtin\\b|command\\b|eval\\b|exec\\b|shift\\b|source\\b|coproc\\b|let\\b|set\\b|unset\\b|trap\\b|typeset\\b|test\\b|echo\\b|printf\\b|read\\b|cd\\b|pwd\\b",
+      "startRegex": "if\\b|then\\b|else\\b|elif\\b|fi\\b|for\\b|while\\b|until\\b|do\\b|done\\b|in\\b|case\\b|esac\\b|select\\b|function\\b|time\\b|coproc\\b|alias\\b|bg\\b|bind\\b|break\\b|builtin\\b|caller\\b|cd\\b|command\\b|compgen\\b|complete\\b|compopt\\b|continue\\b|declare\\b|dirs\\b|disown\\b|echo\\b|enable\\b|eval\\b|exec\\b|exit\\b|export\\b|fc\\b|fg\\b|getopts\\b|hash\\b|help\\b|history\\b|jobs\\b|kill\\b|let\\b|local\\b|mapfile\\b|popd\\b|printf\\b|pushd\\b|pwd\\b|read\\b|readarray\\b|readonly\\b|return\\b|set\\b|shift\\b|shopt\\b|source\\b|suspend\\b|test\\b|times\\b|trap\\b|type\\b|typeset\\b|ulimit\\b|umask\\b|unalias\\b|unset\\b|wait\\b",
       "textColor": "0xc586c0"
     },
     "Boolean": {
@@ -41,10 +46,148 @@
       "startRegex": "true\\b|false\\b",
       "textColor": "0x569cd6"
     },
+    "ArithmeticExpression": {
+      "type": "StartStop",
+      "startRegex": "\\$\\(\\(|\\(\\(",
+      "endRegex": "\\)\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "Variable",
+        "Identifier",
+        "ArithmeticOperator",
+        "Number",
+        "SingleString",
+        "DoubleString",
+        "Parenthesis",
+        "ParameterExpansion",
+        "CommandSubstitution",
+        "BacktickSubstitution"
+      ]
+    },
+    "CommandSubstitution": {
+      "type": "StartStop",
+      "startRegex": "\\$\\((?!\\()",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "LineComment",
+        "Boolean",
+        "Keyword",
+        "ArithmeticExpression",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
+        "Variable",
+        "Path",
+        "Identifier",
+        "ParameterExpansion",
+        "TestExpression",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex",
+        "StringEscape"
+      ]
+    },
+    "ProcessSubstitution": {
+      "type": "StartStop",
+      "startRegex": "<\\(|>\\(",
+      "endRegex": "\\)",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "LineComment",
+        "Boolean",
+        "Keyword",
+        "ArithmeticExpression",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
+        "Variable",
+        "Path",
+        "Identifier",
+        "ParameterExpansion",
+        "TestExpression",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex",
+        "StringEscape"
+      ]
+    },
+    "BacktickSubstitution": {
+      "type": "StartStop",
+      "startRegex": "`",
+      "endRegex": "`",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "LineComment",
+        "Boolean",
+        "Keyword",
+        "ArithmeticExpression",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
+        "Variable",
+        "Path",
+        "Identifier",
+        "ParameterExpansion",
+        "TestExpression",
+        "CodeBlock",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Parenthesis",
+        "ArrayIndex",
+        "StringEscape"
+      ]
+    },
+    "TestExpression": {
+      "type": "StartStop",
+      "startRegex": "\\[\\[",
+      "endRegex": "\\]\\]",
+      "multiLine": true,
+      "otherTextInside": true,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "Variable",
+        "ParameterExpansion",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
+        "Operator",
+        "SingleString",
+        "DoubleString",
+        "Number",
+        "Identifier",
+        "Path",
+        "Parenthesis",
+        "Boolean"
+      ]
+    },
     "Variable": {
       "type": "SimpleToken",
       "startRegex": "\\$[a-zA-Z_][a-zA-Z0-9_]*|\\$[@*#?$!_0-9-]|[a-zA-Z_][a-zA-Z0-9_]*(?=\\+=|=|:-|:=|:\\+|:\\?)",
       "textColor": "0x9cdcfe"
+    },
+    "Path": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z0-9_.~-]*\\/[a-zA-Z0-9_.~/-]+",
+      "textColor": "0xdcdcaa"
     },
     "Identifier": {
       "type": "SimpleToken",
@@ -60,40 +203,19 @@
       "textColor": "0x9cdcfe",
       "nestedTokens": [
         "Variable",
+        "Path",
         "Identifier",
         "ParameterExpansion",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
         "Operator",
+        "ArithmeticOperator",
         "Number",
         "SingleString",
         "DoubleString",
-        "CommandSubstitution",
         "Parenthesis",
         "ArrayIndex"
-      ]
-    },
-    "CommandSubstitution": {
-      "type": "StartStop",
-      "startRegex": "`",
-      "endRegex": "`",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "LineComment",
-        "Boolean",
-        "Keyword",
-        "Variable",
-        "Identifier",
-        "ParameterExpansion",
-        "CommandSubstitution",
-        "CodeBlock",
-        "Operator",
-        "SingleString",
-        "DoubleString",
-        "Number",
-        "Parenthesis",
-        "ArrayIndex",
-        "StringEscape"
       ]
     },
     "CodeBlock": {
@@ -107,10 +229,15 @@
         "LineComment",
         "Boolean",
         "Keyword",
+        "ArithmeticExpression",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
         "Variable",
+        "Path",
         "Identifier",
         "ParameterExpansion",
-        "CommandSubstitution",
+        "TestExpression",
         "CodeBlock",
         "Operator",
         "SingleString",
@@ -122,7 +249,12 @@
     },
     "Operator": {
       "type": "SimpleToken",
-      "startRegex": "&&|\\|\\||>>|<<|==|!=|\\+=|\\-=|\\*=|/=|%=|&=|\\|=|\\^=|<<=|>>=|\\+\\+|\\-\\-|;;|;&|;;&|\\|&|<<<|>&|<&|<=|>=|=~|:-|:=|:\\+|:\\?|//|##|%%|\\^\\^|,,|[-+*/%&|^~<>!=;.,|:]",
+      "startRegex": "&&|\\|\\||>>|<<|==|!=|\\+=|\\-=|\\*=|/=|%=|&=|\\|=|\\^=|<<=|>>=|\\+\\+|\\-\\-|;;|;&|;;&|\\|&|<<<|<<-|>&|<&|&>>|&>|>\\||<>|<=|>=|=~|:-|:=|:\\+|:\\?|//|##|%%|\\^\\^|,,|[-+*/%&|^~<>!=;.,|:]",
+      "textColor": "0xd4d4d4"
+    },
+    "ArithmeticOperator": {
+      "type": "SimpleToken",
+      "startRegex": "\\*\\*|<<=|>>=|\\+=|\\-=|\\*=|/=|%=|&=|\\|=|\\^=|\\+\\+|\\-\\-|<<|>>|<=|>=|==|!=|&&|\\|\\||[-+*/%&|^~<>!=?:=]",
       "textColor": "0xd4d4d4"
     },
     "SingleString": {
@@ -147,17 +279,20 @@
         "StringEscape",
         "Variable",
         "ParameterExpansion",
-        "CommandSubstitution"
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
+        "ArithmeticExpression"
       ]
     },
     "StringEscape": {
       "type": "SimpleToken",
-      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\\\$|\\\\\\`|\\\\a|\\\\b|\\\\e|\\\\f|\\\\v|\\\\x[0-9a-fA-F]{1,2}|\\\\[0-7]{1,3}",
+      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\\\$|\\\\\\`|\\\\a|\\\\b|\\\\[eE]|\\\\f|\\\\v|\\\\\\?|\\\\x[0-9a-fA-F]{1,2}|\\\\u[0-9a-fA-F]{1,4}|\\\\U[0-9a-fA-F]{1,8}|\\\\c[a-zA-Z]|\\\\[0-7]{1,3}",
       "textColor": "0xd7ba7d"
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[0-9]+#[0-9a-zA-Z]+|[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?",
+      "startRegex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[0-9]+#[0-9a-zA-Z@_]+|[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?",
       "textColor": "0xb5cea8"
     },
     "Parenthesis": {
@@ -171,10 +306,15 @@
         "LineComment",
         "Boolean",
         "Keyword",
+        "ArithmeticExpression",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
         "Variable",
+        "Path",
         "Identifier",
         "ParameterExpansion",
-        "CommandSubstitution",
+        "TestExpression",
         "CodeBlock",
         "Operator",
         "SingleString",
@@ -195,10 +335,15 @@
         "LineComment",
         "Boolean",
         "Keyword",
+        "ArithmeticExpression",
+        "CommandSubstitution",
+        "ProcessSubstitution",
+        "BacktickSubstitution",
         "Variable",
+        "Path",
         "Identifier",
         "ParameterExpansion",
-        "CommandSubstitution",
+        "TestExpression",
         "CodeBlock",
         "Operator",
         "SingleString",
@@ -211,7 +356,8 @@
   },
   "mergeSignIntoNumber": {
     "signTokens": [
-      "Operator"
+      "Operator",
+      "ArithmeticOperator"
     ],
     "numberTokens": [
       "Number"
@@ -225,9 +371,14 @@
       "SingleString",
       "DoubleString",
       "CommandSubstitution",
+      "ProcessSubstitution",
+      "BacktickSubstitution",
       "Parenthesis",
       "ArrayIndex",
-      "CodeBlock"
+      "CodeBlock",
+      "TestExpression",
+      "ArithmeticExpression",
+      "Path"
     ]
   }
 }
