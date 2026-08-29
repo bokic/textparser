@@ -6,7 +6,7 @@
     "sh",
     "bash"
   ],
-  "defaultTextEncoding": "latin1",
+  "defaultTextEncoding": "utf-8",
   "startTokens": [
     "LineComment",
     "Boolean",
