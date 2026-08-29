@@ -312,10 +312,14 @@ TEST(parse_SameLine, next_line_becomes_unprocessed_utf8) {
     ASSERT_NE(first, nullptr);
     EXPECT_EQ(first->token_id, 0);
     EXPECT_EQ(first->len, 7);
-    const textparser_token_item *next = textparser_get_token_next(first);
+    const textparser_token_item *ws = textparser_get_token_next(first);
+    ASSERT_NE(ws, nullptr);
+    EXPECT_EQ(ws->token_id, TEXTPARSER_TOKEN_ID_WHITESPACE);
+    EXPECT_EQ(ws->len, 1);
+    const textparser_token_item *next = textparser_get_token_next(ws);
     ASSERT_NE(next, nullptr);
     EXPECT_EQ(next->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
-    EXPECT_EQ(next->len, 6);
+    EXPECT_EQ(next->len, 5);
     textparser_close(handle);
 }
 
@@ -328,10 +332,14 @@ TEST(parse_SameLine, next_line_becomes_unprocessed_utf16) {
     ASSERT_NE(first, nullptr);
     EXPECT_EQ(first->token_id, 0);
     EXPECT_EQ(first->len, 7);
-    const textparser_token_item *next = textparser_get_token_next(first);
+    const textparser_token_item *ws = textparser_get_token_next(first);
+    ASSERT_NE(ws, nullptr);
+    EXPECT_EQ(ws->token_id, TEXTPARSER_TOKEN_ID_WHITESPACE);
+    EXPECT_EQ(ws->len, 1);
+    const textparser_token_item *next = textparser_get_token_next(ws);
     ASSERT_NE(next, nullptr);
     EXPECT_EQ(next->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
-    EXPECT_EQ(next->len, 6);
+    EXPECT_EQ(next->len, 5);
     textparser_close(handle);
 }
 
@@ -344,10 +352,14 @@ TEST(parse_SameLine, crlf_line_ending_utf8) {
     ASSERT_NE(first, nullptr);
     EXPECT_EQ(first->token_id, 0);
     EXPECT_EQ(first->len, 7);
-    const textparser_token_item *next = textparser_get_token_next(first);
+    const textparser_token_item *ws = textparser_get_token_next(first);
+    ASSERT_NE(ws, nullptr);
+    EXPECT_EQ(ws->token_id, TEXTPARSER_TOKEN_ID_WHITESPACE);
+    EXPECT_EQ(ws->len, 2);
+    const textparser_token_item *next = textparser_get_token_next(ws);
     ASSERT_NE(next, nullptr);
     EXPECT_EQ(next->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
-    EXPECT_EQ(next->len, 7);   // "\r\nworld"
+    EXPECT_EQ(next->len, 5);
     textparser_close(handle);
 }
 

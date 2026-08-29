@@ -65,7 +65,7 @@ public:
             children = 0;
             const textparser_token_item *c = token->child;
             while (c) {
-                if (c->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                if (c->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && c->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE) {
                     children++;
                 }
                 c = c->next;
@@ -89,7 +89,7 @@ public:
         size_t c = 0;
         while (token != nullptr)
         {
-            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED)
+            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE)
             {
                 if (c == index) break;
                 c++;
@@ -105,6 +105,8 @@ public:
     const char *type = nullptr;
     size_t children = 0;
     std::string value;
+
+    const textparser_token_item *raw_token() const { return m_token; }
 
 private:
     const textparser_token_item *m_token = nullptr;
@@ -124,7 +126,7 @@ public:
             auto token = textparser_get_first_token(m_handle);
             while(token)
             {
-                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE) {
                     count++;
                 }
                 token = token->next;
@@ -157,7 +159,7 @@ public:
         size_t c = 0;
         while (token != nullptr)
         {
-            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED)
+            if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE)
             {
                 if (c == index) break;
                 c++;
@@ -183,7 +185,7 @@ public:
             auto token = textparser_get_first_token(m_handle);
             while (token)
             {
-                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                if (token->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && token->token_id != TEXTPARSER_TOKEN_ID_WHITESPACE) {
                     count++;
                 }
                 token = token->next;

@@ -273,11 +273,30 @@ echo "STOP" >&"${BG_WORKER[1]}"
     EXPECT_TRUE(found.contains("LineComment"));
     EXPECT_TRUE(found.contains("Keyword"));
     EXPECT_TRUE(found.contains("Variable"));
+    EXPECT_TRUE(found.contains("Identifier"));
     EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("CodeBlock"));
     EXPECT_TRUE(found.contains("Parenthesis"));
 }
+
+TEST(parse_Bash, prune_redundant_unprocessed_leaf) {
+    auto plain_str = TextParser(R"bash("Ninja")bash", &bash_definition);
+    ASSERT_GT(plain_str.count, 0);
+    EXPECT_STREQ(plain_str[0].type, "DoubleString");
+    EXPECT_EQ(plain_str[0].children, 0);
+    EXPECT_EQ(plain_str[0].raw_token()->child, nullptr);
+
+    auto interp_str = TextParser(R"bash("Hello $USER!")bash", &bash_definition);
+    ASSERT_GT(interp_str.count, 0);
+    EXPECT_STREQ(interp_str[0].type, "DoubleString");
+    EXPECT_EQ(interp_str[0].children, 1);
+    ASSERT_NE(interp_str[0].raw_token()->child, nullptr);
+    EXPECT_STREQ(interp_str[0][0].type, "Variable");
+    EXPECT_EQ(interp_str[0][0].value, "$USER");
+}
+
+
 
 

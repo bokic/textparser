@@ -30,8 +30,18 @@ TEST(parse_CFML, error_resynchronization_and_merging) {
 
     item = textparser_get_token_next(item);
     ASSERT_NE(item, nullptr);
-    EXPECT_EQ(item->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED); // Unprocessed node for " @@@@ "
-    EXPECT_EQ(item->len, 6);
+    EXPECT_EQ(item->token_id, TEXTPARSER_TOKEN_ID_WHITESPACE); // Whitespace before @@@@
+    EXPECT_EQ(item->len, 1);
+
+    item = textparser_get_token_next(item);
+    ASSERT_NE(item, nullptr);
+    EXPECT_EQ(item->token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED); // Unprocessed node for "@@@@"
+    EXPECT_EQ(item->len, 4);
+
+    item = textparser_get_token_next(item);
+    ASSERT_NE(item, nullptr);
+    EXPECT_EQ(item->token_id, TEXTPARSER_TOKEN_ID_WHITESPACE); // Whitespace after @@@@
+    EXPECT_EQ(item->len, 1);
 
     item = textparser_get_token_next(item);
     ASSERT_NE(item, nullptr);

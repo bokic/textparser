@@ -47,6 +47,11 @@
 static size_t calculate_chunk_size(size_t text_size);
 static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos);
 
+static inline bool is_trivia_token_id(int token_id)
+{
+    return token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED || token_id == TEXTPARSER_TOKEN_ID_WHITESPACE;
+}
+
 enum parent_start_stop{
     TEXTPARSER_SEARCH_END_TOKEN,
     TEXTPARSER_SEARCH_START_TOKEN,
@@ -537,7 +542,7 @@ static size_t textparser_get_semantic_children_count(const textparser_token_item
     size_t ret = 0;
     const textparser_token_item *child = token->child;
     while (child) {
-        if (child->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+        if (!is_trivia_token_id(child->token_id)) {
             ret++;
         }
         child = child->next;
@@ -572,12 +577,12 @@ static void maybe_merge_sign(struct textparser_handle *handle, textparser_token_
         }
     }
 
-    while (context && context->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+    while (context && is_trivia_token_id(context->token_id)) {
         context = context->prev;
     }
     if (context == nullptr && prev != sign) {
         context = prev->prev;
-        while (context && context->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+        while (context && is_trivia_token_id(context->token_id)) {
             context = context->prev;
         }
     }
@@ -646,7 +651,7 @@ static bool is_regex_valid_in_context(
     const textparser_token_item *curr = prev_sibling;
     const textparser_token_item *prev = nullptr;
     while (curr) {
-        if (curr->token_id != TEXTPARSER_TOKEN_ID_UNPROCESSED && curr->token_id >= 0) {
+        if (!is_trivia_token_id(curr->token_id) && curr->token_id >= 0) {
             const char *tok_name = handle->language->tokens[curr->token_id].name;
             if (tok_name && (strstr(tok_name, "Comment") != nullptr || strstr(tok_name, "comment") != nullptr)) {
                 curr = curr->prev;
@@ -675,7 +680,7 @@ static bool is_regex_valid_in_context(
         if (prev_name && (strcasecmp(prev_name, "Parenthesis") == 0)) {
             // Find token preceding this parenthesis
             const textparser_token_item *before_paren = prev->prev;
-            while (before_paren && before_paren->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+            while (before_paren && is_trivia_token_id(before_paren->token_id)) {
                 before_paren = before_paren->prev;
             }
             if (before_paren && before_paren->token_id >= 0 && reg_div->control_keywords != nullptr) {
@@ -708,7 +713,7 @@ static bool is_regex_valid_in_context(
             textparser_free_token_text(prev_txt);
             if (is_inc_dec) {
                 const textparser_token_item *before_op = prev->prev;
-                while (before_op && before_op->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                while (before_op && is_trivia_token_id(before_op->token_id)) {
                     before_op = before_op->prev;
                 }
                 if (before_op && before_op->token_id >= 0 && textparser_token_in_id_list(reg_div->operand_tokens, before_op->token_id)) {
@@ -897,6 +902,24 @@ static void append_child_to_ast(
     }
 }
 
+static void append_whitespace_if_needed(
+    struct textparser_handle *handle,
+    textparser_token_item *parent,
+    textparser_token_item **head,
+    textparser_token_item **tail,
+    size_t len)
+{
+    if (len == 0) return;
+    if (*tail != nullptr && (*tail)->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE)
+    {
+        (*tail)->len += len;
+        return;
+    }
+    textparser_token_item *item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_WHITESPACE, len);
+    if (item == nullptr) return;
+    append_child_to_ast(parent, head, tail, item);
+}
+
 static void append_unprocessed_if_needed(
     struct textparser_handle *handle,
     textparser_token_item *parent,
@@ -1049,7 +1072,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
     while(1) {
         size_t ws_skipped = textparser_skip_whitespace(handle, offset) - offset;
         if (ws_skipped > 0) {
-            append_unprocessed_if_needed(handle, ret, &ret->child, &child, ws_skipped);
+            append_whitespace_if_needed(handle, ret, &ret->child, &child, ws_skipped);
             offset += ws_skipped;
         }
 
@@ -1216,7 +1239,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
     {
         size_t ws_skipped = textparser_skip_whitespace(handle, offset) - offset;
         if (ws_skipped > 0) {
-            append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, ws_skipped);
+            append_whitespace_if_needed(handle, ret, &ret->child, &last_child, ws_skipped);
             offset += ws_skipped;
         }
 
@@ -1259,7 +1282,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
 
     size_t ws_skipped_end = textparser_skip_whitespace(handle, offset) - offset;
     if (ws_skipped_end > 0) {
-        append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, ws_skipped_end);
+        append_whitespace_if_needed(handle, ret, &ret->child, &last_child, ws_skipped_end);
         offset += ws_skipped_end;
     }
 
@@ -1320,7 +1343,7 @@ static textparser_token_item *parse_token_sequence(
 
         size_t ws_skipped = textparser_skip_whitespace(handle, offset) - offset;
         if (ws_skipped > 0) {
-            append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, ws_skipped);
+            append_whitespace_if_needed(handle, ret, &ret->child, &last_child, ws_skipped);
             offset += ws_skipped;
         }
 
@@ -1474,7 +1497,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
         while (1) {
             size_t ws_skipped = textparser_skip_whitespace(handle, offset) - offset;
             if (ws_skipped > 0) {
-                append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, ws_skipped);
+                append_whitespace_if_needed(handle, ret, &ret->child, &last_child, ws_skipped);
                 offset += ws_skipped;
             }
 
@@ -1589,7 +1612,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
 
     size_t ws_skipped_final = textparser_skip_whitespace(handle, offset) - offset;
     if (ws_skipped_final > 0) {
-        append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, ws_skipped_final);
+        append_whitespace_if_needed(handle, ret, &ret->child, &last_child, ws_skipped_final);
         offset += ws_skipped_final;
     }
 
@@ -1631,6 +1654,10 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, token_end + end_len);
     offset += token_end + end_len;
     ret->len = offset - start_offset;
+
+    if (ret->child && ret->child->next == nullptr && ret->child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED && ret->child->len == ret->len) {
+        ret->child = nullptr;
+    }
 
     if (handle->callback) {
         handle->callback(handle, ret, TEXTPARSER_CALLBACK_TYPE_END, handle->user_data);
@@ -2672,7 +2699,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         size_t ws_skipped = textparser_skip_whitespace(handle, pos) - pos;
         if (ws_skipped > 0) {
             textparser_token_item **head_ptr = parent_container ? &parent_container->child : &handle->first_item;
-            append_unprocessed_if_needed(handle, parent_container, head_ptr, &prev_item, ws_skipped);
+            append_whitespace_if_needed(handle, parent_container, head_ptr, &prev_item, ws_skipped);
             if (first_new_token == nullptr) first_new_token = prev_item;
             last_new_token = prev_item;
             pos += ws_skipped;
@@ -2937,7 +2964,7 @@ static textparser_token_item *pratt_parse_expression_stream(
     // Collect any leading trivia before first operand/operator
     textparser_token_item *leading_trivia_head = nullptr;
     textparser_token_item *leading_trivia_tail = nullptr;
-    while (*idx < count && items[*idx]->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+    while (*idx < count && is_trivia_token_id(items[*idx]->token_id)) {
         textparser_token_item *t = items[(*idx)++];
         t->prev = leading_trivia_tail;
         t->next = nullptr;
@@ -2975,7 +3002,7 @@ static textparser_token_item *pratt_parse_expression_stream(
 
     while (*idx < count) {
         int scan_idx = *idx;
-        while (scan_idx < count && items[scan_idx]->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+        while (scan_idx < count && is_trivia_token_id(items[scan_idx]->token_id)) {
             scan_idx++;
         }
         if (scan_idx >= count) break;
@@ -3086,7 +3113,7 @@ static bool is_operator_group(const textparser_token_item *node, const textparse
 
     if (node->child == nullptr) return false;
     for (const textparser_token_item *c = node->child; c != nullptr; c = c->next) {
-        if (c->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) continue;
+        if (is_trivia_token_id(c->token_id)) continue;
         int prec = 0;
         if (!get_operator_info(language, c->token_id, &prec, nullptr, nullptr)) {
             return false;
@@ -3138,7 +3165,7 @@ static void textparser_disambiguate_casts(textparser_token_item **root, const te
         bool all_valid_types = true;
 
         for (textparser_token_item *c = curr->child; c != nullptr; c = c->next) {
-            if (c->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) continue;
+            if (is_trivia_token_id(c->token_id)) continue;
             if (c->token_id < 0) {
                 all_valid_types = false;
                 break;
@@ -3169,7 +3196,7 @@ static void textparser_disambiguate_casts(textparser_token_item **root, const te
 
         if (has_type_token && all_valid_types) {
             textparser_token_item *after = curr->next;
-            while (after && after->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+            while (after && is_trivia_token_id(after->token_id)) {
                 after = after->next;
             }
             if (after != nullptr && after->token_id >= 0) {
@@ -3192,7 +3219,7 @@ static void textparser_disambiguate_templates(textparser_token_item **root, cons
 
         if (curr->token_id >= 0 && textparser_token_in_id_list(tpl->template_open_tokens, curr->token_id)) {
             textparser_token_item *prev = curr->prev;
-            while (prev && prev->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+            while (prev && is_trivia_token_id(prev->token_id)) {
                 prev = prev->prev;
             }
 
@@ -3213,7 +3240,7 @@ static void textparser_disambiguate_templates(textparser_token_item **root, cons
                 bool is_valid_template = true;
 
                 while (scan && depth > 0) {
-                    if (scan->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED) {
+                    if (is_trivia_token_id(scan->token_id)) {
                         scan = scan->next;
                         continue;
                     }
@@ -3668,6 +3695,9 @@ const char *textparser_get_token_type_str(const textparser_language_definition *
 
     if (token == nullptr)
         return nullptr;
+
+    if (token->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE)
+        return "Whitespace";
 
     if (token->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED)
         return "Unprocessed";

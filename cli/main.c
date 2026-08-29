@@ -119,21 +119,25 @@ static const textparser_language_definition *get_language_definition_by_filename
 
 static void print_textparser_token_item(void *handle, textparser_token_item *item, int level, bool colored)
 {
-    //const textparser_language_definition *language;
     const char *token_name = nullptr;
     char *token_text = nullptr;
 
-    for(int c = 0; c < level; c++)
-        putc(' ', stdout);
+    if (item->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE && item->child == nullptr)
+    {
+        return;
+    }
 
     token_name = textparser_get_token_type_str(textparser_get_language(handle), item);
     token_text = textparser_get_token_text(handle, item);
     size_t item_pos = textparser_get_token_position(item);
 
+    for(int c = 0; c < level; c++)
+        putc(' ', stdout);
+
     if (colored)
     {
         if ((token_text)&&((item->child == nullptr)||(strlen(token_text) < 50))) {
-            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu, text: \033[48;5;5m%s\033[0m\n", token_name, item_pos, item->len, token_text);
+            printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu, text: \033[48;5;2m%s\033[0m\n", token_name, item_pos, item->len, token_text);
         } else {
             printf("type: \033[48;5;4m%s\033[0m, position: %zu, length: %zu\n", token_name, item_pos, item->len);
         }
@@ -165,6 +169,12 @@ static struct json_object *recursivelyAddChildsToJson(const textparser_t handle,
 
     while (item)
     {
+        if (item->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE && item->child == nullptr)
+        {
+            item = item->next;
+            continue;
+        }
+
         struct json_object *child = json_object_new_object();
         const char *token_name = textparser_get_token_type_str(language, item);
         json_object_object_add(child, "id", json_object_new_string(token_name ? token_name : "Unprocessed"));
@@ -177,11 +187,15 @@ static struct json_object *recursivelyAddChildsToJson(const textparser_t handle,
         }
         else
         {
-            json_object_object_add(child, "children", json_object_new_array());
+            char *token_text = textparser_get_token_text(handle, (textparser_token_item *)item);
+            if (token_text)
+            {
+                json_object_object_add(child, "value", json_object_new_string(token_text));
+                textparser_free_token_text(token_text);
+            }
         }
 
         json_object_array_add(ret, child);
-
         item = item->next;
     }
 

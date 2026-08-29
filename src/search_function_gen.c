@@ -6556,11 +6556,15 @@ static size_t bash_var_match_at(enum textparser_encoding encoding, const void *s
         }
         if (i < max_len) {
             uint32_t ch = get_char_at(encoding, start, i);
-            if (ch == '=' || ch == ':' || ch == '/' || ch == '#' || ch == '%' || ch == '^' || ch == ',' || ch == '[' || ch == ']' || ch == '}') {
-                return i - pos;
-            }
+            if (ch == '=') return i - pos;
             if (ch == '+' && i + 1 < max_len && get_char_at(encoding, start, i + 1) == '=') {
                 return i - pos;
+            }
+            if (ch == ':' && i + 1 < max_len) {
+                uint32_t c2 = get_char_at(encoding, start, i + 1);
+                if (c2 == '-' || c2 == '=' || c2 == '+' || c2 == '?') {
+                    return i - pos;
+                }
             }
         }
     }
@@ -6588,6 +6592,11 @@ bool _gen_bash_Variable_start(enum textparser_encoding encoding, const char *sta
         }
     }
     return false;
+}
+
+bool _gen_bash_Identifier_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_Variable_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
 
 bool _gen_bash_ParameterExpansion_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)

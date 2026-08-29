@@ -20,7 +20,8 @@
     "DoubleString",
     "Number",
     "Parenthesis",
-    "ArrayIndex"
+    "ArrayIndex",
+    "Identifier"
   ],
   "otherTextInside": true,
   "tokens": {
@@ -42,8 +43,13 @@
     },
     "Variable": {
       "type": "SimpleToken",
-      "startRegex": "\\$[a-zA-Z_][a-zA-Z0-9_]*|\\$[@*#?$!_0-9-]|[a-zA-Z_][a-zA-Z0-9_]*(?=\\+=|=|:-|:=|:\\+|:\\?|:|/|#|%|\\^|,|\\[|\\]|\\})",
+      "startRegex": "\\$[a-zA-Z_][a-zA-Z0-9_]*|\\$[@*#?$!_0-9-]|[a-zA-Z_][a-zA-Z0-9_]*(?=\\+=|=|:-|:=|:\\+|:\\?)",
       "textColor": "0x9cdcfe"
+    },
+    "Identifier": {
+      "type": "SimpleToken",
+      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
+      "textColor": "0xdcdcaa"
     },
     "ParameterExpansion": {
       "type": "StartStop",
@@ -54,6 +60,7 @@
       "textColor": "0x9cdcfe",
       "nestedTokens": [
         "Variable",
+        "Identifier",
         "ParameterExpansion",
         "Operator",
         "Number",
@@ -76,6 +83,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "Identifier",
         "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
@@ -100,6 +108,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "Identifier",
         "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
@@ -163,6 +172,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "Identifier",
         "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
@@ -186,6 +196,7 @@
         "Boolean",
         "Keyword",
         "Variable",
+        "Identifier",
         "ParameterExpansion",
         "CommandSubstitution",
         "CodeBlock",
@@ -208,6 +219,7 @@
     "operandTokens": [
       "Number",
       "Variable",
+      "Identifier",
       "ParameterExpansion",
       "Boolean",
       "SingleString",

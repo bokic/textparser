@@ -48,6 +48,7 @@ EXPORT_TEXTPARSER int textparser_version_int(void);
 
 #define TEXTPARSER_TOKEN_ID_ERROR (-1)
 #define TEXTPARSER_TOKEN_ID_UNPROCESSED (-2)
+#define TEXTPARSER_TOKEN_ID_WHITESPACE (-3)
 #define TEXTPARSER_NOCOLOR 0xffffffff
 
 #if defined(_MSC_VER) && !defined(__clang__)

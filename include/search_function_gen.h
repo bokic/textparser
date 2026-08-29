@@ -790,8 +790,10 @@ EXPORT_TEXTPARSER bool _gen_bash_LineComment_start(enum textparser_encoding enco
 EXPORT_TEXTPARSER bool _gen_bash_Keyword_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_Boolean_start_dHJ1ZVxifGZhbHNlXGI= */
 EXPORT_TEXTPARSER bool _gen_bash_Boolean_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
-/* _gen_bash_Variable_start_XCRbYS16QS1aX11bYS16QS1aMC05X10qfFwkW0AqIz8kIV8wLTktXXxbYS16QS1aX11bYS16QS1aMC05X10qKD89XCs9fD18Oi18Oj18OlwrfDpcP3w6fC98I3wlfFxefCx8XFt8XF18XH0p */
+/* _gen_bash_Variable_start_XCRbYS16QS1aX11bYS16QS1aMC05X10qfFwkW0AqIz8kIV8wLTktXXxbYS16QS1aX11bYS16QS1aMC05X10qKD89XCs9fD18Oi18Oj18OlwrfDpcPyk= */
 EXPORT_TEXTPARSER bool _gen_bash_Variable_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+/* _gen_bash_Identifier_start_W2EtekEtWl9dW2EtekEtWjAtOV9dKg== */
+EXPORT_TEXTPARSER bool _gen_bash_Identifier_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_ParameterExpansion_start_XCRcew== */
 EXPORT_TEXTPARSER bool _gen_bash_ParameterExpansion_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 /* _gen_bash_ParameterExpansion_end_XH0= */
