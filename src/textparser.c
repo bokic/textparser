@@ -2234,16 +2234,48 @@ EXPORT_TEXTPARSER int textparser_set_text(textparser_t handle, const char *text,
         return -1;
 
     if (len < 0) {
-        len = (int)strlen(text);
+        if (handle->text_format == TEXTPARSER_ENCODING_UTF_16 || handle->text_format == TEXTPARSER_ENCODING_UNICODE) {
+            const uint16_t *p = (const uint16_t *)text;
+            size_t count = 0;
+            while (*p++) {
+                count++;
+            }
+            len = (int)(count * sizeof(uint16_t));
+        } else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
+            const uint32_t *p = (const uint32_t *)text;
+            size_t count = 0;
+            while (*p++) {
+                count++;
+            }
+            len = (int)(count * sizeof(uint32_t));
+        } else {
+            len = (int)strlen(text);
+        }
     }
 
     if ((size_t)len >= MAX_PARSE_SIZE)
         return -1;
 
+    if (handle->text_format == TEXTPARSER_ENCODING_UTF_16 || handle->text_format == TEXTPARSER_ENCODING_UNICODE) {
+        if ((size_t)len % sizeof(uint16_t) != 0) {
+            return -1;
+        }
+    } else if (handle->text_format == TEXTPARSER_ENCODING_UTF_32) {
+        if ((size_t)len % sizeof(uint32_t) != 0) {
+            return -1;
+        }
+    }
+
     if (handle->lines) {
         free(handle->lines);
         handle->lines = nullptr;
         handle->no_lines = 0;
+    }
+
+    if (handle->owned_buffer && handle->owned_buffer != text) {
+        free(handle->owned_buffer);
+        handle->owned_buffer = nullptr;
+        handle->owned_buffer_capacity = 0;
     }
 
     handle->text_addr = text;

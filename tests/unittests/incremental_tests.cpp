@@ -258,3 +258,64 @@ TEST(IncrementalParsing, IntegerOverflowProtection) {
     textparser_close(handle);
 }
 
+TEST(IncrementalParsing, SetTextAfterIncrementalParse) {
+    const char *code1 = "<cfset a = 1>";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code1, (int)strlen(code1), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+
+    // Edit to create owned_buffer
+    const char *edit1 = "<cfset a = 100>";
+    textparser_dirty_range dirty = {};
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, strlen(code1), edit1, strlen(edit1), &dirty), 0);
+    EXPECT_EQ(textparser_get_text_size(handle), strlen(edit1));
+
+    // Now set brand new text
+    const char *code2 = "<cfset b = 2000>";
+    ASSERT_EQ(textparser_set_text(handle, code2, -1), 0);
+    EXPECT_EQ(textparser_get_text_size(handle), strlen(code2));
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+
+    textparser_token_item *tok = textparser_get_first_token(handle);
+    ASSERT_NE(tok, nullptr);
+    EXPECT_EQ(tok->len, strlen(code2));
+
+    // Perform an incremental parse on code2
+    const char *code2_replacement = "<cfset b = 9999>";
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, strlen(code2), code2_replacement, strlen(code2_replacement), &dirty), 0);
+    EXPECT_EQ(textparser_get_text_size(handle), strlen(code2_replacement));
+
+    tok = textparser_get_first_token(handle);
+    ASSERT_NE(tok, nullptr);
+    EXPECT_EQ(tok->len, strlen(code2_replacement));
+
+    textparser_close(handle);
+}
+
+TEST(IncrementalParsing, SetTextEncodingsAndEdgeCases) {
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem("test", 4, TEXTPARSER_ENCODING_UTF_16, &handle), 0);
+
+    // Invalid alignment for UTF-16
+    EXPECT_EQ(textparser_set_text(handle, "123", 3), -1);
+
+    // Valid UTF-16 null-terminated (len = -1)
+    static const uint16_t u16_val[] = { '<', 'c', 'f', 's', 'e', 't', '>', 0 };
+    EXPECT_EQ(textparser_set_text(handle, (const char *)u16_val, -1), 0);
+    EXPECT_EQ(textparser_get_text_size(handle), 7 * sizeof(uint16_t));
+
+    textparser_close(handle);
+
+    ASSERT_EQ(textparser_openmem("test", 4, TEXTPARSER_ENCODING_UTF_32, &handle), 0);
+    // Invalid alignment for UTF-32
+    EXPECT_EQ(textparser_set_text(handle, "12345", 5), -1);
+
+    // Valid UTF-32 null-terminated (len = -1)
+    static const uint32_t u32_val[] = { '<', 'c', 'f', 's', 'e', 't', '>', 0 };
+    EXPECT_EQ(textparser_set_text(handle, (const char *)u32_val, -1), 0);
+    EXPECT_EQ(textparser_get_text_size(handle), 7 * sizeof(uint32_t));
+
+    textparser_close(handle);
+}
+
+
