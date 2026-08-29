@@ -318,4 +318,31 @@ TEST(IncrementalParsing, SetTextEncodingsAndEdgeCases) {
     textparser_close(handle);
 }
 
+TEST(IncrementalParsing, BufferAliasingAndOverlap) {
+    // Initial: "<cfset a = 1><cfset b = 2><cfset c = 3>"
+    const char *code = "<cfset a = 1><cfset b = 2><cfset c = 3>";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+
+    // 1. new_text aliases handle->text_addr (e.g. duplicating second tag into first position)
+    const char *alias_source = textparser_get_text(handle) + 13; // "<cfset b = 2>"
+    textparser_dirty_range dirty = {};
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 13, alias_source, 13, &dirty), 0);
+    EXPECT_EQ(std::string(textparser_get_text(handle), textparser_get_text_size(handle)), "<cfset b = 2><cfset b = 2><cfset c = 3>");
+
+    // 2. new_text aliases handle->owned_buffer across another edit
+    alias_source = textparser_get_text(handle) + 26; // "<cfset c = 3>"
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 13, alias_source, 13, &dirty), 0);
+    EXPECT_EQ(std::string(textparser_get_text(handle), textparser_get_text_size(handle)), "<cfset c = 3><cfset b = 2><cfset c = 3>");
+
+    // 3. new_text aliases a larger slice causing buffer reallocation / expansion
+    alias_source = textparser_get_text(handle); // "<cfset c = 3><cfset b = 2>" (len 26)
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 26, 13, alias_source, 26, &dirty), 0);
+    EXPECT_EQ(std::string(textparser_get_text(handle), textparser_get_text_size(handle)), "<cfset c = 3><cfset b = 2><cfset c = 3><cfset b = 2>");
+
+    textparser_close(handle);
+}
+
+
 

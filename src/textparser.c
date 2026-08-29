@@ -2482,10 +2482,32 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
 
     // Splicing the text buffer if this is an actual edit
     if (new_text != handle->text_addr || delta_bytes != 0) {
+        void *temp_new_text = nullptr;
+        if (new_text != nullptr && new_byte_len > 0) {
+            const char *nt = (const char *)new_text;
+            bool is_aliased = false;
+            if (handle->text_addr && nt >= handle->text_addr && nt < handle->text_addr + handle->text_size) {
+                is_aliased = true;
+            } else if (handle->owned_buffer && nt >= (const char *)handle->owned_buffer &&
+                       nt < (const char *)handle->owned_buffer + handle->owned_buffer_capacity) {
+                is_aliased = true;
+            }
+            if (is_aliased) {
+                temp_new_text = malloc(new_byte_len);
+                if (temp_new_text == nullptr)
+                    return -1;
+                memcpy(temp_new_text, new_text, new_byte_len);
+                new_text = temp_new_text;
+            }
+        }
+
         if (handle->owned_buffer == nullptr) {
             size_t cap = (new_total_bytes + unit_size + 1024) * 2;
             void *buf = malloc(cap);
-            if (buf == nullptr) return -1;
+            if (buf == nullptr) {
+                if (temp_new_text) free(temp_new_text);
+                return -1;
+            }
             if (handle->text_addr && handle->text_size > 0) {
                 memcpy(buf, handle->text_addr, handle->text_size);
             }
@@ -2495,7 +2517,10 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         } else if (new_total_bytes + unit_size > handle->owned_buffer_capacity) {
             size_t cap = (new_total_bytes + unit_size + 1024) * 2;
             void *buf = realloc(handle->owned_buffer, cap);
-            if (buf == nullptr) return -1;
+            if (buf == nullptr) {
+                if (temp_new_text) free(temp_new_text);
+                return -1;
+            }
             handle->owned_buffer = buf;
             handle->owned_buffer_capacity = cap;
             handle->text_addr = (const char *)buf;
@@ -2507,11 +2532,16 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
             memmove(buf + byte_offset + new_byte_len, buf + byte_offset + old_byte_len, suffix_bytes);
         }
         if (new_byte_len > 0 && new_text != nullptr) {
-            memcpy(buf + byte_offset, new_text, new_byte_len);
+            memmove(buf + byte_offset, new_text, new_byte_len);
         }
         memset(buf + new_total_bytes, 0, unit_size);
         handle->text_size = new_total_bytes;
         handle->text_addr = buf;
+
+        if (temp_new_text) {
+            free(temp_new_text);
+            temp_new_text = nullptr;
+        }
     }
 
     size_t start_pos = edit_offset;
