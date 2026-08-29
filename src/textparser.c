@@ -1755,15 +1755,6 @@ static void textparser_free_regex(struct textparser_handle *handle)
     if (handle == nullptr)
         return;
 
-    // Always free regex_ctx, even if regexes were never compiled
-    if (handle->regex_ctx) {
-        adv_regex_context_free(handle->regex_ctx);
-        handle->regex_ctx = nullptr;
-    }
-
-    if ((handle->start_regex == nullptr) && (handle->end_regex == nullptr))
-        return;
-
     enum textparser_encoding text_format = handle->text_format;
     size_t token_cnt = handle->token_count;
 
@@ -1775,7 +1766,7 @@ static void textparser_free_regex(struct textparser_handle *handle)
 
             for(size_t c = 0; c < token_cnt; c++)
             {
-                adv_regex_free(&regex[c], text_format);
+                adv_regex_free(handle->regex_ctx, &regex[c], text_format);
             }
         }
         free(handle->start_regex);
@@ -1790,11 +1781,16 @@ static void textparser_free_regex(struct textparser_handle *handle)
 
             for(size_t c = 0; c < token_cnt; c++)
             {
-                adv_regex_free(&regex[c], text_format);
+                adv_regex_free(handle->regex_ctx, &regex[c], text_format);
             }
         }
         free(handle->end_regex);
         handle->end_regex = nullptr;
+    }
+
+    if (handle->regex_ctx) {
+        adv_regex_context_free(handle->regex_ctx);
+        handle->regex_ctx = nullptr;
     }
 }
 
@@ -2618,7 +2614,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                     size_t found_len = 0;
                     bool matched = adv_regex_find_pattern_ctx(handle->regex_ctx, rule->regex, &rule_regex, handle->text_format, handle->text_addr, handle->text_size, &found_at, &found_len, !definition->case_sensitivity, true);
                     if (rule_regex) {
-                        adv_regex_free(&rule_regex, handle->text_format);
+                        adv_regex_free(handle->regex_ctx, &rule_regex, handle->text_format);
                     }
                     if (matched) {
                         effective_starts_with = rule->start_tokens;

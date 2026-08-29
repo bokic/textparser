@@ -51,11 +51,18 @@ typedef struct {
     int   (*get_error_message)(int enumber, void *buffer, PCRE2_SIZE size);
 } pcre2_dyn_api_t;
 
-static pcre2_dyn_api_t g_pcre2_dyn[PCRE2_WIDTH_COUNT];
+/* Compile-context, match-data, and dynamic API slots per PCRE2 code-unit width. */
+struct adv_regex_context {
+    pcre2_dyn_api_t api[PCRE2_WIDTH_COUNT];
+    void *ccontext[PCRE2_WIDTH_COUNT];
+    void *match_data[PCRE2_WIDTH_COUNT];
+    bool utf8_valid;
+};
 
-static bool load_pcre2_dyn(pcre2_width_t width_idx)
+static bool load_pcre2_dyn(adv_regex_context *ctx, pcre2_width_t width_idx)
 {
-    pcre2_dyn_api_t *api = &g_pcre2_dyn[width_idx];
+    if (!ctx) return false;
+    pcre2_dyn_api_t *api = &ctx->api[width_idx];
     if (api->loaded) return true;
     if (api->failed) return false;
 
@@ -121,13 +128,6 @@ static bool load_pcre2_dyn(pcre2_width_t width_idx)
     return true;
 }
 
-/* Compile-context and match-data slots, one per supported PCRE2 code-unit width. */
-struct adv_regex_context {
-    void *ccontext[PCRE2_WIDTH_COUNT];
-    void *match_data[PCRE2_WIDTH_COUNT];
-    bool utf8_valid;
-};
-
 adv_regex_context *adv_regex_context_create(void)
 {
     return (adv_regex_context *)calloc(1, sizeof(adv_regex_context));
@@ -142,10 +142,21 @@ void adv_regex_context_free(adv_regex_context *ctx)
 {
     if (!ctx) return;
     for (int w = 0; w < PCRE2_WIDTH_COUNT; w++) {
-        pcre2_dyn_api_t *api = &g_pcre2_dyn[w];
+        pcre2_dyn_api_t *api = &ctx->api[w];
         if (api->loaded) {
-            if (ctx->match_data[w]) api->match_data_free(ctx->match_data[w]);
-            if (ctx->ccontext[w])   api->compile_context_free(ctx->ccontext[w]);
+            if (ctx->match_data[w]) {
+                api->match_data_free(ctx->match_data[w]);
+                ctx->match_data[w] = NULL;
+            }
+            if (ctx->ccontext[w]) {
+                api->compile_context_free(ctx->ccontext[w]);
+                ctx->ccontext[w] = NULL;
+            }
+            if (api->lib_handle) {
+                os_dlclose(api->lib_handle);
+                api->lib_handle = NULL;
+            }
+            api->loaded = false;
         }
     }
     free(ctx);
@@ -250,8 +261,8 @@ static bool adv_regex_find_pattern_impl(
     size_t                  *length,
     bool                     only_at_start)
 {
-    if (!load_pcre2_dyn(width_idx)) return false;
-    pcre2_dyn_api_t *api = &g_pcre2_dyn[width_idx];
+    if (!load_pcre2_dyn(ctx, width_idx)) return false;
+    pcre2_dyn_api_t *api = &ctx->api[width_idx];
 
     /* Lazily initialise the compile context for this width. */
     void **cctx_slot = &ctx->ccontext[width_idx];
@@ -363,7 +374,7 @@ bool adv_regex_find_pattern_ctx(
     }
 }
 
-void adv_regex_free(void **regex, enum textparser_encoding encoding)
+void adv_regex_free(adv_regex_context *ctx, void **regex, enum textparser_encoding encoding)
 {
     if (!regex || !*regex) return;
 
@@ -386,8 +397,8 @@ void adv_regex_free(void **regex, enum textparser_encoding encoding)
         return;
     }
 
-    if (g_pcre2_dyn[w].loaded && g_pcre2_dyn[w].code_free) {
-        g_pcre2_dyn[w].code_free(*regex);
+    if (ctx && ctx->api[w].loaded && ctx->api[w].code_free) {
+        ctx->api[w].code_free(*regex);
     }
     *regex = NULL;
 }

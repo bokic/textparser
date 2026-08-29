@@ -1271,7 +1271,7 @@ static void textparser_free_regex(struct textparser_handle *handle)
 
             for(size_t c = 0; c < token_cnt; c++)
             {
-                adv_regex_free(&regex[c], text_format);
+                adv_regex_free(handle->regex_ctx, &regex[c], text_format);
             }
         }
         free(handle->start_regex);
@@ -1286,7 +1286,7 @@ static void textparser_free_regex(struct textparser_handle *handle)
 
             for(size_t c = 0; c < token_cnt; c++)
             {
-                adv_regex_free(&regex[c], text_format);
+                adv_regex_free(handle->regex_ctx, &regex[c], text_format);
             }
         }
         free(handle->end_regex);
@@ -1497,7 +1497,7 @@ int textparser_parse_compat(textparser_t handle, const textparser_language_defin
                     size_t found_len = 0;
                     bool matched = adv_regex_find_pattern_ctx(handle->regex_ctx, rule->regex, &rule_regex, handle->text_format, handle->text_addr, handle->text_size, &found_at, &found_len, !definition->case_sensitivity, true);
                     if (rule_regex) {
-                        adv_regex_free(&rule_regex, handle->text_format);
+                        adv_regex_free(handle->regex_ctx, &rule_regex, handle->text_format);
                     }
                     if (matched) {
                         effective_starts_with = rule->start_tokens;

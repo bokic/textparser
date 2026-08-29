@@ -1755,3 +1755,30 @@ TEST(parse_CFML, all_project_cfml_files) {
     std::println("Parsed {} .cfm/.cfc files across the project workspace.", file_count);
 }
 
+#include <thread>
+#include <vector>
+
+TEST(parse_CFML, concurrent_multi_threaded_parse_and_cleanup) {
+    const int num_threads = 16;
+    const int iterations_per_thread = 20;
+    std::vector<std::thread> threads;
+
+    for (int t = 0; t < num_threads; ++t) {
+        threads.emplace_back([iterations_per_thread, t]() {
+            for (int i = 0; i < iterations_per_thread; ++i) {
+                std::string snippet = "<cfset x = " + std::to_string(t * 100 + i) + "><cfoutput>#x#</cfoutput>";
+                textparser_t handle = nullptr;
+                ASSERT_EQ(textparser_openmem(snippet.c_str(), (int)snippet.size(), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+                ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+                EXPECT_NE(textparser_get_first_token(handle), nullptr);
+                textparser_close(handle);
+            }
+        });
+    }
+
+    for (auto &th : threads) {
+        th.join();
+    }
+}
+
+
