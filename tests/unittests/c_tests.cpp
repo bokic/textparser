@@ -474,3 +474,103 @@ TEST(parse_C, c23_literals_and_separators) {
     EXPECT_TRUE(found_uz);
     EXPECT_TRUE(found_wb);
 }
+
+TEST(parse_C, function_detection) {
+    auto tokens = TextParser(R"(
+int compute_sum(int a, int b) {
+    return a + b;
+}
+
+void process_data(void) {
+    int result = compute_sum(10, 20);
+    printf("Result: %d\n", result);
+    custom_log   (result);
+}
+)", &c_definition);
+
+    std::set<std::string> functions;
+    std::set<std::string> variables;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Function") == 0) {
+            functions.insert(item.value);
+        } else if (item.type && strcmp(item.type, "Variable") == 0) {
+            variables.insert(item.value);
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+
+    EXPECT_TRUE(functions.contains("compute_sum"));
+    EXPECT_TRUE(functions.contains("process_data"));
+    EXPECT_TRUE(functions.contains("printf"));
+    EXPECT_TRUE(functions.contains("custom_log"));
+
+    EXPECT_TRUE(variables.contains("a"));
+    EXPECT_TRUE(variables.contains("b"));
+    EXPECT_TRUE(variables.contains("result"));
+    EXPECT_FALSE(variables.contains("compute_sum"));
+    EXPECT_FALSE(variables.contains("printf"));
+}
+
+TEST(parse_C, function_vs_keyword_and_variable) {
+    auto tokens = TextParser(R"(
+if (condition) {
+    while (running()) {
+        for (int i = 0; i < limit; ++i) {
+            switch (get_val(i)) {
+                case 1:
+                    break;
+            }
+        }
+    }
+}
+size_t sz = sizeof(int);
+)", &c_definition);
+
+    std::set<std::string> keywords;
+    std::set<std::string> functions;
+    std::set<std::string> variables;
+
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "Keyword") == 0) {
+            keywords.insert(item.value);
+        } else if (item.type && strcmp(item.type, "Function") == 0) {
+            functions.insert(item.value);
+        } else if (item.type && strcmp(item.type, "Variable") == 0) {
+            variables.insert(item.value);
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+
+    EXPECT_TRUE(keywords.contains("if"));
+    EXPECT_TRUE(keywords.contains("while"));
+    EXPECT_TRUE(keywords.contains("for"));
+    EXPECT_TRUE(keywords.contains("switch"));
+    EXPECT_TRUE(keywords.contains("sizeof"));
+
+    EXPECT_FALSE(functions.contains("if"));
+    EXPECT_FALSE(functions.contains("while"));
+    EXPECT_FALSE(functions.contains("for"));
+    EXPECT_FALSE(functions.contains("switch"));
+    EXPECT_FALSE(functions.contains("sizeof"));
+
+    EXPECT_TRUE(functions.contains("running"));
+    EXPECT_TRUE(functions.contains("get_val"));
+
+    EXPECT_TRUE(variables.contains("condition"));
+    EXPECT_TRUE(variables.contains("limit"));
+    EXPECT_TRUE(variables.contains("i"));
+    EXPECT_TRUE(variables.contains("sz"));
+}
+

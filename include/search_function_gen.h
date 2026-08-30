@@ -28,6 +28,9 @@ EXPORT_TEXTPARSER bool _gen_c_Attribute_end(enum textparser_encoding encoding, c
 /* _gen_c_Keyword_start_dHlwZWRlZlxifGNvbnN0XGJ8c3RhdGljXGJ8ZXh0ZXJuXGJ8dm9sYXRpbGVcYnxpZlxifGVsc2VcYnxmb3JcYnx3aGlsZVxifGRvXGJ8c3dpdGNoXGJ8Y2FzZVxifGRlZmF1bHRcYnxicmVha1xifGNvbnRpbnVlXGJ8cmV0dXJuXGJ8c2l6ZW9mXGJ8Z290b1xifHJlZ2lzdGVyXGJ8YXV0b1xifGlubGluZVxifHJlc3RyaWN0XGJ8Y29uc3RleHByXGJ8bnVsbHB0clxifHR5cGVvZlxifHR5cGVvZl91bnF1YWxcYnxzdGF0aWNfYXNzZXJ0XGJ8dGhyZWFkX2xvY2FsXGJ8YWxpZ25hc1xifGFsaWdub2ZcYnxfQWxpZ25hc1xifF9BbGlnbm9mXGJ8X0F0b21pY1xifF9HZW5lcmljXGJ8X05vcmV0dXJuXGJ8X1N0YXRpY19hc3NlcnRcYnxfVGhyZWFkX2xvY2FsXGJ8X0RlY2ltYWwzMlxifF9EZWNpbWFsNjRcYnxfRGVjaW1hbDEyOFxi */
 EXPORT_TEXTPARSER bool _gen_c_Keyword_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 
+/* _gen_c_Function_start_KFthLXpBLVpfXVthLXpBLVowLTlfXSopW1xzXSpcKA== */
+EXPORT_TEXTPARSER bool _gen_c_Function_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
+
 /* _gen_c_Variable_start_W2EtekEtWl9dW2EtekEtWjAtOV9dKg== */
 EXPORT_TEXTPARSER bool _gen_c_Variable_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 

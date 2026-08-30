@@ -16,6 +16,7 @@
     "TaggedType",
     "Keyword",
     "DataType",
+    "Function",
     "Variable",
     "CodeBlock",
     "Operator",
@@ -70,6 +71,11 @@
       "startRegex": "typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b|constexpr\\b|nullptr\\b|typeof\\b|typeof_unqual\\b|static_assert\\b|thread_local\\b|alignas\\b|alignof\\b|_Alignas\\b|_Alignof\\b|_Atomic\\b|_Generic\\b|_Noreturn\\b|_Static_assert\\b|_Thread_local\\b|_Decimal32\\b|_Decimal64\\b|_Decimal128\\b",
       "textColor": "0xc586c0"
     },
+    "Function": {
+      "type": "SimpleToken",
+      "startRegex": "([a-zA-Z_][a-zA-Z0-9_]*)[\\s]*\\(",
+      "textColor": "0xdcdcaa"
+    },
     "Variable": {
       "type": "SimpleToken",
       "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
@@ -91,6 +97,7 @@
         "TaggedType",
         "Keyword",
         "DataType",
+        "Function",
         "Variable",
         "CodeBlock",
         "Operator",
@@ -158,6 +165,7 @@
         "TaggedType",
         "Keyword",
         "DataType",
+        "Function",
         "Variable",
         "CodeBlock",
         "Operator",
@@ -184,6 +192,7 @@
         "TaggedType",
         "Keyword",
         "DataType",
+        "Function",
         "Variable",
         "CodeBlock",
         "Operator",
@@ -241,6 +250,7 @@
     ],
     "operandTokens": [
       "Number",
+      "Function",
       "Variable",
       "Boolean",
       "SingleString",

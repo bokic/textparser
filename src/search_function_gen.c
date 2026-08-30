@@ -276,6 +276,49 @@ bool _gen_c_Keyword_start(enum textparser_encoding encoding, const char *start, 
     return false;
 }
 
+// Function: ([a-zA-Z_][a-zA-Z0-9_]*)[\s]*\( -> group 1 is function name
+static size_t c_function_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len)
+{
+    if (pos >= max_len) return 0;
+    uint32_t c0 = get_char_at(encoding, start, pos);
+    if (!is_alpha_codepoint(c0) && c0 != '_') return 0;
+    size_t i = pos + 1;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (is_alnum_codepoint(c) || c == '_') i++;
+        else break;
+    }
+    size_t func_name_len = i - pos;
+    while (i < max_len && is_space_codepoint(get_char_at(encoding, start, i))) i++;
+    if (i < max_len && get_char_at(encoding, start, i) == '(') {
+        return func_name_len;
+    }
+    return 0;
+}
+
+bool _gen_c_Function_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = c_function_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = c_function_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
 // Variable: [a-zA-Z_][a-zA-Z0-9_]*
 static size_t c_var_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len) {
     if (pos >= max_len) return 0;
