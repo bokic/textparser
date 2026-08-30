@@ -43,7 +43,8 @@
       "endRegex": "```|~~~",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0xce9178"
+      "textColor": "0xce9178",
+      "delimiterTextColor": "0x9e6a57"
     },
     "Heading": {
       "type": "SimpleToken",
@@ -81,7 +82,8 @@
       "endRegex": "\"",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0xce9178"
+      "textColor": "0xce9178",
+      "delimiterTextColor": "0x9e6a57"
     },
     "SingleString": {
       "type": "StartStop",
@@ -89,7 +91,8 @@
       "endRegex": "'",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0xce9178"
+      "textColor": "0xce9178",
+      "delimiterTextColor": "0x9e6a57"
     },
     "Equal": {
       "type": "SimpleToken",
@@ -144,7 +147,8 @@
       "endRegex": "`",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0xce9178"
+      "textColor": "0xce9178",
+      "delimiterTextColor": "0x9e6a57"
     },
     "Bold": {
       "type": "StartStop",

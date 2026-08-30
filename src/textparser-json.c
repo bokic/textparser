@@ -387,6 +387,18 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             json_object_object_get_ex(token_item, "textFlags", &key_value);
             (*definition)->tokens[token_idx].text_flags = get_color_or_flag_value(key_value, 0);
 
+            key_value = nullptr;
+            json_object_object_get_ex(token_item, "delimiterTextColor", &key_value);
+            (*definition)->tokens[token_idx].delimiter_text_color = get_color_or_flag_value(key_value, TEXTPARSER_NOCOLOR);
+
+            key_value = nullptr;
+            json_object_object_get_ex(token_item, "delimiterTextBackground", &key_value);
+            (*definition)->tokens[token_idx].delimiter_text_background = get_color_or_flag_value(key_value, TEXTPARSER_NOCOLOR);
+
+            key_value = nullptr;
+            json_object_object_get_ex(token_item, "delimiterTextFlags", &key_value);
+            (*definition)->tokens[token_idx].delimiter_text_flags = get_color_or_flag_value(key_value, 0);
+
             token_idx++;
         }
     }

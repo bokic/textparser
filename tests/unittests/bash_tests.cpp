@@ -286,7 +286,8 @@ TEST(parse_Bash, prune_redundant_unprocessed_leaf) {
     ASSERT_GT(plain_str.count, 0);
     EXPECT_STREQ(plain_str[0].type, "DoubleString");
     EXPECT_EQ(plain_str[0].children, 0);
-    EXPECT_EQ(plain_str[0].raw_token()->child, nullptr);
+    ASSERT_NE(plain_str[0].raw_token()->child, nullptr);
+    EXPECT_EQ(plain_str[0].raw_token()->child->token_id, TEXTPARSER_TOKEN_ID_START_DELIMITER);
 
     auto interp_str = TextParser(R"bash("Hello $USER!")bash", &bash_definition);
     ASSERT_GT(interp_str.count, 0);

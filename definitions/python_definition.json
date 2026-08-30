@@ -36,7 +36,8 @@
       "endRegex": "'''",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0x6a9955"
+      "textColor": "0x6a9955",
+      "delimiterTextColor": "0x557a44"
     },
     "TripleDoubleString": {
       "type": "StartStop",
@@ -44,7 +45,8 @@
       "endRegex": "\"\"\"",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0x6a9955"
+      "textColor": "0x6a9955",
+      "delimiterTextColor": "0x557a44"
     },
     "SingleString": {
       "type": "StartStop",
@@ -54,7 +56,8 @@
       "textColor": "0xce9178",
       "nestedTokens": [
         "StringEscape"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "DoubleString": {
       "type": "StartStop",
@@ -64,7 +67,8 @@
       "textColor": "0xce9178",
       "nestedTokens": [
         "StringEscape"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "FString": {
       "type": "StartStop",
@@ -76,7 +80,8 @@
       "nestedTokens": [
         "StringEscape",
         "FStringInterpolation"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "FStringInterpolation": {
       "type": "StartStop",
@@ -94,7 +99,8 @@
         "Parenthesis",
         "ArrayIndex",
         "CodeBlock"
-      ]
+      ],
+      "delimiterTextColor": "0x4075a0"
     },
     "StringEscape": {
       "type": "SimpleToken",

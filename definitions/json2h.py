@@ -432,6 +432,21 @@ def main(args):
         else:
             text += "            .text_flags = 0," + os.linesep
 
+        if "delimiterTextColor" in current_token:
+            text += "            .delimiter_text_color = " + current_token["delimiterTextColor"] + "," + os.linesep
+        else:
+            text += "            .delimiter_text_color = TEXTPARSER_NOCOLOR," + os.linesep
+
+        if "delimiterTextBackground" in current_token:
+            text += "            .delimiter_text_background = " + current_token["delimiterTextBackground"] + "," + os.linesep
+        else:
+            text += "            .delimiter_text_background = TEXTPARSER_NOCOLOR," + os.linesep
+
+        if "delimiterTextFlags" in current_token:
+            text += "            .delimiter_text_flags = " + current_token["delimiterTextFlags"] + "," + os.linesep
+        else:
+            text += "            .delimiter_text_flags = 0," + os.linesep
+
         # nested_tokens
         if "nestedTokens" in current_token:
             text += "            .nested_tokens = (int []) {" + os.linesep
@@ -480,6 +495,9 @@ def main(args):
     text += "            .text_color = 0," + os.linesep
     text += "            .text_background = 0," + os.linesep
     text += "            .text_flags = 0," + os.linesep
+    text += "            .delimiter_text_color = TEXTPARSER_NOCOLOR," + os.linesep
+    text += "            .delimiter_text_background = TEXTPARSER_NOCOLOR," + os.linesep
+    text += "            .delimiter_text_flags = 0," + os.linesep
     text += "            .nested_tokens = NULL," + os.linesep
     text += "            .context_nested_tokens = NULL," + os.linesep
     text += "        }," + os.linesep

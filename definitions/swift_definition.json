@@ -85,7 +85,8 @@
       "nestedTokens": [
         "StringEscape",
         "StringInterpolation"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "MultiLineString": {
       "type": "StartStop",
@@ -97,7 +98,8 @@
       "nestedTokens": [
         "StringEscape",
         "StringInterpolation"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "StringInterpolation": {
       "type": "StartStop",
@@ -115,7 +117,8 @@
         "Parenthesis",
         "ArrayIndex",
         "CodeBlock"
-      ]
+      ],
+      "delimiterTextColor": "0x4075a0"
     },
     "StringEscape": {
       "type": "SimpleToken",

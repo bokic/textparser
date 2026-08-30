@@ -42,7 +42,8 @@
       "endRegex": "\"",
       "multiLine": true,
       "otherTextInside": true,
-      "textColor": "0xce9178"
+      "textColor": "0xce9178",
+      "delimiterTextColor": "0x9e6a57"
     },
     "Number": {
       "type": "SimpleToken",

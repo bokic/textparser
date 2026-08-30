@@ -224,7 +224,10 @@ TEST(parse_JSON, runtime_load_definition_from_string) {
                 "startRegex": "hello",
                 "textColor": "0x123456",
                 "textBackground": "0x789abc",
-                "textFlags": "3"
+                "textFlags": "3",
+                "delimiterTextColor": "0xfe9876",
+                "delimiterTextBackground": "0x543210",
+                "delimiterTextFlags": "5"
             }
         }
     })";
@@ -249,6 +252,9 @@ TEST(parse_JSON, runtime_load_definition_from_string) {
     EXPECT_EQ(definition->tokens[0].text_color, 0x123456);
     EXPECT_EQ(definition->tokens[0].text_background, 0x789abc);
     EXPECT_EQ(definition->tokens[0].text_flags, 3);
+    EXPECT_EQ(definition->tokens[0].delimiter_text_color, 0xfe9876);
+    EXPECT_EQ(definition->tokens[0].delimiter_text_background, 0x543210);
+    EXPECT_EQ(definition->tokens[0].delimiter_text_flags, 5);
 
     textparser_free_language_definition(definition);
 }

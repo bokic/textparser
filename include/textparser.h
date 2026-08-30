@@ -191,6 +191,9 @@ typedef struct {
     uint32_t text_color;
     uint32_t text_background;
     uint32_t text_flags;
+    uint32_t delimiter_text_color;
+    uint32_t delimiter_text_background;
+    uint32_t delimiter_text_flags;
     int *nested_tokens;
     textparser_context_nested_tokens *context_nested_tokens;
 } textparser_token;

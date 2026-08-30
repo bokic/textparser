@@ -910,11 +910,17 @@ static void append_start_delimiter(
     textparser_token_item *parent,
     textparser_token_item **head,
     textparser_token_item **tail,
-    size_t len)
+    size_t len,
+    uint32_t text_color,
+    uint32_t text_background,
+    uint32_t text_flags)
 {
     if (len == 0) return;
     textparser_token_item *item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_START_DELIMITER, len);
     if (item == nullptr) return;
+    item->text_color = text_color;
+    item->text_background = text_background;
+    item->text_flags = text_flags;
     append_child_to_ast(parent, head, tail, item);
 }
 
@@ -923,11 +929,17 @@ static void append_end_delimiter(
     textparser_token_item *parent,
     textparser_token_item **head,
     textparser_token_item **tail,
-    size_t len)
+    size_t len,
+    uint32_t text_color,
+    uint32_t text_background,
+    uint32_t text_flags)
 {
     if (len == 0) return;
     textparser_token_item *item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_END_DELIMITER, len);
     if (item == nullptr) return;
+    item->text_color = text_color;
+    item->text_background = text_background;
+    item->text_flags = text_flags;
     append_child_to_ast(parent, head, tail, item);
 }
 
@@ -1497,8 +1509,12 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
         exit_with_error(handle, "Can't find start of the token!", offset);
     }
 
+    uint32_t delim_color = (token_def->delimiter_text_color != TEXTPARSER_NOCOLOR) ? token_def->delimiter_text_color : token_def->text_color;
+    uint32_t delim_bg = (token_def->delimiter_text_background != TEXTPARSER_NOCOLOR) ? token_def->delimiter_text_background : token_def->text_background;
+    uint32_t delim_flags = (token_def->delimiter_text_flags != 0) ? token_def->delimiter_text_flags : token_def->text_flags;
+
     textparser_token_item *last_child = nullptr;
-    append_start_delimiter(handle, ret, &ret->child, &last_child, len);
+    append_start_delimiter(handle, ret, &ret->child, &last_child, len, delim_color, delim_bg, delim_flags);
     offset += len;
 
     if (handle->callback) {
@@ -1684,22 +1700,28 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
         append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, token_end);
     }
     if (end_len > 0) {
-        append_end_delimiter(handle, ret, &ret->child, &last_child, end_len);
+        append_end_delimiter(handle, ret, &ret->child, &last_child, end_len, delim_color, delim_bg, delim_flags);
     }
     offset += token_end + end_len;
     ret->len = offset - start_offset;
 
-    if (ret->child && ret->child->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER &&
-        ret->child->next && ret->child->next->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED &&
-        ret->child->next->next && ret->child->next->next->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER &&
-        ret->child->next->next->next == nullptr) {
-        ret->child = nullptr;
-    } else if (ret->child && ret->child->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER &&
-               ret->child->next && ret->child->next->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER &&
-               ret->child->next->next == nullptr) {
-        ret->child = nullptr;
-    } else if (ret->child && ret->child->next == nullptr && ret->child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED && ret->child->len == ret->len) {
-        ret->child = nullptr;
+    bool has_custom_delimiter_styling = (token_def->delimiter_text_color != TEXTPARSER_NOCOLOR) ||
+                                        (token_def->delimiter_text_background != TEXTPARSER_NOCOLOR) ||
+                                        (token_def->delimiter_text_flags != 0);
+
+    if (!has_custom_delimiter_styling) {
+        if (ret->child && ret->child->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER &&
+            ret->child->next && ret->child->next->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED &&
+            ret->child->next->next && ret->child->next->next->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER &&
+            ret->child->next->next->next == nullptr) {
+            ret->child = nullptr;
+        } else if (ret->child && ret->child->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER &&
+                   ret->child->next && ret->child->next->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER &&
+                   ret->child->next->next == nullptr) {
+            ret->child = nullptr;
+        } else if (ret->child && ret->child->next == nullptr && ret->child->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED && ret->child->len == ret->len) {
+            ret->child = nullptr;
+        }
     }
 
     if (handle->callback) {
@@ -4426,20 +4448,33 @@ static void textparser_export_tokens_internal(const textparser_t handle, const t
                         range->text_flags = language->tokens[curr->token_id].text_flags;
                     } else {
                         // Inherit color/background/flags from parent token if available (e.g. string literals)
-                        uint32_t eff_color = TEXTPARSER_NOCOLOR;
-                        uint32_t eff_bg = TEXTPARSER_NOCOLOR;
-                        uint32_t eff_flags = 0;
+                        uint32_t eff_color = curr->text_color;
+                        uint32_t eff_bg = curr->text_background;
+                        uint32_t eff_flags = curr->text_flags;
                         const textparser_token_item *p = curr->parent;
-                        while (p != nullptr) {
+                        while (p != nullptr && (eff_color == TEXTPARSER_NOCOLOR || eff_bg == TEXTPARSER_NOCOLOR || eff_flags == 0)) {
                             if (p->token_id >= 0) {
-                                if (eff_color == TEXTPARSER_NOCOLOR && language->tokens[p->token_id].text_color != TEXTPARSER_NOCOLOR) {
-                                    eff_color = language->tokens[p->token_id].text_color;
+                                const textparser_token *pdef = &language->tokens[p->token_id];
+                                if (curr->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER ||
+                                    curr->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER) {
+                                    if (eff_color == TEXTPARSER_NOCOLOR && pdef->delimiter_text_color != TEXTPARSER_NOCOLOR) {
+                                        eff_color = pdef->delimiter_text_color;
+                                    }
+                                    if (eff_bg == TEXTPARSER_NOCOLOR && pdef->delimiter_text_background != TEXTPARSER_NOCOLOR) {
+                                        eff_bg = pdef->delimiter_text_background;
+                                    }
+                                    if (eff_flags == 0 && pdef->delimiter_text_flags != 0) {
+                                        eff_flags = pdef->delimiter_text_flags;
+                                    }
                                 }
-                                if (eff_bg == TEXTPARSER_NOCOLOR && language->tokens[p->token_id].text_background != TEXTPARSER_NOCOLOR) {
-                                    eff_bg = language->tokens[p->token_id].text_background;
+                                if (eff_color == TEXTPARSER_NOCOLOR && pdef->text_color != TEXTPARSER_NOCOLOR) {
+                                    eff_color = pdef->text_color;
                                 }
-                                if (eff_flags == 0 && language->tokens[p->token_id].text_flags != 0) {
-                                    eff_flags = language->tokens[p->token_id].text_flags;
+                                if (eff_bg == TEXTPARSER_NOCOLOR && pdef->text_background != TEXTPARSER_NOCOLOR) {
+                                    eff_bg = pdef->text_background;
+                                }
+                                if (eff_flags == 0 && pdef->text_flags != 0) {
+                                    eff_flags = pdef->text_flags;
                                 }
                                 if (eff_color != TEXTPARSER_NOCOLOR) break;
                             }

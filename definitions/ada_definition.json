@@ -59,7 +59,8 @@
       "textColor": "0xce9178",
       "nestedTokens": [
         "EscapedQuote"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "EscapedQuote": {
       "type": "SimpleToken",

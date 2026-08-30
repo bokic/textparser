@@ -191,7 +191,8 @@
         "SharpChar",
         "SharpExpression",
         "SingleChar"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "DoubleString": {
       "type": "StartStop",
@@ -205,7 +206,8 @@
         "SharpChar",
         "SharpExpression",
         "DoubleChar"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "SingleChar": {
       "type": "SimpleToken",

@@ -154,7 +154,8 @@
         "Parenthesis",
         "ArrayIndex",
         "StringEscape"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "TestExpression": {
       "type": "StartStop",
@@ -266,7 +267,8 @@
       "textColor": "0xce9178",
       "nestedTokens": [
         "StringEscape"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "DoubleString": {
       "type": "StartStop",
@@ -283,7 +285,8 @@
         "ProcessSubstitution",
         "BacktickSubstitution",
         "ArithmeticExpression"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "StringEscape": {
       "type": "SimpleToken",

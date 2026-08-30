@@ -7,6 +7,7 @@
 #include <c_definition.json.h>
 #include <cfml_definition.json.h>
 #include <json_definition.json.h>
+#include <textparser-json.h>
 
 TEST(token_export_tests, full_document_export_c) {
     const char *code = "int main() {\n    return 42;\n}\n";
@@ -144,9 +145,18 @@ TEST(token_export_tests, string_token_color_inheritance) {
             EXPECT_EQ(tok.text_color, 0x4ec9b0);
             found_char_type = true;
         }
-        if (tok.start_pos >= 18 && tok.start_pos + tok.length <= 31) { // inside "Hello world"
+        if (tok.start_pos == 18 && tok.length == 1) { // start quote `"`
+            EXPECT_EQ(tok.text_color, 0x9e6a57);
+        }
+        if (tok.start_pos == 19 && tok.length == 5) { // "Hello" body
             EXPECT_EQ(tok.text_color, 0xce9178);
             found_string = true;
+        }
+        if (tok.start_pos == 25 && tok.length == 5) { // "world" body
+            EXPECT_EQ(tok.text_color, 0xce9178);
+        }
+        if (tok.start_pos == 30 && tok.length == 1) { // end quote `"`
+            EXPECT_EQ(tok.text_color, 0x9e6a57);
         }
     }
 
@@ -208,3 +218,134 @@ TEST(token_export_tests, tagged_type_and_type_suffix_coloring) {
     EXPECT_TRUE(found_custom_t_type);
     EXPECT_TRUE(found_handle_var);
 }
+
+TEST(token_export_tests, delimiter_coloring_string_literal) {
+    const char *json_def_str = R"({
+        "name": "delim_lang",
+        "version": 1.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["StringLiteral"],
+        "otherTextInside": true,
+        "tokens": {
+            "StringLiteral": {
+                "type": "StartStop",
+                "startRegex": "\"",
+                "endRegex": "\"",
+                "otherTextInside": true,
+                "textColor": "0xce9178",
+                "textBackground": "0x222222",
+                "delimiterTextColor": "0x808080",
+                "delimiterTextBackground": "0x112233",
+                "delimiterTextFlags": "1"
+            }
+        }
+    })";
+
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(json_def_str, &definition), 0);
+    ASSERT_NE(definition, nullptr);
+
+    const char *code = "\"hello\"";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, definition), 0);
+
+    const textparser_token_item *root = textparser_get_first_token(handle);
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(textparser_get_token_text_color(root), 0xce9178);
+
+    // Direct AST delimiter checking
+    ASSERT_NE(root->child, nullptr);
+    EXPECT_EQ(root->child->token_id, TEXTPARSER_TOKEN_ID_START_DELIMITER);
+    EXPECT_EQ(textparser_get_token_text_color(root->child), 0x808080);
+    EXPECT_EQ(textparser_get_token_text_background(root->child), 0x112233);
+    EXPECT_EQ(textparser_get_token_text_flags(root->child), 1u);
+
+    // Token range export checking
+    size_t count = 0;
+    ASSERT_EQ(textparser_export_tokens(handle, nullptr, 0, &count), 0);
+    ASSERT_EQ(count, 3u);
+
+    std::vector<textparser_token_range> ranges(count);
+    ASSERT_EQ(textparser_export_tokens(handle, ranges.data(), count, &count), 0);
+
+    // Start delimiter `"`
+    EXPECT_EQ(ranges[0].start_pos, 0u);
+    EXPECT_EQ(ranges[0].length, 1u);
+    EXPECT_EQ(ranges[0].token_id, TEXTPARSER_TOKEN_ID_START_DELIMITER);
+    EXPECT_EQ(ranges[0].text_color, 0x808080);
+    EXPECT_EQ(ranges[0].text_background, 0x112233);
+    EXPECT_EQ(ranges[0].text_flags, 1u);
+
+    // String content `hello`
+    EXPECT_EQ(ranges[1].start_pos, 1u);
+    EXPECT_EQ(ranges[1].length, 5u);
+    EXPECT_EQ(ranges[1].token_id, TEXTPARSER_TOKEN_ID_UNPROCESSED);
+    EXPECT_EQ(ranges[1].text_color, 0xce9178);
+    EXPECT_EQ(ranges[1].text_background, 0x222222);
+
+    // End delimiter `"`
+    EXPECT_EQ(ranges[2].start_pos, 6u);
+    EXPECT_EQ(ranges[2].length, 1u);
+    EXPECT_EQ(ranges[2].token_id, TEXTPARSER_TOKEN_ID_END_DELIMITER);
+    EXPECT_EQ(ranges[2].text_color, 0x808080);
+    EXPECT_EQ(ranges[2].text_background, 0x112233);
+    EXPECT_EQ(ranges[2].text_flags, 1u);
+
+    textparser_close(handle);
+    textparser_free_language_definition(definition);
+}
+
+TEST(token_export_tests, delimiter_coloring_empty_string_edge_case) {
+    const char *json_def_str = R"({
+        "name": "delim_lang2",
+        "version": 1.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["StringLiteral"],
+        "otherTextInside": true,
+        "tokens": {
+            "StringLiteral": {
+                "type": "StartStop",
+                "startRegex": "\"",
+                "endRegex": "\"",
+                "otherTextInside": true,
+                "textColor": "0xce9178",
+                "delimiterTextColor": "0x808080"
+            }
+        }
+    })";
+
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(json_def_str, &definition), 0);
+    ASSERT_NE(definition, nullptr);
+
+    const char *code = "\"\"";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, definition), 0);
+
+    size_t count = 0;
+    ASSERT_EQ(textparser_export_tokens(handle, nullptr, 0, &count), 0);
+    ASSERT_EQ(count, 2u);
+
+    std::vector<textparser_token_range> ranges(count);
+    ASSERT_EQ(textparser_export_tokens(handle, ranges.data(), count, &count), 0);
+
+    // Start delimiter `"`
+    EXPECT_EQ(ranges[0].start_pos, 0u);
+    EXPECT_EQ(ranges[0].length, 1u);
+    EXPECT_EQ(ranges[0].text_color, 0x808080);
+
+    // End delimiter `"`
+    EXPECT_EQ(ranges[1].start_pos, 1u);
+    EXPECT_EQ(ranges[1].length, 1u);
+    EXPECT_EQ(ranges[1].text_color, 0x808080);
+
+    textparser_close(handle);
+    textparser_free_language_definition(definition);
+}
+

@@ -105,7 +105,8 @@
       "textColor": "0xce9178",
       "nestedTokens": [
         "StringEscape"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "DoubleString": {
       "type": "StartStop",
@@ -120,7 +121,8 @@
         "CodeBlock",
         "Parenthesis",
         "ArrayIndex"
-      ]
+      ],
+      "delimiterTextColor": "0x9e6a57"
     },
     "StringEscape": {
       "type": "SimpleToken",
