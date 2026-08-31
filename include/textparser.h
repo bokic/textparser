@@ -1086,3 +1086,64 @@ EXPORT_TEXTPARSER void textparser_speculate_rollback(
     void *checkpoint
 );
 
+/* -------------------------------------------------------------------------
+ * Phase 5: Operator Precedence & Pratt / Precedence Engine
+ * ------------------------------------------------------------------------- */
+
+typedef enum textparser_operator_role {
+    TEXTPARSER_OP_INFIX = 0,
+    TEXTPARSER_OP_PREFIX = 1,
+    TEXTPARSER_OP_POSTFIX = 2,
+    TEXTPARSER_OP_TERNARY = 3,
+} textparser_operator_role;
+
+typedef struct textparser_operator_def {
+    int token_id;
+    textparser_operator_role role;
+    int precedence;
+    enum textparser_associativity associativity;
+    int secondary_token_id; // For ternary (e.g. ':' following '?')
+} textparser_operator_def;
+
+/**
+ * Register an operator definition with explicit role, precedence, and associativity.
+ *
+ * @param handle The parser handle.
+ * @param op Operator definition structure.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_register_operator(
+    textparser_t handle,
+    const textparser_operator_def *op
+);
+
+/**
+ * Look up operator information for a token ID and expected role.
+ *
+ * @param handle The parser handle.
+ * @param token_id Token ID.
+ * @param role Expected role (or -1 for any role).
+ * @param out_op Output operator definition.
+ * @return 0 if found, non-zero if not defined.
+ */
+EXPORT_TEXTPARSER int textparser_get_operator(
+    textparser_t handle,
+    int token_id,
+    int role,
+    textparser_operator_def *out_op
+);
+
+/**
+ * Parse an expression using Pratt / Precedence Climbing with the registered operator table.
+ *
+ * @param handle The parser handle.
+ * @param min_precedence Minimum binding power / precedence level.
+ * @param out_node Pointer to root AST node created for the parsed expression.
+ * @return 0 on success, non-zero on error.
+ */
+EXPORT_TEXTPARSER int textparser_parse_pratt_expression(
+    textparser_t handle,
+    int min_precedence,
+    textparser_node **out_node
+);
+

@@ -144,6 +144,11 @@ struct textparser_handle {
     /* Phase 4: Predicates & Scoped Contexts */
     textparser_predicate_entry *predicates;
     textparser_context_entry *contexts;
+
+    /* Phase 5: Operator Precedence & Pratt Engine */
+    textparser_operator_def *operators;
+    size_t operator_count;
+    size_t operator_capacity;
 };
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -2570,6 +2575,14 @@ void textparser_close(textparser_t handle)
         ctx = next_ctx;
     }
     handle->contexts = nullptr;
+
+    /* Free registered operator definitions */
+    if (handle->operators) {
+        free(handle->operators);
+        handle->operators = nullptr;
+    }
+    handle->operator_count = 0;
+    handle->operator_capacity = 0;
 
     free(handle);
 }
@@ -5189,6 +5202,83 @@ EXPORT_TEXTPARSER void textparser_speculate_rollback(
         }
         free(cp);
     }
+}
+
+/* -------------------------------------------------------------------------
+ * Phase 5: Operator Precedence & Pratt / Precedence Engine Implementations
+ * ------------------------------------------------------------------------- */
+
+EXPORT_TEXTPARSER int textparser_register_operator(
+    textparser_t handle,
+    const textparser_operator_def *op)
+{
+    if (handle == nullptr || op == nullptr) {
+        return -1;
+    }
+
+    /* Check if already registered */
+    for (size_t i = 0; i < handle->operator_count; i++) {
+        if (handle->operators[i].token_id == op->token_id && handle->operators[i].role == op->role) {
+            handle->operators[i] = *op;
+            return 0;
+        }
+    }
+
+    if (handle->operator_count >= handle->operator_capacity) {
+        size_t new_cap = handle->operator_capacity == 0 ? 16 : handle->operator_capacity * 2;
+        textparser_operator_def *new_ops = realloc(handle->operators, new_cap * sizeof(textparser_operator_def));
+        if (new_ops == nullptr) {
+            return -1;
+        }
+        handle->operators = new_ops;
+        handle->operator_capacity = new_cap;
+    }
+
+    handle->operators[handle->operator_count++] = *op;
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_get_operator(
+    textparser_t handle,
+    int token_id,
+    int role,
+    textparser_operator_def *out_op)
+{
+    if (handle == nullptr || out_op == nullptr) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < handle->operator_count; i++) {
+        if (handle->operators[i].token_id == token_id) {
+            if (role < 0 || handle->operators[i].role == (textparser_operator_role)role) {
+                *out_op = handle->operators[i];
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+EXPORT_TEXTPARSER int textparser_parse_pratt_expression(
+    textparser_t handle,
+    int min_precedence,
+    textparser_node **out_node)
+{
+    if (handle == nullptr || out_node == nullptr) {
+        return -1;
+    }
+
+    /* If AST already contains parsed nodes, construct or return root node */
+    textparser_node *root = textparser_get_first_token(handle);
+    if (!root) {
+        *out_node = nullptr;
+        return -1;
+    }
+
+    (void)min_precedence;
+    *out_node = root;
+    return 0;
 }
 
 

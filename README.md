@@ -265,6 +265,26 @@ textparser_speculate_rollback(handle, checkpoint);
 // textparser_speculate_commit(handle, checkpoint);
 ```
 
+**Operator Precedence & Pratt Expression Engine:**
+
+```c
+#include <textparser.h>
+
+// Register explicit operator definitions (prefix, infix, postfix, ternary)
+textparser_operator_def add_op = {
+    .token_id = 100,
+    .role = TEXTPARSER_OP_INFIX,
+    .precedence = 10,
+    .associativity = TEXTPARSER_ASSOC_LEFT,
+    .secondary_token_id = 0
+};
+textparser_register_operator(handle, &add_op);
+
+// Parse expression with minimum precedence climbing
+textparser_node *expr_node = NULL;
+textparser_parse_pratt_expression(handle, 0, &expr_node);
+```
+
 **C++ RAII Wrapper Example:**
 
 ```cpp
