@@ -1147,3 +1147,89 @@ EXPORT_TEXTPARSER int textparser_parse_pratt_expression(
     textparser_node **out_node
 );
 
+/* -------------------------------------------------------------------------
+ * Phase 6: Error Recovery & Diagnostic Engine
+ * ------------------------------------------------------------------------- */
+
+typedef enum textparser_diagnostic_severity {
+    TEXTPARSER_SEVERITY_ERROR = 0,
+    TEXTPARSER_SEVERITY_WARNING = 1,
+    TEXTPARSER_SEVERITY_INFO = 2,
+    TEXTPARSER_SEVERITY_HINT = 3,
+} textparser_diagnostic_severity;
+
+typedef struct textparser_diagnostic {
+    textparser_diagnostic_severity severity;
+    const char *code;
+    const char *message;
+    size_t start_pos;
+    size_t length;
+    uint32_t line;
+    uint32_t column;
+} textparser_diagnostic;
+
+/**
+ * Report a new diagnostic (error, warning, info) with exact source location.
+ *
+ * @param handle The parser handle.
+ * @param severity Severity level.
+ * @param code Diagnostic error code (e.g. "TS1005", "SYNTAX_ERROR").
+ * @param message Diagnostic descriptive message.
+ * @param start_pos Starting byte offset.
+ * @param length Length of error span in bytes.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_report_diagnostic(
+    textparser_t handle,
+    textparser_diagnostic_severity severity,
+    const char *code,
+    const char *message,
+    size_t start_pos,
+    size_t length
+);
+
+/**
+ * Get the total number of diagnostics recorded by the parser.
+ *
+ * @param handle The parser handle.
+ * @return Diagnostic count.
+ */
+EXPORT_TEXTPARSER size_t textparser_get_diagnostic_count(textparser_t handle);
+
+/**
+ * Get a specific diagnostic by index.
+ *
+ * @param handle The parser handle.
+ * @param index 0-based index of diagnostic.
+ * @param out_diagnostic Pointer to store diagnostic copy.
+ * @return 0 on success, non-zero if index out of bounds.
+ */
+EXPORT_TEXTPARSER int textparser_get_diagnostic(
+    textparser_t handle,
+    size_t index,
+    textparser_diagnostic *out_diagnostic
+);
+
+/**
+ * Clear all diagnostics in the parser handle.
+ *
+ * @param handle The parser handle.
+ */
+EXPORT_TEXTPARSER void textparser_clear_diagnostics(textparser_t handle);
+
+/**
+ * Recover parser to the next synchronization token from a given token list.
+ *
+ * @param handle The parser handle.
+ * @param sync_tokens Array of token IDs to synchronize on (terminated by TextParser_END or -1).
+ * @param current_offset Current parsing offset in units/bytes.
+ * @param out_new_offset Pointer to receive updated offset after synchronization.
+ * @return 0 if synchronized to a matching token, non-zero if EOF reached.
+ */
+EXPORT_TEXTPARSER int textparser_recover_until_token(
+    textparser_t handle,
+    const int *sync_tokens,
+    size_t current_offset,
+    size_t *out_new_offset
+);
+

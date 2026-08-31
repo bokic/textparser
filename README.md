@@ -285,6 +285,24 @@ textparser_node *expr_node = NULL;
 textparser_parse_pratt_expression(handle, 0, &expr_node);
 ```
 
+**Multi-Diagnostic Reporting & Error Recovery:**
+
+```c
+#include <textparser.h>
+
+// Report diagnostics with exact source spans and codes
+textparser_report_diagnostic(handle, TEXTPARSER_SEVERITY_ERROR, "TS1005", "';' expected.", 12, 10);
+
+size_t diag_count = textparser_get_diagnostic_count(handle);
+for (size_t i = 0; i < diag_count; i++) {
+    textparser_diagnostic diag;
+    if (textparser_get_diagnostic(handle, i, &diag) == 0) {
+        printf("[%s] Line %u: %s\n", diag.code, diag.line + 1, diag.message);
+    }
+}
+textparser_clear_diagnostics(handle);
+```
+
 **C++ RAII Wrapper Example:**
 
 ```cpp
