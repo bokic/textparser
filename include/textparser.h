@@ -205,6 +205,44 @@ typedef struct {
     uint32_t flags;
 } textparser_lex_trivia;
 
+typedef enum {
+    TEXTPARSER_PROD_TOKEN,
+    TEXTPARSER_PROD_REF,
+    TEXTPARSER_PROD_SEQUENCE,
+    TEXTPARSER_PROD_CHOICE,
+    TEXTPARSER_PROD_OPTIONAL,
+    TEXTPARSER_PROD_REPEAT,
+} textparser_production_kind;
+
+/**
+ * A manually constructed grammar production. Child and reference values are
+ * production IDs, not array indexes. REPEAT is zero-or-more. JSON loading for
+ * these records is implemented by the next parser milestone.
+ */
+typedef struct {
+    int id;
+    const char *name;
+    textparser_production_kind kind;
+    const int *children;
+    size_t child_count;
+    int token_id;
+    int referenced_production;
+} textparser_production;
+
+typedef enum {
+    TEXTPARSER_MATCH_OK,
+    TEXTPARSER_MATCH_NO,
+    TEXTPARSER_MATCH_ERROR,
+    TEXTPARSER_MATCH_ABORT,
+} textparser_match_status;
+
+typedef struct {
+    textparser_match_status status;
+    textparser_node *node;
+    size_t consumed_tokens;
+    bool committed;
+} textparser_match_result;
+
 typedef struct textparser_token_item {
     struct textparser_token_item *prev;
     struct textparser_token_item *next;
@@ -1180,6 +1218,26 @@ EXPORT_TEXTPARSER void textparser_speculate_commit(
 EXPORT_TEXTPARSER void textparser_speculate_rollback(
     textparser_t handle,
     void *checkpoint
+);
+
+/**
+ * Execute one manually constructed grammar production from the beginning of
+ * the immutable lexer-token stream. Successful execution leaves the shared
+ * parser cursor after the matched tokens; failed matches restore its start.
+ *
+ * @param handle A successfully parsed handle with an immutable token stream.
+ * @param productions Production table with unique IDs.
+ * @param production_count Number of table entries.
+ * @param start_production ID of the production to execute.
+ * @param out_result Receives match status, syntax node, and consumed count.
+ * @return 0 when execution ran, non-zero for invalid arguments.
+ */
+EXPORT_TEXTPARSER int textparser_execute_production(
+    textparser_t handle,
+    const textparser_production *productions,
+    size_t production_count,
+    int start_production,
+    textparser_match_result *out_result
 );
 
 /* -------------------------------------------------------------------------

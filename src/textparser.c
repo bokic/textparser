@@ -5603,6 +5603,299 @@ EXPORT_TEXTPARSER void textparser_speculate_rollback(
     textparser_checkpoint_free(cp);
 }
 
+typedef struct {
+    textparser_t handle;
+    const textparser_production *productions;
+    size_t production_count;
+    unsigned recursion_depth;
+} textparser_grammar_executor;
+
+static textparser_match_result textparser_match_result_make(
+    textparser_match_status status,
+    textparser_node *node,
+    size_t consumed)
+{
+    textparser_match_result result = {0};
+    result.status = status;
+    result.node = node;
+    result.consumed_tokens = consumed;
+    result.committed = false;
+    return result;
+}
+
+static const textparser_production *textparser_find_production(
+    const textparser_grammar_executor *executor,
+    int production_id)
+{
+    const textparser_production *found = nullptr;
+    for (size_t i = 0; i < executor->production_count; i++) {
+        if (executor->productions[i].id == production_id) {
+            if (found != nullptr) return nullptr;
+            found = &executor->productions[i];
+        }
+    }
+    return found;
+}
+
+static textparser_node *textparser_grammar_token_node(
+    textparser_t handle,
+    const textparser_lex_token *token)
+{
+    textparser_node *node = textparser_alloc_token(handle, token->kind, token->end - token->start);
+    if (node != nullptr) node->decoded_value = token->decoded_value;
+    return node;
+}
+
+static textparser_node *textparser_grammar_group_node(
+    textparser_t handle,
+    const textparser_production *production,
+    textparser_node *first_child,
+    size_t source_length)
+{
+    if (first_child == nullptr) return nullptr;
+    textparser_node *node = textparser_alloc_token(handle, production->id, source_length);
+    if (node == nullptr) return nullptr;
+    node->node_flags |= TEXTPARSER_NODE_SYNTHETIC;
+    node->child = first_child;
+    for (textparser_node *child = first_child; child != nullptr; child = child->next) {
+        child->parent = node;
+    }
+    return node;
+}
+
+static void textparser_grammar_append_node(
+    textparser_node **first,
+    textparser_node **last,
+    textparser_node *node)
+{
+    if (node == nullptr) return;
+    node->prev = *last;
+    node->next = nullptr;
+    if (*last != nullptr) (*last)->next = node;
+    else *first = node;
+    *last = node;
+}
+
+static textparser_match_result textparser_parse_production(
+    textparser_grammar_executor *executor,
+    int production_id);
+
+static textparser_match_result textparser_parse_sequence(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    textparser_t handle = executor->handle;
+    size_t start_index = handle->parser.token_index;
+    size_t start_offset = handle->parser.source_offset;
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(handle, &checkpoint);
+    if (checkpoint == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+
+    textparser_node *first = nullptr;
+    textparser_node *last = nullptr;
+    for (size_t i = 0; i < production->child_count; i++) {
+        textparser_match_result child = textparser_parse_production(executor, production->children[i]);
+        if (child.status != TEXTPARSER_MATCH_OK) {
+            textparser_match_status status = child.status;
+            textparser_speculate_rollback(handle, checkpoint);
+            return textparser_match_result_make(status, nullptr, 0);
+        }
+        textparser_grammar_append_node(&first, &last, child.node);
+    }
+
+    textparser_node *node = textparser_grammar_group_node(
+        handle, production, first, handle->parser.source_offset - start_offset);
+    if (first != nullptr && node == nullptr) {
+        textparser_speculate_rollback(handle, checkpoint);
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
+    size_t consumed = handle->parser.token_index - start_index;
+    textparser_speculate_commit(handle, checkpoint);
+    return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, consumed);
+}
+
+static textparser_match_result textparser_parse_choice(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    textparser_t handle = executor->handle;
+    for (size_t i = 0; i < production->child_count; i++) {
+        void *checkpoint = nullptr;
+        textparser_speculate_begin(handle, &checkpoint);
+        if (checkpoint == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+        textparser_match_result result = textparser_parse_production(executor, production->children[i]);
+        if (result.status == TEXTPARSER_MATCH_OK) {
+            textparser_speculate_commit(handle, checkpoint);
+            return result;
+        }
+        textparser_match_status status = result.status;
+        textparser_speculate_rollback(handle, checkpoint);
+        if (status != TEXTPARSER_MATCH_NO) {
+            return textparser_match_result_make(status, nullptr, 0);
+        }
+    }
+    return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+}
+
+static textparser_match_result textparser_parse_optional(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    if (production->child_count != 1 || production->children == nullptr) {
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    }
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(executor->handle, &checkpoint);
+    if (checkpoint == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    textparser_match_result result = textparser_parse_production(executor, production->children[0]);
+    if (result.status == TEXTPARSER_MATCH_OK) {
+        textparser_speculate_commit(executor->handle, checkpoint);
+        return result;
+    }
+    textparser_match_status status = result.status;
+    textparser_speculate_rollback(executor->handle, checkpoint);
+    if (status == TEXTPARSER_MATCH_NO) {
+        return textparser_match_result_make(TEXTPARSER_MATCH_OK, nullptr, 0);
+    }
+    return textparser_match_result_make(status, nullptr, 0);
+}
+
+static textparser_match_result textparser_parse_repeat(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    if (production->child_count != 1 || production->children == nullptr) {
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    }
+    textparser_t handle = executor->handle;
+    size_t start_index = handle->parser.token_index;
+    size_t start_offset = handle->parser.source_offset;
+    void *outer = nullptr;
+    textparser_speculate_begin(handle, &outer);
+    if (outer == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    textparser_node *first = nullptr;
+    textparser_node *last = nullptr;
+
+    for (;;) {
+        size_t iteration_start = handle->parser.token_index;
+        void *iteration = nullptr;
+        textparser_speculate_begin(handle, &iteration);
+        if (iteration == nullptr) {
+            textparser_speculate_rollback(handle, outer);
+            return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+        }
+        textparser_match_result child = textparser_parse_production(executor, production->children[0]);
+        if (child.status == TEXTPARSER_MATCH_NO) {
+            textparser_speculate_rollback(handle, iteration);
+            break;
+        }
+        if (child.status != TEXTPARSER_MATCH_OK) {
+            textparser_match_status status = child.status;
+            textparser_speculate_rollback(handle, iteration);
+            textparser_speculate_rollback(handle, outer);
+            return textparser_match_result_make(status, nullptr, 0);
+        }
+        if (handle->parser.token_index == iteration_start) {
+            textparser_speculate_rollback(handle, iteration);
+            textparser_speculate_rollback(handle, outer);
+            return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+        }
+        textparser_speculate_commit(handle, iteration);
+        textparser_grammar_append_node(&first, &last, child.node);
+    }
+
+    textparser_node *node = textparser_grammar_group_node(
+        handle, production, first, handle->parser.source_offset - start_offset);
+    if (first != nullptr && node == nullptr) {
+        textparser_speculate_rollback(handle, outer);
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
+    size_t consumed = handle->parser.token_index - start_index;
+    textparser_speculate_commit(handle, outer);
+    return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, consumed);
+}
+
+static textparser_match_result textparser_parse_production(
+    textparser_grammar_executor *executor,
+    int production_id)
+{
+    if (executor->recursion_depth >= MAX_RECURSION_DEPTH) {
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    }
+    const textparser_production *production = textparser_find_production(executor, production_id);
+    if (production == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    executor->recursion_depth++;
+    textparser_match_result result;
+
+    switch (production->kind) {
+    case TEXTPARSER_PROD_TOKEN: {
+        textparser_t handle = executor->handle;
+        if (handle->parser.token_index >= handle->lexer_token_count ||
+            handle->lexer_tokens[handle->parser.token_index].kind != production->token_id) {
+            result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+            break;
+        }
+        const textparser_lex_token *token = &handle->lexer_tokens[handle->parser.token_index];
+        textparser_node *node = textparser_grammar_token_node(handle, token);
+        if (node == nullptr) {
+            result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+            break;
+        }
+        handle->parser.token_index++;
+        handle->parser.source_offset = token->end;
+        result = textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 1);
+        break;
+    }
+    case TEXTPARSER_PROD_REF:
+        result = textparser_parse_production(executor, production->referenced_production);
+        break;
+    case TEXTPARSER_PROD_SEQUENCE:
+        if (production->child_count != 0 && production->children == nullptr) {
+            result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+        } else {
+            result = textparser_parse_sequence(executor, production);
+        }
+        break;
+    case TEXTPARSER_PROD_CHOICE:
+        if (production->child_count != 0 && production->children == nullptr) {
+            result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+        } else {
+            result = textparser_parse_choice(executor, production);
+        }
+        break;
+    case TEXTPARSER_PROD_OPTIONAL:
+        result = textparser_parse_optional(executor, production);
+        break;
+    case TEXTPARSER_PROD_REPEAT:
+        result = textparser_parse_repeat(executor, production);
+        break;
+    default:
+        result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+        break;
+    }
+    executor->recursion_depth--;
+    return result;
+}
+
+EXPORT_TEXTPARSER int textparser_execute_production(
+    textparser_t handle,
+    const textparser_production *productions,
+    size_t production_count,
+    int start_production,
+    textparser_match_result *out_result)
+{
+    if (handle == nullptr || productions == nullptr || production_count == 0 || out_result == nullptr) {
+        return -1;
+    }
+    handle->parser.owner = handle;
+    handle->parser.language = handle->language;
+    handle->parser.source_offset = 0;
+    handle->parser.token_index = 0;
+    textparser_grammar_executor executor = {handle, productions, production_count, 0};
+    *out_result = textparser_parse_production(&executor, start_production);
+    return 0;
+}
+
 /* -------------------------------------------------------------------------
  * Phase 5: Operator Precedence & Pratt / Precedence Engine Implementations
  * ------------------------------------------------------------------------- */

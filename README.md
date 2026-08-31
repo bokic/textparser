@@ -15,6 +15,13 @@ contexts, diagnostics, pending-event depth, speculation/recovery depth, node
 IDs, and arena allocation watermarks. `textparser_get_parser_state()` exposes a
 read-only state view for diagnostics and parser integration.
 
+The executable grammar core supports manually constructed `TOKEN`, `REF`,
+`SEQUENCE`, `CHOICE`, `OPTIONAL`, and zero-or-more `REPEAT` productions through
+`textparser_execute_production()`. Productions consume the immutable lexer
+stream, return a uniform `textparser_match_result`, roll back rejected branches,
+bound recursive references, and reject zero-width repeat loops. Declarative
+JSON grammar loading is intentionally left to the next implementation stage.
+
 For C, post-processing uses declaration context in function parameter lists to
 classify identifier-shaped types imported through headers. For example, in
 `adv_regex_context *ctx`, `adv_regex_context` becomes `TypeName` while `ctx`
