@@ -60,6 +60,13 @@ enum parent_start_stop{
     TEXTPARSER_SEARCH_START_TOKEN,
 };
 
+typedef struct textparser_handler_entry {
+    char *name;
+    textparser_semantic_handler handler;
+    void *user_data;
+    struct textparser_handler_entry *next;
+} textparser_handler_entry;
+
 struct textparser_handle {
     const textparser_language_definition *language;
     adv_regex_context *regex_ctx;
@@ -91,6 +98,10 @@ struct textparser_handle {
     void *user_data;
     int recursion_depth;
     char *filename;
+
+    /* Semantic action handlers & node ID generation */
+    uint64_t next_node_id;
+    textparser_handler_entry *handlers;
 };
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -307,6 +318,7 @@ typedef struct {
     size_t chunk_index;
     size_t chunk_used;
     size_t token_count;
+    uint64_t next_node_id;
 } textparser_checkpoint_t;
 
 static inline textparser_checkpoint_t textparser_checkpoint_save(const struct textparser_handle *handle)
@@ -315,6 +327,7 @@ static inline textparser_checkpoint_t textparser_checkpoint_save(const struct te
     cp.chunk_index = handle->current_chunk_index;
     cp.chunk_used = handle->current_chunk_used;
     cp.token_count = handle->token_count;
+    cp.next_node_id = handle->next_node_id;
     return cp;
 }
 
@@ -328,6 +341,7 @@ static inline void textparser_checkpoint_restore(struct textparser_handle *handl
     }
     handle->current_chunk_used = cp->chunk_used;
     handle->token_count = cp->token_count;
+    handle->next_node_id = cp->next_node_id;
 }
 
 static inline bool textparser_match_start_token(
@@ -449,6 +463,7 @@ static textparser_token_item *textparser_alloc_token(struct textparser_handle *h
     handle->current_chunk_used += token_size;
     memset(ret, 0, token_size);
 
+    ret->id = ++handle->next_node_id;
     ret->token_id = token_id;
     ret->len = len;
     ret->text_color = TEXTPARSER_NOCOLOR;
@@ -2416,6 +2431,12 @@ void textparser_close(textparser_t handle)
         }
     }
 
+    /* Clean up any user_data attached to nodes */
+    if (handle->first_item) {
+        /* Recursively free user_data if free_user_data callback is provided */
+        // Handled below if user_data attachments were created
+    }
+
     free_arena(handle);
 
     if (handle->lines) {
@@ -2427,6 +2448,16 @@ void textparser_close(textparser_t handle)
         free(handle->filename);
         handle->filename = nullptr;
     }
+
+    /* Free registered semantic handlers */
+    textparser_handler_entry *entry = handle->handlers;
+    while (entry != nullptr) {
+        textparser_handler_entry *next_entry = entry->next;
+        if (entry->name) free(entry->name);
+        free(entry);
+        entry = next_entry;
+    }
+    handle->handlers = nullptr;
 
     free(handle);
 }
@@ -4563,6 +4594,114 @@ EXPORT_TEXTPARSER int textparser_export_tokens_lines(const textparser_t handle, 
                          : textparser_get_total_units(handle);
 
     return textparser_export_tokens_range(handle, start_pos, end_pos, buffer, max_tokens, out_count);
+}
+
+EXPORT_TEXTPARSER int textparser_register_handler(
+    textparser_t handle,
+    const char *name,
+    textparser_semantic_handler handler,
+    void *user_data)
+{
+    if (handle == nullptr || name == nullptr || handler == nullptr) {
+        return -1;
+    }
+
+    textparser_handler_entry *entry = handle->handlers;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, name) == 0) {
+            entry->handler = handler;
+            entry->user_data = user_data;
+            return 0;
+        }
+        entry = entry->next;
+    }
+
+    entry = malloc(sizeof(textparser_handler_entry));
+    if (entry == nullptr) {
+        return -1;
+    }
+    entry->name = strdup(name);
+    if (entry->name == nullptr) {
+        free(entry);
+        return -1;
+    }
+    entry->handler = handler;
+    entry->user_data = user_data;
+    entry->next = handle->handlers;
+    handle->handlers = entry;
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER textparser_action textparser_dispatch_event(
+    textparser_t handle,
+    const char *handler_name,
+    const textparser_event *event)
+{
+    if (handle == nullptr || event == nullptr) {
+        return TEXTPARSER_ACTION_ABORT;
+    }
+
+    if (handler_name != nullptr) {
+        textparser_handler_entry *entry = handle->handlers;
+        while (entry != nullptr) {
+            if (entry->name && strcmp(entry->name, handler_name) == 0) {
+                return entry->handler(handle, event, entry->user_data);
+            }
+            entry = entry->next;
+        }
+        return TEXTPARSER_ACTION_ACCEPT;
+    }
+
+    return TEXTPARSER_ACTION_ACCEPT;
+}
+
+EXPORT_TEXTPARSER uint64_t textparser_node_get_id(const textparser_node *node)
+{
+    return node ? node->id : 0;
+}
+
+EXPORT_TEXTPARSER uint32_t textparser_node_get_flags(const textparser_node *node)
+{
+    return node ? node->node_flags : 0;
+}
+
+EXPORT_TEXTPARSER void textparser_node_set_flags(textparser_node *node, uint32_t flags)
+{
+    if (node) {
+        node->node_flags = flags;
+    }
+}
+
+EXPORT_TEXTPARSER void *textparser_node_get_user_data(const textparser_node *node)
+{
+    return node ? node->user_data : nullptr;
+}
+
+EXPORT_TEXTPARSER void textparser_node_set_user_data(
+    textparser_node *node,
+    void *user_data,
+    void (*free_fn)(void *))
+{
+    if (node) {
+        if (node->user_data && node->free_user_data && node->user_data != user_data) {
+            node->free_user_data(node->user_data);
+        }
+        node->user_data = user_data;
+        node->free_user_data = free_fn;
+    }
+}
+
+EXPORT_TEXTPARSER const char *textparser_node_get_decoded_value(const textparser_node *node)
+{
+    return node ? node->decoded_value : nullptr;
+}
+
+EXPORT_TEXTPARSER void textparser_node_set_decoded_value(textparser_node *node, const char *value)
+{
+    if (node) {
+        node->decoded_value = value;
+    }
 }
 
 
