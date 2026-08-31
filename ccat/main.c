@@ -216,6 +216,9 @@ int main(int argc, const char *argv[])
         return EXIT_FAILURE;
     }
 
+    textparser_token_item *root = textparser_get_first_token(handle);
+    textparser_post_process(&root, language_def);
+
     const char *text = textparser_get_text(handle);
     size_t text_size = textparser_get_text_size(handle);
 

@@ -679,6 +679,37 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         }
     }
 
+    json_object *decl_obj = nullptr;
+    if (json_object_object_get_ex(root_obj, "declarationDisambiguation", &decl_obj) && json_object_is_type(decl_obj, json_type_object)) {
+        textparser_declaration_disambiguation *decl = calloc(1, sizeof(textparser_declaration_disambiguation));
+        if (decl != nullptr) {
+            decl->identifier_token_id = -1;
+            decl->type_name_token_id = -1;
+            decl->function_token_id = -1;
+            decl->parameter_list_token_id = -1;
+            json_object *arr = nullptr;
+            if (json_object_object_get_ex(decl_obj, "returnTypeTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                decl->return_type_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            if (json_object_object_get_ex(decl_obj, "declaratorTokens", &arr) && json_object_is_type(arr, json_type_array)) {
+                decl->declarator_tokens = json_parse_token_id_array(arr, (*definition)->tokens, tokens_cnt);
+            }
+            struct { const char *key; int *value; } token_fields[] = {
+                {"identifierToken", &decl->identifier_token_id},
+                {"typeNameToken", &decl->type_name_token_id},
+                {"functionToken", &decl->function_token_id},
+                {"parameterListToken", &decl->parameter_list_token_id}
+            };
+            for (size_t i = 0; i < sizeof(token_fields) / sizeof(token_fields[0]); i++) {
+                json_object *tok = nullptr;
+                if (json_object_object_get_ex(decl_obj, token_fields[i].key, &tok) && json_object_is_type(tok, json_type_string)) {
+                    *token_fields[i].value = json_get_token_id_by_name(json_object_get_string(tok), (*definition)->tokens, tokens_cnt);
+                }
+            }
+            (*definition)->declaration_disambiguation = decl;
+        }
+    }
+
     json_object *prec_arr = nullptr;
     if (json_object_object_get_ex(root_obj, "operator_precedence", &prec_arr) && json_object_is_type(prec_arr, json_type_array)) {
         int rule_count = json_object_array_length(prec_arr);

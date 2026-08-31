@@ -211,6 +211,25 @@ def main(args):
         text += "    .cast_token_id = " + cast_tok_id + os.linesep
         text += "};" + os.linesep + os.linesep
 
+    if "declarationDisambiguation" in root and isinstance(root["declarationDisambiguation"], dict):
+        decl = root["declarationDisambiguation"]
+        for key, list_name in [("returnTypeTokens", "return_type_tokens"), ("declaratorTokens", "declarator_tokens")]:
+            if key in decl:
+                text += "static const int " + name_lowercase + "_declaration_" + list_name + "[] = {"
+                for token_name in decl[key]:
+                    text += "TextParser_" + name_lowercase + "_" + token_name + ", "
+                text += "TextParser_END};" + os.linesep
+        def decl_token_id(key):
+            return ("TextParser_" + name_lowercase + "_" + decl[key]) if key in decl else "-1"
+        text += "static const textparser_declaration_disambiguation " + name_lowercase + "_declaration_disambiguation = {" + os.linesep
+        text += "    .return_type_tokens = " + (name_lowercase + "_declaration_return_type_tokens" if "returnTypeTokens" in decl else "NULL") + "," + os.linesep
+        text += "    .declarator_tokens = " + (name_lowercase + "_declaration_declarator_tokens" if "declaratorTokens" in decl else "NULL") + "," + os.linesep
+        text += "    .identifier_token_id = " + decl_token_id("identifierToken") + "," + os.linesep
+        text += "    .type_name_token_id = " + decl_token_id("typeNameToken") + "," + os.linesep
+        text += "    .function_token_id = " + decl_token_id("functionToken") + "," + os.linesep
+        text += "    .parameter_list_token_id = " + decl_token_id("parameterListToken") + os.linesep
+        text += "};" + os.linesep + os.linesep
+
     text += "static const textparser_language_definition " + name_lowercase + "_definition = {" + os.linesep
 
     if "name" in root:
@@ -314,6 +333,11 @@ def main(args):
         text += "    .cast_disambiguation = (textparser_cast_disambiguation *)&" + name_lowercase + "_cast_disambiguation," + os.linesep
     else:
         text += "    .cast_disambiguation = NULL," + os.linesep
+
+    if "declarationDisambiguation" in root and isinstance(root["declarationDisambiguation"], dict):
+        text += "    .declaration_disambiguation = (textparser_declaration_disambiguation *)&" + name_lowercase + "_declaration_disambiguation," + os.linesep
+    else:
+        text += "    .declaration_disambiguation = NULL," + os.linesep
 
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep

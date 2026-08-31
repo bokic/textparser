@@ -2082,6 +2082,12 @@ void textparser_free_language_definition(textparser_language_definition *definit
         free(definition->cast_disambiguation);
     }
 
+    if (definition->declaration_disambiguation) {
+        if (definition->declaration_disambiguation->return_type_tokens) free((void *)definition->declaration_disambiguation->return_type_tokens);
+        if (definition->declaration_disambiguation->declarator_tokens) free((void *)definition->declaration_disambiguation->declarator_tokens);
+        free(definition->declaration_disambiguation);
+    }
+
     if (definition->override_start_tokens) {
         for (int r = 0; definition->override_start_tokens[r].file_extensions != nullptr ||
                         definition->override_start_tokens[r].regex != nullptr ||
@@ -3445,6 +3451,51 @@ static void textparser_disambiguate_casts(textparser_token_item **root, const te
     }
 }
 
+static textparser_token_item *previous_significant_token(textparser_token_item *token)
+{
+    if (token != nullptr) token = token->prev;
+    while (token != nullptr && is_trivia_token_id(token->token_id)) token = token->prev;
+    return token;
+}
+
+static textparser_token_item *next_significant_token(textparser_token_item *token)
+{
+    if (token != nullptr) token = token->next;
+    while (token != nullptr && is_trivia_token_id(token->token_id)) token = token->next;
+    return token;
+}
+
+static void textparser_disambiguate_declarations(textparser_token_item **root, const textparser_language_definition *language)
+{
+    if (root == nullptr || *root == nullptr || language == nullptr || language->declaration_disambiguation == nullptr) return;
+    const textparser_declaration_disambiguation *decl = language->declaration_disambiguation;
+    if (decl->identifier_token_id < 0 || decl->type_name_token_id < 0 ||
+        decl->function_token_id < 0 || decl->parameter_list_token_id < 0) return;
+
+    textparser_token_item *parameter_list = (*root)->parent;
+    if (parameter_list == nullptr || parameter_list->token_id != decl->parameter_list_token_id) return;
+
+    textparser_token_item *function = previous_significant_token(parameter_list);
+    if (function == nullptr || function->token_id != decl->function_token_id) return;
+
+    textparser_token_item *return_type = previous_significant_token(function);
+    if (return_type == nullptr || !textparser_token_in_id_list(decl->return_type_tokens, return_type->token_id)) return;
+
+    for (textparser_token_item *candidate = *root; candidate != nullptr; candidate = candidate->next) {
+        if (candidate->token_id != decl->identifier_token_id) continue;
+
+        textparser_token_item *declarator = next_significant_token(candidate);
+        while (declarator != nullptr && textparser_token_in_id_list(decl->declarator_tokens, declarator->token_id)) {
+            declarator = next_significant_token(declarator);
+        }
+        if (declarator == nullptr || declarator->token_id != decl->identifier_token_id) continue;
+
+        candidate->token_id = decl->type_name_token_id;
+        candidate->text_color = language->tokens[decl->type_name_token_id].text_color;
+        candidate = declarator;
+    }
+}
+
 static void textparser_disambiguate_templates(textparser_token_item **root, const textparser_language_definition *language)
 {
     if (root == nullptr || *root == nullptr || language == nullptr || language->template_disambiguation == nullptr) return;
@@ -3566,6 +3617,11 @@ void textparser_post_process(textparser_token_item **root, const textparser_lang
     /* Apply Type Cast disambiguation if configured */
     if (language->cast_disambiguation != nullptr) {
         textparser_disambiguate_casts(root, language);
+    }
+
+    /* Reclassify declaration-position identifiers in function parameter lists. */
+    if (language->declaration_disambiguation != nullptr) {
+        textparser_disambiguate_declarations(root, language);
     }
 
     /* Apply Template / Generics disambiguation if configured */
@@ -5400,5 +5456,4 @@ EXPORT_TEXTPARSER int textparser_recover_until_token(
     *out_new_offset = total_units;
     return -1; // Reached EOF without matching sync token
 }
-
 

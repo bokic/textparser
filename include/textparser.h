@@ -286,6 +286,15 @@ typedef struct {
 } textparser_cast_disambiguation;
 
 typedef struct {
+    const int *return_type_tokens;
+    const int *declarator_tokens;
+    int identifier_token_id;
+    int type_name_token_id;
+    int function_token_id;
+    int parameter_list_token_id;
+} textparser_declaration_disambiguation;
+
+typedef struct {
     const char *name;
     double version;
     const char *empty_segment_language;
@@ -301,6 +310,7 @@ typedef struct {
     textparser_regex_disambiguation *regex_disambiguation;
     textparser_template_disambiguation *template_disambiguation;
     textparser_cast_disambiguation *cast_disambiguation;
+    textparser_declaration_disambiguation *declaration_disambiguation;
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;
@@ -1232,4 +1242,3 @@ EXPORT_TEXTPARSER int textparser_recover_until_token(
     size_t current_offset,
     size_t *out_new_offset
 );
-

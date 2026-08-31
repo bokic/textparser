@@ -266,6 +266,41 @@ TEST(parse_C, type_cast_vs_call_disambiguation) {
     }
 }
 
+TEST(parse_C, declaration_disambiguates_parameter_type_identifiers) {
+    auto tokens = TextParser(R"(
+void adv_regex_free(adv_regex_context *ctx, void **regex, enum textparser_encoding encoding);
+result_type transform(input_context value, const options_context **options, int count);
+void caller(void) {
+    consume(left * right);
+}
+)", &c_definition);
+    tokens.post_process();
+
+    std::set<std::string> type_names;
+    std::set<std::string> variables;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "TypeName") == 0) {
+            type_names.insert(item.value);
+        } else if (item.type && strcmp(item.type, "Variable") == 0) {
+            variables.insert(item.value);
+        }
+        for (size_t i = 0; i < item.children; ++i) scan(item[i]);
+    };
+    for (size_t i = 0; i < tokens.count; ++i) scan(tokens[i]);
+
+    EXPECT_TRUE(type_names.contains("adv_regex_context"));
+    EXPECT_TRUE(type_names.contains("input_context"));
+    EXPECT_TRUE(type_names.contains("options_context"));
+    EXPECT_TRUE(variables.contains("ctx"));
+    EXPECT_TRUE(variables.contains("regex"));
+    EXPECT_TRUE(variables.contains("encoding"));
+    EXPECT_TRUE(variables.contains("value"));
+    EXPECT_TRUE(variables.contains("options"));
+    EXPECT_TRUE(variables.contains("count"));
+    EXPECT_FALSE(type_names.contains("left"));
+    EXPECT_FALSE(type_names.contains("right"));
+}
+
 TEST(parse_C, token_colors_distinct) {
     // Verify that key token types have distinct and modern colors defined
     auto find_token = [](const char *name) -> const textparser_token * {
@@ -573,4 +608,3 @@ size_t sz = sizeof(int);
     EXPECT_TRUE(variables.contains("i"));
     EXPECT_TRUE(variables.contains("sz"));
 }
-
