@@ -225,40 +225,17 @@ int main() {
 }
 ```
 
-## Language Definition Example
+## Language Definition Schema & Migration
 
-TextParser uses a JSON-based format to define language grammars. This allows defining complex syntax rules using regular expressions and hierarchical token structures.
+TextParser uses a JSON-based declarative schema to define language grammars, separating lexical tokens from grammar productions and error recovery policies.
 
-Here is an example of what a JSON definition looks like (based on `definitions/json_definition.json`):
-
-```json
-{
-  "name": "json",
-  "version": 1.0,
-  "startTokens": ["Object", "Array"],
-  "tokens": {
-    "Object": {
-      "type": "StartStop",
-      "startRegex": "{",
-      "endRegex": "}",
-      "textColor": "0xffd700",
-      "nestedTokens": ["Key", "String", "Number", "ValueSeparator"]
-    },
-    "String": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "textColor": "0xce9178",
-      "nestedTokens": ["StringEscape"]
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "\\d+(?:\\.\\d+)?",
-      "textColor": "0xb5cea8"
-    }
-  }
-}
-```
+- **Unified Schema Specification**: See [`schema/textparser-schema.json`](file:///home/boris/projects/textparser/schema/textparser-schema.json) for the full JSON schema definition.
+- **Migration Tool**: Migrate legacy definition files to the unified schema using [`scripts/migrate_definitions.py`](file:///home/boris/projects/textparser/scripts/migrate_definitions.py):
+  ```bash
+  python3 scripts/migrate_definitions.py definitions/your_definition.json
+  # or batch migrate all definitions:
+  python3 scripts/migrate_definitions.py --all definitions/
+  ```
 
 ## Generating Definition Headers
 
