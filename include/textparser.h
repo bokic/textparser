@@ -147,6 +147,18 @@ typedef struct {
     size_t dirty_end;
 } textparser_dirty_range;
 
+/** Read-only view of the shared transactional parser state. */
+typedef struct {
+    size_t source_offset;
+    size_t token_index;
+    size_t mode_depth;
+    size_t context_depth;
+    size_t diagnostic_count;
+    size_t pending_event_count;
+    unsigned speculation_depth;
+    unsigned recovery_depth;
+} textparser_parser_state_view;
+
 typedef struct {
     size_t start_pos;
     size_t length;
@@ -1124,6 +1136,18 @@ EXPORT_TEXTPARSER bool textparser_context_is(
 );
 
 /**
+ * Read the common transactional parser state used by grammar operations.
+ *
+ * @param handle The parser handle.
+ * @param out_state Receives a value snapshot of parser cursors and depths.
+ * @return 0 on success, non-zero for invalid arguments.
+ */
+EXPORT_TEXTPARSER int textparser_get_parser_state(
+    textparser_t handle,
+    textparser_parser_state_view *out_state
+);
+
+/**
  * Begin a speculative parse branch with prioritized commit points.
  *
  * @param handle The parser handle.
@@ -1146,7 +1170,9 @@ EXPORT_TEXTPARSER void textparser_speculate_commit(
 );
 
 /**
- * Roll back a failed speculative parse branch (restores tokens, mode stack, context, and arena allocations).
+ * Roll back a failed speculative parse branch. This restores parser cursors,
+ * all modes and contexts, the lexical goal, diagnostics, pending events,
+ * nesting depths, node IDs, and arena allocations.
  *
  * @param handle The parser handle.
  * @param checkpoint Checkpoint pointer from textparser_speculate_begin.

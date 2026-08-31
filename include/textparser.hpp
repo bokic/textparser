@@ -162,6 +162,10 @@ public:
         return textparser_get_lexer_trivia(m_handle, out_count);
     }
 
+    int parser_state(textparser_parser_state_view *out_state) const {
+        return textparser_get_parser_state(m_handle, out_state);
+    }
+
     const char *get_parse_error() const {
         return textparser_parse_error(m_handle);
     }
