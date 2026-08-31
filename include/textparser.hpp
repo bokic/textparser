@@ -154,6 +154,14 @@ public:
         return textparser_export_tokens_lines(m_handle, start_line, end_line, buffer, max_tokens, out_count);
     }
 
+    const textparser_lex_token *lexer_tokens(size_t *out_count) const {
+        return textparser_get_lexer_tokens(m_handle, out_count);
+    }
+
+    const textparser_lex_trivia *lexer_trivia(size_t *out_count) const {
+        return textparser_get_lexer_trivia(m_handle, out_count);
+    }
+
     const char *get_parse_error() const {
         return textparser_parse_error(m_handle);
     }

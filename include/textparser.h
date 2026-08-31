@@ -160,6 +160,39 @@ typedef struct {
     uint32_t text_flags;
 } textparser_token_range;
 
+/* Immutable lexer stream flags. */
+#define TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR (1u << 0)
+
+/**
+ * A syntax token in the immutable lexer snapshot produced by a successful
+ * parse. Offsets are expressed in the parser's encoding units and use a
+ * half-open [start, end) range. Leading trivia indexes the companion trivia
+ * stream. Its flags aggregate properties of that leading trivia. The
+ * structure and decoded_value remain owned by the parser handle.
+ */
+typedef struct {
+    int kind;
+    size_t start;
+    size_t end;
+    size_t leading_trivia_start;
+    size_t leading_trivia_count;
+    int mode;
+    int lexical_goal;
+    uint32_t flags;
+    const char *decoded_value;
+} textparser_lex_token;
+
+/**
+ * A trivia item in the immutable lexer snapshot. Trivia currently comprises
+ * whitespace leaves and nodes explicitly marked TEXTPARSER_NODE_TRIVIA.
+ */
+typedef struct {
+    int kind;
+    size_t start;
+    size_t end;
+    uint32_t flags;
+} textparser_lex_trivia;
+
 typedef struct textparser_token_item {
     struct textparser_token_item *prev;
     struct textparser_token_item *next;
@@ -757,6 +790,33 @@ EXPORT_TEXTPARSER int textparser_export_tokens_range(const textparser_t handle, 
  * @return 0 on success, non-zero on failure.
  */
 EXPORT_TEXTPARSER int textparser_export_tokens_lines(const textparser_t handle, size_t start_line, size_t end_line, textparser_token_range *buffer, size_t max_tokens, size_t *out_count);
+
+/**
+ * Get the immutable syntax-token stream for the latest successful parse.
+ * The returned array must not be modified or freed and is invalidated by the
+ * next parse, text update, or parser close.
+ *
+ * @param handle The parser handle.
+ * @param out_count Receives the number of entries in the returned array.
+ * @return Read-only token array, or NULL when empty or arguments are invalid.
+ */
+EXPORT_TEXTPARSER const textparser_lex_token *textparser_get_lexer_tokens(
+    const textparser_t handle,
+    size_t *out_count
+);
+
+/**
+ * Get the immutable trivia stream for the latest successful parse.
+ * The returned array has the same lifetime as textparser_get_lexer_tokens().
+ *
+ * @param handle The parser handle.
+ * @param out_count Receives the number of entries in the returned array.
+ * @return Read-only trivia array, or NULL when empty or arguments are invalid.
+ */
+EXPORT_TEXTPARSER const textparser_lex_trivia *textparser_get_lexer_trivia(
+    const textparser_t handle,
+    size_t *out_count
+);
 
 /**
  * Register a named semantic handler with the parser.
