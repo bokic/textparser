@@ -242,6 +242,29 @@ textparser_register_decoder(handle, "ecmascript.identifier", my_id_decoder, NULL
 textparser_register_validator(handle, "ecmascript.numericLiteral", my_num_validator, NULL);
 ```
 
+**Scoped Contexts, Predicates & Speculative Parsing:**
+
+```c
+#include <textparser.h>
+
+// Scoped Context flags (AllowAwait, InType, etc.)
+textparser_context_set(handle, "AllowAwait", 1);
+bool allow_await = textparser_context_is(handle, "AllowAwait");
+
+// Semantic predicates
+textparser_register_predicate(handle, "ts.isTypeArg", my_predicate_fn, NULL);
+bool is_type = textparser_eval_predicate(handle, "ts.isTypeArg");
+
+// Speculative parsing & branch rollback
+void *checkpoint = NULL;
+textparser_speculate_begin(handle, &checkpoint);
+
+// If speculative branch fails:
+textparser_speculate_rollback(handle, checkpoint);
+// Or if speculative branch succeeds:
+// textparser_speculate_commit(handle, checkpoint);
+```
+
 **C++ RAII Wrapper Example:**
 
 ```cpp
