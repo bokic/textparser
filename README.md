@@ -224,6 +224,24 @@ static textparser_action my_commit_handler(textparser_t parser, const textparser
 textparser_register_handler(handle, "my_lang.onCommit", my_commit_handler, NULL);
 ```
 
+**Lexer Modes, Goals & Registered Decoders:**
+
+```c
+#include <textparser.h>
+
+// Transient mode transitions
+textparser_push_mode(handle, "TemplateText");
+const char *mode = textparser_get_current_mode(handle); // "TemplateText"
+textparser_pop_mode(handle);
+
+// Contextual lexical goals
+textparser_set_lexical_goal(handle, "ExpressionStart");
+
+// Custom decoders & validators
+textparser_register_decoder(handle, "ecmascript.identifier", my_id_decoder, NULL);
+textparser_register_validator(handle, "ecmascript.numericLiteral", my_num_validator, NULL);
+```
+
 **C++ RAII Wrapper Example:**
 
 ```cpp

@@ -67,6 +67,22 @@ typedef struct textparser_handler_entry {
     struct textparser_handler_entry *next;
 } textparser_handler_entry;
 
+typedef struct textparser_decoder_entry {
+    char *name;
+    textparser_decoder_fn decoder;
+    void *user_data;
+    struct textparser_decoder_entry *next;
+} textparser_decoder_entry;
+
+typedef struct textparser_validator_entry {
+    char *name;
+    textparser_validator_fn validator;
+    void *user_data;
+    struct textparser_validator_entry *next;
+} textparser_validator_entry;
+
+#define TEXTPARSER_MAX_MODE_STACK 64
+
 struct textparser_handle {
     const textparser_language_definition *language;
     adv_regex_context *regex_ctx;
@@ -102,6 +118,15 @@ struct textparser_handle {
     /* Semantic action handlers & node ID generation */
     uint64_t next_node_id;
     textparser_handler_entry *handlers;
+
+    /* Phase 3: Decoders & Validators */
+    textparser_decoder_entry *decoders;
+    textparser_validator_entry *validators;
+
+    /* Phase 3: Lexer Mode Stack & Goals */
+    char *mode_stack[TEXTPARSER_MAX_MODE_STACK];
+    size_t mode_stack_depth;
+    char *lexical_goal;
 };
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -319,6 +344,8 @@ typedef struct {
     size_t chunk_used;
     size_t token_count;
     uint64_t next_node_id;
+    size_t mode_stack_depth;
+    char *saved_lexical_goal;
 } textparser_checkpoint_t;
 
 static inline textparser_checkpoint_t textparser_checkpoint_save(const struct textparser_handle *handle)
@@ -328,6 +355,8 @@ static inline textparser_checkpoint_t textparser_checkpoint_save(const struct te
     cp.chunk_used = handle->current_chunk_used;
     cp.token_count = handle->token_count;
     cp.next_node_id = handle->next_node_id;
+    cp.mode_stack_depth = handle->mode_stack_depth;
+    cp.saved_lexical_goal = handle->lexical_goal ? strdup(handle->lexical_goal) : nullptr;
     return cp;
 }
 
@@ -342,6 +371,23 @@ static inline void textparser_checkpoint_restore(struct textparser_handle *handl
     handle->current_chunk_used = cp->chunk_used;
     handle->token_count = cp->token_count;
     handle->next_node_id = cp->next_node_id;
+
+    /* Rewind mode stack if necessary */
+    while (handle->mode_stack_depth > cp->mode_stack_depth) {
+        handle->mode_stack_depth--;
+        if (handle->mode_stack[handle->mode_stack_depth]) {
+            free(handle->mode_stack[handle->mode_stack_depth]);
+            handle->mode_stack[handle->mode_stack_depth] = nullptr;
+        }
+    }
+
+    if (handle->lexical_goal) {
+        free(handle->lexical_goal);
+        handle->lexical_goal = nullptr;
+    }
+    if (cp->saved_lexical_goal) {
+        handle->lexical_goal = cp->saved_lexical_goal;
+    }
 }
 
 static inline bool textparser_match_start_token(
@@ -2458,6 +2504,40 @@ void textparser_close(textparser_t handle)
         entry = next_entry;
     }
     handle->handlers = nullptr;
+
+    /* Free registered decoders */
+    textparser_decoder_entry *dec = handle->decoders;
+    while (dec != nullptr) {
+        textparser_decoder_entry *next_dec = dec->next;
+        if (dec->name) free(dec->name);
+        free(dec);
+        dec = next_dec;
+    }
+    handle->decoders = nullptr;
+
+    /* Free registered validators */
+    textparser_validator_entry *val = handle->validators;
+    while (val != nullptr) {
+        textparser_validator_entry *next_val = val->next;
+        if (val->name) free(val->name);
+        free(val);
+        val = next_val;
+    }
+    handle->validators = nullptr;
+
+    /* Free mode stack strings */
+    for (size_t m = 0; m < handle->mode_stack_depth; m++) {
+        if (handle->mode_stack[m]) {
+            free(handle->mode_stack[m]);
+            handle->mode_stack[m] = nullptr;
+        }
+    }
+    handle->mode_stack_depth = 0;
+
+    if (handle->lexical_goal) {
+        free(handle->lexical_goal);
+        handle->lexical_goal = nullptr;
+    }
 
     free(handle);
 }
@@ -4702,6 +4782,208 @@ EXPORT_TEXTPARSER void textparser_node_set_decoded_value(textparser_node *node, 
     if (node) {
         node->decoded_value = value;
     }
+}
+
+/* -------------------------------------------------------------------------
+ * Phase 3: Lexer Modes, Goals, Decoders & Validators Implementations
+ * ------------------------------------------------------------------------- */
+
+EXPORT_TEXTPARSER int textparser_register_decoder(
+    textparser_t handle,
+    const char *name,
+    textparser_decoder_fn decoder,
+    void *user_data)
+{
+    if (handle == nullptr || name == nullptr || decoder == nullptr) {
+        return -1;
+    }
+
+    textparser_decoder_entry *entry = handle->decoders;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, name) == 0) {
+            entry->decoder = decoder;
+            entry->user_data = user_data;
+            return 0;
+        }
+        entry = entry->next;
+    }
+
+    entry = malloc(sizeof(textparser_decoder_entry));
+    if (entry == nullptr) {
+        return -1;
+    }
+    entry->name = strdup(name);
+    if (entry->name == nullptr) {
+        free(entry);
+        return -1;
+    }
+    entry->decoder = decoder;
+    entry->user_data = user_data;
+    entry->next = handle->decoders;
+    handle->decoders = entry;
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_register_validator(
+    textparser_t handle,
+    const char *name,
+    textparser_validator_fn validator,
+    void *user_data)
+{
+    if (handle == nullptr || name == nullptr || validator == nullptr) {
+        return -1;
+    }
+
+    textparser_validator_entry *entry = handle->validators;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, name) == 0) {
+            entry->validator = validator;
+            entry->user_data = user_data;
+            return 0;
+        }
+        entry = entry->next;
+    }
+
+    entry = malloc(sizeof(textparser_validator_entry));
+    if (entry == nullptr) {
+        return -1;
+    }
+    entry->name = strdup(name);
+    if (entry->name == nullptr) {
+        free(entry);
+        return -1;
+    }
+    entry->validator = validator;
+    entry->user_data = user_data;
+    entry->next = handle->validators;
+    handle->validators = entry;
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER char *textparser_decode_token(
+    textparser_t handle,
+    const char *decoder_name,
+    const char *raw_text,
+    size_t length)
+{
+    if (handle == nullptr || decoder_name == nullptr || raw_text == nullptr) {
+        return nullptr;
+    }
+
+    textparser_decoder_entry *entry = handle->decoders;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, decoder_name) == 0) {
+            return entry->decoder(handle, raw_text, length, entry->user_data);
+        }
+        entry = entry->next;
+    }
+
+    return nullptr;
+}
+
+EXPORT_TEXTPARSER bool textparser_validate_token(
+    textparser_t handle,
+    const char *validator_name,
+    const char *raw_text,
+    size_t length,
+    const char **out_error)
+{
+    if (handle == nullptr || validator_name == nullptr || raw_text == nullptr) {
+        if (out_error) *out_error = "Invalid arguments to validator";
+        return false;
+    }
+
+    textparser_validator_entry *entry = handle->validators;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, validator_name) == 0) {
+            return entry->validator(handle, raw_text, length, out_error, entry->user_data);
+        }
+        entry = entry->next;
+    }
+
+    return true; // Unknown validator defaults to accept
+}
+
+EXPORT_TEXTPARSER int textparser_push_mode(textparser_t handle, const char *mode_name)
+{
+    if (handle == nullptr || mode_name == nullptr) {
+        return -1;
+    }
+    if (handle->mode_stack_depth >= TEXTPARSER_MAX_MODE_STACK) {
+        return -1;
+    }
+
+    char *mode_copy = strdup(mode_name);
+    if (mode_copy == nullptr) {
+        return -1;
+    }
+
+    handle->mode_stack[handle->mode_stack_depth++] = mode_copy;
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_pop_mode(textparser_t handle)
+{
+    if (handle == nullptr || handle->mode_stack_depth == 0) {
+        return -1;
+    }
+
+    handle->mode_stack_depth--;
+    if (handle->mode_stack[handle->mode_stack_depth]) {
+        free(handle->mode_stack[handle->mode_stack_depth]);
+        handle->mode_stack[handle->mode_stack_depth] = nullptr;
+    }
+    return 0;
+}
+
+EXPORT_TEXTPARSER const char *textparser_get_current_mode(textparser_t handle)
+{
+    if (handle == nullptr) {
+        return "default";
+    }
+    if (handle->mode_stack_depth > 0 && handle->mode_stack[handle->mode_stack_depth - 1] != nullptr) {
+        return handle->mode_stack[handle->mode_stack_depth - 1];
+    }
+    return "default";
+}
+
+EXPORT_TEXTPARSER void textparser_set_lexical_goal(textparser_t handle, const char *goal_name)
+{
+    if (handle == nullptr) return;
+
+    if (handle->lexical_goal) {
+        free(handle->lexical_goal);
+        handle->lexical_goal = nullptr;
+    }
+    if (goal_name) {
+        handle->lexical_goal = strdup(goal_name);
+    }
+}
+
+EXPORT_TEXTPARSER const char *textparser_get_lexical_goal(textparser_t handle)
+{
+    return handle ? handle->lexical_goal : nullptr;
+}
+
+EXPORT_TEXTPARSER bool textparser_has_line_terminator_between(textparser_t handle, size_t start_pos, size_t end_pos)
+{
+    if (handle == nullptr || start_pos >= end_pos) {
+        return false;
+    }
+
+    size_t total = textparser_get_total_units(handle);
+    size_t limit = (end_pos < total) ? end_pos : total;
+
+    for (size_t p = start_pos; p < limit; p++) {
+        uint32_t ch = textparser_get_unit_at(handle, p);
+        if (ch == '\n' || ch == '\r' || ch == 0x2028 || ch == 0x2029) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 
