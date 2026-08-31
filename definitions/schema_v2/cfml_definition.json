@@ -1,0 +1,1192 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "cfml",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": [
+    "cfm",
+    "cfc"
+  ],
+  "defaultTextEncoding": "latin1",
+  "supportedBom": "UTF-8,UTF-16-LE,UTF-16-BE",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "ScriptStartTag_Start": {
+        "regex": "<cfscript(?=[\\>\\s])",
+        "textColor": "0xabd90c"
+      },
+      "ScriptStartTag_End": {
+        "regex": "\\/?>",
+        "textColor": "0xabd90c"
+      },
+      "ScriptEndTag": {
+        "regex": "<\\/cfscript>",
+        "textColor": "0xabd90c"
+      },
+      "OutputStartTag_Start": {
+        "regex": "<cfoutput(?=[\\>\\s])",
+        "textColor": "0xabd90c"
+      },
+      "OutputStartTag_End": {
+        "regex": "\\/?>",
+        "textColor": "0xabd90c"
+      },
+      "OutputEndTag": {
+        "regex": "<\\/cfoutput>",
+        "textColor": "0xabd90c"
+      },
+      "QueryStartTag_Start": {
+        "regex": "<cfquery(?=[\\>\\s])",
+        "textColor": "0xabd90c"
+      },
+      "QueryStartTag_End": {
+        "regex": "\\/?>",
+        "textColor": "0xabd90c"
+      },
+      "QueryEndTag": {
+        "regex": "<\\/cfquery>",
+        "textColor": "0xabd90c"
+      },
+      "LoopStartTag_Start": {
+        "regex": "<cfloop(?=[\\>\\s])",
+        "textColor": "0xabd90c"
+      },
+      "LoopStartTag_End": {
+        "regex": "\\/?>",
+        "textColor": "0xabd90c"
+      },
+      "LoopEndTag": {
+        "regex": "<\\/cfloop>",
+        "textColor": "0xabd90c"
+      },
+      "StartTag_Start": {
+        "regex": "<(?:cf[a-z0-9_]*|[a-zA-Z0-9_]+:[a-zA-Z0-9_]+)",
+        "textColor": "0xabd90c"
+      },
+      "StartTag_End": {
+        "regex": "\\/?>",
+        "textColor": "0xabd90c"
+      },
+      "EndTag_Start": {
+        "regex": "<\\/(?:cf(?!output)(?!script)(?!query)(?!loop)[a-z0-9_]*|[a-zA-Z0-9_]+:[a-zA-Z0-9_]+)",
+        "textColor": "0xabd90c"
+      },
+      "EndTag_End": {
+        "regex": "\\/?>",
+        "textColor": "0xabd90c"
+      },
+      "Comment_Start": {
+        "regex": "<!---"
+      },
+      "Comment_End": {
+        "regex": "--->"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "SingleChar": {
+        "regex": "''",
+        "textColor": "0xd7ba7d"
+      },
+      "DoubleChar": {
+        "regex": "\"\"",
+        "textColor": "0xd7ba7d"
+      },
+      "SharpChar": {
+        "regex": "##",
+        "textColor": "0xd7ba7d"
+      },
+      "SharpExpression_Start": {
+        "regex": "#",
+        "textColor": "0x569cd6"
+      },
+      "SharpExpression_End": {
+        "regex": "#",
+        "textColor": "0x569cd6"
+      },
+      "ScriptBlockComment_Start": {
+        "regex": "\\/\\*"
+      },
+      "ScriptBlockComment_End": {
+        "regex": "\\*\\/"
+      },
+      "ExpressionEnd": {
+        "regex": ";"
+      },
+      "Number": {
+        "regex": "([0-9]+\\.?[0-9]*(?:[eE][-+]?[0-9]+)?|[0-9]*\\.[0-9]+(?:[eE][-+]?[0-9]+)?)",
+        "textColor": "0xb5cea8"
+      },
+      "Boolean": {
+        "regex": "true\\b|false\\b|yes\\b|no\\b"
+      },
+      "ObjectMember": {
+        "regex": "\\?\\.|\\."
+      },
+      "Function": {
+        "regex": "([a-z_]+[a-z0-9_]*)[\\s]*\\(",
+        "textColor": "0xc5f566"
+      },
+      "Separator": {
+        "regex": ","
+      },
+      "SpreadOperator": {
+        "regex": "\\.\\.\\.",
+        "textColor": "0x35b2dd"
+      },
+      "Variable": {
+        "regex": "[a-z_\\$]+[a-z0-9_\\$]*",
+        "textColor": "0x9cdcfe"
+      },
+      "LambdaOperator": {
+        "regex": "=>",
+        "textColor": "0x35b2dd"
+      },
+      "AssignOperator": {
+        "regex": "\\+=|\\-=|\\*=|\\/=|%=|&=|=",
+        "textColor": "0x35b2dd"
+      },
+      "TernaryOperator": {
+        "regex": "\\?\\?|\\?:|\\?|\\:",
+        "textColor": "0x35b2dd"
+      },
+      "LogicalImpOperator": {
+        "regex": "imp\\b",
+        "textColor": "0x35b2dd"
+      },
+      "LogicalEqvOperator": {
+        "regex": "eqv\\b",
+        "textColor": "0x35b2dd"
+      },
+      "LogicalXorOperator": {
+        "regex": "xor\\b",
+        "textColor": "0x35b2dd"
+      },
+      "LogicalOrOperator": {
+        "regex": "\\|\\||or\\b",
+        "textColor": "0x35b2dd"
+      },
+      "LogicalAndOperator": {
+        "regex": "\\&\\&|and\\b",
+        "textColor": "0x35b2dd"
+      },
+      "LogicalNotOperator": {
+        "regex": "not\\b|!",
+        "textColor": "0x35b2dd"
+      },
+      "CompareOperator": {
+        "regex": "greater\\s+than\\s+or\\s+equal\\s+to\\b|less\\s+than\\s+or\\s+equal\\s+to\\b|does\\s+not\\s+contain\\b|is\\s+not\\b|contains\\b|less\\s+than\\b|greater\\s+than\\b|not\\s+equal\\b|equal\\b|neq\\b|lte\\b|gte\\b|eq\\b|===|!==|==|>=|<=|!=|ge\\b|lt\\b|gt\\b|le\\b|\\bis\\b|>|<",
+        "textColor": "0x35b2dd"
+      },
+      "ConcatOperator": {
+        "regex": "\\&",
+        "textColor": "0x35b2dd"
+      },
+      "IncDecOperator": {
+        "regex": "\\+\\+|\\-\\-",
+        "textColor": "0x35b2dd"
+      },
+      "AddOperator": {
+        "regex": "\\+|-",
+        "textColor": "0x35b2dd"
+      },
+      "MulOperator": {
+        "regex": "\\*|\\/|\\\\|mod\\b|\\%",
+        "textColor": "0x35b2dd"
+      },
+      "PowerOperator": {
+        "regex": "\\^",
+        "textColor": "0x35b2dd"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      },
+      "Keyword": {
+        "regex": "var\\b|function\\b|this\\b|super\\b|null\\b|try\\b|catch\\b|finally\\b|if\\b|then\\b|else\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|while\\b|do\\b|for\\b|in\\b|return\\b|throw\\b|rethrow\\b|retry\\b|component\\b|interface\\b|property\\b|pageencoding\\b|import\\b|include\\b|param\\b|lock\\b|transaction\\b|thread\\b|public\\b|private\\b|remote\\b|package\\b|static\\b|final\\b|abstract\\b|required\\b",
+        "textColor": "0xc586c0"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      }
+    },
+    "trivia": {
+      "ScriptLineComment": {
+        "regex": "\\/\\/.*[^\\r\\n]"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "ScriptTagPair": {
+        "astKind": "ScriptTagPair",
+        "sequence": [
+          {
+            "ref": "ScriptStartTag"
+          },
+          {
+            "ref": "ScriptExpression"
+          },
+          {
+            "ref": "ScriptEndTag"
+          }
+        ]
+      },
+      "ScriptStartTag": {
+        "astKind": "ScriptStartTag",
+        "sequence": [
+          {
+            "token": "ScriptStartTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "token": "ScriptStartTag_End"
+          }
+        ]
+      },
+      "ScriptEndTag": {
+        "token": "ScriptEndTag"
+      },
+      "OutputTagPair": {
+        "astKind": "OutputTagPair",
+        "sequence": [
+          {
+            "ref": "OutputStartTag"
+          },
+          {
+            "ref": "OutputExpression"
+          },
+          {
+            "ref": "OutputEndTag"
+          }
+        ]
+      },
+      "OutputStartTag": {
+        "astKind": "OutputStartTag",
+        "sequence": [
+          {
+            "token": "OutputStartTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "token": "OutputStartTag_End"
+          }
+        ]
+      },
+      "OutputEndTag": {
+        "token": "OutputEndTag"
+      },
+      "QueryTagPair": {
+        "astKind": "QueryTagPair",
+        "sequence": [
+          {
+            "ref": "QueryStartTag"
+          },
+          {
+            "ref": "QueryExpression"
+          },
+          {
+            "ref": "QueryEndTag"
+          }
+        ]
+      },
+      "QueryStartTag": {
+        "astKind": "QueryStartTag",
+        "sequence": [
+          {
+            "token": "QueryStartTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "token": "QueryStartTag_End"
+          }
+        ]
+      },
+      "QueryEndTag": {
+        "token": "QueryEndTag"
+      },
+      "LoopTagPair": {
+        "astKind": "LoopTagPair",
+        "sequence": [
+          {
+            "ref": "LoopStartTag"
+          },
+          {
+            "ref": "LoopExpression"
+          },
+          {
+            "ref": "LoopEndTag"
+          }
+        ]
+      },
+      "LoopStartTag": {
+        "astKind": "LoopStartTag",
+        "sequence": [
+          {
+            "token": "LoopStartTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "token": "LoopStartTag_End"
+          }
+        ]
+      },
+      "LoopEndTag": {
+        "token": "LoopEndTag"
+      },
+      "StartTag": {
+        "astKind": "StartTag",
+        "sequence": [
+          {
+            "token": "StartTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "token": "StartTag_End"
+          }
+        ]
+      },
+      "EndTag": {
+        "astKind": "EndTag",
+        "sequence": [
+          {
+            "token": "EndTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "token": "EndTag_End"
+          }
+        ]
+      },
+      "Comment": {
+        "astKind": "Comment",
+        "sequence": [
+          {
+            "token": "Comment_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Comment"
+            }
+          },
+          {
+            "token": "Comment_End"
+          }
+        ]
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "SharpChar"
+                },
+                {
+                  "ref": "SharpExpression"
+                },
+                {
+                  "ref": "SingleChar"
+                }
+              ]
+            }
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "SharpChar"
+                },
+                {
+                  "ref": "SharpExpression"
+                },
+                {
+                  "ref": "DoubleChar"
+                }
+              ]
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "SingleChar": {
+        "token": "SingleChar"
+      },
+      "DoubleChar": {
+        "token": "DoubleChar"
+      },
+      "SharpChar": {
+        "token": "SharpChar"
+      },
+      "SharpExpression": {
+        "astKind": "SharpExpression",
+        "sequence": [
+          {
+            "token": "SharpExpression_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "Expression"
+                },
+                {
+                  "ref": "ExpressionEnd"
+                }
+              ]
+            }
+          },
+          {
+            "token": "SharpExpression_End"
+          }
+        ]
+      },
+      "Expression": {
+        "astKind": "Expression",
+        "repeat": {
+          "choice": [
+            {
+              "ref": "SingleString"
+            },
+            {
+              "ref": "DoubleString"
+            },
+            {
+              "ref": "SharpChar"
+            },
+            {
+              "ref": "SharpExpression"
+            },
+            {
+              "ref": "Separator"
+            },
+            {
+              "ref": "SpreadOperator"
+            },
+            {
+              "ref": "ScriptLineComment"
+            },
+            {
+              "ref": "ScriptBlockComment"
+            },
+            {
+              "ref": "ExpressionEnd"
+            },
+            {
+              "ref": "Number"
+            },
+            {
+              "ref": "Boolean"
+            },
+            {
+              "ref": "Keyword"
+            },
+            {
+              "ref": "Function"
+            },
+            {
+              "ref": "Operator"
+            },
+            {
+              "ref": "ObjectMember"
+            },
+            {
+              "ref": "Variable"
+            },
+            {
+              "ref": "CodeBlock"
+            },
+            {
+              "ref": "Parenthesis"
+            },
+            {
+              "ref": "ArrayIndex"
+            }
+          ]
+        }
+      },
+      "ScriptExpression": {
+        "astKind": "ScriptExpression",
+        "repeat": {
+          "choice": [
+            {
+              "ref": "SingleString"
+            },
+            {
+              "ref": "DoubleString"
+            },
+            {
+              "ref": "SharpChar"
+            },
+            {
+              "ref": "SharpExpression"
+            },
+            {
+              "ref": "Separator"
+            },
+            {
+              "ref": "SpreadOperator"
+            },
+            {
+              "ref": "CodeBlock"
+            },
+            {
+              "ref": "ScriptLineComment"
+            },
+            {
+              "ref": "ScriptBlockComment"
+            },
+            {
+              "ref": "ExpressionEnd"
+            },
+            {
+              "ref": "Number"
+            },
+            {
+              "ref": "Boolean"
+            },
+            {
+              "ref": "Keyword"
+            },
+            {
+              "ref": "Function"
+            },
+            {
+              "ref": "Operator"
+            },
+            {
+              "ref": "ObjectMember"
+            },
+            {
+              "ref": "Variable"
+            },
+            {
+              "ref": "Parenthesis"
+            },
+            {
+              "ref": "ArrayIndex"
+            }
+          ]
+        }
+      },
+      "OutputExpression": {
+        "astKind": "OutputExpression",
+        "repeat": {
+          "choice": [
+            {
+              "ref": "ScriptTagPair"
+            },
+            {
+              "ref": "OutputTagPair"
+            },
+            {
+              "ref": "QueryTagPair"
+            },
+            {
+              "ref": "LoopTagPair"
+            },
+            {
+              "ref": "StartTag"
+            },
+            {
+              "ref": "EndTag"
+            },
+            {
+              "ref": "Comment"
+            },
+            {
+              "ref": "SharpChar"
+            },
+            {
+              "ref": "SharpExpression"
+            }
+          ]
+        }
+      },
+      "QueryExpression": {
+        "astKind": "QueryExpression",
+        "repeat": {
+          "choice": [
+            {
+              "ref": "ScriptTagPair"
+            },
+            {
+              "ref": "OutputTagPair"
+            },
+            {
+              "ref": "QueryTagPair"
+            },
+            {
+              "ref": "LoopTagPair"
+            },
+            {
+              "ref": "StartTag"
+            },
+            {
+              "ref": "EndTag"
+            },
+            {
+              "ref": "Comment"
+            },
+            {
+              "ref": "SharpChar"
+            },
+            {
+              "ref": "SharpExpression"
+            }
+          ]
+        }
+      },
+      "LoopExpression": {
+        "astKind": "LoopExpression",
+        "repeat": {
+          "choice": [
+            {
+              "ref": "ScriptTagPair"
+            },
+            {
+              "ref": "OutputTagPair"
+            },
+            {
+              "ref": "QueryTagPair"
+            },
+            {
+              "ref": "LoopTagPair"
+            },
+            {
+              "ref": "StartTag"
+            },
+            {
+              "ref": "EndTag"
+            },
+            {
+              "ref": "Comment"
+            }
+          ]
+        }
+      },
+      "ScriptBlockComment": {
+        "astKind": "ScriptBlockComment",
+        "sequence": [
+          {
+            "token": "ScriptBlockComment_Start"
+          },
+          {
+            "token": "ScriptBlockComment_End"
+          }
+        ]
+      },
+      "ScriptLineComment": {
+        "token": "ScriptLineComment"
+      },
+      "ExpressionEnd": {
+        "token": "ExpressionEnd"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "ObjectMember": {
+        "token": "ObjectMember"
+      },
+      "Function": {
+        "token": "Function"
+      },
+      "Separator": {
+        "token": "Separator"
+      },
+      "SpreadOperator": {
+        "token": "SpreadOperator"
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "LambdaOperator": {
+        "token": "LambdaOperator"
+      },
+      "AssignOperator": {
+        "token": "AssignOperator"
+      },
+      "TernaryOperator": {
+        "token": "TernaryOperator"
+      },
+      "LogicalImpOperator": {
+        "token": "LogicalImpOperator"
+      },
+      "LogicalEqvOperator": {
+        "token": "LogicalEqvOperator"
+      },
+      "LogicalXorOperator": {
+        "token": "LogicalXorOperator"
+      },
+      "LogicalOrOperator": {
+        "token": "LogicalOrOperator"
+      },
+      "LogicalAndOperator": {
+        "token": "LogicalAndOperator"
+      },
+      "LogicalNotOperator": {
+        "token": "LogicalNotOperator"
+      },
+      "CompareOperator": {
+        "token": "CompareOperator"
+      },
+      "ConcatOperator": {
+        "token": "ConcatOperator"
+      },
+      "IncDecOperator": {
+        "token": "IncDecOperator"
+      },
+      "AddOperator": {
+        "token": "AddOperator"
+      },
+      "MulOperator": {
+        "token": "MulOperator"
+      },
+      "PowerOperator": {
+        "token": "PowerOperator"
+      },
+      "Operator": {
+        "astKind": "Operator",
+        "repeat": {
+          "choice": [
+            {
+              "ref": "LambdaOperator"
+            },
+            {
+              "ref": "CompareOperator"
+            },
+            {
+              "ref": "AssignOperator"
+            },
+            {
+              "ref": "TernaryOperator"
+            },
+            {
+              "ref": "LogicalImpOperator"
+            },
+            {
+              "ref": "LogicalEqvOperator"
+            },
+            {
+              "ref": "LogicalXorOperator"
+            },
+            {
+              "ref": "LogicalOrOperator"
+            },
+            {
+              "ref": "LogicalAndOperator"
+            },
+            {
+              "ref": "LogicalNotOperator"
+            },
+            {
+              "ref": "ConcatOperator"
+            },
+            {
+              "ref": "AddOperator"
+            },
+            {
+              "ref": "IncDecOperator"
+            },
+            {
+              "ref": "MulOperator"
+            },
+            {
+              "ref": "PowerOperator"
+            }
+          ]
+        }
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "ref": "ScriptExpression"
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "ScriptTagPair"
+                },
+                {
+                  "ref": "OutputTagPair"
+                },
+                {
+                  "ref": "QueryTagPair"
+                },
+                {
+                  "ref": "LoopTagPair"
+                },
+                {
+                  "ref": "StartTag"
+                },
+                {
+                  "ref": "EndTag"
+                },
+                {
+                  "ref": "Comment"
+                },
+                {
+                  "ref": "ScriptStartTag"
+                },
+                {
+                  "ref": "ScriptExpression"
+                },
+                {
+                  "ref": "ScriptEndTag"
+                },
+                {
+                  "ref": "Expression"
+                },
+                {
+                  "ref": "OutputStartTag"
+                },
+                {
+                  "ref": "OutputExpression"
+                },
+                {
+                  "ref": "OutputEndTag"
+                },
+                {
+                  "ref": "QueryStartTag"
+                },
+                {
+                  "ref": "QueryExpression"
+                },
+                {
+                  "ref": "QueryEndTag"
+                },
+                {
+                  "ref": "LoopStartTag"
+                },
+                {
+                  "ref": "LoopExpression"
+                },
+                {
+                  "ref": "LoopEndTag"
+                },
+                {
+                  "ref": "SharpChar"
+                },
+                {
+                  "ref": "SharpExpression"
+                },
+                {
+                  "ref": "ExpressionEnd"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Separator"
+                },
+                {
+                  "ref": "SpreadOperator"
+                },
+                {
+                  "ref": "ScriptLineComment"
+                },
+                {
+                  "ref": "ScriptBlockComment"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Function"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "ObjectMember"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "ScriptTagPair"
+                },
+                {
+                  "ref": "OutputTagPair"
+                },
+                {
+                  "ref": "QueryTagPair"
+                },
+                {
+                  "ref": "LoopTagPair"
+                },
+                {
+                  "ref": "StartTag"
+                },
+                {
+                  "ref": "EndTag"
+                },
+                {
+                  "ref": "Comment"
+                },
+                {
+                  "ref": "ScriptStartTag"
+                },
+                {
+                  "ref": "ScriptExpression"
+                },
+                {
+                  "ref": "ScriptEndTag"
+                },
+                {
+                  "ref": "Expression"
+                },
+                {
+                  "ref": "OutputStartTag"
+                },
+                {
+                  "ref": "OutputExpression"
+                },
+                {
+                  "ref": "OutputEndTag"
+                },
+                {
+                  "ref": "QueryStartTag"
+                },
+                {
+                  "ref": "QueryExpression"
+                },
+                {
+                  "ref": "QueryEndTag"
+                },
+                {
+                  "ref": "LoopStartTag"
+                },
+                {
+                  "ref": "LoopExpression"
+                },
+                {
+                  "ref": "LoopEndTag"
+                },
+                {
+                  "ref": "SharpChar"
+                },
+                {
+                  "ref": "SharpExpression"
+                },
+                {
+                  "ref": "ExpressionEnd"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Separator"
+                },
+                {
+                  "ref": "SpreadOperator"
+                },
+                {
+                  "ref": "ScriptLineComment"
+                },
+                {
+                  "ref": "ScriptBlockComment"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Function"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "ObjectMember"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "ScriptTagPair"
+          },
+          {
+            "ref": "OutputTagPair"
+          },
+          {
+            "ref": "QueryTagPair"
+          },
+          {
+            "ref": "LoopTagPair"
+          },
+          {
+            "ref": "StartTag"
+          },
+          {
+            "ref": "EndTag"
+          },
+          {
+            "ref": "Comment"
+          }
+        ]
+      }
+    }
+  }
+}

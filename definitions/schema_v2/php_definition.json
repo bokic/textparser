@@ -1,0 +1,457 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "php",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "php",
+    "php5"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "Tag_Start": {
+        "regex": "<\\?php|<\\?",
+        "textColor": "0x569cd6"
+      },
+      "Tag_End": {
+        "regex": "\\?>",
+        "textColor": "0x569cd6"
+      },
+      "BlockComment_Start": {
+        "regex": "\\/\\*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment_End": {
+        "regex": "\\*\\/",
+        "textColor": "0x6a9955"
+      },
+      "ArrayKeyValue": {
+        "regex": "=>",
+        "textColor": "0xd4d4d4"
+      },
+      "MemberAccess": {
+        "regex": "->",
+        "textColor": "0xd4d4d4"
+      },
+      "Variable": {
+        "regex": "\\$[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0x9cdcfe"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      },
+      "Operator": {
+        "regex": "===|!==|==|!=|\\+=|\\-=|\\*=|\\/=|\\.\\=|%=|\\+\\+|\\-\\-|<=|>=|&&|\\|\\||[=<>!&|^~+\\-*/%\\?:;]",
+        "textColor": "0xd4d4d4"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\\\\\|\\\\\\$|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
+        "textColor": "0xd7ba7d"
+      },
+      "Number": {
+        "regex": "[0-9]+\\.?[0-9]*",
+        "textColor": "0xb5cea8"
+      },
+      "Boolean": {
+        "regex": "true\\b|false\\b",
+        "textColor": "0x569cd6"
+      },
+      "Keyword": {
+        "regex": "echo\\b|print\\b|function\\b|class\\b|public\\b|private\\b|protected\\b|static\\b|if\\b|else\\b|elseif\\b|foreach\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|return\\b|require\\b|require_once\\b|include\\b|include_once\\b|new\\b|use\\b|namespace\\b|try\\b|catch\\b|throw\\b|finally\\b|global\\b|as\\b",
+        "textColor": "0xc586c0"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      }
+    },
+    "trivia": {
+      "LineComment": {
+        "regex": "\\/\\/[^\\r\\n]*|#[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "Tag": {
+        "astKind": "Tag",
+        "sequence": [
+          {
+            "token": "Tag_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "ArrayKeyValue"
+                },
+                {
+                  "ref": "MemberAccess"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Tag_End"
+            }
+          }
+        ]
+      },
+      "LineComment": {
+        "token": "LineComment"
+      },
+      "BlockComment": {
+        "astKind": "BlockComment",
+        "sequence": [
+          {
+            "token": "BlockComment_Start"
+          },
+          {
+            "token": "BlockComment_End"
+          }
+        ]
+      },
+      "ArrayKeyValue": {
+        "token": "ArrayKeyValue"
+      },
+      "MemberAccess": {
+        "token": "MemberAccess"
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "ArrayKeyValue"
+                },
+                {
+                  "ref": "MemberAccess"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "StringEscape"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "Tag"
+                },
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "ArrayKeyValue"
+                },
+                {
+                  "ref": "MemberAccess"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "Tag"
+                },
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "ArrayKeyValue"
+                },
+                {
+                  "ref": "MemberAccess"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "Tag"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          },
+          {
+            "ref": "CodeBlock"
+          }
+        ]
+      }
+    }
+  }
+}

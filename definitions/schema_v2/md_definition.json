@@ -1,0 +1,448 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "md",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "md",
+    "markdown"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "HtmlComment_Start": {
+        "regex": "<!--",
+        "textColor": "0x6a9955"
+      },
+      "HtmlComment_End": {
+        "regex": "-->",
+        "textColor": "0x6a9955"
+      },
+      "FencedCodeBlock_Start": {
+        "regex": "```|~~~",
+        "textColor": "0x9e6a57"
+      },
+      "FencedCodeBlock_End": {
+        "regex": "```|~~~",
+        "textColor": "0x9e6a57"
+      },
+      "Heading": {
+        "regex": "#{1,6}[ \\t]+[^\\r\\n]*",
+        "textColor": "0x569cd6"
+      },
+      "HorizontalRule": {
+        "regex": "---[ \\t]*|\\*\\*\\*[ \\t]*|___[ \\t]*",
+        "textColor": "0x808080"
+      },
+      "Blockquote": {
+        "regex": ">[ \\t]*[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      },
+      "HtmlTag_Start": {
+        "regex": "<\\/?[a-zA-Z0-9:-]+",
+        "textColor": "0x569cd6"
+      },
+      "HtmlTag_End": {
+        "regex": "\\/?>",
+        "textColor": "0x569cd6"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "Equal": {
+        "regex": "=",
+        "textColor": "0xd4d4d4"
+      },
+      "AttributeName": {
+        "regex": "[a-zA-Z0-9:-]+",
+        "textColor": "0x9cdcfe"
+      },
+      "TaskCheckbox": {
+        "regex": "\\[[ xX]\\]",
+        "textColor": "0x4ec9b0"
+      },
+      "Footnote": {
+        "regex": "\\[\\^[a-zA-Z0-9_-]+\\]",
+        "textColor": "0xd7ba7d"
+      },
+      "Image_Start": {
+        "regex": "!\\[",
+        "textColor": "0x4ec9b0"
+      },
+      "Image_End": {
+        "regex": "\\](?:\\([^)]*\\)|\\[[^\\]]*\\])?",
+        "textColor": "0x4ec9b0"
+      },
+      "Link_Start": {
+        "regex": "\\[",
+        "textColor": "0x9cdcfe"
+      },
+      "Link_End": {
+        "regex": "\\](?:\\([^)]*\\)|\\[[^\\]]*\\])?",
+        "textColor": "0x9cdcfe"
+      },
+      "InlineCode_Start": {
+        "regex": "`",
+        "textColor": "0x9e6a57"
+      },
+      "InlineCode_End": {
+        "regex": "`",
+        "textColor": "0x9e6a57"
+      },
+      "Bold_Start": {
+        "regex": "\\*\\*|__",
+        "textColor": "0xffd700"
+      },
+      "Bold_End": {
+        "regex": "\\*\\*|__",
+        "textColor": "0xffd700"
+      },
+      "Italic_Start": {
+        "regex": "\\*|_",
+        "textColor": "0xc586c0"
+      },
+      "Italic_End": {
+        "regex": "\\*|_",
+        "textColor": "0xc586c0"
+      },
+      "Strikethrough_Start": {
+        "regex": "~~",
+        "textColor": "0x808080"
+      },
+      "Strikethrough_End": {
+        "regex": "~~",
+        "textColor": "0x808080"
+      },
+      "UnorderedList": {
+        "regex": "[-*+][ \\t]+",
+        "textColor": "0xd7ba7d"
+      },
+      "OrderedList": {
+        "regex": "[0-9]+[.)][ \\t]+",
+        "textColor": "0xb5cea8"
+      },
+      "TablePipe": {
+        "regex": "\\|",
+        "textColor": "0xd4d4d4"
+      },
+      "BackslashEscape": {
+        "regex": "\\\\[\\\\`*_{}\\[\\]()#+\\-.!|~>\"']",
+        "textColor": "0xd7ba7d"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "HtmlComment": {
+        "astKind": "HtmlComment",
+        "sequence": [
+          {
+            "token": "HtmlComment_Start"
+          },
+          {
+            "token": "HtmlComment_End"
+          }
+        ]
+      },
+      "FencedCodeBlock": {
+        "astKind": "FencedCodeBlock",
+        "sequence": [
+          {
+            "token": "FencedCodeBlock_Start"
+          },
+          {
+            "token": "FencedCodeBlock_End"
+          }
+        ]
+      },
+      "Heading": {
+        "token": "Heading"
+      },
+      "HorizontalRule": {
+        "token": "HorizontalRule"
+      },
+      "Blockquote": {
+        "token": "Blockquote"
+      },
+      "HtmlTag": {
+        "astKind": "HtmlTag",
+        "sequence": [
+          {
+            "token": "HtmlTag_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "Equal"
+                },
+                {
+                  "ref": "AttributeName"
+                }
+              ]
+            }
+          },
+          {
+            "token": "HtmlTag_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "Equal": {
+        "token": "Equal"
+      },
+      "AttributeName": {
+        "token": "AttributeName"
+      },
+      "TaskCheckbox": {
+        "token": "TaskCheckbox"
+      },
+      "Footnote": {
+        "token": "Footnote"
+      },
+      "Image": {
+        "astKind": "Image",
+        "sequence": [
+          {
+            "token": "Image_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "InlineCode"
+                },
+                {
+                  "ref": "Bold"
+                },
+                {
+                  "ref": "Italic"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Image_End"
+          }
+        ]
+      },
+      "Link": {
+        "astKind": "Link",
+        "sequence": [
+          {
+            "token": "Link_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "InlineCode"
+                },
+                {
+                  "ref": "Bold"
+                },
+                {
+                  "ref": "Italic"
+                },
+                {
+                  "ref": "Strikethrough"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Link_End"
+          }
+        ]
+      },
+      "InlineCode": {
+        "astKind": "InlineCode",
+        "sequence": [
+          {
+            "token": "InlineCode_Start"
+          },
+          {
+            "token": "InlineCode_End"
+          }
+        ]
+      },
+      "Bold": {
+        "astKind": "Bold",
+        "sequence": [
+          {
+            "token": "Bold_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "Italic"
+                },
+                {
+                  "ref": "InlineCode"
+                },
+                {
+                  "ref": "Strikethrough"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Bold_End"
+          }
+        ]
+      },
+      "Italic": {
+        "astKind": "Italic",
+        "sequence": [
+          {
+            "token": "Italic_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "Bold"
+                },
+                {
+                  "ref": "InlineCode"
+                },
+                {
+                  "ref": "Strikethrough"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Italic_End"
+          }
+        ]
+      },
+      "Strikethrough": {
+        "astKind": "Strikethrough",
+        "sequence": [
+          {
+            "token": "Strikethrough_Start"
+          },
+          {
+            "token": "Strikethrough_End"
+          }
+        ]
+      },
+      "UnorderedList": {
+        "token": "UnorderedList"
+      },
+      "OrderedList": {
+        "token": "OrderedList"
+      },
+      "TablePipe": {
+        "token": "TablePipe"
+      },
+      "BackslashEscape": {
+        "token": "BackslashEscape"
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "HtmlComment"
+          },
+          {
+            "ref": "FencedCodeBlock"
+          },
+          {
+            "ref": "Heading"
+          },
+          {
+            "ref": "HorizontalRule"
+          },
+          {
+            "ref": "Blockquote"
+          },
+          {
+            "ref": "HtmlTag"
+          },
+          {
+            "ref": "UnorderedList"
+          },
+          {
+            "ref": "OrderedList"
+          },
+          {
+            "ref": "TaskCheckbox"
+          },
+          {
+            "ref": "Footnote"
+          },
+          {
+            "ref": "Image"
+          },
+          {
+            "ref": "Link"
+          },
+          {
+            "ref": "InlineCode"
+          },
+          {
+            "ref": "Bold"
+          },
+          {
+            "ref": "Italic"
+          },
+          {
+            "ref": "Strikethrough"
+          },
+          {
+            "ref": "TablePipe"
+          },
+          {
+            "ref": "BackslashEscape"
+          }
+        ]
+      }
+    }
+  }
+}

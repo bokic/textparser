@@ -1,0 +1,363 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "r",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "r"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "Keyword": {
+        "regex": "(?:break|else|for|function|if|in|next|repeat|return|switch|while)\\b(?!\\.)",
+        "textColor": "0xc586c0"
+      },
+      "Boolean": {
+        "regex": "(?:TRUE|FALSE|NULL|NA|Inf|NaN|NA_integer_|NA_real_|NA_complex_|NA_character_)\\b(?!\\.)",
+        "textColor": "0x569cd6"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "BacktickString_Start": {
+        "regex": "`",
+        "textColor": "0x9e6a57"
+      },
+      "BacktickString_End": {
+        "regex": "`",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\[\\\\\\\"'nrt0]|\\\\x[0-9a-fA-F]{1,2}|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}",
+        "textColor": "0xd7ba7d"
+      },
+      "Number": {
+        "regex": "0[xX][0-9a-fA-F]+[lL]?|[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?[lLi]?|\\.[0-9]+(?:[eE][-+]?[0-9]+)?[lLi]?",
+        "textColor": "0xb5cea8"
+      },
+      "Variable": {
+        "regex": "[a-zA-Z.][a-zA-Z0-9_.]*|\\.[a-zA-Z.][a-zA-Z0-9_.]*",
+        "textColor": "0x9cdcfe"
+      },
+      "Operator": {
+        "regex": "<-|<<-|->|->>|:::|::|%[^%\\r\\n]*%|\\*\\*|~|\\$|@|\\|\\||&&|\\||&|!=|<=|>=|==|[=<>!+\\-*/^:,;]",
+        "textColor": "0xd4d4d4"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      }
+    },
+    "trivia": {
+      "LineComment": {
+        "regex": "#[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "LineComment": {
+        "token": "LineComment"
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "BacktickString": {
+        "astKind": "BacktickString",
+        "sequence": [
+          {
+            "token": "BacktickString_Start"
+          },
+          {
+            "token": "BacktickString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "BacktickString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "BacktickString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "BacktickString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "LineComment"
+          },
+          {
+            "ref": "Keyword"
+          },
+          {
+            "ref": "Boolean"
+          },
+          {
+            "ref": "SingleString"
+          },
+          {
+            "ref": "DoubleString"
+          },
+          {
+            "ref": "BacktickString"
+          },
+          {
+            "ref": "Number"
+          },
+          {
+            "ref": "Variable"
+          },
+          {
+            "ref": "Operator"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          },
+          {
+            "ref": "CodeBlock"
+          }
+        ]
+      }
+    }
+  }
+}

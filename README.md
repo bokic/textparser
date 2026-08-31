@@ -326,46 +326,72 @@ int main() {
 
 ## Language Definition Schema & Migration
 
-TextParser uses a JSON-based declarative schema to define language grammars, separating lexical tokens from grammar productions and error recovery policies.
+TextParser uses a JSON-based declarative schema (v1 legacy, v2 unified) to define language grammars, separating lexical tokens from grammar productions and error recovery policies.
 
-- **Unified Schema Specification**: See [`schema/textparser-schema.json`](file:///home/boris/projects/textparser/schema/textparser-schema.json) for the full JSON schema definition.
-- **Migration Tool**: Migrate legacy definition files to the unified schema using [`scripts/migrate_definitions.py`](file:///home/boris/projects/textparser/scripts/migrate_definitions.py):
-  ```bash
-  python3 scripts/migrate_definitions.py definitions/your_definition.json
-  # or batch migrate all definitions:
-  python3 scripts/migrate_definitions.py --all definitions/
-  ```
+- **Unified Schema Specification**: See [`schema/textparser-schema.json`](file:///home/boris/projects/textparser/schema/textparser-schema.json) for the full JSON Schema Draft 2020-12 definition.
+- **Schema v2 fields**: `lexer` (`tokens`, `modes`, `goals`, `trivia`), `grammar` (`start`, `productions`), `recovery`, `features`, `operators`, `directives`.
+
+### Non-Destructive Batch Migration (schema_v2/)
+
+Migrate all legacy definitions to the unified v2 schema **without overwriting** the working build definitions:
+
+```bash
+# Outputs to definitions/schema_v2/ (default, non-destructive)
+python3 scripts/migrate_definitions.py --all definitions/
+
+# Custom output directory
+python3 scripts/migrate_definitions.py --all definitions/ --output-dir /tmp/v2out/
+
+# In-place migration (modifies originals — use with version control)
+python3 scripts/migrate_definitions.py --all definitions/ --in-place
+
+# Migrate a single file
+python3 scripts/migrate_definitions.py definitions/cfml_definition.json /tmp/cfml_v2.json
+```
+
+> **Note**: The build system and `json2h.py` continue to use the legacy v1 format in `definitions/*.json`. The `schema_v2/` directory is for reference, tooling development, and future loader implementation.
+
+### json2h.py Schema v2 Compatibility
+
+[`definitions/json2h.py`](file:///home/boris/projects/textparser/definitions/json2h.py) supports both v1 and v2 schema formats:
+- Tokens are resolved from `root["tokens"]` (v1) or `root["lexer"]["tokens"]` (v2).
+- `startTokens` are resolved from `root["startTokens"]` (v1) or `root["grammar"]["start"]` (v2).
+- All disambiguation tables (`mergeSignIntoNumber`, `regexVsDivision`, etc.) remain v1-format for now.
 
 ## Generating Definition Headers
 
-To use a JSON language definition in C code at compile time, convert it into a C header file using the Python utility [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py).
-
-### Generating a Specific Header
-
-Run [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py) located in the `definitions/` directory:
+To use a JSON language definition in C code at compile time, convert it into a C header file using [json2h.py](file:///home/boris/projects/textparser/definitions/json2h.py).
 
 ```bash
 python3 definitions/json2h.py definitions/your_definition.json
 ```
 
-This generates a C header file (e.g., `definitions/your_definition.json.h`) containing the C struct and tags enum.
-
-By default, tokens with a matching native C matcher get a fast-path function pointer. Pass `--no-native-regex` to skip the native matchers so the parser uses regex strings directly (useful for testing):
+Pass `--no-native-regex` to skip native matchers (useful for testing with regex strings only):
 
 ```bash
 python3 definitions/json2h.py --no-native-regex definitions/your_definition.json
 ```
 
-With `--no-native-regex`, native function pointers are set to `NULL` while the regex strings are preserved.
-
 ### Regenerating All Headers
-
-Run the helper script [regenerate.sh](file:///home/boris/projects/textparser/definitions/regenerate.sh) from the `definitions/` directory:
 
 ```bash
 cd definitions
 ./regenerate.sh
 ```
+
+## Test Suite Coverage
+
+The unit test suite (`bin/unittests`) covers 287+ tests across all language parsers and compiler-grade architecture features:
+
+| Test File | Coverage Area |
+|---|---|
+| `schema_parity_tests.cpp` | JSON schema v2 structure, BOM parsing, definition parity |
+| `arena_lifecycle_tests.cpp` | Arena checkpointing, node flags (`SYNTHETIC`, `MISSING`, `RECOVERED`), user_data destructors, lifecycle events |
+| `lexer_modes_tests.cpp` | Transient mode stacks, contextual lexical goals, line-terminator predicates, decoders/validators |
+| `speculation_tests.cpp` | Scoped contexts, semantic predicates, speculative parsing commit/rollback |
+| `pratt_precedence_tests.cpp` | Explicit operator tables (prefix, infix, postfix, ternary), Pratt expression parsing |
+| `diagnostic_recovery_tests.cpp` | Multi-diagnostic vector, error codes, source location (line/column), token sync recovery |
+| `conformance_tests.cpp` | **Phase 7.2**: Nested 3-level speculation, mode rollback inside speculation, mode-stack boundary/overflow, lexical goal persistence, 5-severity multi-error loops, null-handle safety across all Phase 2–6 APIs, 100× open/close memory safety, 1000-diagnostic realloc stress, json2h migration parity |
 
 ## License
 

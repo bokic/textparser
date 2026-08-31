@@ -1,0 +1,426 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "swift",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "swift"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "BlockComment_Start": {
+        "regex": "\\/\\*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment_End": {
+        "regex": "\\*\\/",
+        "textColor": "0x6a9955"
+      },
+      "Keyword": {
+        "regex": "actor\\b|associatedtype\\b|async\\b|await\\b|class\\b|convenience\\b|deinit\\b|distributed\\b|dynamic\\b|enum\\b|extension\\b|fileprivate\\b|final\\b|func\\b|get\\b|guard\\b|import\\b|indirect\\b|infix\\b|init\\b|inout\\b|internal\\b|isolated\\b|lazy\\b|let\\b|macro\\b|mutating\\b|nonisolated\\b|nonmutating\\b|open\\b|operator\\b|optional\\b|override\\b|package\\b|postfix\\b|precedencegroup\\b|prefix\\b|private\\b|protocol\\b|public\\b|required\\b|rethrows\\b|set\\b|some\\b|static\\b|struct\\b|subscript\\b|typealias\\b|unowned\\b|var\\b|weak\\b|willSet\\b|didSet\\b|where\\b|any\\b|as\\b|break\\b|case\\b|catch\\b|continue\\b|default\\b|defer\\b|do\\b|else\\b|fallthrough\\b|for\\b|if\\b|in\\b|is\\b|repeat\\b|return\\b|switch\\b|throw\\b|throws\\b|try\\b|while\\b|#available\\b|#selector\\b|#keyPath\\b|#file\\b|#line\\b|#column\\b|#function\\b|#dsohandle\\b|#warning\\b|#error\\b|#if\\b|#else\\b|#elseif\\b|#endif\\b",
+        "textColor": "0xc586c0"
+      },
+      "Boolean": {
+        "regex": "true\\b|false\\b|nil\\b",
+        "textColor": "0x569cd6"
+      },
+      "Variable": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0x9cdcfe"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      },
+      "Operator": {
+        "regex": "\\?\\?|===|!==|\\.\\.<|\\.\\.\\.|->|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|&&|\\|\\||<=|>=|==|!=|<<|>>|[=<>!&|^~+\\-*/%\\?:;.,]",
+        "textColor": "0xd4d4d4"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "MultiLineString_Start": {
+        "regex": "\"\"\"",
+        "textColor": "0x9e6a57"
+      },
+      "MultiLineString_End": {
+        "regex": "\"\"\"",
+        "textColor": "0x9e6a57"
+      },
+      "StringInterpolation_Start": {
+        "regex": "\\\\\\(",
+        "textColor": "0x4075a0"
+      },
+      "StringInterpolation_End": {
+        "regex": "\\)",
+        "textColor": "0x4075a0"
+      },
+      "StringEscape": {
+        "regex": "\\\\[\\\\\\\"'nrt0]|\\\\u\\{[0-9a-fA-F]{1,8}\\}",
+        "textColor": "0xd7ba7d"
+      },
+      "Number": {
+        "regex": "0[xX][0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?(?:[pP][-+]?[0-9]+)?\\b|0[oO][0-7]+\\b|0[bB][01]+\\b|[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?\\b",
+        "textColor": "0xb5cea8"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      }
+    },
+    "trivia": {
+      "LineComment": {
+        "regex": "\\/\\/[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "LineComment": {
+        "token": "LineComment"
+      },
+      "BlockComment": {
+        "astKind": "BlockComment",
+        "sequence": [
+          {
+            "token": "BlockComment_Start"
+          },
+          {
+            "token": "BlockComment_End"
+          }
+        ]
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "MultiLineString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "StringEscape"
+                },
+                {
+                  "ref": "StringInterpolation"
+                }
+              ]
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "MultiLineString": {
+        "astKind": "MultiLineString",
+        "sequence": [
+          {
+            "token": "MultiLineString_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "StringEscape"
+                },
+                {
+                  "ref": "StringInterpolation"
+                }
+              ]
+            }
+          },
+          {
+            "token": "MultiLineString_End"
+          }
+        ]
+      },
+      "StringInterpolation": {
+        "astKind": "StringInterpolation",
+        "sequence": [
+          {
+            "token": "StringInterpolation_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "StringInterpolation_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "MultiLineString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "StringInterpolation"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "MultiLineString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "StringInterpolation"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "LineComment"
+          },
+          {
+            "ref": "BlockComment"
+          },
+          {
+            "ref": "Boolean"
+          },
+          {
+            "ref": "Keyword"
+          },
+          {
+            "ref": "Variable"
+          },
+          {
+            "ref": "CodeBlock"
+          },
+          {
+            "ref": "Operator"
+          },
+          {
+            "ref": "MultiLineString"
+          },
+          {
+            "ref": "DoubleString"
+          },
+          {
+            "ref": "Number"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          }
+        ]
+      }
+    }
+  }
+}
