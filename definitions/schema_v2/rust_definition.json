@@ -1,0 +1,448 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "rust",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "rs"
+  ],
+  "defaultTextEncoding": "utf-8",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "BlockComment_Start": {
+        "regex": "\\/\\*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment_End": {
+        "regex": "\\*\\/",
+        "textColor": "0x6a9955"
+      },
+      "Attribute_Start": {
+        "regex": "#!?\\[",
+        "textColor": "0x9cdcfe"
+      },
+      "Attribute_End": {
+        "regex": "\\]",
+        "textColor": "0x9cdcfe"
+      },
+      "Macro": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*!",
+        "textColor": "0xd7ba7d"
+      },
+      "Keyword": {
+        "regex": "as\\b|async\\b|await\\b|break\\b|const\\b|continue\\b|crate\\b|dyn\\b|else\\b|enum\\b|extern\\b|fn\\b|for\\b|if\\b|impl\\b|in\\b|let\\b|loop\\b|match\\b|mod\\b|move\\b|mut\\b|pub\\b|ref\\b|return\\b|Self\\b|self\\b|static\\b|struct\\b|super\\b|trait\\b|type\\b|unsafe\\b|use\\b|where\\b|while\\b|yield\\b|macro\\b|bool\\b|char\\b|str\\b|i8\\b|u8\\b|i16\\b|u16\\b|i32\\b|u32\\b|i64\\b|u64\\b|i128\\b|u128\\b|isize\\b|usize\\b|f32\\b|f64\\b",
+        "textColor": "0xc586c0"
+      },
+      "Boolean": {
+        "regex": "true\\b|false\\b|Some\\b|None\\b|Ok\\b|Err\\b",
+        "textColor": "0x569cd6"
+      },
+      "CharLiteral": {
+        "regex": "'(?:[^\\\\']|\\\\\\\\.)'",
+        "textColor": "0xce9178"
+      },
+      "Lifetime": {
+        "regex": "'[a-zA-Z_][a-zA-Z0-9_]*\\b",
+        "textColor": "0x9cdcfe"
+      },
+      "Variable": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0x9cdcfe"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      },
+      "Operator": {
+        "regex": "::|:=|:|===|==|!=|<=|>=|&&|\\|\\||\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|->|<<|>>|=>|[=<>!&|^~+\\-*/%\\?:;.,]",
+        "textColor": "0xd4d4d4"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u\\{[0-9a-fA-F]{1,6}\\}|\\\\x[0-9a-fA-F]{2}",
+        "textColor": "0xd7ba7d"
+      },
+      "Number": {
+        "regex": "0[xX][0-9a-fA-F_]+\\b|0[bB][01_]+\\b|0[oO][0-7_]+\\b|[0-9_]*\\.?[0-9_]+(?:[eE][-+]?[0-9_]+)?\\b",
+        "textColor": "0xb5cea8"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      }
+    },
+    "trivia": {
+      "LineComment": {
+        "regex": "\\/\\/[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "LineComment": {
+        "token": "LineComment"
+      },
+      "BlockComment": {
+        "astKind": "BlockComment",
+        "sequence": [
+          {
+            "token": "BlockComment_Start"
+          },
+          {
+            "token": "BlockComment_End"
+          }
+        ]
+      },
+      "Attribute": {
+        "astKind": "Attribute",
+        "sequence": [
+          {
+            "token": "Attribute_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Attribute_End"
+          }
+        ]
+      },
+      "Macro": {
+        "token": "Macro"
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "CharLiteral": {
+        "token": "CharLiteral"
+      },
+      "Lifetime": {
+        "token": "Lifetime"
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Attribute"
+                },
+                {
+                  "ref": "Macro"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "CharLiteral"
+                },
+                {
+                  "ref": "Lifetime"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Attribute"
+                },
+                {
+                  "ref": "Macro"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "CharLiteral"
+                },
+                {
+                  "ref": "Lifetime"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Attribute"
+                },
+                {
+                  "ref": "Macro"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "CharLiteral"
+                },
+                {
+                  "ref": "Lifetime"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "LineComment"
+          },
+          {
+            "ref": "BlockComment"
+          },
+          {
+            "ref": "Attribute"
+          },
+          {
+            "ref": "Macro"
+          },
+          {
+            "ref": "Boolean"
+          },
+          {
+            "ref": "Keyword"
+          },
+          {
+            "ref": "CharLiteral"
+          },
+          {
+            "ref": "Lifetime"
+          },
+          {
+            "ref": "Variable"
+          },
+          {
+            "ref": "CodeBlock"
+          },
+          {
+            "ref": "Operator"
+          },
+          {
+            "ref": "DoubleString"
+          },
+          {
+            "ref": "Number"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,491 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "css",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": [
+    "css"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "BlockComment_Start": {
+        "regex": "\\/\\*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment_End": {
+        "regex": "\\*\\/",
+        "textColor": "0x6a9955"
+      },
+      "AtRule": {
+        "regex": "@[a-zA-Z-]+",
+        "textColor": "0xc586c0"
+      },
+      "ClassName": {
+        "regex": "\\.[a-zA-Z_-][a-zA-Z0-9_-]*",
+        "textColor": "0x4ec9b0"
+      },
+      "IdName": {
+        "regex": "#[a-zA-Z_-][a-zA-Z0-9_-]*",
+        "textColor": "0xffd700"
+      },
+      "PseudoClass": {
+        "regex": ":{1,2}[a-zA-Z-]+",
+        "textColor": "0xc586c0"
+      },
+      "TagName": {
+        "regex": "[a-zA-Z-][a-zA-Z0-9-]*",
+        "textColor": "0x569cd6"
+      },
+      "Operator": {
+        "regex": "[,>+~*]",
+        "textColor": "0xd4d4d4"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      },
+      "Declaration_Start": {
+        "regex": "[a-zA-Z-][a-zA-Z0-9-]*\\s*:",
+        "textColor": "0x9cdcfe"
+      },
+      "Declaration_End": {
+        "regex": ";",
+        "textColor": "0x9cdcfe"
+      },
+      "HexColor": {
+        "regex": "#[0-9a-fA-F]{3,8}",
+        "textColor": "0xce9178"
+      },
+      "Number": {
+        "regex": "[0-9]*\\.?[0-9]+(?:[a-zA-Z%]+)?",
+        "textColor": "0xb5cea8"
+      },
+      "FunctionCall": {
+        "regex": "url\\([^)]*\\)|rgb\\([^)]*\\)|rgba\\([^)]*\\)|hsl\\([^)]*\\)|hsla\\([^)]*\\)|var\\([^)]*\\)|calc\\([^)]*\\)",
+        "textColor": "0xdcdcaa"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
+        "textColor": "0xd7ba7d"
+      },
+      "Important": {
+        "regex": "!important\\b",
+        "textColor": "0xc586c0"
+      },
+      "Value": {
+        "regex": "[a-zA-Z-][a-zA-Z0-9-]*",
+        "textColor": "0xce9178"
+      },
+      "DeclOperator": {
+        "regex": "[,/!]",
+        "textColor": "0xd4d4d4"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "BlockComment": {
+        "astKind": "BlockComment",
+        "sequence": [
+          {
+            "token": "BlockComment_Start"
+          },
+          {
+            "token": "BlockComment_End"
+          }
+        ]
+      },
+      "AtRule": {
+        "token": "AtRule"
+      },
+      "ClassName": {
+        "token": "ClassName"
+      },
+      "IdName": {
+        "token": "IdName"
+      },
+      "PseudoClass": {
+        "token": "PseudoClass"
+      },
+      "TagName": {
+        "token": "TagName"
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "AtRule"
+                },
+                {
+                  "ref": "ClassName"
+                },
+                {
+                  "ref": "IdName"
+                },
+                {
+                  "ref": "PseudoClass"
+                },
+                {
+                  "ref": "Declaration"
+                },
+                {
+                  "ref": "TagName"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Declaration": {
+        "astKind": "Declaration",
+        "sequence": [
+          {
+            "token": "Declaration_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "HexColor"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "FunctionCall"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Important"
+                },
+                {
+                  "ref": "Value"
+                },
+                {
+                  "ref": "DeclOperator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Declaration_End"
+          }
+        ]
+      },
+      "HexColor": {
+        "token": "HexColor"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "FunctionCall": {
+        "token": "FunctionCall"
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Important": {
+        "token": "Important"
+      },
+      "Value": {
+        "token": "Value"
+      },
+      "DeclOperator": {
+        "token": "DeclOperator"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "AtRule"
+                },
+                {
+                  "ref": "ClassName"
+                },
+                {
+                  "ref": "IdName"
+                },
+                {
+                  "ref": "PseudoClass"
+                },
+                {
+                  "ref": "TagName"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Declaration"
+                },
+                {
+                  "ref": "HexColor"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "FunctionCall"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Important"
+                },
+                {
+                  "ref": "Value"
+                },
+                {
+                  "ref": "DeclOperator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "AtRule"
+                },
+                {
+                  "ref": "ClassName"
+                },
+                {
+                  "ref": "IdName"
+                },
+                {
+                  "ref": "PseudoClass"
+                },
+                {
+                  "ref": "TagName"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "Declaration"
+                },
+                {
+                  "ref": "HexColor"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "FunctionCall"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Important"
+                },
+                {
+                  "ref": "Value"
+                },
+                {
+                  "ref": "DeclOperator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "BlockComment"
+          },
+          {
+            "ref": "AtRule"
+          },
+          {
+            "ref": "ClassName"
+          },
+          {
+            "ref": "IdName"
+          },
+          {
+            "ref": "PseudoClass"
+          },
+          {
+            "ref": "TagName"
+          },
+          {
+            "ref": "Operator"
+          },
+          {
+            "ref": "CodeBlock"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          }
+        ]
+      }
+    }
+  }
+}

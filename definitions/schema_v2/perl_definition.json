@@ -1,0 +1,358 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "perl",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "pl"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "PODBlock_Start": {
+        "regex": "^=\\w+",
+        "textColor": "0x6a9955"
+      },
+      "PODBlock_End": {
+        "regex": "^=cut",
+        "textColor": "0x6a9955"
+      },
+      "Keyword": {
+        "regex": "package\\b|use\\b|require\\b|sub\\b|my\\b|our\\b|local\\b|state\\b|if\\b|unless\\b|else\\b|elsif\\b|given\\b|when\\b|default\\b|for\\b|foreach\\b|while\\b|until\\b|do\\b|continue\\b|last\\b|next\\b|redo\\b|goto\\b|return\\b|die\\b|warn\\b|exit\\b|eval\\b|try\\b|catch\\b|finally\\b|throw\\b|bless\\b|ref\\b|tie\\b|untie\\b|defined\\b|exists\\b|delete\\b|shift\\b|unshift\\b|push\\b|pop\\b|splice\\b|split\\b|join\\b|keys\\b|values\\b|each\\b|map\\b|grep\\b|sort\\b|print\\b|say\\b|printf\\b|sprintf\\b|open\\b|close\\b|read\\b|write\\b|sysopen\\b|sysread\\b|syswrite\\b|seek\\b|tell\\b|truncate\\b|flock\\b|chdir\\b|mkdir\\b|rmdir\\b|opendir\\b|closedir\\b|readdir\\b|glob\\b|unlink\\b|rename\\b|chmod\\b|chown\\b|umask\\b|link\\b|symlink\\b|readlink\\b|stat\\b|lstat\\b|fcntl\\b|ioctl\\b|select\\b|socket\\b|connect\\b|bind\\b|listen\\b|accept\\b|send\\b|recv\\b|shutdown\\b|setsockopt\\b|getsockopt\\b|fork\\b|exec\\b|system\\b|qx\\b|pipe\\b|wait\\b|waitpid\\b|times\\b|alarm\\b|sleep\\b|gmtime\\b|localtime\\b|time\\b|caller\\b|wantarray\\b|prototype\\b|__FILE__\\b|__LINE__\\b|__PACKAGE__\\b",
+        "textColor": "0xc586c0"
+      },
+      "Boolean": {
+        "regex": "\\b(?:undef)\\b",
+        "textColor": "0x569cd6"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\[\\\\\\\"'nrtfeab]|\\\\x[0-9a-fA-F]{1,2}|\\\\[0-7]{1,3}|\\\\c.",
+        "textColor": "0xd7ba7d"
+      },
+      "Number": {
+        "regex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?",
+        "textColor": "0xb5cea8"
+      },
+      "Variable": {
+        "regex": "[$@%*][a-zA-Z_][a-zA-Z0-9_]*|[$@%*]\\^[a-zA-Z]|[$@%*]\\$|[$@%*]\\d+|[$@%*][:]{2}[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0x9cdcfe"
+      },
+      "Operator": {
+        "regex": "\\.\\.\\.|<=>|\\|\\||=|\\|\\||=>|->|==|!=|<=|>=|=~|!~|&&|//|\\.\\.|\\+\\+|\\-\\-|\\*\\*|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|<<|>>|=|<|>|!|\\||\\^|&|\\*|/|%|\\+|-|\\.|~|,|;",
+        "textColor": "0xd4d4d4"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      }
+    },
+    "trivia": {
+      "LineComment": {
+        "regex": "#[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "LineComment": {
+        "token": "LineComment"
+      },
+      "PODBlock": {
+        "astKind": "PODBlock",
+        "sequence": [
+          {
+            "token": "PODBlock_Start"
+          },
+          {
+            "token": "PODBlock_End"
+          }
+        ]
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "PODBlock"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "PODBlock"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "PODBlock"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "LineComment"
+          },
+          {
+            "ref": "PODBlock"
+          },
+          {
+            "ref": "Boolean"
+          },
+          {
+            "ref": "Keyword"
+          },
+          {
+            "ref": "SingleString"
+          },
+          {
+            "ref": "DoubleString"
+          },
+          {
+            "ref": "Number"
+          },
+          {
+            "ref": "Variable"
+          },
+          {
+            "ref": "Operator"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          },
+          {
+            "ref": "CodeBlock"
+          }
+        ]
+      }
+    }
+  }
+}

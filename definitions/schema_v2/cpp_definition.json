@@ -1,0 +1,646 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "cpp",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "cpp",
+    "hpp",
+    "cc",
+    "cxx"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "BlockComment_Start": {
+        "regex": "\\/\\*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment_End": {
+        "regex": "\\*\\/",
+        "textColor": "0x6a9955"
+      },
+      "Preprocessor": {
+        "regex": "#[ \\t]*[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0xd7ba7d"
+      },
+      "Keyword": {
+        "regex": "namespace\\b|template\\b|typename\\b|using\\b|public\\b|private\\b|protected\\b|virtual\\b|override\\b|final\\b|friend\\b|operator\\b|this\\b|new\\b|delete\\b|throw\\b|catch\\b|try\\b|constexpr\\b|consteval\\b|constinit\\b|decltype\\b|explicit\\b|export\\b|import\\b|module\\b|mutable\\b|noexcept\\b|nullptr\\b|static_cast\\b|dynamic_cast\\b|const_cast\\b|reinterpret_cast\\b|thread_local\\b|concept\\b|requires\\b|co_await\\b|co_return\\b|co_yield\\b|typedef\\b|const\\b|static\\b|extern\\b|volatile\\b|if\\b|else\\b|for\\b|while\\b|do\\b|switch\\b|case\\b|default\\b|break\\b|continue\\b|return\\b|sizeof\\b|goto\\b|register\\b|auto\\b|inline\\b|restrict\\b",
+        "textColor": "0xc586c0"
+      },
+      "Variable": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0x9cdcfe"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      },
+      "ScopeResolution": {
+        "regex": "::",
+        "textColor": "0xd4d4d4"
+      },
+      "Operator": {
+        "regex": "\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<{2}=|>{2}=|<{2}|>{2}|\\+\\+|\\-\\-|&&|\\|\\||<=>|<=|>=|==|!=|->\\*|->|\\.\\*|\\.|[=!|^~+\\-/%\\?:;.]",
+        "textColor": "0xd4d4d4"
+      },
+      "PointerOrRef": {
+        "regex": "[*&]",
+        "textColor": "0xd4d4d4"
+      },
+      "TemplateOpen": {
+        "regex": "<",
+        "textColor": "0xd4d4d4"
+      },
+      "TemplateClose": {
+        "regex": ">",
+        "textColor": "0xd4d4d4"
+      },
+      "Comma": {
+        "regex": ",",
+        "textColor": "0xd4d4d4"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-fA-F]{4}|\\\\x[0-9a-fA-F]{2}",
+        "textColor": "0xd7ba7d"
+      },
+      "Number": {
+        "regex": "(?:0[xX][0-9a-fA-F]+[uUlL]*|0[bB][01]+[uUlL]*|[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?[fFdDlL]?)",
+        "textColor": "0xb5cea8"
+      },
+      "Boolean": {
+        "regex": "true\\b|false\\b",
+        "textColor": "0x569cd6"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      },
+      "TemplateGroup_Start": {
+        "regex": "<",
+        "textColor": "0x4ec9b0"
+      },
+      "TemplateGroup_End": {
+        "regex": ">",
+        "textColor": "0x4ec9b0"
+      },
+      "TypeCast_Start": {
+        "regex": "\\(",
+        "textColor": "0x4ec9b0"
+      },
+      "TypeCast_End": {
+        "regex": "\\)",
+        "textColor": "0x4ec9b0"
+      },
+      "DataType": {
+        "regex": "char8_t\\b|char16_t\\b|char32_t\\b|wchar_t\\b|int\\b|char\\b|double\\b|float\\b|void\\b|short\\b|long\\b|unsigned\\b|signed\\b|_Bool\\b|bool\\b|size_t\\b|ssize_t\\b|uint8_t\\b|uint16_t\\b|uint32_t\\b|uint64_t\\b|int8_t\\b|int16_t\\b|int32_t\\b|int64_t\\b|uintptr_t\\b|intptr_t\\b|ptrdiff_t\\b|[a-zA-Z_][a-zA-Z0-9_]*_(?:t|type|enum|e|s)\\b",
+        "textColor": "0x4ec9b0"
+      },
+      "TagSpecifier": {
+        "regex": "struct\\b|union\\b|enum\\b|class\\b",
+        "textColor": "0xc586c0"
+      },
+      "TypeName": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0x4ec9b0"
+      }
+    },
+    "trivia": {
+      "LineComment": {
+        "regex": "\\/\\/[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "LineComment": {
+        "token": "LineComment"
+      },
+      "BlockComment": {
+        "astKind": "BlockComment",
+        "sequence": [
+          {
+            "token": "BlockComment_Start"
+          },
+          {
+            "token": "BlockComment_End"
+          }
+        ]
+      },
+      "Preprocessor": {
+        "token": "Preprocessor"
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Preprocessor"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "TaggedType"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "ScopeResolution"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "PointerOrRef"
+                },
+                {
+                  "ref": "TemplateOpen"
+                },
+                {
+                  "ref": "TemplateClose"
+                },
+                {
+                  "ref": "Comma"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "ScopeResolution": {
+        "token": "ScopeResolution"
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "PointerOrRef": {
+        "token": "PointerOrRef"
+      },
+      "TemplateOpen": {
+        "token": "TemplateOpen"
+      },
+      "TemplateClose": {
+        "token": "TemplateClose"
+      },
+      "Comma": {
+        "token": "Comma"
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Preprocessor"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "TaggedType"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "ScopeResolution"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "PointerOrRef"
+                },
+                {
+                  "ref": "TemplateOpen"
+                },
+                {
+                  "ref": "TemplateClose"
+                },
+                {
+                  "ref": "Comma"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Preprocessor"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "TaggedType"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "CodeBlock"
+                },
+                {
+                  "ref": "ScopeResolution"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "PointerOrRef"
+                },
+                {
+                  "ref": "TemplateOpen"
+                },
+                {
+                  "ref": "TemplateClose"
+                },
+                {
+                  "ref": "Comma"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "TemplateGroup": {
+        "astKind": "TemplateGroup",
+        "sequence": [
+          {
+            "token": "TemplateGroup_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "TaggedType"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "ScopeResolution"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "PointerOrRef"
+                },
+                {
+                  "ref": "TemplateOpen"
+                },
+                {
+                  "ref": "TemplateClose"
+                },
+                {
+                  "ref": "Comma"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                }
+              ]
+            }
+          },
+          {
+            "token": "TemplateGroup_End"
+          }
+        ]
+      },
+      "TypeCast": {
+        "astKind": "TypeCast",
+        "sequence": [
+          {
+            "token": "TypeCast_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "TaggedType"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "ScopeResolution"
+                },
+                {
+                  "ref": "PointerOrRef"
+                },
+                {
+                  "ref": "Comma"
+                },
+                {
+                  "ref": "Operator"
+                }
+              ]
+            }
+          },
+          {
+            "token": "TypeCast_End"
+          }
+        ]
+      },
+      "DataType": {
+        "token": "DataType"
+      },
+      "TagSpecifier": {
+        "token": "TagSpecifier"
+      },
+      "TaggedType": {
+        "astKind": "TaggedType",
+        "sequence": [
+          {
+            "ref": "TagSpecifier"
+          },
+          {
+            "ref": "TypeName"
+          }
+        ]
+      },
+      "TypeName": {
+        "token": "TypeName"
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "LineComment"
+          },
+          {
+            "ref": "BlockComment"
+          },
+          {
+            "ref": "Preprocessor"
+          },
+          {
+            "ref": "Boolean"
+          },
+          {
+            "ref": "TaggedType"
+          },
+          {
+            "ref": "Keyword"
+          },
+          {
+            "ref": "DataType"
+          },
+          {
+            "ref": "Variable"
+          },
+          {
+            "ref": "CodeBlock"
+          },
+          {
+            "ref": "ScopeResolution"
+          },
+          {
+            "ref": "Operator"
+          },
+          {
+            "ref": "PointerOrRef"
+          },
+          {
+            "ref": "TemplateOpen"
+          },
+          {
+            "ref": "TemplateClose"
+          },
+          {
+            "ref": "Comma"
+          },
+          {
+            "ref": "SingleString"
+          },
+          {
+            "ref": "DoubleString"
+          },
+          {
+            "ref": "Number"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,444 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "sql",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": [
+    "sql"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "BlockComment_Start": {
+        "regex": "\\/\\*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment_End": {
+        "regex": "\\*\\/",
+        "textColor": "0x6a9955"
+      },
+      "Keyword": {
+        "regex": "select\\b|insert\\b|update\\b|delete\\b|from\\b|where\\b|join\\b|left\\b|right\\b|inner\\b|outer\\b|on\\b|group\\b|by\\b|having\\b|order\\b|limit\\b|offset\\b|create\\b|table\\b|drop\\b|alter\\b|add\\b|column\\b|index\\b|primary\\b|key\\b|foreign\\b|references\\b|into\\b|values\\b|set\\b|and\\b|or\\b|not\\b|in\\b|is\\b|null\\b|like\\b|between\\b|exists\\b|any\\b|all\\b|as\\b|distinct\\b|union\\b|intersect\\b|except\\b|with\\b|recursive\\b|database\\b|use\\b|view\\b|trigger\\b|procedure\\b|function\\b|returns\\b|declare\\b|begin\\b|end\\b|if\\b|else\\b|then\\b|commit\\b|rollback\\b|transaction\\b|grant\\b|revoke\\b|constraint\\b|default\\b|unique\\b|check\\b",
+        "textColor": "0xc586c0"
+      },
+      "DataType": {
+        "regex": "int\\b|integer\\b|varchar\\b|char\\b|text\\b|boolean\\b|bool\\b|date\\b|time\\b|timestamp\\b|datetime\\b|decimal\\b|numeric\\b|float\\b|double\\b|real\\b|blob\\b|clob\\b|json\\b|uuid\\b",
+        "textColor": "0x4ec9b0"
+      },
+      "Boolean": {
+        "regex": "true\\b|false\\b",
+        "textColor": "0x569cd6"
+      },
+      "BacktickIdentifier_Start": {
+        "regex": "`",
+        "textColor": "0x6a9ec0"
+      },
+      "BacktickIdentifier_End": {
+        "regex": "`",
+        "textColor": "0x6a9ec0"
+      },
+      "BracketIdentifier_Start": {
+        "regex": "\\[",
+        "textColor": "0x9cdcfe"
+      },
+      "BracketIdentifier_End": {
+        "regex": "\\]",
+        "textColor": "0x9cdcfe"
+      },
+      "Variable": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "textColor": "0x9cdcfe"
+      },
+      "Operator": {
+        "regex": "<>|<=|>=|!=|:=|[-+*/%&|^~<>!=;.,|=]",
+        "textColor": "0xd4d4d4"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
+        "textColor": "0xd7ba7d"
+      },
+      "Number": {
+        "regex": "\\b[0-9]+(?:\\.[0-9]+)?\\b",
+        "textColor": "0xb5cea8"
+      },
+      "Parenthesis_Start": {
+        "regex": "\\(",
+        "textColor": "0xffd700"
+      },
+      "Parenthesis_End": {
+        "regex": "\\)",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "ArrayIndex_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_Start": {
+        "regex": "\\{",
+        "textColor": "0xffd700"
+      },
+      "CodeBlock_End": {
+        "regex": "\\}",
+        "textColor": "0xffd700"
+      }
+    },
+    "trivia": {
+      "LineComment": {
+        "regex": "--[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "LineComment": {
+        "token": "LineComment"
+      },
+      "BlockComment": {
+        "astKind": "BlockComment",
+        "sequence": [
+          {
+            "token": "BlockComment_Start"
+          },
+          {
+            "token": "BlockComment_End"
+          }
+        ]
+      },
+      "Keyword": {
+        "token": "Keyword"
+      },
+      "DataType": {
+        "token": "DataType"
+      },
+      "Boolean": {
+        "token": "Boolean"
+      },
+      "BacktickIdentifier": {
+        "astKind": "BacktickIdentifier",
+        "sequence": [
+          {
+            "token": "BacktickIdentifier_Start"
+          },
+          {
+            "token": "BacktickIdentifier_End"
+          }
+        ]
+      },
+      "BracketIdentifier": {
+        "astKind": "BracketIdentifier",
+        "sequence": [
+          {
+            "token": "BracketIdentifier_Start"
+          },
+          {
+            "token": "BracketIdentifier_End"
+          }
+        ]
+      },
+      "Variable": {
+        "token": "Variable"
+      },
+      "Operator": {
+        "token": "Operator"
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "Parenthesis": {
+        "astKind": "Parenthesis",
+        "sequence": [
+          {
+            "token": "Parenthesis_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "BacktickIdentifier"
+                },
+                {
+                  "ref": "BracketIdentifier"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Parenthesis_End"
+          }
+        ]
+      },
+      "ArrayIndex": {
+        "astKind": "ArrayIndex",
+        "sequence": [
+          {
+            "token": "ArrayIndex_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "BacktickIdentifier"
+                },
+                {
+                  "ref": "BracketIdentifier"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ArrayIndex_End"
+          }
+        ]
+      },
+      "CodeBlock": {
+        "astKind": "CodeBlock",
+        "sequence": [
+          {
+            "token": "CodeBlock_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "LineComment"
+                },
+                {
+                  "ref": "BlockComment"
+                },
+                {
+                  "ref": "Keyword"
+                },
+                {
+                  "ref": "DataType"
+                },
+                {
+                  "ref": "Boolean"
+                },
+                {
+                  "ref": "BacktickIdentifier"
+                },
+                {
+                  "ref": "BracketIdentifier"
+                },
+                {
+                  "ref": "Variable"
+                },
+                {
+                  "ref": "Operator"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Parenthesis"
+                },
+                {
+                  "ref": "ArrayIndex"
+                },
+                {
+                  "ref": "CodeBlock"
+                }
+              ]
+            }
+          },
+          {
+            "token": "CodeBlock_End"
+          }
+        ]
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "LineComment"
+          },
+          {
+            "ref": "BlockComment"
+          },
+          {
+            "ref": "Keyword"
+          },
+          {
+            "ref": "DataType"
+          },
+          {
+            "ref": "Boolean"
+          },
+          {
+            "ref": "BacktickIdentifier"
+          },
+          {
+            "ref": "BracketIdentifier"
+          },
+          {
+            "ref": "Variable"
+          },
+          {
+            "ref": "Operator"
+          },
+          {
+            "ref": "SingleString"
+          },
+          {
+            "ref": "DoubleString"
+          },
+          {
+            "ref": "Number"
+          },
+          {
+            "ref": "Parenthesis"
+          },
+          {
+            "ref": "ArrayIndex"
+          },
+          {
+            "ref": "CodeBlock"
+          }
+        ]
+      }
+    }
+  }
+}

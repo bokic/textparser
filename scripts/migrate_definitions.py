@@ -184,11 +184,32 @@ def migrate_definition(v1_data):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: migrate_definitions.py <input.json | --all [dir]>")
+        print("Usage: migrate_definitions.py <input.json [output.json]> | --all [dir] [--output-dir <dir>] [--in-place]")
         sys.exit(1)
 
     if sys.argv[1] == "--all":
-        directory = sys.argv[2] if len(sys.argv) > 2 else "definitions"
+        args = sys.argv[2:]
+        directory = "definitions"
+        output_dir = None
+        in_place = False
+        i = 0
+        while i < len(args):
+            if args[i] == "--output-dir" and i + 1 < len(args):
+                output_dir = args[i + 1]
+                i += 2
+            elif args[i] == "--in-place":
+                in_place = True
+                i += 1
+            else:
+                directory = args[i]
+                i += 1
+
+        if not in_place and output_dir is None:
+            output_dir = os.path.join(directory, "schema_v2")
+
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+
         pattern = os.path.join(directory, "*_definition.json")
         files = glob.glob(pattern)
         print(f"Found {len(files)} definition files to migrate.")
@@ -200,9 +221,13 @@ def main():
                     print(f"Error reading {f}: {e}")
                     continue
             migrated = migrate_definition(data)
-            with open(f, "w", encoding="utf-8") as fp:
+            if in_place:
+                out_path = f
+            else:
+                out_path = os.path.join(output_dir, os.path.basename(f))
+            with open(out_path, "w", encoding="utf-8") as fp:
                 json.dump(migrated, fp, indent=2)
-            print(f"Migrated {f}")
+            print(f"Migrated {f} -> {out_path}")
     else:
         file_path = sys.argv[1]
         with open(file_path, "r", encoding="utf-8") as fp:

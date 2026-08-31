@@ -1,0 +1,178 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "html",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": [
+    "html",
+    "htm"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": true,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "Comment_Start": {
+        "regex": "<!--",
+        "textColor": "0x6a9955"
+      },
+      "Comment_End": {
+        "regex": "-->",
+        "textColor": "0x6a9955"
+      },
+      "Doctype": {
+        "regex": "<!doctype\\b[^>]*>",
+        "textColor": "0xc586c0"
+      },
+      "ClosingTag": {
+        "regex": "<\\/[a-zA-Z0-9:-]+\\s*>",
+        "textColor": "0x569cd6"
+      },
+      "Tag_Start": {
+        "regex": "<[a-zA-Z0-9:-]+",
+        "textColor": "0x569cd6"
+      },
+      "Tag_End": {
+        "regex": "\\/?>",
+        "textColor": "0x569cd6"
+      },
+      "DoubleString_Start": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "DoubleString_End": {
+        "regex": "\"",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_Start": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "SingleString_End": {
+        "regex": "'",
+        "textColor": "0x9e6a57"
+      },
+      "StringEscape": {
+        "regex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
+        "textColor": "0xd7ba7d"
+      },
+      "Equal": {
+        "regex": "=",
+        "textColor": "0xd4d4d4"
+      },
+      "AttributeName": {
+        "regex": "[a-zA-Z0-9:-]+",
+        "textColor": "0x9cdcfe"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "Comment": {
+        "astKind": "Comment",
+        "sequence": [
+          {
+            "token": "Comment_Start"
+          },
+          {
+            "token": "Comment_End"
+          }
+        ]
+      },
+      "Doctype": {
+        "token": "Doctype"
+      },
+      "ClosingTag": {
+        "token": "ClosingTag"
+      },
+      "Tag": {
+        "astKind": "Tag",
+        "sequence": [
+          {
+            "token": "Tag_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "DoubleString"
+                },
+                {
+                  "ref": "SingleString"
+                },
+                {
+                  "ref": "Equal"
+                },
+                {
+                  "ref": "AttributeName"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Tag_End"
+          }
+        ]
+      },
+      "DoubleString": {
+        "astKind": "DoubleString",
+        "sequence": [
+          {
+            "token": "DoubleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "DoubleString_End"
+          }
+        ]
+      },
+      "SingleString": {
+        "astKind": "SingleString",
+        "sequence": [
+          {
+            "token": "SingleString_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "SingleString_End"
+          }
+        ]
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Equal": {
+        "token": "Equal"
+      },
+      "AttributeName": {
+        "token": "AttributeName"
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "Comment"
+          },
+          {
+            "ref": "Doctype"
+          },
+          {
+            "ref": "ClosingTag"
+          },
+          {
+            "ref": "Tag"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -78,6 +78,7 @@ add_executable( unittests
   speculation_tests.cpp
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp
+  conformance_tests.cpp
 
   tokenparser.hpp
 )

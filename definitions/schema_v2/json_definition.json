@@ -1,0 +1,231 @@
+{
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
+  "name": "json",
+  "version": 1.0,
+  "caseSensitivity": false,
+  "defaultFileExtensions": [
+    "json"
+  ],
+  "defaultTextEncoding": "latin1",
+  "otherTextInside": false,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "Object_Start": {
+        "regex": "{",
+        "textColor": "0xffd700"
+      },
+      "Object_End": {
+        "regex": "}",
+        "textColor": "0xffd700"
+      },
+      "Array_Start": {
+        "regex": "\\[",
+        "textColor": "0xffd700"
+      },
+      "Array_End": {
+        "regex": "\\]",
+        "textColor": "0xffd700"
+      },
+      "Key_Start": {
+        "regex": "\\\"(?=[^\\\"\\\\\\\\]*(?:\\\\\\\\.[^\\\"\\\\\\\\]*)*\\\"\\s*:)",
+        "textColor": "0x6a9ec0"
+      },
+      "Key_End": {
+        "regex": "(\\\")\\s*:",
+        "textColor": "0x6a9ec0"
+      },
+      "String_Start": {
+        "regex": "\\\"",
+        "textColor": "0x9e6a57"
+      },
+      "String_End": {
+        "regex": "\\\"",
+        "textColor": "0x9e6a57"
+      },
+      "Number": {
+        "regex": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+        "textColor": "0xb5cea8"
+      },
+      "StringEscape": {
+        "regex": "\\\\\\\\|\\\\\\/|\\\\b|\\\\f|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-f]{4}",
+        "textColor": "0xd7ba7d"
+      },
+      "Bool": {
+        "regex": "true|false",
+        "textColor": "0x569cd6"
+      },
+      "Null": {
+        "regex": "null",
+        "textColor": "0x569cd6"
+      },
+      "ValueSeparator": {
+        "regex": ",",
+        "textColor": "0xd4d4d4"
+      },
+      "KeyValueSeparator": {
+        "regex": ":",
+        "textColor": "0xd4d4d4"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "Object": {
+        "astKind": "Object",
+        "sequence": [
+          {
+            "token": "Object_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "Key"
+                },
+                {
+                  "ref": "String"
+                },
+                {
+                  "ref": "KeyValueSeparator"
+                },
+                {
+                  "ref": "Value"
+                },
+                {
+                  "ref": "ValueSeparator"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Object_End"
+          }
+        ]
+      },
+      "Array": {
+        "astKind": "Array",
+        "sequence": [
+          {
+            "token": "Array_Start"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "String"
+                },
+                {
+                  "ref": "Number"
+                },
+                {
+                  "ref": "Object"
+                },
+                {
+                  "ref": "Array"
+                },
+                {
+                  "ref": "Bool"
+                },
+                {
+                  "ref": "Null"
+                },
+                {
+                  "ref": "ValueSeparator"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Array_End"
+          }
+        ]
+      },
+      "Value": {
+        "astKind": "Value",
+        "choice": [
+          {
+            "ref": "String"
+          },
+          {
+            "ref": "Number"
+          },
+          {
+            "ref": "Object"
+          },
+          {
+            "ref": "Array"
+          },
+          {
+            "ref": "Bool"
+          },
+          {
+            "ref": "Null"
+          }
+        ]
+      },
+      "Key": {
+        "astKind": "Key",
+        "sequence": [
+          {
+            "token": "Key_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "Key_End"
+          }
+        ]
+      },
+      "String": {
+        "astKind": "String",
+        "sequence": [
+          {
+            "token": "String_Start"
+          },
+          {
+            "repeat": {
+              "ref": "StringEscape"
+            }
+          },
+          {
+            "token": "String_End"
+          }
+        ]
+      },
+      "Number": {
+        "token": "Number"
+      },
+      "StringEscape": {
+        "token": "StringEscape"
+      },
+      "Bool": {
+        "token": "Bool"
+      },
+      "Null": {
+        "token": "Null"
+      },
+      "ValueSeparator": {
+        "token": "ValueSeparator"
+      },
+      "KeyValueSeparator": {
+        "token": "KeyValueSeparator"
+      },
+      "Root": {
+        "choice": [
+          {
+            "ref": "Object"
+          },
+          {
+            "ref": "Array"
+          }
+        ]
+      }
+    }
+  }
+}
