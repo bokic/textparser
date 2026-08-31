@@ -166,6 +166,14 @@ public:
         return textparser_get_parser_state(m_handle, out_state);
     }
 
+    int execute_production(const textparser_production *productions,
+                           size_t production_count,
+                           int start_production,
+                           textparser_match_result *out_result) const {
+        return textparser_execute_production(m_handle, productions, production_count,
+                                             start_production, out_result);
+    }
+
     const char *get_parse_error() const {
         return textparser_parse_error(m_handle);
     }
