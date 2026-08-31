@@ -76,6 +76,7 @@ add_executable( unittests
   arena_lifecycle_tests.cpp
   lexer_modes_tests.cpp
   speculation_tests.cpp
+  pratt_precedence_tests.cpp
 
   tokenparser.hpp
 )
