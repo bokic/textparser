@@ -74,6 +74,7 @@ add_executable( unittests
   token_export_tests.cpp
   schema_parity_tests.cpp
   arena_lifecycle_tests.cpp
+  lexer_modes_tests.cpp
 
   tokenparser.hpp
 )

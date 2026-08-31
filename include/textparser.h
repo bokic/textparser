@@ -839,3 +839,139 @@ EXPORT_TEXTPARSER const char *textparser_node_get_decoded_value(const textparser
  */
 EXPORT_TEXTPARSER void textparser_node_set_decoded_value(textparser_node *node, const char *value);
 
+/* -------------------------------------------------------------------------
+ * Phase 3: Lexer Modes, Goals, Decoders & Validators
+ * ------------------------------------------------------------------------- */
+
+typedef char *(*textparser_decoder_fn)(
+    textparser_t parser,
+    const char *raw_text,
+    size_t length,
+    void *user_data
+);
+
+typedef bool (*textparser_validator_fn)(
+    textparser_t parser,
+    const char *raw_text,
+    size_t length,
+    const char **out_error,
+    void *user_data
+);
+
+/**
+ * Register a custom token value decoder (e.g. "ecmascript.identifier", "ecmascript.stringLiteral").
+ *
+ * @param handle The parser handle.
+ * @param name Unique name of decoder.
+ * @param decoder Function pointer returning allocated decoded string (or NULL).
+ * @param user_data User data passed to decoder.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_register_decoder(
+    textparser_t handle,
+    const char *name,
+    textparser_decoder_fn decoder,
+    void *user_data
+);
+
+/**
+ * Register a custom token validator (e.g. "ecmascript.numericLiteral").
+ *
+ * @param handle The parser handle.
+ * @param name Unique name of validator.
+ * @param validator Function pointer returning true if valid, false otherwise.
+ * @param user_data User data passed to validator.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_register_validator(
+    textparser_t handle,
+    const char *name,
+    textparser_validator_fn validator,
+    void *user_data
+);
+
+/**
+ * Decode a token text using a registered decoder name.
+ *
+ * @param handle The parser handle.
+ * @param decoder_name Registered decoder name.
+ * @param raw_text Raw token slice.
+ * @param length Length of raw slice.
+ * @return Decoded string or NULL.
+ */
+EXPORT_TEXTPARSER char *textparser_decode_token(
+    textparser_t handle,
+    const char *decoder_name,
+    const char *raw_text,
+    size_t length
+);
+
+/**
+ * Validate a token text using a registered validator name.
+ *
+ * @param handle The parser handle.
+ * @param validator_name Registered validator name.
+ * @param raw_text Raw token slice.
+ * @param length Length of raw slice.
+ * @param out_error Output error message pointer.
+ * @return True if valid, false if invalid.
+ */
+EXPORT_TEXTPARSER bool textparser_validate_token(
+    textparser_t handle,
+    const char *validator_name,
+    const char *raw_text,
+    size_t length,
+    const char **out_error
+);
+
+/**
+ * Push a transient lexical mode onto the mode stack.
+ *
+ * @param handle The parser handle.
+ * @param mode_name Mode name to activate.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_push_mode(textparser_t handle, const char *mode_name);
+
+/**
+ * Pop the topmost transient lexical mode from the mode stack.
+ *
+ * @param handle The parser handle.
+ * @return 0 on success, non-zero if stack was empty.
+ */
+EXPORT_TEXTPARSER int textparser_pop_mode(textparser_t handle);
+
+/**
+ * Get current active lexical mode name.
+ *
+ * @param handle The parser handle.
+ * @return Current mode name (defaults to "default" if stack is empty).
+ */
+EXPORT_TEXTPARSER const char *textparser_get_current_mode(textparser_t handle);
+
+/**
+ * Set the contextual lexical goal for the next scanned token.
+ *
+ * @param handle The parser handle.
+ * @param goal_name Goal name (e.g. "ExpressionStart", "ExpressionContinuation", or NULL to clear).
+ */
+EXPORT_TEXTPARSER void textparser_set_lexical_goal(textparser_t handle, const char *goal_name);
+
+/**
+ * Get the current contextual lexical goal.
+ *
+ * @param handle The parser handle.
+ * @return Active goal name or NULL.
+ */
+EXPORT_TEXTPARSER const char *textparser_get_lexical_goal(textparser_t handle);
+
+/**
+ * Check if trivia (whitespace, line terminators, comments) between two offsets contains a line terminator.
+ *
+ * @param handle The parser handle.
+ * @param start_pos Starting byte offset.
+ * @param end_pos Ending byte offset.
+ * @return True if a line terminator (\r, \n, \u2028, \u2029) is present within the span.
+ */
+EXPORT_TEXTPARSER bool textparser_has_line_terminator_between(textparser_t handle, size_t start_pos, size_t end_pos);
+
