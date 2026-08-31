@@ -319,5 +319,20 @@
       "_type"
     ],
     "castToken": "TypeCast"
+  },
+  "declarationDisambiguation": {
+    "identifierToken": "Variable",
+    "typeNameToken": "TypeName",
+    "functionToken": "Function",
+    "parameterListToken": "Parenthesis",
+    "returnTypeTokens": [
+      "DataType",
+      "TaggedType",
+      "TypeName",
+      "Variable"
+    ],
+    "declaratorTokens": [
+      "Operator"
+    ]
   }
 }
