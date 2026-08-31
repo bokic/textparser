@@ -2,6 +2,13 @@
 
 TextParser is a high-performance, extensible text parsing library written in C. It uses regular expressions to define language grammars and generates a hierarchical Abstract Syntax Tree (AST) for parsed documents.
 
+Successful parses publish immutable, handle-owned lexer token and trivia
+streams through `textparser_get_lexer_tokens()` and
+`textparser_get_lexer_trivia()`. Syntax tokens contain half-open source spans
+and indexes into their leading trivia; trivia records whether its span contains
+a line terminator. The arrays remain valid until the next parse, text update,
+or parser close. Incremental parsing replaces the complete snapshot.
+
 For C, post-processing uses declaration context in function parameter lists to
 classify identifier-shaped types imported through headers. For example, in
 `adv_regex_context *ctx`, `adv_regex_context` becomes `TypeName` while `ctx`

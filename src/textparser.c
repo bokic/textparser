@@ -154,7 +154,24 @@ struct textparser_handle {
     textparser_diagnostic *diagnostics;
     size_t diagnostic_count;
     size_t diagnostic_capacity;
+
+    /* Immutable lexer snapshot for the latest successful parse. */
+    textparser_lex_token *lexer_tokens;
+    size_t lexer_token_count;
+    textparser_lex_trivia *lexer_trivia;
+    size_t lexer_trivia_count;
 };
+
+static void textparser_clear_lexer_streams(struct textparser_handle *handle)
+{
+    if (handle == nullptr) return;
+    free(handle->lexer_tokens);
+    free(handle->lexer_trivia);
+    handle->lexer_tokens = nullptr;
+    handle->lexer_token_count = 0;
+    handle->lexer_trivia = nullptr;
+    handle->lexer_trivia_count = 0;
+}
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
 {
@@ -2454,6 +2471,8 @@ EXPORT_TEXTPARSER int textparser_set_text(textparser_t handle, const char *text,
         handle->no_lines = 0;
     }
 
+    textparser_clear_lexer_streams(handle);
+
     if (handle->owned_buffer && handle->owned_buffer != text) {
         free(handle->owned_buffer);
         handle->owned_buffer = nullptr;
@@ -2486,6 +2505,8 @@ void textparser_close(textparser_t handle)
 
     if (handle == nullptr)
         return;
+
+    textparser_clear_lexer_streams(handle);
 
     textparser_free_regex(handle);
 
@@ -2699,6 +2720,113 @@ int textparser_parse(textparser_t handle, const textparser_language_definition *
     return textparser_parse_incremental(handle, definition, 0, textparser_get_total_units(handle), handle->text_addr, textparser_get_total_units(handle), nullptr);
 }
 
+typedef struct {
+    textparser_lex_token *tokens;
+    size_t token_count;
+    size_t token_capacity;
+    textparser_lex_trivia *trivia;
+    size_t trivia_count;
+    size_t trivia_capacity;
+    size_t pending_trivia_start;
+} textparser_lexer_stream_builder;
+
+static bool textparser_lexer_builder_reserve_tokens(textparser_lexer_stream_builder *builder)
+{
+    if (builder->token_count < builder->token_capacity) return true;
+    size_t capacity = builder->token_capacity == 0 ? 32 : builder->token_capacity * 2;
+    textparser_lex_token *items = realloc(builder->tokens, capacity * sizeof(*items));
+    if (items == nullptr) return false;
+    builder->tokens = items;
+    builder->token_capacity = capacity;
+    return true;
+}
+
+static bool textparser_lexer_builder_reserve_trivia(textparser_lexer_stream_builder *builder)
+{
+    if (builder->trivia_count < builder->trivia_capacity) return true;
+    size_t capacity = builder->trivia_capacity == 0 ? 32 : builder->trivia_capacity * 2;
+    textparser_lex_trivia *items = realloc(builder->trivia, capacity * sizeof(*items));
+    if (items == nullptr) return false;
+    builder->trivia = items;
+    builder->trivia_capacity = capacity;
+    return true;
+}
+
+static uint32_t textparser_lexer_span_flags(
+    const struct textparser_handle *handle,
+    size_t start,
+    size_t end)
+{
+    for (size_t pos = start; pos < end; pos++) {
+        uint32_t ch = textparser_get_unit_at(handle, pos);
+        if (ch == '\n' || ch == '\r' || ch == 0x2028 || ch == 0x2029) {
+            return TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR;
+        }
+    }
+    return 0;
+}
+
+static bool textparser_collect_lexer_streams(
+    const struct textparser_handle *handle,
+    const textparser_token_item *node,
+    size_t node_start,
+    textparser_lexer_stream_builder *builder)
+{
+    const textparser_token_item *curr = node;
+    size_t pos = node_start;
+    while (curr != nullptr) {
+        size_t end = pos + curr->len;
+        if (curr->child != nullptr) {
+            if (!textparser_collect_lexer_streams(handle, curr->child, pos, builder)) return false;
+        } else if (curr->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE ||
+                   (curr->node_flags & TEXTPARSER_NODE_TRIVIA) != 0) {
+            if (!textparser_lexer_builder_reserve_trivia(builder)) return false;
+            textparser_lex_trivia *trivia = &builder->trivia[builder->trivia_count++];
+            trivia->kind = curr->token_id;
+            trivia->start = pos;
+            trivia->end = end;
+            trivia->flags = textparser_lexer_span_flags(handle, pos, end);
+        } else {
+            if (!textparser_lexer_builder_reserve_tokens(builder)) return false;
+            textparser_lex_token *token = &builder->tokens[builder->token_count++];
+            token->kind = curr->token_id;
+            token->start = pos;
+            token->end = end;
+            token->leading_trivia_start = builder->pending_trivia_start;
+            token->leading_trivia_count = builder->trivia_count - builder->pending_trivia_start;
+            token->mode = 0;
+            token->lexical_goal = 0;
+            token->flags = 0;
+            for (size_t i = builder->pending_trivia_start; i < builder->trivia_count; i++) {
+                token->flags |= builder->trivia[i].flags;
+            }
+            token->decoded_value = curr->decoded_value;
+            builder->pending_trivia_start = builder->trivia_count;
+        }
+        pos = end;
+        curr = curr->next;
+    }
+    return true;
+}
+
+static int textparser_rebuild_lexer_streams(struct textparser_handle *handle)
+{
+    textparser_lexer_stream_builder builder = {0};
+    if (!textparser_collect_lexer_streams(handle, handle->first_item, 0, &builder)) {
+        free(builder.tokens);
+        free(builder.trivia);
+        textparser_clear_lexer_streams(handle);
+        return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+    }
+
+    textparser_clear_lexer_streams(handle);
+    handle->lexer_tokens = builder.tokens;
+    handle->lexer_token_count = builder.token_count;
+    handle->lexer_trivia = builder.trivia;
+    handle->lexer_trivia_count = builder.trivia_count;
+    return TEXTPARSER_OK;
+}
+
 EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                                                    const textparser_language_definition *definition,
                                                    size_t edit_offset,
@@ -2709,6 +2837,8 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
 {
     if (handle == nullptr || definition == nullptr)
         return -1;
+
+    textparser_clear_lexer_streams(handle);
 
     // Reset error state
     handle->error = nullptr;
@@ -3082,7 +3212,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         handle->no_lines = 0;
     }
 
-    return 0;
+    return textparser_rebuild_lexer_streams(handle);
 }
 
 static bool get_operator_info(
@@ -4749,6 +4879,24 @@ EXPORT_TEXTPARSER int textparser_export_tokens(const textparser_t handle, textpa
     return 0;
 }
 
+EXPORT_TEXTPARSER const textparser_lex_token *textparser_get_lexer_tokens(
+    const textparser_t handle,
+    size_t *out_count)
+{
+    if (out_count == nullptr) return nullptr;
+    *out_count = handle ? handle->lexer_token_count : 0;
+    return handle ? handle->lexer_tokens : nullptr;
+}
+
+EXPORT_TEXTPARSER const textparser_lex_trivia *textparser_get_lexer_trivia(
+    const textparser_t handle,
+    size_t *out_count)
+{
+    if (out_count == nullptr) return nullptr;
+    *out_count = handle ? handle->lexer_trivia_count : 0;
+    return handle ? handle->lexer_trivia : nullptr;
+}
+
 EXPORT_TEXTPARSER int textparser_export_tokens_range(const textparser_t handle, size_t start_pos, size_t end_pos, textparser_token_range *buffer, size_t max_tokens, size_t *out_count)
 {
     if (handle == nullptr || out_count == nullptr)
@@ -5456,4 +5604,3 @@ EXPORT_TEXTPARSER int textparser_recover_until_token(
     *out_new_offset = total_units;
     return -1; // Reached EOF without matching sync token
 }
-
