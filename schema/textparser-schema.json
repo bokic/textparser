@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://textparser.org/schema/v2/textparser-schema.json",
+  "title": "TextParser Language Definition Schema (v2)",
+  "description": "Unified declarative grammar and lexer definition schema for TextParser compiler-grade parsing engine.",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "integer",
+      "description": "Schema format version (2 for unified compiler-grade parser).",
+      "enum": [2]
+    },
+    "name": {
+      "type": "string",
+      "description": "Unique identifier name of the language definition."
+    },
+    "version": {
+      "type": ["string", "number"],
+      "description": "Language or specification version (e.g. 2.0 or '7.0')."
+    },
+    "languageVersion": {
+      "type": "string",
+      "description": "Explicit language profile version string."
+    },
+    "caseSensitivity": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultFileExtensions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "defaultTextEncoding": {
+      "type": "string",
+      "enum": ["latin1", "utf-8", "unicode", "utf-16", "utf-32", "none"],
+      "default": "utf-8"
+    },
+    "supportedBom": {
+      "type": ["string", "array"],
+      "description": "Comma-separated string or array of supported BOM encodings."
+    },
+    "SupportedBom": {
+      "type": "string",
+      "description": "Legacy alias for supportedBom."
+    },
+    "otherTextInside": {
+      "type": "boolean",
+      "default": false
+    },
+    "includes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of shared definition fragment files included at build/load time."
+    },
+    "lexer": {
+      "type": "object",
+      "description": "Lexer specifications including tokens, modes, goals, and trivia.",
+      "properties": {
+        "initialMode": {
+          "type": "string",
+          "default": "default"
+        },
+        "tokens": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/lexerToken" }
+        },
+        "trivia": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/triviaToken" }
+        },
+        "modes": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/lexerMode" }
+        },
+        "goals": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/lexerGoal" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "grammar": {
+      "type": "object",
+      "description": "Declarative grammar productions and context declarations.",
+      "properties": {
+        "start": {
+          "type": "string",
+          "description": "Name of the root production."
+        },
+        "contexts": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/grammarContext" }
+        },
+        "productions": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/production" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "recovery": {
+      "type": "object",
+      "description": "Global and production-level error recovery policies.",
+      "properties": {
+        "maximumDiagnostics": {
+          "type": "integer",
+          "default": 100
+        },
+        "maximumSkippedTokens": {
+          "type": "integer",
+          "default": 256
+        },
+        "synchronizationTokens": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "operators": {
+      "type": "array",
+      "description": "Explicit operator roles, binding powers, and precedence tables.",
+      "items": { "$ref": "#/$defs/operatorRule" }
+    },
+    "features": {
+      "type": "object",
+      "description": "Version gates and feature flags.",
+      "additionalProperties": { "$ref": "#/$defs/featureGate" }
+    },
+    "directives": {
+      "type": "object",
+      "description": "Declarative pragma, shebang, and comment directives.",
+      "additionalProperties": { "$ref": "#/$defs/directiveRule" }
+    }
+  },
+  "$defs": {
+    "colorOrHex": {
+      "type": ["string", "integer"],
+      "description": "RGB/RGBA color integer or hex string (e.g. 0xff0000 or '#ff0000')."
+    },
+    "lexerToken": {
+      "type": "object",
+      "properties": {
+        "regex": { "type": "string" },
+        "literal": { "type": "string" },
+        "keyword": { "type": "boolean", "default": false },
+        "priority": { "type": "integer", "default": 0 },
+        "pushMode": { "type": "string" },
+        "popMode": { "type": "boolean" },
+        "valueDecoder": { "type": "string" },
+        "validator": { "type": "string" },
+        "textColor": { "$ref": "#/$defs/colorOrHex" },
+        "textBackground": { "$ref": "#/$defs/colorOrHex" },
+        "textFlags": { "type": ["string", "integer"] }
+      },
+      "additionalProperties": false
+    },
+    "triviaToken": {
+      "type": "object",
+      "properties": {
+        "regex": { "type": "string" },
+        "literal": { "type": "string" },
+        "start": { "type": "string" },
+        "end": { "type": "string" },
+        "containsLineTerminator": { "type": "boolean", "default": false },
+        "detectLineTerminators": { "type": "boolean", "default": false },
+        "textColor": { "$ref": "#/$defs/colorOrHex" },
+        "textBackground": { "$ref": "#/$defs/colorOrHex" },
+        "textFlags": { "type": ["string", "integer"] }
+      },
+      "additionalProperties": false
+    },
+    "lexerMode": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "trivia": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "lexerGoal": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "grammarContext": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["boolean", "integer", "string"] },
+        "default": {}
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "production": {
+      "type": "object",
+      "properties": {
+        "astKind": { "type": "string" },
+        "token": { "type": "string" },
+        "ref": { "type": "string" },
+        "sequence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/construct" }
+        },
+        "choice": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/construct" }
+        },
+        "optional": { "$ref": "#/$defs/construct" },
+        "repeat": { "$ref": "#/$defs/construct" },
+        "oneOrMore": { "$ref": "#/$defs/construct" },
+        "separatedBy": { "$ref": "#/$defs/separatedByConstruct" },
+        "lookahead": { "$ref": "#/$defs/construct" },
+        "not": { "$ref": "#/$defs/construct" },
+        "commit": { "type": "boolean" },
+        "when": { "$ref": "#/$defs/guardCondition" },
+        "withContext": { "$ref": "#/$defs/withContextConstruct" },
+        "speculate": { "$ref": "#/$defs/speculateConstruct" },
+        "events": { "$ref": "#/$defs/productionEvents" },
+        "recoverUntil": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "construct": {
+      "type": "object",
+      "properties": {
+        "token": { "type": "string" },
+        "ref": { "type": "string" },
+        "sequence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/construct" }
+        },
+        "choice": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/construct" }
+        },
+        "optional": { "$ref": "#/$defs/construct" },
+        "repeat": { "$ref": "#/$defs/construct" },
+        "oneOrMore": { "$ref": "#/$defs/construct" },
+        "separatedBy": { "$ref": "#/$defs/separatedByConstruct" },
+        "lookahead": { "$ref": "#/$defs/construct" },
+        "not": { "$ref": "#/$defs/construct" },
+        "commit": { "type": "boolean" },
+        "priority": { "type": "integer" },
+        "when": { "$ref": "#/$defs/guardCondition" },
+        "withContext": { "$ref": "#/$defs/withContextConstruct" },
+        "speculate": { "$ref": "#/$defs/speculateConstruct" },
+        "lineTerminatorBefore": { "type": "boolean" },
+        "noLineTerminatorBefore": { "type": "boolean" },
+        "lineTerminatorAfter": { "type": "boolean" },
+        "noLineTerminatorAfter": { "type": "boolean" },
+        "expect": { "type": "string" },
+        "recover": { "$ref": "#/$defs/recoverAction" }
+      },
+      "additionalProperties": false
+    },
+    "separatedByConstruct": {
+      "type": "object",
+      "properties": {
+        "element": { "$ref": "#/$defs/construct" },
+        "separator": { "$ref": "#/$defs/construct" },
+        "minimum": { "type": "integer", "default": 0 },
+        "allowTrailing": { "type": "boolean", "default": false }
+      },
+      "required": ["element", "separator"],
+      "additionalProperties": false
+    },
+    "withContextConstruct": {
+      "type": "object",
+      "properties": {
+        "set": { "type": "object" },
+        "ref": { "type": "string" },
+        "sequence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/construct" }
+        }
+      },
+      "required": ["set"],
+      "additionalProperties": false
+    },
+    "speculateConstruct": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/construct" }
+        },
+        "onSuccess": {
+          "type": "object",
+          "properties": {
+            "commitAs": { "type": "string" }
+          }
+        }
+      },
+      "required": ["sequence"],
+      "additionalProperties": false
+    },
+    "guardCondition": {
+      "type": "object",
+      "properties": {
+        "context": { "type": "string" },
+        "equals": {},
+        "feature": { "type": "string" },
+        "sourceFileKind": { "type": "string" },
+        "lineTerminatorBefore": { "type": "boolean" },
+        "noLineTerminatorBefore": { "type": "boolean" },
+        "previousTokenCanEndExpression": { "type": "boolean" },
+        "nextToken": { "type": "string" },
+        "nextTokenIn": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "languageVersionAtLeast": { "type": "string" },
+        "native": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "recoverAction": {
+      "type": "object",
+      "properties": {
+        "insert": { "type": "string" },
+        "skip": { "type": "boolean" },
+        "replace": { "type": "string" },
+        "event": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "productionEvents": {
+      "type": "object",
+      "properties": {
+        "onValidate": { "type": ["string", "object"] },
+        "onCommit": { "type": ["string", "object"] },
+        "onRecovery": { "type": ["string", "object"] }
+      },
+      "additionalProperties": false
+    },
+    "operatorRule": {
+      "type": "object",
+      "required": ["token"],
+      "properties": {
+        "token": { "type": "string" },
+        "role": { "type": "string", "enum": ["prefix", "infix", "postfix", "ternary"] },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["prefix", "infix", "postfix", "ternary"] }
+        },
+        "precedence": { "type": "integer" },
+        "prefixPrecedence": { "type": "integer" },
+        "infixPrecedence": { "type": "integer" },
+        "postfixPrecedence": { "type": "integer" },
+        "associativity": { "type": "string", "enum": ["left", "right"], "default": "left" },
+        "middleTerminator": { "type": "string" },
+        "astKind": { "type": "string" },
+        "postfixCondition": { "$ref": "#/$defs/guardCondition" }
+      },
+      "additionalProperties": false
+    },
+    "featureGate": {
+      "type": "object",
+      "properties": {
+        "minimumVersion": { "type": "string" },
+        "maximumVersion": { "type": "string" },
+        "enabledByDefault": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    },
+    "directiveRule": {
+      "type": "object",
+      "properties": {
+        "token": { "type": "string" },
+        "allowedAt": { "type": "string", "enum": ["startOfFile", "anywhere"] },
+        "allowedBeforeFirstStatement": { "type": "boolean" },
+        "appliesTo": { "type": "string" },
+        "requiresConsumedDiagnostic": { "type": "boolean" },
+        "handler": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -36,15 +36,18 @@ SUPPORTED_BOM_ITEMS = {
 
 
 def bom_mask_to_c_string(root):
-    if "SupportedBom" not in root:
+    supported_bom = root.get("supportedBom") or root.get("SupportedBom")
+    if not supported_bom:
         return "0"
 
-    supported_bom = root["SupportedBom"]
-    if not isinstance(supported_bom, str):
-        print("SupportedBom must be a comma-separated string.")
+    if isinstance(supported_bom, list):
+        items = [str(item).strip() for item in supported_bom]
+    elif isinstance(supported_bom, str):
+        items = [item.strip() for item in supported_bom.split(",")]
+    else:
+        print("supportedBom must be a comma-separated string or array of strings.")
         exit(1)
 
-    items = [item.strip() for item in supported_bom.split(",")]
     if len(items) == 0 or (len(items) == 1 and items[0] == ""):
         return "0"
 
@@ -53,7 +56,7 @@ def bom_mask_to_c_string(root):
         normalized = item.lower()
         if normalized not in SUPPORTED_BOM_ITEMS:
             valid = ", ".join(sorted(SUPPORTED_BOM_ITEMS.keys()))
-            print("Invalid SupportedBom item [" + item + "]. Valid options are: " + valid)
+            print("Invalid supportedBom item [" + item + "]. Valid options are: " + valid)
             exit(1)
         constants.append(SUPPORTED_BOM_ITEMS[normalized])
 

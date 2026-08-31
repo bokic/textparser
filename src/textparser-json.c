@@ -243,6 +243,55 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         (*definition)->default_text_encoding = TEXTPARSER_ENCODING_LATIN1;
     }
 
+    /* Parse supportedBom / SupportedBom */
+    json_object *bom_val = nullptr;
+    if (!json_object_object_get_ex(root_obj, "supportedBom", &bom_val)) {
+        json_object_object_get_ex(root_obj, "SupportedBom", &bom_val);
+    }
+    if (bom_val != nullptr) {
+        int bom_mask = 0;
+        if (json_object_is_type(bom_val, json_type_string)) {
+            const char *bom_str = json_object_get_string(bom_val);
+            if (bom_str != nullptr) {
+                char *str_copy = strdup(bom_str);
+                if (str_copy != nullptr) {
+                    char *saveptr = nullptr;
+                    char *token = strtok_r(str_copy, ",", &saveptr);
+                    while (token != nullptr) {
+                        while (*token == ' ' || *token == '\t') token++;
+                        char *end = token + strlen(token) - 1;
+                        while (end > token && (*end == ' ' || *end == '\t')) { *end = '\0'; end--; }
+
+                        if (strcasecmp(token, "utf-8") == 0) bom_mask |= TEXTPARSER_BOM_UTF_8;
+                        else if (strcasecmp(token, "utf-16-be") == 0) bom_mask |= TEXTPARSER_BOM_UTF_16_BE;
+                        else if (strcasecmp(token, "utf-16-le") == 0) bom_mask |= TEXTPARSER_BOM_UTF_16_LE;
+                        else if (strcasecmp(token, "utf-32-be") == 0) bom_mask |= TEXTPARSER_BOM_UTF_32_BE;
+                        else if (strcasecmp(token, "utf-32-le") == 0) bom_mask |= TEXTPARSER_BOM_UTF_32_LE;
+
+                        token = strtok_r(nullptr, ",", &saveptr);
+                    }
+                    free(str_copy);
+                }
+            }
+        } else if (json_object_is_type(bom_val, json_type_array)) {
+            int bom_cnt = json_object_array_length(bom_val);
+            for (int b = 0; b < bom_cnt; b++) {
+                json_object *b_item = json_object_array_get_idx(bom_val, b);
+                if (b_item && json_object_is_type(b_item, json_type_string)) {
+                    const char *token = json_object_get_string(b_item);
+                    if (strcasecmp(token, "utf-8") == 0) bom_mask |= TEXTPARSER_BOM_UTF_8;
+                    else if (strcasecmp(token, "utf-16-be") == 0) bom_mask |= TEXTPARSER_BOM_UTF_16_BE;
+                    else if (strcasecmp(token, "utf-16-le") == 0) bom_mask |= TEXTPARSER_BOM_UTF_16_LE;
+                    else if (strcasecmp(token, "utf-32-be") == 0) bom_mask |= TEXTPARSER_BOM_UTF_32_BE;
+                    else if (strcasecmp(token, "utf-32-le") == 0) bom_mask |= TEXTPARSER_BOM_UTF_32_LE;
+                }
+            }
+        }
+        (*definition)->supported_bom = bom_mask;
+    } else {
+        (*definition)->supported_bom = 0;
+    }
+
     found = json_object_object_get_ex(root_obj, "startTokens", &value);
     if (!found) {
         (*definition)->error_string = "Mandatory field `startTokens` is missing!";

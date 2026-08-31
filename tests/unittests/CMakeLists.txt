@@ -72,6 +72,7 @@ add_executable( unittests
   incremental_tests.cpp
   structural_tests.cpp
   token_export_tests.cpp
+  schema_parity_tests.cpp
 
   tokenparser.hpp
 )
