@@ -301,6 +301,34 @@ void caller(void) {
     EXPECT_FALSE(type_names.contains("right"));
 }
 
+TEST(parse_C, format_specifiers_inside_string_literals) {
+    auto tokens = TextParser(R"c(
+printf("d=%d hex=%#08x size=%zu byte=%hhd wide=%Lf binary=%b text=%.*s percent=%% positional=%2$*3$.*4$f bad=%q tail=%");
+)c", &c_definition);
+
+    std::set<std::string> specifiers;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "FormatSpecifier") == 0) {
+            specifiers.insert(item.value);
+        }
+        for (size_t i = 0; i < item.children; ++i) scan(item[i]);
+    };
+    for (size_t i = 0; i < tokens.count; ++i) scan(tokens[i]);
+
+    EXPECT_TRUE(specifiers.contains("%d"));
+    EXPECT_TRUE(specifiers.contains("%#08x"));
+    EXPECT_TRUE(specifiers.contains("%zu"));
+    EXPECT_TRUE(specifiers.contains("%hhd"));
+    EXPECT_TRUE(specifiers.contains("%Lf"));
+    EXPECT_TRUE(specifiers.contains("%b"));
+    EXPECT_TRUE(specifiers.contains("%.*s"));
+    EXPECT_TRUE(specifiers.contains("%%"));
+    EXPECT_TRUE(specifiers.contains("%2$*3$.*4$f"));
+    EXPECT_FALSE(specifiers.contains("%q"));
+    EXPECT_FALSE(specifiers.contains("%"));
+    EXPECT_EQ(specifiers.size(), 9u);
+}
+
 TEST(parse_C, token_colors_distinct) {
     // Verify that key token types have distinct and modern colors defined
     auto find_token = [](const char *name) -> const textparser_token * {
