@@ -77,6 +77,7 @@ add_executable( unittests
   lexer_modes_tests.cpp
   speculation_tests.cpp
   pratt_precedence_tests.cpp
+  diagnostic_recovery_tests.cpp
 
   tokenparser.hpp
 )

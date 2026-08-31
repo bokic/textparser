@@ -149,6 +149,11 @@ struct textparser_handle {
     textparser_operator_def *operators;
     size_t operator_count;
     size_t operator_capacity;
+
+    /* Phase 6: Multi-Diagnostic Vector */
+    textparser_diagnostic *diagnostics;
+    size_t diagnostic_count;
+    size_t diagnostic_capacity;
 };
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -2583,6 +2588,18 @@ void textparser_close(textparser_t handle)
     }
     handle->operator_count = 0;
     handle->operator_capacity = 0;
+
+    /* Free diagnostic vector */
+    if (handle->diagnostics) {
+        for (size_t d = 0; d < handle->diagnostic_count; d++) {
+            if (handle->diagnostics[d].code) free((void *)handle->diagnostics[d].code);
+            if (handle->diagnostics[d].message) free((void *)handle->diagnostics[d].message);
+        }
+        free(handle->diagnostics);
+        handle->diagnostics = nullptr;
+    }
+    handle->diagnostic_count = 0;
+    handle->diagnostic_capacity = 0;
 
     free(handle);
 }
@@ -5279,6 +5296,109 @@ EXPORT_TEXTPARSER int textparser_parse_pratt_expression(
     (void)min_precedence;
     *out_node = root;
     return 0;
+}
+
+/* -------------------------------------------------------------------------
+ * Phase 6: Error Recovery & Diagnostic Engine Implementations
+ * ------------------------------------------------------------------------- */
+
+EXPORT_TEXTPARSER int textparser_report_diagnostic(
+    textparser_t handle,
+    textparser_diagnostic_severity severity,
+    const char *code,
+    const char *message,
+    size_t start_pos,
+    size_t length)
+{
+    if (handle == nullptr || message == nullptr) {
+        return -1;
+    }
+
+    if (handle->diagnostic_count >= handle->diagnostic_capacity) {
+        size_t new_cap = handle->diagnostic_capacity == 0 ? 8 : handle->diagnostic_capacity * 2;
+        textparser_diagnostic *new_diag = realloc(handle->diagnostics, new_cap * sizeof(textparser_diagnostic));
+        if (new_diag == nullptr) {
+            return -1;
+        }
+        handle->diagnostics = new_diag;
+        handle->diagnostic_capacity = new_cap;
+    }
+
+    textparser_diagnostic *diag = &handle->diagnostics[handle->diagnostic_count++];
+    diag->severity = severity;
+    diag->code = code ? strdup(code) : nullptr;
+    diag->message = strdup(message);
+    diag->start_pos = start_pos;
+    diag->length = length;
+    
+    if (handle->lines == nullptr && handle->text_addr != nullptr && handle->text_size > 0) {
+        textparser_build_line_map(handle);
+    }
+    size_t line_no = textparser_get_line_number_at_position(handle, start_pos);
+    size_t line_start = textparser_get_line_start_position(handle, line_no);
+    diag->line = (uint32_t)line_no;
+    diag->column = (start_pos >= line_start) ? (uint32_t)(start_pos - line_start) : 0;
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER size_t textparser_get_diagnostic_count(textparser_t handle)
+{
+    return handle ? handle->diagnostic_count : 0;
+}
+
+EXPORT_TEXTPARSER int textparser_get_diagnostic(
+    textparser_t handle,
+    size_t index,
+    textparser_diagnostic *out_diagnostic)
+{
+    if (handle == nullptr || out_diagnostic == nullptr || index >= handle->diagnostic_count) {
+        return -1;
+    }
+
+    *out_diagnostic = handle->diagnostics[index];
+    return 0;
+}
+
+EXPORT_TEXTPARSER void textparser_clear_diagnostics(textparser_t handle)
+{
+    if (handle == nullptr || handle->diagnostics == nullptr) return;
+
+    for (size_t d = 0; d < handle->diagnostic_count; d++) {
+        if (handle->diagnostics[d].code) free((void *)handle->diagnostics[d].code);
+        if (handle->diagnostics[d].message) free((void *)handle->diagnostics[d].message);
+    }
+    handle->diagnostic_count = 0;
+}
+
+EXPORT_TEXTPARSER int textparser_recover_until_token(
+    textparser_t handle,
+    const int *sync_tokens,
+    size_t current_offset,
+    size_t *out_new_offset)
+{
+    if (handle == nullptr || sync_tokens == nullptr || out_new_offset == nullptr) {
+        return -1;
+    }
+
+    size_t total_units = textparser_get_total_units(handle);
+    size_t offset = current_offset;
+
+    while (offset < total_units) {
+        for (int i = 0; sync_tokens[i] != TextParser_END && sync_tokens[i] != -1; i++) {
+            ssize_t found = textparser_find_token(handle, sync_tokens[i], offset, false, nullptr, nullptr);
+            if (found == 0) {
+                *out_new_offset = offset;
+                return 0;
+            }
+        }
+        size_t char_len = textparser_char_len(handle, offset);
+        if (char_len == 0) char_len = 1;
+        offset += char_len;
+    }
+
+    *out_new_offset = total_units;
+    return -1; // Reached EOF without matching sync token
 }
 
 
