@@ -96,6 +96,16 @@ typedef struct textparser_context_entry {
 
 #define TEXTPARSER_MAX_MODE_STACK 64
 
+typedef struct {
+    textparser_t owner;
+    const textparser_language_definition *language;
+    size_t source_offset;
+    size_t token_index;
+    size_t pending_event_count;
+    unsigned speculation_depth;
+    unsigned recovery_depth;
+} textparser_parser_runtime;
+
 struct textparser_handle {
     const textparser_language_definition *language;
     adv_regex_context *regex_ctx;
@@ -160,6 +170,9 @@ struct textparser_handle {
     size_t lexer_token_count;
     textparser_lex_trivia *lexer_trivia;
     size_t lexer_trivia_count;
+
+    /* Shared transactional state used by all grammar operations. */
+    textparser_parser_runtime parser;
 };
 
 static void textparser_clear_lexer_streams(struct textparser_handle *handle)
@@ -386,25 +399,23 @@ static void free_arena(struct textparser_handle *handle)
 typedef struct {
     size_t chunk_index;
     size_t chunk_used;
+    size_t chunk_count;
     size_t token_count;
     uint64_t next_node_id;
-    size_t mode_stack_depth;
-    char *saved_lexical_goal;
-} textparser_checkpoint_t;
+} textparser_arena_checkpoint;
 
-static inline textparser_checkpoint_t textparser_checkpoint_save(const struct textparser_handle *handle)
+static inline textparser_arena_checkpoint textparser_arena_checkpoint_save(const struct textparser_handle *handle)
 {
-    textparser_checkpoint_t cp;
+    textparser_arena_checkpoint cp;
     cp.chunk_index = handle->current_chunk_index;
     cp.chunk_used = handle->current_chunk_used;
+    cp.chunk_count = handle->chunk_count;
     cp.token_count = handle->token_count;
     cp.next_node_id = handle->next_node_id;
-    cp.mode_stack_depth = handle->mode_stack_depth;
-    cp.saved_lexical_goal = handle->lexical_goal ? strdup(handle->lexical_goal) : nullptr;
     return cp;
 }
 
-static inline void textparser_checkpoint_restore(struct textparser_handle *handle, const textparser_checkpoint_t *cp)
+static inline void textparser_arena_checkpoint_restore(struct textparser_handle *handle, const textparser_arena_checkpoint *cp)
 {
     handle->current_chunk_index = cp->chunk_index;
     if (handle->chunks && cp->chunk_index < handle->chunk_count) {
@@ -415,23 +426,6 @@ static inline void textparser_checkpoint_restore(struct textparser_handle *handl
     handle->current_chunk_used = cp->chunk_used;
     handle->token_count = cp->token_count;
     handle->next_node_id = cp->next_node_id;
-
-    /* Rewind mode stack if necessary */
-    while (handle->mode_stack_depth > cp->mode_stack_depth) {
-        handle->mode_stack_depth--;
-        if (handle->mode_stack[handle->mode_stack_depth]) {
-            free(handle->mode_stack[handle->mode_stack_depth]);
-            handle->mode_stack[handle->mode_stack_depth] = nullptr;
-        }
-    }
-
-    if (handle->lexical_goal) {
-        free(handle->lexical_goal);
-        handle->lexical_goal = nullptr;
-    }
-    if (cp->saved_lexical_goal) {
-        handle->lexical_goal = strdup(cp->saved_lexical_goal);
-    }
 }
 
 static inline bool textparser_match_start_token(
@@ -1124,7 +1118,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
         ssize_t cand_pos = textparser_find_token(handle, cand_id, offset, token_def->other_text_inside, parent_item, prev_sibling);
         if (cand_pos == 0)
         {
-            textparser_checkpoint_t cp = textparser_checkpoint_save(handle);
+            textparser_arena_checkpoint cp = textparser_arena_checkpoint_save(handle);
             const char *saved_err = handle->error;
             size_t saved_err_off = handle->error_offset;
 
@@ -1133,7 +1127,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
                 break;
             }
 
-            textparser_checkpoint_restore(handle, &cp);
+            textparser_arena_checkpoint_restore(handle, &cp);
             handle->error = saved_err;
             handle->error_offset = saved_err_off;
             child = nullptr;
@@ -1247,7 +1241,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                 int cand_id = loop_effective_nested[c];
                 ssize_t found = textparser_find_token(handle, cand_id, offset, token_def->other_text_inside, ret, current_prev);
                 if (found == 0) {
-                    textparser_checkpoint_t cp = textparser_checkpoint_save(handle);
+                    textparser_arena_checkpoint cp = textparser_arena_checkpoint_save(handle);
                     const char *saved_err = handle->error;
                     size_t saved_err_off = handle->error_offset;
 
@@ -1260,7 +1254,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                     if (attempt != nullptr && handle->error != nullptr && error_child == nullptr) {
                         error_child = attempt;
                     } else {
-                        textparser_checkpoint_restore(handle, &cp);
+                        textparser_arena_checkpoint_restore(handle, &cp);
                         handle->error = saved_err;
                         handle->error_offset = saved_err_off;
                     }
@@ -1471,7 +1465,7 @@ static textparser_token_item *parse_token_sequence(
         return nullptr;
     }
 
-    textparser_checkpoint_t cp = textparser_checkpoint_save(handle);
+    textparser_arena_checkpoint cp = textparser_arena_checkpoint_save(handle);
     const char *saved_error = handle->error;
     size_t saved_error_offset = handle->error_offset;
 
@@ -1494,7 +1488,7 @@ static textparser_token_item *parse_token_sequence(
         }
 
         if (offset >= textparser_get_total_units(handle)) {
-            textparser_checkpoint_restore(handle, &cp);
+            textparser_arena_checkpoint_restore(handle, &cp);
             handle->error = saved_error;
             handle->error_offset = saved_error_offset;
             return nullptr;
@@ -1502,7 +1496,7 @@ static textparser_token_item *parse_token_sequence(
 
         ssize_t found = textparser_find_token(handle, elem_id, offset, token_def->other_text_inside, ret, last_child);
         if (found != 0) {
-            textparser_checkpoint_restore(handle, &cp);
+            textparser_arena_checkpoint_restore(handle, &cp);
             handle->error = saved_error;
             handle->error_offset = saved_error_offset;
             return nullptr;
@@ -1510,7 +1504,7 @@ static textparser_token_item *parse_token_sequence(
 
         textparser_token_item *elem_item = textparser_parse_token(handle, elem_id, token_id, TEXTPARSER_SEARCH_START_TOKEN, offset, ret, last_child);
         if (elem_item == nullptr || handle->error != nullptr || elem_item->len == 0) {
-            textparser_checkpoint_restore(handle, &cp);
+            textparser_arena_checkpoint_restore(handle, &cp);
             handle->error = saved_error;
             handle->error_offset = saved_error_offset;
             return nullptr;
@@ -1687,7 +1681,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                     int cand_id = nested_tokens[c];
                     ssize_t found = textparser_find_token(handle, cand_id, offset, token_def->other_text_inside, ret, current_prev);
                     if (found == 0) {
-                        textparser_checkpoint_t cp = textparser_checkpoint_save(handle);
+                        textparser_arena_checkpoint cp = textparser_arena_checkpoint_save(handle);
                         const char *saved_err = handle->error;
                         size_t saved_err_off = handle->error_offset;
 
@@ -1700,7 +1694,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                         if (attempt != nullptr && handle->error != nullptr && error_child == nullptr) {
                             error_child = attempt;
                         } else {
-                            textparser_checkpoint_restore(handle, &cp);
+                            textparser_arena_checkpoint_restore(handle, &cp);
                             handle->error = saved_err;
                             handle->error_offset = saved_err_off;
                         }
@@ -2824,6 +2818,8 @@ static int textparser_rebuild_lexer_streams(struct textparser_handle *handle)
     handle->lexer_token_count = builder.token_count;
     handle->lexer_trivia = builder.trivia;
     handle->lexer_trivia_count = builder.trivia_count;
+    handle->parser.source_offset = textparser_get_total_units(handle);
+    handle->parser.token_index = builder.token_count;
     return TEXTPARSER_OK;
 }
 
@@ -2839,6 +2835,13 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         return -1;
 
     textparser_clear_lexer_streams(handle);
+    handle->parser.owner = handle;
+    handle->parser.language = definition;
+    handle->parser.source_offset = 0;
+    handle->parser.token_index = 0;
+    handle->parser.pending_event_count = 0;
+    handle->parser.speculation_depth = 0;
+    handle->parser.recovery_depth = 0;
 
     // Reset error state
     handle->error = nullptr;
@@ -3088,7 +3091,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
             ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside, parent_container, prev_item);
             if (offset == 0)
             {
-                textparser_checkpoint_t cp = textparser_checkpoint_save(handle);
+                textparser_arena_checkpoint cp = textparser_arena_checkpoint_save(handle);
                 const char *saved_err = handle->error;
                 size_t saved_err_off = handle->error_offset;
 
@@ -3102,7 +3105,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                 if (attempt != nullptr && handle->error != nullptr && error_token_item == nullptr) {
                     error_token_item = attempt;
                 } else {
-                    textparser_checkpoint_restore(handle, &cp);
+                    textparser_arena_checkpoint_restore(handle, &cp);
                     handle->error = saved_err;
                     handle->error_offset = saved_err_off;
                 }
@@ -5382,47 +5385,222 @@ EXPORT_TEXTPARSER bool textparser_context_is(
     return false;
 }
 
+static size_t textparser_context_count(const textparser_context_entry *context)
+{
+    size_t count = 0;
+    while (context != nullptr) {
+        count++;
+        context = context->next;
+    }
+    return count;
+}
+
+EXPORT_TEXTPARSER int textparser_get_parser_state(
+    textparser_t handle,
+    textparser_parser_state_view *out_state)
+{
+    if (handle == nullptr || out_state == nullptr) return -1;
+    out_state->source_offset = handle->parser.source_offset;
+    out_state->token_index = handle->parser.token_index;
+    out_state->mode_depth = handle->mode_stack_depth;
+    out_state->context_depth = textparser_context_count(handle->contexts);
+    out_state->diagnostic_count = handle->diagnostic_count;
+    out_state->pending_event_count = handle->parser.pending_event_count;
+    out_state->speculation_depth = handle->parser.speculation_depth;
+    out_state->recovery_depth = handle->parser.recovery_depth;
+    return 0;
+}
+
+#define TEXTPARSER_CHECKPOINT_MAGIC UINT64_C(0x545043484b505431)
+
+typedef struct {
+    uint64_t magic;
+    textparser_t owner;
+    textparser_arena_checkpoint arena;
+    size_t source_offset;
+    size_t token_index;
+    size_t pending_event_count;
+    unsigned speculation_depth;
+    unsigned recovery_depth;
+    size_t mode_depth;
+    char *modes[TEXTPARSER_MAX_MODE_STACK];
+    char *lexical_goal;
+    textparser_context_entry *contexts;
+    textparser_diagnostic *diagnostics;
+    size_t diagnostic_count;
+} textparser_parser_checkpoint;
+
+static void textparser_free_context_list(textparser_context_entry *context)
+{
+    while (context != nullptr) {
+        textparser_context_entry *next = context->next;
+        free(context->name);
+        free(context);
+        context = next;
+    }
+}
+
+static textparser_context_entry *textparser_clone_context_list(
+    const textparser_context_entry *source)
+{
+    textparser_context_entry *head = nullptr;
+    textparser_context_entry **tail = &head;
+    while (source != nullptr) {
+        textparser_context_entry *copy = calloc(1, sizeof(*copy));
+        if (copy == nullptr) goto fail;
+        copy->name = source->name ? strdup(source->name) : nullptr;
+        if (source->name != nullptr && copy->name == nullptr) {
+            free(copy);
+            goto fail;
+        }
+        copy->value = source->value;
+        *tail = copy;
+        tail = &copy->next;
+        source = source->next;
+    }
+    return head;
+
+fail:
+    textparser_free_context_list(head);
+    return nullptr;
+}
+
+static void textparser_free_diagnostic_snapshot(
+    textparser_diagnostic *diagnostics,
+    size_t count)
+{
+    if (diagnostics == nullptr) return;
+    for (size_t i = 0; i < count; i++) {
+        free((void *)diagnostics[i].code);
+        free((void *)diagnostics[i].message);
+    }
+    free(diagnostics);
+}
+
+static textparser_diagnostic *textparser_clone_diagnostics(
+    const textparser_diagnostic *source,
+    size_t count)
+{
+    if (count == 0) return nullptr;
+    textparser_diagnostic *copy = calloc(count, sizeof(*copy));
+    if (copy == nullptr) return nullptr;
+    for (size_t i = 0; i < count; i++) {
+        copy[i] = source[i];
+        copy[i].code = source[i].code ? strdup(source[i].code) : nullptr;
+        copy[i].message = source[i].message ? strdup(source[i].message) : nullptr;
+        if ((source[i].code && !copy[i].code) || (source[i].message && !copy[i].message)) {
+            textparser_free_diagnostic_snapshot(copy, count);
+            return nullptr;
+        }
+    }
+    return copy;
+}
+
+static void textparser_checkpoint_free(textparser_parser_checkpoint *checkpoint)
+{
+    if (checkpoint == nullptr) return;
+    for (size_t i = 0; i < checkpoint->mode_depth; i++) free(checkpoint->modes[i]);
+    free(checkpoint->lexical_goal);
+    textparser_free_context_list(checkpoint->contexts);
+    textparser_free_diagnostic_snapshot(checkpoint->diagnostics, checkpoint->diagnostic_count);
+    checkpoint->magic = 0;
+    free(checkpoint);
+}
+
 EXPORT_TEXTPARSER void textparser_speculate_begin(
     textparser_t handle,
     void **out_checkpoint)
 {
-    if (handle == nullptr || out_checkpoint == nullptr) return;
+    if (out_checkpoint == nullptr) return;
+    *out_checkpoint = nullptr;
+    if (handle == nullptr) return;
 
-    textparser_checkpoint_t *cp = malloc(sizeof(textparser_checkpoint_t));
-    if (cp == nullptr) {
-        *out_checkpoint = nullptr;
-        return;
+    textparser_parser_checkpoint *cp = calloc(1, sizeof(*cp));
+    if (cp == nullptr) return;
+    cp->magic = TEXTPARSER_CHECKPOINT_MAGIC;
+    cp->owner = handle;
+    cp->arena = textparser_arena_checkpoint_save(handle);
+    cp->source_offset = handle->parser.source_offset;
+    cp->token_index = handle->parser.token_index;
+    cp->pending_event_count = handle->parser.pending_event_count;
+    cp->speculation_depth = handle->parser.speculation_depth;
+    cp->recovery_depth = handle->parser.recovery_depth;
+    cp->mode_depth = handle->mode_stack_depth;
+
+    for (size_t i = 0; i < cp->mode_depth; i++) {
+        cp->modes[i] = handle->mode_stack[i] ? strdup(handle->mode_stack[i]) : nullptr;
+        if (handle->mode_stack[i] != nullptr && cp->modes[i] == nullptr) goto fail;
     }
-    *cp = textparser_checkpoint_save(handle);
-    *out_checkpoint = (void *)cp;
+    cp->lexical_goal = handle->lexical_goal ? strdup(handle->lexical_goal) : nullptr;
+    if (handle->lexical_goal != nullptr && cp->lexical_goal == nullptr) goto fail;
+    cp->contexts = textparser_clone_context_list(handle->contexts);
+    if (handle->contexts != nullptr && cp->contexts == nullptr) goto fail;
+    cp->diagnostic_count = handle->diagnostic_count;
+    cp->diagnostics = textparser_clone_diagnostics(handle->diagnostics, cp->diagnostic_count);
+    if (cp->diagnostic_count != 0 && cp->diagnostics == nullptr) goto fail;
+
+    handle->parser.speculation_depth++;
+    *out_checkpoint = cp;
+    return;
+
+fail:
+    textparser_checkpoint_free(cp);
 }
 
 EXPORT_TEXTPARSER void textparser_speculate_commit(
     textparser_t handle,
     void *checkpoint)
 {
-    (void)handle;
-    if (checkpoint != nullptr) {
-        textparser_checkpoint_t *cp = (textparser_checkpoint_t *)checkpoint;
-        if (cp->saved_lexical_goal) {
-            free(cp->saved_lexical_goal);
-        }
-        free(cp);
-    }
+    textparser_parser_checkpoint *cp = checkpoint;
+    if (cp == nullptr || cp->magic != TEXTPARSER_CHECKPOINT_MAGIC || cp->owner != handle) return;
+    handle->parser.speculation_depth = cp->speculation_depth;
+    textparser_checkpoint_free(cp);
 }
 
 EXPORT_TEXTPARSER void textparser_speculate_rollback(
     textparser_t handle,
     void *checkpoint)
 {
-    if (handle != nullptr && checkpoint != nullptr) {
-        textparser_checkpoint_t *cp = (textparser_checkpoint_t *)checkpoint;
-        textparser_checkpoint_restore(handle, cp);
-        if (cp->saved_lexical_goal) {
-            free(cp->saved_lexical_goal);
-        }
-        free(cp);
+    textparser_parser_checkpoint *cp = checkpoint;
+    if (handle == nullptr || cp == nullptr || cp->magic != TEXTPARSER_CHECKPOINT_MAGIC || cp->owner != handle) return;
+
+    for (size_t i = cp->arena.chunk_count; i < handle->chunk_count; i++) {
+        free(handle->chunks[i]);
+        handle->chunks[i] = nullptr;
     }
+    handle->chunk_count = cp->arena.chunk_count;
+    textparser_arena_checkpoint_restore(handle, &cp->arena);
+
+    for (size_t i = 0; i < handle->mode_stack_depth; i++) {
+        free(handle->mode_stack[i]);
+        handle->mode_stack[i] = nullptr;
+    }
+    handle->mode_stack_depth = cp->mode_depth;
+    for (size_t i = 0; i < cp->mode_depth; i++) {
+        handle->mode_stack[i] = cp->modes[i];
+        cp->modes[i] = nullptr;
+    }
+    free(handle->lexical_goal);
+    handle->lexical_goal = cp->lexical_goal;
+    cp->lexical_goal = nullptr;
+
+    textparser_free_context_list(handle->contexts);
+    handle->contexts = cp->contexts;
+    cp->contexts = nullptr;
+
+    textparser_free_diagnostic_snapshot(handle->diagnostics, handle->diagnostic_count);
+    handle->diagnostics = cp->diagnostics;
+    handle->diagnostic_count = cp->diagnostic_count;
+    handle->diagnostic_capacity = cp->diagnostic_count;
+    cp->diagnostics = nullptr;
+    cp->diagnostic_count = 0;
+
+    handle->parser.source_offset = cp->source_offset;
+    handle->parser.token_index = cp->token_index;
+    handle->parser.pending_event_count = cp->pending_event_count;
+    handle->parser.speculation_depth = cp->speculation_depth;
+    handle->parser.recovery_depth = cp->recovery_depth;
+    textparser_checkpoint_free(cp);
 }
 
 /* -------------------------------------------------------------------------

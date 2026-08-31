@@ -9,6 +9,12 @@ and indexes into their leading trivia; trivia records whether its span contains
 a line terminator. The arrays remain valid until the next parse, text update,
 or parser close. Incremental parsing replaces the complete snapshot.
 
+Speculative parsing uses a shared transactional parser state. Checkpoints now
+restore source/token cursors, the complete mode stack and lexical goal, scoped
+contexts, diagnostics, pending-event depth, speculation/recovery depth, node
+IDs, and arena allocation watermarks. `textparser_get_parser_state()` exposes a
+read-only state view for diagnostics and parser integration.
+
 For C, post-processing uses declaration context in function parameter lists to
 classify identifier-shaped types imported through headers. For example, in
 `adv_regex_context *ctx`, `adv_regex_context` becomes `TypeName` while `ctx`
