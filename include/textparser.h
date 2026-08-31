@@ -53,6 +53,13 @@ EXPORT_TEXTPARSER int textparser_version_int(void);
 #define TEXTPARSER_TOKEN_ID_END_DELIMITER (-5)
 #define TEXTPARSER_NOCOLOR 0xffffffff
 
+/* Node flags */
+#define TEXTPARSER_NODE_NONE        (0)
+#define TEXTPARSER_NODE_SYNTHETIC   (1 << 0)
+#define TEXTPARSER_NODE_MISSING     (1 << 1)
+#define TEXTPARSER_NODE_RECOVERED   (1 << 2)
+#define TEXTPARSER_NODE_TRIVIA      (1 << 3)
+
 #if defined(_MSC_VER) && !defined(__clang__)
 #error "MSVC compiler is not supported by textparser (requires GCC/Clang extensions like __attribute__((cleanup)))"
 #endif
@@ -87,16 +94,6 @@ enum textparser_bom {
     TEXTPARSER_BOM_UTF_16_LE    = (1 << 2),
     TEXTPARSER_BOM_UTF_32_BE    = (1 << 3),
     TEXTPARSER_BOM_UTF_32_LE    = (1 << 4),
-    // TEXTPARSER_BOM_UTF_7_1      = (1 << 5),
-    // TEXTPARSER_BOM_UTF_7_2      = (1 << 6),
-    // TEXTPARSER_BOM_UTF_7_3      = (1 << 7),
-    // TEXTPARSER_BOM_UTF_7_4      = (1 << 8),
-    // TEXTPARSER_BOM_UTF_7_5      = (1 << 9),
-    // TEXTPARSER_BOM_UTF_1        = (1 << 10),
-    // TEXTPARSER_BOM_UTF_EBCDIC   = (1 << 11),
-    // TEXTPARSER_BOM_UTF_SCSU     = (1 << 12),
-    // TEXTPARSER_BOM_UTF_BOCU1    = (1 << 13),
-    // TEXTPARSER_BOM_UTF_GB_18030 = (1 << 14),
 };
 
 #define TEXTPARSER_BOM_ALL (TEXTPARSER_BOM_UTF_8 | TEXTPARSER_BOM_UTF_16_BE | TEXTPARSER_BOM_UTF_16_LE | TEXTPARSER_BOM_UTF_32_BE | TEXTPARSER_BOM_UTF_32_LE)
@@ -112,6 +109,20 @@ enum textparser_callback_type {
     TEXTPARSER_CALLBACK_TYPE_END,
 };
 
+/* Semantic event lifecycle */
+typedef enum {
+    TEXTPARSER_EVENT_VALIDATE,
+    TEXTPARSER_EVENT_COMMIT,
+    TEXTPARSER_EVENT_RECOVERY,
+    TEXTPARSER_EVENT_SOURCE_COMPLETE,
+} textparser_event_type;
+
+typedef enum {
+    TEXTPARSER_ACTION_ACCEPT,
+    TEXTPARSER_ACTION_REJECT,
+    TEXTPARSER_ACTION_ABORT,
+} textparser_action;
+
 enum textparser_token_type {
     TEXTPARSER_TOKEN_TYPE_GROUP,
     TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER,
@@ -124,6 +135,7 @@ enum textparser_token_type {
 
 typedef struct textparser_handle *textparser_t;
 typedef struct textparser_token_item_s *textparser_token_item_t;
+typedef struct textparser_token_item textparser_node;
 
 typedef struct {
     size_t len;
@@ -159,7 +171,33 @@ typedef struct textparser_token_item {
     uint32_t text_background;
     uint32_t text_flags;
     const char *error;
+
+    /* Enhanced CST / AST properties */
+    uint64_t id;
+    uint32_t node_flags;
+    const char *decoded_value;
+    void *user_data;
+    void (*free_user_data)(void *);
 } textparser_token_item;
+
+typedef struct {
+    textparser_event_type type;
+    textparser_node *node;
+    textparser_node *parent;
+    size_t start;
+    size_t end;
+    bool synthetic;
+    bool recovered;
+    const void *recovery_info;
+    const void *configuration;
+    void *language_context;
+} textparser_event;
+
+typedef textparser_action (*textparser_semantic_handler)(
+    textparser_t parser,
+    const textparser_event *event,
+    void *user_data
+);
 
  typedef struct {
     int *when_parent_in;
@@ -709,4 +747,95 @@ EXPORT_TEXTPARSER int textparser_export_tokens_range(const textparser_t handle, 
  * @return 0 on success, non-zero on failure.
  */
 EXPORT_TEXTPARSER int textparser_export_tokens_lines(const textparser_t handle, size_t start_line, size_t end_line, textparser_token_range *buffer, size_t max_tokens, size_t *out_count);
+
+/**
+ * Register a named semantic handler with the parser.
+ *
+ * @param handle The parser handle.
+ * @param name Unique identifier name for the semantic action.
+ * @param handler Function pointer to semantic handler callback.
+ * @param user_data Custom user context passed to the handler.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_register_handler(
+    textparser_t handle,
+    const char *name,
+    textparser_semantic_handler handler,
+    void *user_data
+);
+
+/**
+ * Dispatch a semantic lifecycle event.
+ *
+ * @param handle The parser handle.
+ * @param handler_name Name of registered handler (or NULL to invoke default handler).
+ * @param event Event payload containing type, node, parent, spans, and recovery info.
+ * @return TEXTPARSER_ACTION_ACCEPT, TEXTPARSER_ACTION_REJECT, or TEXTPARSER_ACTION_ABORT.
+ */
+EXPORT_TEXTPARSER textparser_action textparser_dispatch_event(
+    textparser_t handle,
+    const char *handler_name,
+    const textparser_event *event
+);
+
+/**
+ * Get the stable 64-bit unique ID of a syntax node.
+ *
+ * @param node The syntax node.
+ * @return 64-bit node ID.
+ */
+EXPORT_TEXTPARSER uint64_t textparser_node_get_id(const textparser_node *node);
+
+/**
+ * Get the node flags (e.g. TEXTPARSER_NODE_SYNTHETIC, TEXTPARSER_NODE_MISSING, TEXTPARSER_NODE_RECOVERED).
+ *
+ * @param node The syntax node.
+ * @return Bitfield flags.
+ */
+EXPORT_TEXTPARSER uint32_t textparser_node_get_flags(const textparser_node *node);
+
+/**
+ * Set node flags on a syntax node.
+ *
+ * @param node The syntax node.
+ * @param flags Flags to set.
+ */
+EXPORT_TEXTPARSER void textparser_node_set_flags(textparser_node *node, uint32_t flags);
+
+/**
+ * Get the application-owned user data attachment from a node.
+ *
+ * @param node The syntax node.
+ * @return Pointer to user_data.
+ */
+EXPORT_TEXTPARSER void *textparser_node_get_user_data(const textparser_node *node);
+
+/**
+ * Set the application-owned user data attachment on a node.
+ *
+ * @param node The syntax node.
+ * @param user_data Pointer to user data.
+ * @param free_fn Optional cleanup callback when node is destroyed.
+ */
+EXPORT_TEXTPARSER void textparser_node_set_user_data(
+    textparser_node *node,
+    void *user_data,
+    void (*free_fn)(void *)
+);
+
+/**
+ * Get decoded value string associated with a node (if decoded by valueDecoder).
+ *
+ * @param node The syntax node.
+ * @return Pointer to decoded string value or NULL.
+ */
+EXPORT_TEXTPARSER const char *textparser_node_get_decoded_value(const textparser_node *node);
+
+/**
+ * Set decoded value string on a node.
+ *
+ * @param node The syntax node.
+ * @param value Decoded string value.
+ */
+EXPORT_TEXTPARSER void textparser_node_set_decoded_value(textparser_node *node, const char *value);
 

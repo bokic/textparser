@@ -197,11 +197,31 @@ int main() {
 
     // Iterate through tokens
     for (textparser_token_item *item = textparser_get_first_token(handle); item != NULL; item = item->next) {
+        // Access 64-bit stable ID and flags
+        uint64_t node_id = textparser_node_get_id(item);
+        uint32_t flags = textparser_node_get_flags(item);
         // ... process item ...
     }
     
     return 0;
 }
+```
+
+**Semantic Handler Lifecycle Example:**
+
+```c
+#include <textparser.h>
+
+static textparser_action my_commit_handler(textparser_t parser, const textparser_event *event, void *user_data) {
+    if (event->type == TEXTPARSER_EVENT_COMMIT && event->node) {
+        // Attach application AST node or metadata
+        textparser_node_set_user_data(event->node, my_ast_node_ptr, free_my_ast_node);
+    }
+    return TEXTPARSER_ACTION_ACCEPT;
+}
+
+// Register handler
+textparser_register_handler(handle, "my_lang.onCommit", my_commit_handler, NULL);
 ```
 
 **C++ RAII Wrapper Example:**
