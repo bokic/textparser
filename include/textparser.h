@@ -975,3 +975,114 @@ EXPORT_TEXTPARSER const char *textparser_get_lexical_goal(textparser_t handle);
  */
 EXPORT_TEXTPARSER bool textparser_has_line_terminator_between(textparser_t handle, size_t start_pos, size_t end_pos);
 
+/* -------------------------------------------------------------------------
+ * Phase 4: Declarative Grammar Engine & Speculative Parsing
+ * ------------------------------------------------------------------------- */
+
+typedef bool (*textparser_predicate_fn)(
+    textparser_t parser,
+    const char *predicate_name,
+    void *user_data
+);
+
+/**
+ * Register a native semantic predicate (e.g. "typescript.isStartOfTypeArguments").
+ *
+ * @param handle The parser handle.
+ * @param name Unique name of predicate.
+ * @param predicate Predicate function returning true if satisfied, false otherwise.
+ * @param user_data Context pointer passed to predicate.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_register_predicate(
+    textparser_t handle,
+    const char *name,
+    textparser_predicate_fn predicate,
+    void *user_data
+);
+
+/**
+ * Evaluate a registered predicate.
+ *
+ * @param handle The parser handle.
+ * @param name Name of registered predicate.
+ * @return True if predicate passes, false otherwise.
+ */
+EXPORT_TEXTPARSER bool textparser_eval_predicate(
+    textparser_t handle,
+    const char *name
+);
+
+/**
+ * Set a scoped context boolean or integer value in the parser.
+ *
+ * @param handle The parser handle.
+ * @param context_name Name of context (e.g. "AllowAwait", "AllowYield", "InType").
+ * @param value Integer/boolean value.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_context_set(
+    textparser_t handle,
+    const char *context_name,
+    int64_t value
+);
+
+/**
+ * Get a scoped context value.
+ *
+ * @param handle The parser handle.
+ * @param context_name Name of context.
+ * @param out_value Pointer to receive value.
+ * @return 0 if found, non-zero if not set.
+ */
+EXPORT_TEXTPARSER int textparser_context_get(
+    textparser_t handle,
+    const char *context_name,
+    int64_t *out_value
+);
+
+/**
+ * Check if a scoped context boolean is set to true.
+ *
+ * @param handle The parser handle.
+ * @param context_name Name of context.
+ * @return True if set and non-zero, false otherwise.
+ */
+EXPORT_TEXTPARSER bool textparser_context_is(
+    textparser_t handle,
+    const char *context_name
+);
+
+/**
+ * Begin a speculative parse branch with prioritized commit points.
+ *
+ * @param handle The parser handle.
+ * @param out_checkpoint Pointer to store saved checkpoint.
+ */
+EXPORT_TEXTPARSER void textparser_speculate_begin(
+    textparser_t handle,
+    void **out_checkpoint
+);
+
+/**
+ * Commit a speculative parse branch (discards rollback data without rolling back).
+ *
+ * @param handle The parser handle.
+ * @param checkpoint Checkpoint pointer from textparser_speculate_begin.
+ */
+EXPORT_TEXTPARSER void textparser_speculate_commit(
+    textparser_t handle,
+    void *checkpoint
+);
+
+/**
+ * Roll back a failed speculative parse branch (restores tokens, mode stack, context, and arena allocations).
+ *
+ * @param handle The parser handle.
+ * @param checkpoint Checkpoint pointer from textparser_speculate_begin.
+ */
+EXPORT_TEXTPARSER void textparser_speculate_rollback(
+    textparser_t handle,
+    void *checkpoint
+);
+

@@ -81,6 +81,19 @@ typedef struct textparser_validator_entry {
     struct textparser_validator_entry *next;
 } textparser_validator_entry;
 
+typedef struct textparser_predicate_entry {
+    char *name;
+    textparser_predicate_fn predicate;
+    void *user_data;
+    struct textparser_predicate_entry *next;
+} textparser_predicate_entry;
+
+typedef struct textparser_context_entry {
+    char *name;
+    int64_t value;
+    struct textparser_context_entry *next;
+} textparser_context_entry;
+
 #define TEXTPARSER_MAX_MODE_STACK 64
 
 struct textparser_handle {
@@ -127,6 +140,10 @@ struct textparser_handle {
     char *mode_stack[TEXTPARSER_MAX_MODE_STACK];
     size_t mode_stack_depth;
     char *lexical_goal;
+
+    /* Phase 4: Predicates & Scoped Contexts */
+    textparser_predicate_entry *predicates;
+    textparser_context_entry *contexts;
 };
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -386,7 +403,7 @@ static inline void textparser_checkpoint_restore(struct textparser_handle *handl
         handle->lexical_goal = nullptr;
     }
     if (cp->saved_lexical_goal) {
-        handle->lexical_goal = cp->saved_lexical_goal;
+        handle->lexical_goal = strdup(cp->saved_lexical_goal);
     }
 }
 
@@ -2534,10 +2551,25 @@ void textparser_close(textparser_t handle)
     }
     handle->mode_stack_depth = 0;
 
-    if (handle->lexical_goal) {
-        free(handle->lexical_goal);
-        handle->lexical_goal = nullptr;
+    /* Free registered predicates */
+    textparser_predicate_entry *pred = handle->predicates;
+    while (pred != nullptr) {
+        textparser_predicate_entry *next_pred = pred->next;
+        if (pred->name) free(pred->name);
+        free(pred);
+        pred = next_pred;
     }
+    handle->predicates = nullptr;
+
+    /* Free scoped context entries */
+    textparser_context_entry *ctx = handle->contexts;
+    while (ctx != nullptr) {
+        textparser_context_entry *next_ctx = ctx->next;
+        if (ctx->name) free(ctx->name);
+        free(ctx);
+        ctx = next_ctx;
+    }
+    handle->contexts = nullptr;
 
     free(handle);
 }
@@ -4984,6 +5016,179 @@ EXPORT_TEXTPARSER bool textparser_has_line_terminator_between(textparser_t handl
     }
 
     return false;
+}
+
+/* -------------------------------------------------------------------------
+ * Phase 4: Declarative Grammar Engine & Speculative Parsing Implementations
+ * ------------------------------------------------------------------------- */
+
+EXPORT_TEXTPARSER int textparser_register_predicate(
+    textparser_t handle,
+    const char *name,
+    textparser_predicate_fn predicate,
+    void *user_data)
+{
+    if (handle == nullptr || name == nullptr || predicate == nullptr) {
+        return -1;
+    }
+
+    textparser_predicate_entry *entry = handle->predicates;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, name) == 0) {
+            entry->predicate = predicate;
+            entry->user_data = user_data;
+            return 0;
+        }
+        entry = entry->next;
+    }
+
+    entry = malloc(sizeof(textparser_predicate_entry));
+    if (entry == nullptr) {
+        return -1;
+    }
+    entry->name = strdup(name);
+    if (entry->name == nullptr) {
+        free(entry);
+        return -1;
+    }
+    entry->predicate = predicate;
+    entry->user_data = user_data;
+    entry->next = handle->predicates;
+    handle->predicates = entry;
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER bool textparser_eval_predicate(
+    textparser_t handle,
+    const char *name)
+{
+    if (handle == nullptr || name == nullptr) {
+        return false;
+    }
+
+    textparser_predicate_entry *entry = handle->predicates;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, name) == 0) {
+            return entry->predicate(handle, name, entry->user_data);
+        }
+        entry = entry->next;
+    }
+
+    return false;
+}
+
+EXPORT_TEXTPARSER int textparser_context_set(
+    textparser_t handle,
+    const char *context_name,
+    int64_t value)
+{
+    if (handle == nullptr || context_name == nullptr) {
+        return -1;
+    }
+
+    textparser_context_entry *entry = handle->contexts;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, context_name) == 0) {
+            entry->value = value;
+            return 0;
+        }
+        entry = entry->next;
+    }
+
+    entry = malloc(sizeof(textparser_context_entry));
+    if (entry == nullptr) {
+        return -1;
+    }
+    entry->name = strdup(context_name);
+    if (entry->name == nullptr) {
+        free(entry);
+        return -1;
+    }
+    entry->value = value;
+    entry->next = handle->contexts;
+    handle->contexts = entry;
+
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_context_get(
+    textparser_t handle,
+    const char *context_name,
+    int64_t *out_value)
+{
+    if (handle == nullptr || context_name == nullptr || out_value == nullptr) {
+        return -1;
+    }
+
+    textparser_context_entry *entry = handle->contexts;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, context_name) == 0) {
+            *out_value = entry->value;
+            return 0;
+        }
+        entry = entry->next;
+    }
+
+    return -1;
+}
+
+EXPORT_TEXTPARSER bool textparser_context_is(
+    textparser_t handle,
+    const char *context_name)
+{
+    if (handle == nullptr || context_name == nullptr) {
+        return false;
+    }
+
+    int64_t val = 0;
+    if (textparser_context_get(handle, context_name, &val) == 0) {
+        return val != 0;
+    }
+    return false;
+}
+
+EXPORT_TEXTPARSER void textparser_speculate_begin(
+    textparser_t handle,
+    void **out_checkpoint)
+{
+    if (handle == nullptr || out_checkpoint == nullptr) return;
+
+    textparser_checkpoint_t *cp = malloc(sizeof(textparser_checkpoint_t));
+    if (cp == nullptr) {
+        *out_checkpoint = nullptr;
+        return;
+    }
+    *cp = textparser_checkpoint_save(handle);
+    *out_checkpoint = (void *)cp;
+}
+
+EXPORT_TEXTPARSER void textparser_speculate_commit(
+    textparser_t handle,
+    void *checkpoint)
+{
+    (void)handle;
+    if (checkpoint != nullptr) {
+        textparser_checkpoint_t *cp = (textparser_checkpoint_t *)checkpoint;
+        if (cp->saved_lexical_goal) {
+            free(cp->saved_lexical_goal);
+        }
+        free(cp);
+    }
+}
+
+EXPORT_TEXTPARSER void textparser_speculate_rollback(
+    textparser_t handle,
+    void *checkpoint)
+{
+    if (handle != nullptr && checkpoint != nullptr) {
+        textparser_checkpoint_t *cp = (textparser_checkpoint_t *)checkpoint;
+        textparser_checkpoint_restore(handle, cp);
+        if (cp->saved_lexical_goal) {
+            free(cp->saved_lexical_goal);
+        }
+        free(cp);
+    }
 }
 
 
