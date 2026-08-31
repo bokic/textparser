@@ -104,6 +104,15 @@ yay -S textparser
 
 Or view the package details at [https://aur.archlinux.org/packages/textparser](https://aur.archlinux.org/packages/textparser).
 
+### Fedora
+
+`textparser` can be installed via Fedora Copr:
+
+```bash
+sudo dnf copr enable bokic/textparser
+sudo dnf install textparser ccat libtextparser-devel
+```
+
 ### macOS (Homebrew)
 
 ```bash

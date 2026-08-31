@@ -5,22 +5,29 @@ project(my_project)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        v1.17.0
-  GIT_SHALLOW    TRUE
-)
+find_package(GTest CONFIG QUIET)
+if(NOT GTest_FOUND)
+  find_package(GTest QUIET)
+endif()
 
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+if(NOT TARGET GTest::gtest_main)
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG        v1.17.0
+    GIT_SHALLOW    TRUE
+  )
 
-# Suppress warnings from googletest sources
-if(NOT MSVC AND NOT WIN32)
-  target_compile_options(gtest PRIVATE -Wno-character-conversion -Wno-language-extension-token)
-  target_compile_options(gmock PRIVATE -Wno-character-conversion -Wno-language-extension-token)
+  # For Windows: Prevent overriding the parent project's compiler/linker settings
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+
+  # Suppress warnings from googletest sources
+  if(NOT MSVC AND NOT WIN32)
+    target_compile_options(gtest PRIVATE -Wno-character-conversion -Wno-language-extension-token)
+    target_compile_options(gmock PRIVATE -Wno-character-conversion -Wno-language-extension-token)
+  endif()
 endif()
 
 enable_testing()

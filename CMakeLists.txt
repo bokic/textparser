@@ -105,6 +105,7 @@ endif()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 option(BUILD_TESTS "Build tests" ON)
+option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 
 if(BUILD_TESTS)
     enable_testing()

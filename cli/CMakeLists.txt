@@ -45,7 +45,7 @@ else()
 endif()
 
 install(TARGETS textparser
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     COMPONENT cli
 )
 

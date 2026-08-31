@@ -36,8 +36,12 @@ if(WIN32)
     target_sources(ccat PRIVATE ${RC_CCAT_OUT_FILE})
 endif()
 
+if(NOT WIN32)
+    include(GNUInstallDirs)
+endif()
+
 install(TARGETS ccat
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     COMPONENT cli
 )
 
