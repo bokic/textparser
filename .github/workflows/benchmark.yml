@@ -46,6 +46,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_CXX_COMPILER=clang++ \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_BENCHMARKS=ON \
             -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{ github.workspace }}/bin
 
       # ── Build benchmark_sqlite target only ───────────────────────────────────

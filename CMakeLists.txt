@@ -146,7 +146,7 @@ add_custom_target(generated_definitions DEPENDS ${GENERATED_DEFINITIONS})
 add_subdirectory(src)
 add_subdirectory(cli)
 add_subdirectory(ccat)
-if(BUILD_TESTS)
+if(BUILD_TESTS OR BUILD_BENCHMARKS)
   add_subdirectory(tests)
 endif()
 
