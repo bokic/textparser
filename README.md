@@ -36,6 +36,18 @@ contexts use `withContext.set`, and commit points use `{"commit":true}`.
 Schema-v2 `lexer.tokens` and `lexer.trivia` are normalized into the current
 lexer table so their names can be referenced by the grammar.
 
+Schema-v2 grammars use an on-demand contextual scanner. `lexer.initialMode`
+selects the initial rule set, `lexer.modes` restricts tokens and trivia,
+and token-level `pushMode`/`popMode` transitions are applied only when a token
+is consumed. `lexer.goals` maps a normally eligible token rule to a contextual
+replacement rule, allowing the same source offset to be scanned differently
+for expression starts, continuations, templates, JSX, or type contexts. Scan
+results are cached by source offset, mode, and goal; speculative rollback
+restores the cursor and mode stack while retaining safe cache entries.
+`textparser_lexer_peek()` and `textparser_lexer_consume()` expose this scanner,
+and declarative `TOKEN` productions use it automatically for schema-v2 lexer
+definitions.
+
 For C, post-processing uses declaration context in function parameter lists to
 classify identifier-shaped types imported through headers. For example, in
 `adv_regex_context *ctx`, `adv_regex_context` becomes `TypeName` while `ctx`

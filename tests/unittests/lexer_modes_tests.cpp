@@ -122,3 +122,109 @@ TEST(lexer_modes, decoders_and_validators) {
 
     textparser_close(handle);
 }
+
+namespace {
+int contextual_token_id(const textparser_language_definition *definition, const char *name) {
+    for (int i = 0; definition->tokens[i].name != nullptr; i++)
+        if (strcmp(definition->tokens[i].name, name) == 0) return i;
+    return -1;
+}
+
+const char *contextual_lexer_json = R"json({
+  "name":"contextual", "version":2, "caseSensitivity":true,
+  "defaultFileExtensions":["txt"], "defaultTextEncoding":"utf-8",
+  "otherTextInside":true,
+  "lexer":{
+    "initialMode":"default",
+    "tokens":{
+      "Open":{"regex":"<","pushMode":"tag"},
+      "Text":{"regex":"[a-z]+"},
+      "Name":{"regex":"[a-z]+","priority":5},
+      "Close":{"regex":">","popMode":true},
+      "Slash":{"regex":"/"},
+      "Regex":{"regex":"/[^/]+/"}
+    },
+    "trivia":{"Space":{"regex":"[ \\t\\r\\n]+"}},
+    "modes":{
+      "default":{"tokens":["Open","Text","Slash"],"trivia":["Space"]},
+      "tag":{"tokens":["Name","Close"],"trivia":["Space"]}
+    },
+    "goals":{"ExpressionStart":{"Slash":"Regex"}}
+  }
+})json";
+} // namespace
+
+TEST(lexer_modes, contextual_scanner_applies_modes_transitions_and_trivia) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(contextual_lexer_json, &definition), 0);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("< x > body", 10, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    const int children[] = {0, 1, 2, 3};
+    const textparser_production productions[] = {
+        {0, "Open", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Open"), -1},
+        {1, "Name", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Name"), -1},
+        {2, "Close", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Close"), -1},
+        {3, "Text", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Text"), -1},
+        {4, "Root", TEXTPARSER_PROD_SEQUENCE, children, 4, -1, -1},
+    };
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 4, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.consumed_tokens, 4u);
+    EXPECT_STREQ(textparser_get_current_mode(parser.get()), "default");
+    textparser_parser_state_view state{};
+    ASSERT_EQ(parser.parser_state(&state), 0);
+    EXPECT_EQ(state.source_offset, 10u);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(lexer_modes, lexical_goal_changes_scan_and_uses_separate_cache_entry) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(contextual_lexer_json, &definition), 0);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("/abc/", 5, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_production slash[] = {
+        {0, "Slash", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Slash"), -1},
+    };
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_production(slash, 1, 0, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.node->len, 1u);
+
+    textparser_set_lexical_goal(parser.get(), "ExpressionStart");
+    textparser_production regex[] = {
+        {0, "Regex", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Regex"), -1},
+    };
+    ASSERT_EQ(parser.execute_production(regex, 1, 0, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.node->len, 5u);
+    EXPECT_EQ(result.node->token_id, contextual_token_id(definition, "Regex"));
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(lexer_modes, speculative_mode_transition_is_rolled_back) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(contextual_lexer_json, &definition), 0);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("< body", 6, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    const int failed[] = {0, 1};
+    const int alternatives[] = {2, 3};
+    const textparser_production productions[] = {
+        {0, "Open", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Open"), -1},
+        {1, "Close", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Close"), -1},
+        {2, "Failed", TEXTPARSER_PROD_SEQUENCE, failed, 2, -1, -1},
+        {3, "OpenFallback", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Open"), -1},
+        {4, "Choice", TEXTPARSER_PROD_CHOICE, alternatives, 2, -1, -1},
+    };
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 4, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_STREQ(textparser_get_current_mode(parser.get()), "tag");
+    parser.reset();
+    textparser_free_language_definition(definition);
+}

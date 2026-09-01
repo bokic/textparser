@@ -528,6 +528,133 @@ fail:
     return ret;
 }
 
+static int json_parse_contextual_lexer(
+    json_object *root,
+    textparser_language_definition *definition,
+    size_t token_count,
+    textparser_string_pool *pool)
+{
+    json_object *lexer = nullptr;
+    if (!json_object_object_get_ex(root, "lexer", &lexer) ||
+        !json_object_is_type(lexer, json_type_object)) return 0;
+    json_object *value = nullptr;
+    const char *initial = "default";
+    if (json_object_object_get_ex(lexer, "initialMode", &value)) {
+        if (!json_object_is_type(value, json_type_string)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+        initial = json_object_get_string(value);
+    }
+    definition->initial_lexer_mode = textparser_string_pool_strdup(pool, initial);
+    if (definition->initial_lexer_mode == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    definition->lexer_rules = calloc(token_count, sizeof(*definition->lexer_rules));
+    if (token_count && definition->lexer_rules == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+
+    json_object *trivia = nullptr;
+    if (json_object_object_get_ex(lexer, "trivia", &trivia) && json_object_is_type(trivia, json_type_object)) {
+        json_object_iter item;
+        json_object_object_foreachC(trivia, item) {
+            int id = json_get_token_id_by_name(item.key, definition->tokens, token_count);
+            if (id < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+            definition->lexer_rules[id].is_trivia = true;
+        }
+    }
+    json_object *tokens = nullptr;
+    if (json_object_object_get_ex(lexer, "tokens", &tokens) && json_object_is_type(tokens, json_type_object)) {
+        size_t id = 0;
+        json_object_iter item;
+        json_object_object_foreachC(tokens, item) {
+            json_object *field = nullptr;
+            if (json_object_object_get_ex(item.val, "priority", &field))
+                definition->lexer_rules[id].priority = json_object_get_int(field);
+            if (json_object_object_get_ex(item.val, "pushMode", &field)) {
+                if (!json_object_is_type(field, json_type_string)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+                definition->lexer_rules[id].push_mode = textparser_string_pool_strdup(pool, json_object_get_string(field));
+                if (definition->lexer_rules[id].push_mode == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            }
+            if (json_object_object_get_ex(item.val, "popMode", &field))
+                definition->lexer_rules[id].pop_mode = json_object_get_boolean(field);
+            id++;
+        }
+    }
+
+    json_object *modes = nullptr;
+    if (json_object_object_get_ex(lexer, "modes", &modes)) {
+        if (!json_object_is_type(modes, json_type_object)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+        definition->lexer_mode_count = json_object_object_length(modes);
+        definition->lexer_modes = calloc(definition->lexer_mode_count, sizeof(*definition->lexer_modes));
+        if (definition->lexer_mode_count && definition->lexer_modes == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        size_t index = 0;
+        json_object_iter mode;
+        json_object_object_foreachC(modes, mode) {
+            textparser_lexer_mode *out = &definition->lexer_modes[index++];
+            out->name = textparser_string_pool_strdup(pool, mode.key);
+            if (out->name == nullptr || !json_object_is_type(mode.val, json_type_object)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+            const char *fields[] = {"tokens", "trivia"};
+            int **outputs[] = {&out->tokens, &out->trivia};
+            for (int f = 0; f < 2; f++) {
+                json_object *array = nullptr;
+                if (!json_object_object_get_ex(mode.val, fields[f], &array)) continue;
+                if (!json_object_is_type(array, json_type_array)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+                size_t count = json_object_array_length(array);
+                int *ids = malloc((count + 1) * sizeof(*ids));
+                if (ids == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+                for (size_t i = 0; i < count; i++) {
+                    json_object *name = json_object_array_get_idx(array, i);
+                    if (!json_object_is_type(name, json_type_string) ||
+                        (ids[i] = json_get_token_id_by_name(json_object_get_string(name), definition->tokens, token_count)) < 0) {
+                        free(ids); return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+                    }
+                }
+                ids[count] = -1;
+                *outputs[f] = ids;
+            }
+        }
+    }
+    if (definition->lexer_mode_count != 0) {
+        bool initial_found = false;
+        for (size_t i = 0; i < definition->lexer_mode_count; i++) {
+            if (strcmp(definition->lexer_modes[i].name, definition->initial_lexer_mode) == 0)
+                initial_found = true;
+        }
+        if (!initial_found) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+        for (size_t token = 0; token < token_count; token++) {
+            const char *push = definition->lexer_rules[token].push_mode;
+            if (push == nullptr) continue;
+            bool found_mode = false;
+            for (size_t i = 0; i < definition->lexer_mode_count; i++)
+                if (strcmp(definition->lexer_modes[i].name, push) == 0) found_mode = true;
+            if (!found_mode) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+        }
+    }
+
+    json_object *goals = nullptr;
+    if (json_object_object_get_ex(lexer, "goals", &goals)) {
+        if (!json_object_is_type(goals, json_type_object)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+        definition->lexer_goal_count = json_object_object_length(goals);
+        definition->lexer_goals = calloc(definition->lexer_goal_count, sizeof(*definition->lexer_goals));
+        if (definition->lexer_goal_count && definition->lexer_goals == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        size_t index = 0;
+        json_object_iter goal;
+        json_object_object_foreachC(goals, goal) {
+            textparser_lexer_goal *out = &definition->lexer_goals[index++];
+            out->name = textparser_string_pool_strdup(pool, goal.key);
+            if (out->name == nullptr || !json_object_is_type(goal.val, json_type_object)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+            out->mapping_count = json_object_object_length(goal.val);
+            out->mappings = calloc(out->mapping_count, sizeof(*out->mappings));
+            if (out->mapping_count && out->mappings == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            size_t mapping = 0;
+            json_object_iter pair;
+            json_object_object_foreachC(goal.val, pair) {
+                if (!json_object_is_type(pair.val, json_type_string)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+                int source = json_get_token_id_by_name(pair.key, definition->tokens, token_count);
+                int target = json_get_token_id_by_name(json_object_get_string(pair.val), definition->tokens, token_count);
+                if (source < 0 || target < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+                out->mappings[mapping++] = (textparser_lexer_goal_mapping){source, target};
+            }
+        }
+    }
+    return 0;
+}
+
 static int textparser_json_load_language_definition_internal(struct json_object *root_obj, textparser_language_definition **definition)
 {
     size_t array_length = 0;
@@ -1286,6 +1413,12 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             }
             (*definition)->override_start_tokens = rules;
         }
+    }
+
+    ret_code = json_parse_contextual_lexer(root_obj, *definition, tokens_cnt, pool);
+    if (ret_code != 0) {
+        (*definition)->error_string = "Invalid contextual lexer";
+        goto err;
     }
 
     ret_code = json_parse_grammar(root_obj, *definition, tokens_cnt, pool);
