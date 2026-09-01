@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -23,6 +24,34 @@ std::string language_with_grammar(const std::string &grammar) {
 int load(const std::string &grammar, textparser_language_definition **definition) {
     std::string json = language_with_grammar(grammar);
     return textparser_json_load_language_definition_from_string(json.c_str(), definition);
+}
+
+struct LifecycleRecord {
+    std::vector<std::string> entries;
+    bool reject_validation = false;
+    bool reject_commit = false;
+};
+
+struct LifecycleBinding {
+    LifecycleRecord *record;
+    const char *name;
+};
+
+textparser_action lifecycle_handler(textparser_t,
+                                    const textparser_event *event,
+                                    void *user_data) {
+    auto *binding = static_cast<LifecycleBinding *>(user_data);
+    std::string entry = binding->name;
+    entry += ":" + std::to_string(static_cast<int>(event->type));
+    if (event->configuration) {
+        entry += ":" + std::string(static_cast<const char *>(event->configuration));
+    }
+    binding->record->entries.push_back(entry);
+    if (event->type == TEXTPARSER_EVENT_VALIDATE && binding->record->reject_validation)
+        return TEXTPARSER_ACTION_REJECT;
+    if (event->type == TEXTPARSER_EVENT_COMMIT && binding->record->reject_commit)
+        return TEXTPARSER_ACTION_REJECT;
+    return TEXTPARSER_ACTION_ACCEPT;
 }
 
 } // namespace
@@ -114,6 +143,9 @@ TEST(json_grammar, validates_structure_and_names) {
         {R"({"start":"Root","productions":{"Root":{"sequence":[],"allowASI":true}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"token":"A","recover":{"skip":true}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"token":"A","recoverUntil":["Missing"]}}})", TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN},
+        {R"({"start":"Root","productions":{"Root":{"token":"A","events":{"onCommit":""}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"token":"A","events":{"onCommit":{"configuration":{}}}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","events":{"onSourceComplete":{"handler":"done","extra":1}},"productions":{"Root":{"token":"A"}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
     };
     for (const auto &item : cases) {
         textparser_language_definition *definition = nullptr;
@@ -234,6 +266,162 @@ TEST(json_grammar, reports_only_the_furthest_failed_alternative) {
     ASSERT_EQ(textparser_get_diagnostic(parser.get(), 0, &diagnostic), 0);
     EXPECT_STREQ(diagnostic.message, "Expected C after A.");
     EXPECT_EQ(diagnostic.start_pos, 1u);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, queues_bottom_up_commits_discards_rejected_branches_and_completes_at_eof) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "events":{"onSourceComplete":"source"},
+      "productions":{"Root":{
+        "choice":[
+          {"sequence":[
+            {"token":"A","events":{"onCommit":"abandoned"}},
+            {"token":"B"}
+          ]},
+          {"sequence":[
+            {"token":"A"},
+            {"token":"C","events":{"onCommit":{
+              "handler":"leaf","configuration":{"role":"leaf"}
+            }}}
+          ]}
+        ],
+        "events":{"onCommit":"root"}
+      }}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    LifecycleRecord record;
+    LifecycleBinding abandoned{&record, "abandoned"};
+    LifecycleBinding leaf{&record, "leaf"};
+    LifecycleBinding root{&record, "root"};
+    LifecycleBinding source{&record, "source"};
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a c", 3, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "abandoned", lifecycle_handler, &abandoned), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "leaf", lifecycle_handler, &leaf), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "root", lifecycle_handler, &root), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "source", lifecycle_handler, &source), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_EQ(record.entries.size(), 3u);
+    EXPECT_EQ(record.entries[0], "leaf:1:{\"role\":\"leaf\"}");
+    EXPECT_EQ(record.entries[1], "root:1");
+    EXPECT_EQ(record.entries[2], "source:3");
+    textparser_parser_state_view state{};
+    ASSERT_EQ(parser.parser_state(&state), 0);
+    EXPECT_EQ(state.pending_event_count, 0u);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, validation_can_reject_an_alternative_without_publishing_its_commit) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"choice":[
+        {"token":"A","events":{"onValidate":"validate","onCommit":"rejected"}},
+        {"token":"A","events":{"onCommit":"accepted"}}
+      ]}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    LifecycleRecord record;
+    record.reject_validation = true;
+    LifecycleBinding validate{&record, "validate"};
+    LifecycleBinding rejected{&record, "rejected"};
+    LifecycleBinding accepted{&record, "accepted"};
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a", 1, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "validate", lifecycle_handler, &validate), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "rejected", lifecycle_handler, &rejected), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "accepted", lifecycle_handler, &accepted), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_EQ(record.entries.size(), 2u);
+    EXPECT_EQ(record.entries[0], "validate:0");
+    EXPECT_EQ(record.entries[1], "accepted:1");
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, queues_recovery_before_commit_for_missing_nodes) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"token":"B","allowASI":true,"events":{
+        "onRecovery":"recovery","onCommit":"commit"
+      }}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    LifecycleRecord record;
+    LifecycleBinding recovery{&record, "recovery"};
+    LifecycleBinding commit{&record, "commit"};
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("", 0, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "recovery", lifecycle_handler, &recovery), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "commit", lifecycle_handler, &commit), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_EQ(record.entries.size(), 2u);
+    EXPECT_EQ(record.entries[0], "recovery:2");
+    EXPECT_EQ(record.entries[1], "commit:1");
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, does_not_publish_source_complete_with_unconsumed_tokens) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "events":{"onSourceComplete":"source"},
+      "productions":{"Root":{"token":"A","events":{"onCommit":"commit"}}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    LifecycleRecord record;
+    LifecycleBinding commit{&record, "commit"};
+    LifecycleBinding source{&record, "source"};
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a b", 3, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "commit", lifecycle_handler, &commit), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "source", lifecycle_handler, &source), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_EQ(record.entries.size(), 1u);
+    EXPECT_EQ(record.entries[0], "commit:1");
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, commit_rejection_stops_publication_and_clears_the_queue) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"token":"A","events":{"onCommit":"commit"}}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    LifecycleRecord record;
+    record.reject_commit = true;
+    LifecycleBinding commit{&record, "commit"};
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a", 1, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    ASSERT_EQ(textparser_register_handler(parser.get(), "commit", lifecycle_handler, &commit), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_ERROR);
+    ASSERT_EQ(record.entries.size(), 1u);
+    textparser_parser_state_view state{};
+    ASSERT_EQ(parser.parser_state(&state), 0);
+    EXPECT_EQ(state.pending_event_count, 0u);
     parser.reset();
     textparser_free_language_definition(definition);
 }

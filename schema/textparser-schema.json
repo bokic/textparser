@@ -98,7 +98,8 @@
         "productions": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/production" }
-        }
+        },
+        "events": { "$ref": "#/$defs/grammarEvents" }
       },
       "additionalProperties": false
     },
@@ -278,7 +279,8 @@
           "type": "array",
           "items": { "type": "string" }
         },
-        "allowASI": { "type": "boolean" }
+        "allowASI": { "type": "boolean" },
+        "events": { "$ref": "#/$defs/productionEvents" }
       },
       "additionalProperties": false
     },
@@ -368,12 +370,35 @@
     },
     "productionEvents": {
       "type": "object",
+      "minProperties": 1,
       "properties": {
-        "onValidate": { "type": ["string", "object"] },
-        "onCommit": { "type": ["string", "object"] },
-        "onRecovery": { "type": ["string", "object"] }
+        "onValidate": { "$ref": "#/$defs/eventBinding" },
+        "onCommit": { "$ref": "#/$defs/eventBinding" },
+        "onRecovery": { "$ref": "#/$defs/eventBinding" }
       },
       "additionalProperties": false
+    },
+    "grammarEvents": {
+      "type": "object",
+      "required": ["onSourceComplete"],
+      "properties": {
+        "onSourceComplete": { "$ref": "#/$defs/eventBinding" }
+      },
+      "additionalProperties": false
+    },
+    "eventBinding": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "required": ["handler"],
+          "properties": {
+            "handler": { "type": "string", "minLength": 1 },
+            "configuration": {}
+          },
+          "additionalProperties": false
+        }
+      ]
     },
     "operatorRule": {
       "type": "object",
