@@ -67,6 +67,11 @@ typedef struct textparser_handler_entry {
     struct textparser_handler_entry *next;
 } textparser_handler_entry;
 
+typedef struct {
+    const char *handler_name;
+    textparser_event event;
+} textparser_pending_event;
+
 typedef struct textparser_decoder_entry {
     char *name;
     textparser_decoder_fn decoder;
@@ -152,6 +157,8 @@ struct textparser_handle {
     /* Semantic action handlers & node ID generation */
     uint64_t next_node_id;
     textparser_handler_entry *handlers;
+    textparser_pending_event *pending_events;
+    size_t pending_event_capacity;
 
     /* Phase 3: Decoders & Validators */
     textparser_decoder_entry *decoders;
@@ -2599,6 +2606,9 @@ void textparser_close(textparser_t handle)
         entry = next_entry;
     }
     handle->handlers = nullptr;
+    free(handle->pending_events);
+    handle->pending_events = nullptr;
+    handle->pending_event_capacity = 0;
 
     /* Free registered decoders */
     textparser_decoder_entry *dec = handle->decoders;
@@ -5052,6 +5062,51 @@ EXPORT_TEXTPARSER textparser_action textparser_dispatch_event(
     return TEXTPARSER_ACTION_ACCEPT;
 }
 
+static int textparser_queue_event(
+    textparser_t handle,
+    const char *handler_name,
+    const textparser_event *event)
+{
+    if (handle == nullptr || handler_name == nullptr || event == nullptr) return -1;
+    if (handle->parser.pending_event_count == handle->pending_event_capacity) {
+        size_t capacity = handle->pending_event_capacity == 0
+            ? 16 : handle->pending_event_capacity * 2;
+        textparser_pending_event *events = realloc(
+            handle->pending_events, capacity * sizeof(*events));
+        if (events == nullptr) return -1;
+        handle->pending_events = events;
+        handle->pending_event_capacity = capacity;
+    }
+    textparser_pending_event *pending =
+        &handle->pending_events[handle->parser.pending_event_count++];
+    pending->handler_name = handler_name;
+    pending->event = *event;
+    return 0;
+}
+
+static textparser_action textparser_publish_pending_events(
+    textparser_t handle,
+    size_t first)
+{
+    if (handle == nullptr || first > handle->parser.pending_event_count)
+        return TEXTPARSER_ACTION_ABORT;
+    size_t end = handle->parser.pending_event_count;
+    for (size_t i = first; i < end; i++) {
+        if (handle->pending_events[i].event.node != nullptr)
+            handle->pending_events[i].event.parent =
+                handle->pending_events[i].event.node->parent;
+        textparser_action action = textparser_dispatch_event(
+            handle, handle->pending_events[i].handler_name,
+            &handle->pending_events[i].event);
+        if (action != TEXTPARSER_ACTION_ACCEPT) {
+            handle->parser.pending_event_count = first;
+            return action;
+        }
+    }
+    handle->parser.pending_event_count = first;
+    return TEXTPARSER_ACTION_ACCEPT;
+}
+
 EXPORT_TEXTPARSER uint64_t textparser_node_get_id(const textparser_node *node)
 {
     return node ? node->id : 0;
@@ -6481,6 +6536,7 @@ static textparser_match_result textparser_parse_production(
     }
     const textparser_production *production = textparser_find_production(executor, production_id);
     if (production == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    size_t event_start = executor->handle->parser.source_offset;
     executor->recursion_depth++;
     textparser_match_result result;
 
@@ -6597,6 +6653,42 @@ static textparser_match_result textparser_parse_production(
             if (recovered.status != TEXTPARSER_MATCH_NO) result = recovered;
         }
     }
+    if (result.status == TEXTPARSER_MATCH_OK && result.node != nullptr) {
+        textparser_event event = {0};
+        event.node = result.node;
+        event.parent = result.node->parent;
+        event.start = event_start;
+        event.end = executor->handle->parser.source_offset;
+        event.synthetic = (result.node->node_flags & TEXTPARSER_NODE_SYNTHETIC) != 0;
+        event.recovered = (result.node->node_flags &
+            (TEXTPARSER_NODE_RECOVERED | TEXTPARSER_NODE_MISSING)) != 0;
+        if (production->validate_handler != nullptr) {
+            event.type = TEXTPARSER_EVENT_VALIDATE;
+            event.configuration = production->validate_configuration;
+            textparser_action action = textparser_dispatch_event(
+                executor->handle, production->validate_handler, &event);
+            if (action == TEXTPARSER_ACTION_REJECT) {
+                result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+            } else if (action == TEXTPARSER_ACTION_ABORT) {
+                result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+            }
+        }
+        if (result.status == TEXTPARSER_MATCH_OK && event.recovered &&
+            production->recovery_handler != nullptr) {
+            event.type = TEXTPARSER_EVENT_RECOVERY;
+            event.configuration = production->recovery_configuration;
+            if (textparser_queue_event(executor->handle,
+                    production->recovery_handler, &event) != 0)
+                result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+        }
+        if (result.status == TEXTPARSER_MATCH_OK && production->commit_handler != nullptr) {
+            event.type = TEXTPARSER_EVENT_COMMIT;
+            event.configuration = production->commit_configuration;
+            if (textparser_queue_event(executor->handle,
+                    production->commit_handler, &event) != 0)
+                result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+        }
+    }
     executor->recursion_depth--;
     return result;
 }
@@ -6617,13 +6709,30 @@ EXPORT_TEXTPARSER int textparser_execute_production(
     handle->parser.token_index = 0;
     handle->parser.has_previous_token = false;
     handle->parser.recovery_depth = 0;
+    handle->parser.pending_event_count = 0;
     textparser_grammar_executor executor = {
         .handle = handle,
         .productions = productions,
         .production_count = production_count,
         .initial_diagnostic_count = handle->diagnostic_count,
     };
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(handle, &checkpoint);
+    if (checkpoint == nullptr) return -1;
     *out_result = textparser_parse_production(&executor, start_production);
+    if (out_result->status == TEXTPARSER_MATCH_OK) {
+        textparser_speculate_commit(handle, checkpoint);
+        textparser_action action = textparser_publish_pending_events(handle, 0);
+        if (action == TEXTPARSER_ACTION_REJECT)
+            *out_result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+        else if (action == TEXTPARSER_ACTION_ABORT)
+            *out_result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    } else if (out_result->committed) {
+        textparser_speculate_commit(handle, checkpoint);
+        handle->parser.pending_event_count = 0;
+    } else {
+        textparser_speculate_rollback(handle, checkpoint);
+    }
     if (out_result->status != TEXTPARSER_MATCH_OK && executor.furthest_failure != nullptr &&
         handle->diagnostic_count == executor.initial_diagnostic_count) {
         textparser_grammar_report_expected(&executor, executor.furthest_failure,
@@ -6650,12 +6759,39 @@ EXPORT_TEXTPARSER int textparser_execute_language_grammar(
     for (size_t i = 0; i < language->operator_definition_count; i++) {
         if (textparser_register_operator(handle, &language->operator_definitions[i]) != 0) return -1;
     }
-    return textparser_execute_production(
+    int status = textparser_execute_production(
         handle,
         language->grammar->productions,
         language->grammar->production_count,
         language->grammar->start_production,
         out_result);
+    if (status != 0 || out_result->status != TEXTPARSER_MATCH_OK ||
+        language->grammar->source_complete_handler == nullptr) return status;
+    textparser_grammar_executor executor = {
+        .handle = handle,
+        .productions = language->grammar->productions,
+        .production_count = language->grammar->production_count,
+    };
+    const textparser_lex_token *remaining = nullptr;
+    int peek = textparser_grammar_peek_token(&executor, &remaining);
+    if (peek == 0 && remaining != nullptr) return status;
+    if (peek < 0) {
+        *out_result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+        return status;
+    }
+    textparser_event event = {0};
+    event.type = TEXTPARSER_EVENT_SOURCE_COMPLETE;
+    event.node = out_result->node;
+    event.start = 0;
+    event.end = handle->parser.source_offset;
+    event.configuration = language->grammar->source_complete_configuration;
+    textparser_action action = textparser_dispatch_event(
+        handle, language->grammar->source_complete_handler, &event);
+    if (action == TEXTPARSER_ACTION_REJECT)
+        *out_result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    else if (action == TEXTPARSER_ACTION_ABORT)
+        *out_result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    return status;
 }
 
 /* -------------------------------------------------------------------------

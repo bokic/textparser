@@ -245,6 +245,12 @@ typedef struct {
     bool recovery_skip;
     bool allow_automatic_semicolon;
     const char *expected_description;
+    const char *validate_handler;
+    const char *validate_configuration;
+    const char *commit_handler;
+    const char *commit_configuration;
+    const char *recovery_handler;
+    const char *recovery_configuration;
 } textparser_production;
 
 typedef enum {
@@ -265,6 +271,8 @@ typedef struct {
     int start_production;
     size_t production_count;
     textparser_production *productions;
+    const char *source_complete_handler;
+    const char *source_complete_configuration;
 } textparser_grammar_definition;
 
 typedef struct textparser_token_item {
@@ -296,6 +304,7 @@ typedef struct {
     bool synthetic;
     bool recovered;
     const void *recovery_info;
+    /* Compact JSON string for object-valued declarative event bindings. */
     const void *configuration;
     void *language_context;
 } textparser_event;

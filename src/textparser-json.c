@@ -387,6 +387,80 @@ static int json_parse_recovery_tokens(
     return 0;
 }
 
+static int json_parse_event_binding(
+    json_grammar_builder *builder,
+    json_object *binding,
+    const char **out_handler,
+    const char **out_configuration)
+{
+    const char *handler = nullptr;
+    json_object *configuration = nullptr;
+    if (json_object_is_type(binding, json_type_string)) {
+        if (json_object_get_string_len(binding) == 0)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        handler = json_object_get_string(binding);
+    } else if (json_object_is_type(binding, json_type_object)) {
+        json_object *handler_object = nullptr;
+        json_object_iter member;
+        json_object_object_foreachC(binding, member) {
+            if (strcmp(member.key, "handler") != 0 &&
+                strcmp(member.key, "configuration") != 0)
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        if (!json_object_object_get_ex(binding, "handler", &handler_object) ||
+            !json_object_is_type(handler_object, json_type_string) ||
+            json_object_get_string_len(handler_object) == 0)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        handler = json_object_get_string(handler_object);
+        json_object_object_get_ex(binding, "configuration", &configuration);
+    } else {
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    }
+    *out_handler = textparser_string_pool_strdup(builder->pool, handler);
+    if (*out_handler == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    if (configuration != nullptr) {
+        const char *serialized = json_object_to_json_string_ext(
+            configuration, JSON_C_TO_STRING_PLAIN);
+        *out_configuration = textparser_string_pool_strdup(builder->pool, serialized);
+        if (*out_configuration == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    }
+    return 0;
+}
+
+static int json_parse_production_events(
+    json_grammar_builder *builder,
+    json_object *events,
+    textparser_production *production)
+{
+    if (!json_object_is_type(events, json_type_object) ||
+        json_object_object_length(events) == 0)
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    json_object_iter event;
+    json_object_object_foreachC(events, event) {
+        int ret;
+        if (strcmp(event.key, "onValidate") == 0) {
+            if (production->validate_handler != nullptr)
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            ret = json_parse_event_binding(builder, event.val,
+                &production->validate_handler, &production->validate_configuration);
+        } else if (strcmp(event.key, "onCommit") == 0) {
+            if (production->commit_handler != nullptr)
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            ret = json_parse_event_binding(builder, event.val,
+                &production->commit_handler, &production->commit_configuration);
+        } else if (strcmp(event.key, "onRecovery") == 0) {
+            if (production->recovery_handler != nullptr)
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            ret = json_parse_event_binding(builder, event.val,
+                &production->recovery_handler, &production->recovery_configuration);
+        } else {
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        if (ret != 0) return ret;
+    }
+    return 0;
+}
+
 static int json_parse_grammar_construct(
     json_grammar_builder *builder,
     json_object *construct,
@@ -396,19 +470,25 @@ static int json_parse_grammar_construct(
         return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     json_object *plain = json_object_new_object();
     if (plain == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
-    json_object *expect = nullptr, *recover = nullptr, *recover_until = nullptr, *asi = nullptr;
+    json_object *expect = nullptr, *recover = nullptr, *recover_until = nullptr;
+    json_object *asi = nullptr, *events = nullptr;
     json_object_iter member;
     json_object_object_foreachC(construct, member) {
         if (strcmp(member.key, "expect") == 0) expect = member.val;
         else if (strcmp(member.key, "recover") == 0) recover = member.val;
         else if (strcmp(member.key, "recoverUntil") == 0) recover_until = member.val;
         else if (strcmp(member.key, "allowASI") == 0) asi = member.val;
+        else if (strcmp(member.key, "events") == 0) events = member.val;
         else json_object_object_add(plain, member.key, json_object_get(member.val));
     }
     int ret = json_parse_grammar_construct_core(builder, plain, production_id);
     json_object_put(plain);
     if (ret != 0) return ret;
     textparser_production *production = &builder->items[production_id];
+    if (events != nullptr) {
+        ret = json_parse_production_events(builder, events, production);
+        if (ret != 0) return ret;
+    }
     if (expect != nullptr) {
         if (!json_object_is_type(expect, json_type_string) || json_object_get_string_len(expect) == 0)
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
@@ -656,6 +736,7 @@ static int json_parse_grammar(
     if (!json_object_is_type(grammar_obj, json_type_object)) return TEXTPARSER_JSON_GRAMMAR_NOT_OBJECT;
     json_object *start_obj = nullptr;
     json_object *productions_obj = nullptr;
+    json_object *grammar_events = nullptr;
     if (!json_object_object_get_ex(grammar_obj, "start", &start_obj) ||
         !json_object_is_type(start_obj, json_type_string)) {
         return TEXTPARSER_JSON_GRAMMAR_START_NOT_FOUND;
@@ -665,6 +746,7 @@ static int json_parse_grammar(
         json_object_object_length(productions_obj) == 0) {
         return TEXTPARSER_JSON_GRAMMAR_PRODUCTIONS_NOT_OBJECT;
     }
+    json_object_object_get_ex(grammar_obj, "events", &grammar_events);
 
     json_grammar_builder builder = {0};
     builder.named_count = (size_t)json_object_object_length(productions_obj);
@@ -704,6 +786,24 @@ static int json_parse_grammar(
     ret = json_validate_grammar(&builder);
     if (ret != 0) goto fail;
 
+    const char *source_complete_handler = nullptr;
+    const char *source_complete_configuration = nullptr;
+    if (grammar_events != nullptr) {
+        if (!json_object_is_type(grammar_events, json_type_object) ||
+            json_object_object_length(grammar_events) != 1) {
+            ret = TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            goto fail;
+        }
+        json_object *binding = nullptr;
+        if (!json_object_object_get_ex(grammar_events, "onSourceComplete", &binding)) {
+            ret = TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            goto fail;
+        }
+        ret = json_parse_event_binding(&builder, binding,
+            &source_complete_handler, &source_complete_configuration);
+        if (ret != 0) goto fail;
+    }
+
     textparser_grammar_definition *grammar = calloc(1, sizeof(*grammar));
     if (grammar == nullptr) {
         ret = TEXTPARSER_JSON_OUT_OF_MEMORY;
@@ -712,6 +812,8 @@ static int json_parse_grammar(
     grammar->start_production = start;
     grammar->production_count = builder.count;
     grammar->productions = builder.items;
+    grammar->source_complete_handler = source_complete_handler;
+    grammar->source_complete_configuration = source_complete_configuration;
     definition->grammar = grammar;
     return 0;
 

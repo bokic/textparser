@@ -70,6 +70,17 @@ furthest expected-production diagnostic; checkpoint rollback discards
 diagnostics and recovery attempts from abandoned speculation. Root `recovery`
 settings bound diagnostics, skipped tokens, and recovery attempts.
 
+Declarative production lifecycle events are transactional. `onValidate` runs
+immediately after a node is parsed and may accept, reject, or abort it;
+`onRecovery` and bottom-up `onCommit` events are queued until the complete start
+production succeeds, and checkpoints discard events from rejected alternatives.
+`grammar.events.onSourceComplete` runs only when no significant token remains.
+An event binding is either a handler-name string or
+`{"handler":"name","configuration":...}`; object configuration is delivered
+as a stable compact JSON string in `textparser_event.configuration`. Pending
+events are cleared after publication and callback rejection or abort is exposed
+through the grammar match status.
+
 For C, post-processing uses declaration context in function parameter lists to
 classify identifier-shaped types imported through headers. For example, in
 `adv_regex_context *ctx`, `adv_regex_context` becomes `TypeName` while `ctx`
