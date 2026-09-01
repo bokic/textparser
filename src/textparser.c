@@ -84,6 +84,7 @@ typedef struct textparser_validator_entry {
 typedef struct textparser_predicate_entry {
     char *name;
     textparser_predicate_fn predicate;
+    textparser_parser_predicate_fn parser_predicate;
     void *user_data;
     struct textparser_predicate_entry *next;
 } textparser_predicate_entry;
@@ -5283,6 +5284,7 @@ EXPORT_TEXTPARSER int textparser_register_predicate(
     while (entry != nullptr) {
         if (entry->name && strcmp(entry->name, name) == 0) {
             entry->predicate = predicate;
+            entry->parser_predicate = nullptr;
             entry->user_data = user_data;
             return 0;
         }
@@ -5299,10 +5301,42 @@ EXPORT_TEXTPARSER int textparser_register_predicate(
         return -1;
     }
     entry->predicate = predicate;
+    entry->parser_predicate = nullptr;
     entry->user_data = user_data;
     entry->next = handle->predicates;
     handle->predicates = entry;
 
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_register_parser_predicate(
+    textparser_t handle,
+    const char *name,
+    textparser_parser_predicate_fn predicate,
+    void *user_data)
+{
+    if (handle == nullptr || name == nullptr || predicate == nullptr) return -1;
+    textparser_predicate_entry *entry = handle->predicates;
+    while (entry != nullptr) {
+        if (entry->name && strcmp(entry->name, name) == 0) {
+            entry->predicate = nullptr;
+            entry->parser_predicate = predicate;
+            entry->user_data = user_data;
+            return 0;
+        }
+        entry = entry->next;
+    }
+    entry = calloc(1, sizeof(*entry));
+    if (entry == nullptr) return -1;
+    entry->name = strdup(name);
+    if (entry->name == nullptr) {
+        free(entry);
+        return -1;
+    }
+    entry->parser_predicate = predicate;
+    entry->user_data = user_data;
+    entry->next = handle->predicates;
+    handle->predicates = entry;
     return 0;
 }
 
@@ -5317,7 +5351,8 @@ EXPORT_TEXTPARSER bool textparser_eval_predicate(
     textparser_predicate_entry *entry = handle->predicates;
     while (entry != nullptr) {
         if (entry->name && strcmp(entry->name, name) == 0) {
-            return entry->predicate(handle, name, entry->user_data);
+            if (entry->predicate != nullptr) return entry->predicate(handle, name, entry->user_data);
+            return false;
         }
         entry = entry->next;
     }
@@ -5633,6 +5668,17 @@ static textparser_match_result textparser_match_result_make(
     return result;
 }
 
+static textparser_match_result textparser_match_result_committed(
+    textparser_match_status status,
+    textparser_node *node,
+    size_t consumed,
+    bool committed)
+{
+    textparser_match_result result = textparser_match_result_make(status, node, consumed);
+    result.committed = committed;
+    return result;
+}
+
 static const textparser_production *textparser_find_production(
     const textparser_grammar_executor *executor,
     int production_id)
@@ -5703,13 +5749,20 @@ static textparser_match_result textparser_parse_sequence(
 
     textparser_node *first = nullptr;
     textparser_node *last = nullptr;
+    bool committed = false;
     for (size_t i = 0; i < production->child_count; i++) {
         textparser_match_result child = textparser_parse_production(executor, production->children[i]);
         if (child.status != TEXTPARSER_MATCH_OK) {
+            if (committed || child.committed) {
+                size_t consumed = handle->parser.token_index - start_index;
+                textparser_speculate_commit(handle, checkpoint);
+                return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr, consumed, true);
+            }
             textparser_match_status status = child.status;
             textparser_speculate_rollback(handle, checkpoint);
             return textparser_match_result_make(status, nullptr, 0);
         }
+        committed = committed || child.committed;
         textparser_grammar_append_node(&first, &last, child.node);
     }
 
@@ -5721,7 +5774,7 @@ static textparser_match_result textparser_parse_sequence(
     }
     size_t consumed = handle->parser.token_index - start_index;
     textparser_speculate_commit(handle, checkpoint);
-    return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, consumed);
+    return textparser_match_result_committed(TEXTPARSER_MATCH_OK, node, consumed, committed);
 }
 
 static textparser_match_result textparser_parse_choice(
@@ -5739,6 +5792,11 @@ static textparser_match_result textparser_parse_choice(
             return result;
         }
         textparser_match_status status = result.status;
+        if (result.committed) {
+            textparser_speculate_commit(handle, checkpoint);
+            return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr,
+                result.consumed_tokens, true);
+        }
         textparser_speculate_rollback(handle, checkpoint);
         if (status != TEXTPARSER_MATCH_NO) {
             return textparser_match_result_make(status, nullptr, 0);
@@ -5763,6 +5821,11 @@ static textparser_match_result textparser_parse_optional(
         return result;
     }
     textparser_match_status status = result.status;
+    if (result.committed) {
+        textparser_speculate_commit(executor->handle, checkpoint);
+        return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr,
+            result.consumed_tokens, true);
+    }
     textparser_speculate_rollback(executor->handle, checkpoint);
     if (status == TEXTPARSER_MATCH_NO) {
         return textparser_match_result_make(TEXTPARSER_MATCH_OK, nullptr, 0);
@@ -5785,6 +5848,7 @@ static textparser_match_result textparser_parse_repeat(
     if (outer == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
     textparser_node *first = nullptr;
     textparser_node *last = nullptr;
+    bool committed = false;
 
     for (;;) {
         size_t iteration_start = handle->parser.token_index;
@@ -5800,6 +5864,12 @@ static textparser_match_result textparser_parse_repeat(
             break;
         }
         if (child.status != TEXTPARSER_MATCH_OK) {
+            if (committed || child.committed) {
+                textparser_speculate_commit(handle, iteration);
+                textparser_speculate_commit(handle, outer);
+                return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr,
+                    handle->parser.token_index - start_index, true);
+            }
             textparser_match_status status = child.status;
             textparser_speculate_rollback(handle, iteration);
             textparser_speculate_rollback(handle, outer);
@@ -5811,6 +5881,7 @@ static textparser_match_result textparser_parse_repeat(
             return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
         }
         textparser_speculate_commit(handle, iteration);
+        committed = committed || child.committed;
         textparser_grammar_append_node(&first, &last, child.node);
     }
 
@@ -5822,7 +5893,81 @@ static textparser_match_result textparser_parse_repeat(
     }
     size_t consumed = handle->parser.token_index - start_index;
     textparser_speculate_commit(handle, outer);
-    return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, consumed);
+    return textparser_match_result_committed(TEXTPARSER_MATCH_OK, node, consumed, committed);
+}
+
+static textparser_match_result textparser_parse_lookahead(
+    textparser_grammar_executor *executor,
+    const textparser_production *production,
+    bool negative)
+{
+    if (production->child_count != 1 || production->children == nullptr) {
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    }
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(executor->handle, &checkpoint);
+    if (checkpoint == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    textparser_match_result child = textparser_parse_production(executor, production->children[0]);
+    textparser_speculate_rollback(executor->handle, checkpoint);
+    if (child.status == TEXTPARSER_MATCH_OK) {
+        return textparser_match_result_make(negative ? TEXTPARSER_MATCH_NO : TEXTPARSER_MATCH_OK, nullptr, 0);
+    }
+    if (child.status == TEXTPARSER_MATCH_NO) {
+        return textparser_match_result_make(negative ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+    return textparser_match_result_make(child.status, nullptr, 0);
+}
+
+static textparser_match_result textparser_parse_predicate(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    textparser_t handle = executor->handle;
+    if (production->predicate_name == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    textparser_predicate_entry *entry = handle->predicates;
+    while (entry != nullptr && strcmp(entry->name, production->predicate_name) != 0) entry = entry->next;
+    if (entry == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(handle, &checkpoint);
+    if (checkpoint == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    bool accepted = false;
+    if (entry->parser_predicate != nullptr) {
+        textparser_predicate_context context = {0};
+        context.production_id = production->id;
+        if (handle->parser.token_index < handle->lexer_token_count) {
+            context.current = &handle->lexer_tokens[handle->parser.token_index];
+            context.has_preceding_line_terminator =
+                (context.current->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) != 0;
+        }
+        if (handle->parser.token_index > 0) context.previous = &handle->lexer_tokens[handle->parser.token_index - 1];
+        accepted = entry->parser_predicate(handle, &context, entry->user_data);
+    } else if (entry->predicate != nullptr) {
+        accepted = entry->predicate(handle, production->predicate_name, entry->user_data);
+    }
+    textparser_speculate_rollback(handle, checkpoint);
+    return textparser_match_result_make(accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
+}
+
+static textparser_match_result textparser_parse_context(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    if (production->context_name == nullptr || production->child_count != 1 || production->children == nullptr) {
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    }
+    textparser_t handle = executor->handle;
+    textparser_context_entry *saved = textparser_clone_context_list(handle->contexts);
+    if (handle->contexts != nullptr && saved == nullptr) {
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
+    if (textparser_context_set(handle, production->context_name, production->context_value) != 0) {
+        textparser_free_context_list(saved);
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
+    textparser_match_result result = textparser_parse_production(executor, production->children[0]);
+    textparser_free_context_list(handle->contexts);
+    handle->contexts = saved;
+    return result;
 }
 
 static textparser_match_result textparser_parse_production(
@@ -5878,6 +6023,21 @@ static textparser_match_result textparser_parse_production(
         break;
     case TEXTPARSER_PROD_REPEAT:
         result = textparser_parse_repeat(executor, production);
+        break;
+    case TEXTPARSER_PROD_LOOKAHEAD:
+        result = textparser_parse_lookahead(executor, production, false);
+        break;
+    case TEXTPARSER_PROD_NOT:
+        result = textparser_parse_lookahead(executor, production, true);
+        break;
+    case TEXTPARSER_PROD_PREDICATE:
+        result = textparser_parse_predicate(executor, production);
+        break;
+    case TEXTPARSER_PROD_CONTEXT:
+        result = textparser_parse_context(executor, production);
+        break;
+    case TEXTPARSER_PROD_COMMIT:
+        result = textparser_match_result_committed(TEXTPARSER_MATCH_OK, nullptr, 0, true);
         break;
     default:
         result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);

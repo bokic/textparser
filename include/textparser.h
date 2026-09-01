@@ -212,6 +212,11 @@ typedef enum {
     TEXTPARSER_PROD_CHOICE,
     TEXTPARSER_PROD_OPTIONAL,
     TEXTPARSER_PROD_REPEAT,
+    TEXTPARSER_PROD_LOOKAHEAD,
+    TEXTPARSER_PROD_NOT,
+    TEXTPARSER_PROD_PREDICATE,
+    TEXTPARSER_PROD_CONTEXT,
+    TEXTPARSER_PROD_COMMIT,
 } textparser_production_kind;
 
 /**
@@ -227,6 +232,9 @@ typedef struct {
     size_t child_count;
     int token_id;
     int referenced_production;
+    const char *predicate_name;
+    const char *context_name;
+    int64_t context_value;
 } textparser_production;
 
 typedef enum {
@@ -1112,6 +1120,19 @@ typedef bool (*textparser_predicate_fn)(
     void *user_data
 );
 
+typedef struct {
+    int production_id;
+    const textparser_lex_token *current;
+    const textparser_lex_token *previous;
+    bool has_preceding_line_terminator;
+} textparser_predicate_context;
+
+typedef bool (*textparser_parser_predicate_fn)(
+    textparser_t parser,
+    const textparser_predicate_context *context,
+    void *user_data
+);
+
 /**
  * Register a native semantic predicate (e.g. "typescript.isStartOfTypeArguments").
  *
@@ -1125,6 +1146,18 @@ EXPORT_TEXTPARSER int textparser_register_predicate(
     textparser_t handle,
     const char *name,
     textparser_predicate_fn predicate,
+    void *user_data
+);
+
+/**
+ * Register a parser-aware predicate used by declarative grammar productions.
+ * The callback may inspect tokens and contexts but must not permanently mutate
+ * parser state.
+ */
+EXPORT_TEXTPARSER int textparser_register_parser_predicate(
+    textparser_t handle,
+    const char *name,
+    textparser_parser_predicate_fn predicate,
     void *user_data
 );
 

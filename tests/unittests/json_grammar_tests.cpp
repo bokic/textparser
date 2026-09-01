@@ -163,3 +163,70 @@ TEST(json_grammar, language_executor_rejects_missing_grammar) {
     textparser_match_result result{};
     EXPECT_EQ(textparser_execute_language_grammar(nullptr, nullptr, &result), -1);
 }
+
+namespace {
+bool json_context_predicate(textparser_t parser,
+                            const textparser_predicate_context *,
+                            void *) {
+    int64_t first = 0;
+    int64_t second = 0;
+    return textparser_context_get(parser, "First", &first) == 0 && first == 1 &&
+           textparser_context_get(parser, "Second", &second) == 0 && second == 2;
+}
+} // namespace
+
+TEST(json_grammar, loads_lookahead_predicates_contexts_and_commit) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{
+        "Root":{"sequence":[
+          {"lookahead":{"token":"A"}},
+          {"not":{"token":"B"}},
+          {"token":"A"},
+          {"withContext":{"set":{"First":1,"Second":2},"sequence":[
+            {"when":{"native":"test.context"}},
+            {"commit":true},
+            {"token":"B"}
+          ]}}
+        ]}
+      }
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a b", 3, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    ASSERT_EQ(textparser_register_parser_predicate(
+                  parser.get(), "test.context", json_context_predicate, nullptr), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.consumed_tokens, 2u);
+    EXPECT_TRUE(result.committed);
+    int64_t value = 0;
+    EXPECT_NE(textparser_context_get(parser.get(), "First", &value), 0);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, validates_advanced_construct_shapes_and_nullable_repeat) {
+    struct Case { const char *grammar; int expected; } cases[] = {
+        {R"({"start":"Root","productions":{"Root":{"lookahead":[]}}})",
+         TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"commit":false}}})",
+         TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"when":{"native":""}}}})",
+         TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"withContext":{"set":{},"ref":"Root"}}}})",
+         TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"withContext":{"set":{"X":"yes"},"sequence":[]}}}})",
+         TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"repeat":{"lookahead":{"token":"A"}}}}})",
+         TEXTPARSER_JSON_GRAMMAR_NULLABLE_REPEAT},
+    };
+    for (const auto &item : cases) {
+        textparser_language_definition *definition = nullptr;
+        EXPECT_EQ(load(item.grammar, &definition), item.expected) << item.grammar;
+        EXPECT_EQ(definition, nullptr);
+    }
+}
