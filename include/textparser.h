@@ -237,6 +237,14 @@ typedef struct {
     const char *context_name;
     int64_t context_value;
     int minimum_precedence;
+    /* Recovery policy. A negative recovery_insert_token disables insertion. */
+    int recovery_insert_token;
+    bool recovery_insert_enabled;
+    const int *recovery_sync_tokens;
+    size_t recovery_sync_token_count;
+    bool recovery_skip;
+    bool allow_automatic_semicolon;
+    const char *expected_description;
 } textparser_production;
 
 typedef enum {
@@ -445,6 +453,11 @@ typedef struct {
     textparser_contextual_lexer_rule *lexer_rules;
     size_t operator_definition_count;
     struct textparser_operator_def *operator_definitions;
+    size_t maximum_diagnostics;
+    size_t maximum_skipped_tokens;
+    size_t maximum_recovery_attempts;
+    size_t recovery_sync_token_count;
+    int *recovery_sync_tokens;
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;

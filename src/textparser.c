@@ -2026,6 +2026,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
     }
     free(definition->lexer_rules);
     free(definition->operator_definitions);
+    free(definition->recovery_sync_tokens);
 
     if (definition->default_file_extensions) {
         if (!uses_pool) {
@@ -2056,6 +2057,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
         if (definition->grammar->productions) {
             for (size_t i = 0; i < definition->grammar->production_count; i++) {
                 free((void *)definition->grammar->productions[i].children);
+                free((void *)definition->grammar->productions[i].recovery_sync_tokens);
             }
             free(definition->grammar->productions);
         }
@@ -5876,6 +5878,9 @@ typedef struct {
     const textparser_production *productions;
     size_t production_count;
     unsigned recursion_depth;
+    size_t furthest_failure_offset;
+    const textparser_production *furthest_failure;
+    size_t initial_diagnostic_count;
 } textparser_grammar_executor;
 
 static textparser_match_result textparser_match_result_make(
@@ -5995,6 +6000,109 @@ static textparser_match_result textparser_grammar_consume_token(
         handle->parser.source_offset = token->end;
     }
     return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 1);
+}
+
+static void textparser_grammar_note_failure(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    size_t offset = executor->handle->parser.source_offset;
+    if (executor->furthest_failure == nullptr || offset > executor->furthest_failure_offset) {
+        executor->furthest_failure_offset = offset;
+        executor->furthest_failure = production;
+    }
+}
+
+static int textparser_grammar_report_expected(
+    textparser_grammar_executor *executor,
+    const textparser_production *production,
+    size_t start,
+    size_t length,
+    bool recovered)
+{
+    size_t limit = executor->handle->language && executor->handle->language->maximum_diagnostics
+        ? executor->handle->language->maximum_diagnostics : 100;
+    if (executor->handle->diagnostic_count >= limit) return 0;
+    char message[256];
+    const char *name = production && production->expected_description
+        ? production->expected_description
+        : (production && production->name ? production->name : "syntax element");
+    snprintf(message, sizeof(message), recovered ? "Recovered while parsing %s." : "Expected %s.", name);
+    return textparser_report_diagnostic(executor->handle, TEXTPARSER_SEVERITY_ERROR,
+        recovered ? "TEXTPARSER_RECOVERED" : "TEXTPARSER_EXPECTED", message, start, length);
+}
+
+static bool textparser_grammar_is_sync(
+    const textparser_grammar_executor *executor,
+    const textparser_production *production,
+    int token_kind)
+{
+    const int *tokens = production->recovery_sync_tokens;
+    size_t count = production->recovery_sync_token_count;
+    if (count == 0 && executor->handle->language != nullptr) {
+        tokens = executor->handle->language->recovery_sync_tokens;
+        count = executor->handle->language->recovery_sync_token_count;
+    }
+    for (size_t i = 0; i < count; i++)
+        if (tokens[i] == token_kind) return true;
+    return false;
+}
+
+static textparser_match_result textparser_grammar_missing_token(
+    textparser_grammar_executor *executor,
+    const textparser_production *production,
+    int token_kind)
+{
+    textparser_node *node = textparser_alloc_token(executor->handle, token_kind, 0);
+    if (node == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    node->node_flags |= TEXTPARSER_NODE_SYNTHETIC | TEXTPARSER_NODE_MISSING;
+    textparser_grammar_report_expected(executor, production,
+        executor->handle->parser.source_offset, 0, false);
+    executor->handle->parser.recovery_depth++;
+    return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 0);
+}
+
+static bool textparser_grammar_can_insert_semicolon(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    const textparser_lex_token *current = nullptr;
+    int peek = textparser_grammar_peek_token(executor, &current);
+    if (peek > 0 || current == nullptr) return true;
+    if (peek < 0) return false;
+    return (current->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) != 0 ||
+        textparser_grammar_is_sync(executor, production, current->kind);
+}
+
+static textparser_match_result textparser_grammar_synchronize(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    textparser_t handle = executor->handle;
+    size_t maximum = handle->language && handle->language->maximum_skipped_tokens
+        ? handle->language->maximum_skipped_tokens : 256;
+    size_t start_offset = handle->parser.source_offset;
+    size_t start_index = handle->parser.token_index;
+    textparser_node *first = nullptr;
+    textparser_node *last = nullptr;
+    while (handle->parser.token_index - start_index < maximum) {
+        const textparser_lex_token *token = nullptr;
+        int peek = textparser_grammar_peek_token(executor, &token);
+        if (peek != 0 || token == nullptr || textparser_grammar_is_sync(executor, production, token->kind)) break;
+        textparser_match_result skipped = textparser_grammar_consume_token(executor, token->kind);
+        if (skipped.status != TEXTPARSER_MATCH_OK) return skipped;
+        textparser_grammar_append_node(&first, &last, skipped.node);
+    }
+    size_t consumed = handle->parser.token_index - start_index;
+    if (consumed == 0) return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    textparser_node *node = textparser_grammar_group_node(
+        handle, production, first, handle->parser.source_offset - start_offset);
+    if (node == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    node->node_flags |= TEXTPARSER_NODE_RECOVERED;
+    textparser_grammar_report_expected(executor, production, start_offset,
+        handle->parser.source_offset - start_offset, true);
+    handle->parser.recovery_depth++;
+    return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, consumed);
 }
 
 static textparser_node *textparser_pratt_operator_node(
@@ -6388,12 +6496,24 @@ static textparser_match_result textparser_parse_production(
                 break;
             }
             if (scan > 0 || token == nullptr || token->kind != production->token_id) {
+                textparser_grammar_note_failure(executor, production);
+                if (production->allow_automatic_semicolon &&
+                    textparser_grammar_can_insert_semicolon(executor, production)) {
+                    result = textparser_grammar_missing_token(executor, production, production->token_id);
+                    break;
+                }
                 result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
                 break;
             }
         } else {
             if (handle->parser.token_index >= handle->lexer_token_count ||
                 handle->lexer_tokens[handle->parser.token_index].kind != production->token_id) {
+                textparser_grammar_note_failure(executor, production);
+                if (production->allow_automatic_semicolon &&
+                    textparser_grammar_can_insert_semicolon(executor, production)) {
+                    result = textparser_grammar_missing_token(executor, production, production->token_id);
+                    break;
+                }
                 result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
                 break;
             }
@@ -6462,6 +6582,21 @@ static textparser_match_result textparser_parse_production(
         result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
         break;
     }
+    size_t maximum_attempts = executor->handle->language &&
+        executor->handle->language->maximum_recovery_attempts
+        ? executor->handle->language->maximum_recovery_attempts : 100;
+    if ((result.status == TEXTPARSER_MATCH_NO || result.status == TEXTPARSER_MATCH_ERROR) &&
+        executor->handle->parser.recovery_depth < maximum_attempts) {
+        if (production->recovery_insert_enabled) {
+            result = textparser_grammar_missing_token(
+                executor, production, production->recovery_insert_token);
+        } else if (production->recovery_skip &&
+            (production->recovery_sync_token_count != 0 ||
+             (executor->handle->language && executor->handle->language->recovery_sync_token_count != 0))) {
+            textparser_match_result recovered = textparser_grammar_synchronize(executor, production);
+            if (recovered.status != TEXTPARSER_MATCH_NO) result = recovered;
+        }
+    }
     executor->recursion_depth--;
     return result;
 }
@@ -6481,8 +6616,19 @@ EXPORT_TEXTPARSER int textparser_execute_production(
     handle->parser.source_offset = 0;
     handle->parser.token_index = 0;
     handle->parser.has_previous_token = false;
-    textparser_grammar_executor executor = {handle, productions, production_count, 0};
+    handle->parser.recovery_depth = 0;
+    textparser_grammar_executor executor = {
+        .handle = handle,
+        .productions = productions,
+        .production_count = production_count,
+        .initial_diagnostic_count = handle->diagnostic_count,
+    };
     *out_result = textparser_parse_production(&executor, start_production);
+    if (out_result->status != TEXTPARSER_MATCH_OK && executor.furthest_failure != nullptr &&
+        handle->diagnostic_count == executor.initial_diagnostic_count) {
+        textparser_grammar_report_expected(&executor, executor.furthest_failure,
+            executor.furthest_failure_offset, 0, false);
+    }
     return 0;
 }
 
@@ -6595,7 +6741,11 @@ EXPORT_TEXTPARSER int textparser_parse_pratt_expression(
     }
     textparser_production override = *start;
     override.minimum_precedence = min_precedence;
-    textparser_grammar_executor executor = {handle, grammar->productions, grammar->production_count, 0};
+    textparser_grammar_executor executor = {
+        .handle = handle,
+        .productions = grammar->productions,
+        .production_count = grammar->production_count,
+    };
     handle->parser.source_offset = 0;
     handle->parser.token_index = 0;
     handle->parser.has_previous_token = false;

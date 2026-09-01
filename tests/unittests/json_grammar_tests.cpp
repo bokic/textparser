@@ -110,6 +110,10 @@ TEST(json_grammar, validates_structure_and_names) {
         {R"({"start":"Root","productions":{"Root":{"token":"A","lookahead":{"token":"A"}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"sequence":{}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"optional":[]}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"token":"A","allowASI":"yes"}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"sequence":[],"allowASI":true}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"token":"A","recover":{"skip":true}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"token":"A","recoverUntil":["Missing"]}}})", TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN},
     };
     for (const auto &item : cases) {
         textparser_language_definition *definition = nullptr;
@@ -117,6 +121,121 @@ TEST(json_grammar, validates_structure_and_names) {
         EXPECT_EQ(definition, nullptr);
         EXPECT_STRNE(textparser_json_strerror(item.expected), "Unknown JSON parser error");
     }
+}
+
+TEST(json_grammar, inserts_missing_tokens_for_automatic_semicolon_recovery) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"sequence":[
+        {"token":"A"},
+        {"token":"B","allowASI":true,"expect":"semicolon"}
+      ]}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a", 1, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(result.node, nullptr);
+    ASSERT_NE(result.node->child, nullptr);
+    textparser_node *missing = result.node->child->next;
+    ASSERT_NE(missing, nullptr);
+    EXPECT_EQ(missing->len, 0u);
+    EXPECT_NE(missing->node_flags & TEXTPARSER_NODE_MISSING, 0u);
+    EXPECT_NE(missing->node_flags & TEXTPARSER_NODE_SYNTHETIC, 0u);
+    ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 1u);
+    textparser_diagnostic diagnostic{};
+    ASSERT_EQ(textparser_get_diagnostic(parser.get(), 0, &diagnostic), 0);
+    EXPECT_STREQ(diagnostic.code, "TEXTPARSER_EXPECTED");
+    EXPECT_STREQ(diagnostic.message, "Expected semicolon.");
+    EXPECT_EQ(diagnostic.start_pos, 1u);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, skips_unexpected_tokens_and_stops_before_synchronization_token) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"sequence":[
+        {"token":"A"},
+        {"token":"C","expect":"C token","recover":{"skip":true,"synchronize":["B"]}},
+        {"token":"B"}
+      ]}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a a b", 5, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.consumed_tokens, 3u);
+    textparser_node *recovered = result.node->child->next;
+    ASSERT_NE(recovered, nullptr);
+    EXPECT_NE(recovered->node_flags & TEXTPARSER_NODE_RECOVERED, 0u);
+    EXPECT_NE(recovered->node_flags & TEXTPARSER_NODE_SYNTHETIC, 0u);
+    ASSERT_NE(recovered->child, nullptr);
+    EXPECT_EQ(recovered->child->len, 1u);
+    EXPECT_EQ(textparser_get_diagnostic_count(parser.get()), 1u);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, uses_validated_global_synchronization_tokens) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"sequence":[
+        {"token":"A"},
+        {"token":"C","recover":{"skip":true}},
+        {"token":"B"}
+      ]}}
+    })json";
+    std::string json = language_with_grammar(grammar);
+    const size_t grammar_key = json.find("\"grammar\":");
+    ASSERT_NE(grammar_key, std::string::npos);
+    json.insert(grammar_key, "\"recovery\":{\"synchronizationTokens\":[\"B\"]},");
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(json.c_str(), &definition),
+              TEXTPARSER_JSON_NO_ERROR);
+    ASSERT_EQ(definition->recovery_sync_token_count, 1u);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a a b", 5, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.consumed_tokens, 3u);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, reports_only_the_furthest_failed_alternative) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"choice":[
+        {"sequence":[{"token":"A"},{"token":"C","expect":"C after A"}]},
+        {"token":"C","expect":"leading C"}
+      ]}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a b", 3, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_NO);
+    ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 1u);
+    textparser_diagnostic diagnostic{};
+    ASSERT_EQ(textparser_get_diagnostic(parser.get(), 0, &diagnostic), 0);
+    EXPECT_STREQ(diagnostic.message, "Expected C after A.");
+    EXPECT_EQ(diagnostic.start_pos, 1u);
+    parser.reset();
+    textparser_free_language_definition(definition);
 }
 
 TEST(json_grammar, rejects_nullable_repeat_and_left_recursion) {
