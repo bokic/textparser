@@ -59,6 +59,17 @@ in prefix and infix positions, and transactionally rolls back incomplete
 expressions. `textparser_parse_pratt_expression()` executes a Pratt start
 production directly when callers need an expression-only entry point.
 
+Grammar productions can now recover without losing source fidelity. Token
+constructs with `allowASI` insert zero-width nodes flagged `MISSING` and
+`SYNTHETIC` only at EOF, after a line terminator, or before a configured
+synchronization token. `recover.insert` provides explicit missing-token
+insertion, while `recoverUntil` or `recover.skip` plus `recover.synchronize`
+skips a bounded number of unexpected tokens and returns a `RECOVERED` wrapper
+whose children retain the skipped tokens. Failed alternatives retain only the
+furthest expected-production diagnostic; checkpoint rollback discards
+diagnostics and recovery attempts from abandoned speculation. Root `recovery`
+settings bound diagnostics, skipped tokens, and recovery attempts.
+
 For C, post-processing uses declaration context in function parameter lists to
 classify identifier-shaped types imported through headers. For example, in
 `adv_regex_context *ctx`, `adv_regex_context` becomes `TypeName` while `ctx`

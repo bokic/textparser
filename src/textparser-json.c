@@ -104,12 +104,16 @@ typedef struct {
     const textparser_token *tokens;
     size_t token_count;
     textparser_string_pool *pool;
+    size_t global_sync_token_count;
 } json_grammar_builder;
 
 static void json_grammar_builder_free(json_grammar_builder *builder)
 {
     if (builder == nullptr || builder->items == nullptr) return;
-    for (size_t i = 0; i < builder->count; i++) free((void *)builder->items[i].children);
+    for (size_t i = 0; i < builder->count; i++) {
+        free((void *)builder->items[i].children);
+        free((void *)builder->items[i].recovery_sync_tokens);
+    }
     free(builder->items);
     builder->items = nullptr;
     builder->count = 0;
@@ -138,6 +142,7 @@ static int json_grammar_append_anonymous(json_grammar_builder *builder, int *out
     builder->items[index].id = (int)index;
     builder->items[index].token_id = -1;
     builder->items[index].referenced_production = -1;
+    builder->items[index].recovery_insert_token = -1;
     *out_id = (int)index;
     return 0;
 }
@@ -152,6 +157,11 @@ static int json_grammar_named_id(const json_grammar_builder *builder, const char
 }
 
 static int json_parse_grammar_construct(
+    json_grammar_builder *builder,
+    json_object *construct,
+    int production_id);
+
+static int json_parse_grammar_construct_core(
     json_grammar_builder *builder,
     json_object *construct,
     int production_id)
@@ -348,6 +358,114 @@ static int json_parse_grammar_construct(
     return ret;
 }
 
+static int json_parse_recovery_tokens(
+    json_grammar_builder *builder,
+    json_object *array,
+    textparser_production *production)
+{
+    if (!json_object_is_type(array, json_type_array) || json_object_array_length(array) == 0 ||
+        production->recovery_sync_tokens != nullptr)
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    size_t count = (size_t)json_object_array_length(array);
+    int *tokens = calloc(count, sizeof(*tokens));
+    if (tokens == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    for (size_t i = 0; i < count; i++) {
+        json_object *name = json_object_array_get_idx(array, (int)i);
+        if (!json_object_is_type(name, json_type_string)) {
+            free(tokens);
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        tokens[i] = json_get_token_id_by_name(
+            json_object_get_string(name), builder->tokens, builder->token_count);
+        if (tokens[i] < 0) {
+            free(tokens);
+            return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+        }
+    }
+    production->recovery_sync_tokens = tokens;
+    production->recovery_sync_token_count = count;
+    return 0;
+}
+
+static int json_parse_grammar_construct(
+    json_grammar_builder *builder,
+    json_object *construct,
+    int production_id)
+{
+    if (construct == nullptr || !json_object_is_type(construct, json_type_object))
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    json_object *plain = json_object_new_object();
+    if (plain == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    json_object *expect = nullptr, *recover = nullptr, *recover_until = nullptr, *asi = nullptr;
+    json_object_iter member;
+    json_object_object_foreachC(construct, member) {
+        if (strcmp(member.key, "expect") == 0) expect = member.val;
+        else if (strcmp(member.key, "recover") == 0) recover = member.val;
+        else if (strcmp(member.key, "recoverUntil") == 0) recover_until = member.val;
+        else if (strcmp(member.key, "allowASI") == 0) asi = member.val;
+        else json_object_object_add(plain, member.key, json_object_get(member.val));
+    }
+    int ret = json_parse_grammar_construct_core(builder, plain, production_id);
+    json_object_put(plain);
+    if (ret != 0) return ret;
+    textparser_production *production = &builder->items[production_id];
+    if (expect != nullptr) {
+        if (!json_object_is_type(expect, json_type_string) || json_object_get_string_len(expect) == 0)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        production->expected_description = textparser_string_pool_strdup(
+            builder->pool, json_object_get_string(expect));
+        if (production->expected_description == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    }
+    if (asi != nullptr) {
+        if (!json_object_is_type(asi, json_type_boolean))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        production->allow_automatic_semicolon = json_object_get_boolean(asi);
+        if (production->allow_automatic_semicolon && production->kind != TEXTPARSER_PROD_TOKEN)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    }
+    if (recover_until != nullptr) {
+        ret = json_parse_recovery_tokens(builder, recover_until, production);
+        if (ret != 0) return ret;
+        production->recovery_skip = true;
+    }
+    if (recover != nullptr) {
+        if (!json_object_is_type(recover, json_type_object))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        json_object *insert = nullptr, *skip = nullptr, *sync = nullptr;
+        json_object_iter action;
+        json_object_object_foreachC(recover, action) {
+            if (strcmp(action.key, "insert") == 0) insert = action.val;
+            else if (strcmp(action.key, "skip") == 0) skip = action.val;
+            else if (strcmp(action.key, "synchronize") == 0) sync = action.val;
+            else return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        if (insert != nullptr) {
+            if (!json_object_is_type(insert, json_type_string))
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            int token = json_get_token_id_by_name(
+                json_object_get_string(insert), builder->tokens, builder->token_count);
+            if (token < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+            production->recovery_insert_token = token;
+            production->recovery_insert_enabled = true;
+        }
+        if (skip != nullptr) {
+            if (!json_object_is_type(skip, json_type_boolean))
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            production->recovery_skip = json_object_get_boolean(skip);
+        }
+        if (sync != nullptr) {
+            ret = json_parse_recovery_tokens(builder, sync, production);
+            if (ret != 0) return ret;
+        }
+        if (!production->recovery_insert_enabled && !production->recovery_skip)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        if (production->recovery_skip && production->recovery_sync_token_count == 0 &&
+            builder->global_sync_token_count == 0)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    }
+    return 0;
+}
+
 static void json_grammar_compute_nullable(const json_grammar_builder *builder, bool *nullable)
 {
     for (size_t pass = 0; pass < builder->count; pass++) {
@@ -490,6 +608,49 @@ static int json_parse_grammar(
     size_t token_count,
     textparser_string_pool *pool)
 {
+    definition->maximum_diagnostics = 100;
+    definition->maximum_skipped_tokens = 256;
+    definition->maximum_recovery_attempts = 100;
+    json_object *recovery_policy = nullptr;
+    if (json_object_object_get_ex(root, "recovery", &recovery_policy)) {
+        if (!json_object_is_type(recovery_policy, json_type_object))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        json_object_iter policy;
+        json_object_object_foreachC(recovery_policy, policy) {
+            if (strcmp(policy.key, "maximumDiagnostics") == 0) {
+                if (!json_object_is_type(policy.val, json_type_int) || json_object_get_int64(policy.val) <= 0)
+                    return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                definition->maximum_diagnostics = (size_t)json_object_get_int64(policy.val);
+            } else if (strcmp(policy.key, "maximumSkippedTokens") == 0) {
+                if (!json_object_is_type(policy.val, json_type_int) || json_object_get_int64(policy.val) <= 0)
+                    return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                definition->maximum_skipped_tokens = (size_t)json_object_get_int64(policy.val);
+            } else if (strcmp(policy.key, "maximumRecoveryAttempts") == 0) {
+                if (!json_object_is_type(policy.val, json_type_int) || json_object_get_int64(policy.val) <= 0)
+                    return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                definition->maximum_recovery_attempts = (size_t)json_object_get_int64(policy.val);
+            } else if (strcmp(policy.key, "synchronizationTokens") == 0) {
+                if (!json_object_is_type(policy.val, json_type_array) ||
+                    json_object_array_length(policy.val) == 0)
+                    return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                size_t count = (size_t)json_object_array_length(policy.val);
+                definition->recovery_sync_tokens = calloc(count, sizeof(int));
+                if (definition->recovery_sync_tokens == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+                definition->recovery_sync_token_count = count;
+                for (size_t i = 0; i < count; i++) {
+                    json_object *name = json_object_array_get_idx(policy.val, (int)i);
+                    if (!json_object_is_type(name, json_type_string))
+                        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                    definition->recovery_sync_tokens[i] = json_get_token_id_by_name(
+                        json_object_get_string(name), definition->tokens, token_count);
+                    if (definition->recovery_sync_tokens[i] < 0)
+                        return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+                }
+            } else {
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            }
+        }
+    }
     json_object *grammar_obj = nullptr;
     if (!json_object_object_get_ex(root, "grammar", &grammar_obj)) return 0;
     if (!json_object_is_type(grammar_obj, json_type_object)) return TEXTPARSER_JSON_GRAMMAR_NOT_OBJECT;
@@ -510,6 +671,7 @@ static int json_parse_grammar(
     builder.tokens = definition->tokens;
     builder.token_count = token_count;
     builder.pool = pool;
+    builder.global_sync_token_count = definition->recovery_sync_token_count;
     int ret = json_grammar_reserve(&builder, builder.named_count);
     if (ret != 0) goto fail;
     builder.count = builder.named_count;
@@ -520,6 +682,7 @@ static int json_parse_grammar(
         builder.items[index].id = (int)index;
         builder.items[index].token_id = -1;
         builder.items[index].referenced_production = -1;
+        builder.items[index].recovery_insert_token = -1;
         builder.items[index].name = textparser_string_pool_strdup(pool, iter.key);
         if (builder.items[index].name == nullptr) {
             ret = TEXTPARSER_JSON_OUT_OF_MEMORY;

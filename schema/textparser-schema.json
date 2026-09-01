@@ -114,6 +114,11 @@
           "type": "integer",
           "default": 256
         },
+        "maximumRecoveryAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 100
+        },
         "synchronizationTokens": {
           "type": "array",
           "items": { "type": "string" }
@@ -231,7 +236,10 @@
         "recoverUntil": {
           "type": "array",
           "items": { "type": "string" }
-        }
+        },
+        "expect": { "type": "string" },
+        "recover": { "$ref": "#/$defs/recoverAction" },
+        "allowASI": { "type": "boolean" }
       },
       "additionalProperties": false
     },
@@ -265,7 +273,12 @@
         "lineTerminatorAfter": { "type": "boolean" },
         "noLineTerminatorAfter": { "type": "boolean" },
         "expect": { "type": "string" },
-        "recover": { "$ref": "#/$defs/recoverAction" }
+        "recover": { "$ref": "#/$defs/recoverAction" },
+        "recoverUntil": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "allowASI": { "type": "boolean" }
       },
       "additionalProperties": false
     },
@@ -344,6 +357,10 @@
       "properties": {
         "insert": { "type": "string" },
         "skip": { "type": "boolean" },
+        "synchronize": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "replace": { "type": "string" },
         "event": { "type": "string" }
       },
