@@ -341,6 +341,12 @@ def main(args):
 
     # Static legacy definitions do not yet compile schema-v2 grammar tables.
     text += "    .grammar = NULL," + os.linesep
+    text += "    .initial_lexer_mode = NULL," + os.linesep
+    text += "    .lexer_mode_count = 0," + os.linesep
+    text += "    .lexer_modes = NULL," + os.linesep
+    text += "    .lexer_goal_count = 0," + os.linesep
+    text += "    .lexer_goals = NULL," + os.linesep
+    text += "    .lexer_rules = NULL," + os.linesep
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:

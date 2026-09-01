@@ -334,6 +334,30 @@ typedef struct {
 } textparser_token;
 
 typedef struct {
+    int priority;
+    bool is_trivia;
+    const char *push_mode;
+    bool pop_mode;
+} textparser_contextual_lexer_rule;
+
+typedef struct {
+    const char *name;
+    int *tokens;
+    int *trivia;
+} textparser_lexer_mode;
+
+typedef struct {
+    int source_token;
+    int target_token;
+} textparser_lexer_goal_mapping;
+
+typedef struct {
+    const char *name;
+    size_t mapping_count;
+    textparser_lexer_goal_mapping *mappings;
+} textparser_lexer_goal;
+
+typedef struct {
     const char **file_extensions;
     const char *regex;
     int *start_tokens;
@@ -409,6 +433,12 @@ typedef struct {
     textparser_cast_disambiguation *cast_disambiguation;
     textparser_declaration_disambiguation *declaration_disambiguation;
     textparser_grammar_definition *grammar;
+    const char *initial_lexer_mode;
+    size_t lexer_mode_count;
+    textparser_lexer_mode *lexer_modes;
+    size_t lexer_goal_count;
+    textparser_lexer_goal *lexer_goals;
+    textparser_contextual_lexer_rule *lexer_rules;
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;
@@ -1099,6 +1129,21 @@ EXPORT_TEXTPARSER void textparser_set_lexical_goal(textparser_t handle, const ch
  * @return Active goal name or NULL.
  */
 EXPORT_TEXTPARSER const char *textparser_get_lexical_goal(textparser_t handle);
+
+/** Scan without consuming using the current mode and the supplied goal. */
+EXPORT_TEXTPARSER int textparser_lexer_peek(
+    textparser_t handle,
+    size_t lookahead,
+    const char *goal_name,
+    const textparser_lex_token **out_token
+);
+
+/** Scan and consume one token using the current mode and supplied goal. */
+EXPORT_TEXTPARSER int textparser_lexer_consume(
+    textparser_t handle,
+    const char *goal_name,
+    const textparser_lex_token **out_token
+);
 
 /**
  * Check if trivia (whitespace, line terminators, comments) between two offsets contains a line terminator.

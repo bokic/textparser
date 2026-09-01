@@ -105,7 +105,17 @@ typedef struct {
     size_t pending_event_count;
     unsigned speculation_depth;
     unsigned recovery_depth;
+    bool has_previous_token;
+    textparser_lex_token previous_token;
 } textparser_parser_runtime;
+
+typedef struct textparser_lexer_cache_entry {
+    size_t source_offset;
+    char *mode;
+    char *goal;
+    textparser_lex_token token;
+    struct textparser_lexer_cache_entry *next;
+} textparser_lexer_cache_entry;
 
 struct textparser_handle {
     const textparser_language_definition *language;
@@ -171,6 +181,7 @@ struct textparser_handle {
     size_t lexer_token_count;
     textparser_lex_trivia *lexer_trivia;
     size_t lexer_trivia_count;
+    textparser_lexer_cache_entry *lexer_cache;
 
     /* Shared transactional state used by all grammar operations. */
     textparser_parser_runtime parser;
@@ -185,6 +196,15 @@ static void textparser_clear_lexer_streams(struct textparser_handle *handle)
     handle->lexer_token_count = 0;
     handle->lexer_trivia = nullptr;
     handle->lexer_trivia_count = 0;
+    textparser_lexer_cache_entry *entry = handle->lexer_cache;
+    while (entry != nullptr) {
+        textparser_lexer_cache_entry *next = entry->next;
+        free(entry->mode);
+        free(entry->goal);
+        free(entry);
+        entry = next;
+    }
+    handle->lexer_cache = nullptr;
 }
 
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
@@ -1992,6 +2012,19 @@ void textparser_free_language_definition(textparser_language_definition *definit
         return;
 
     bool uses_pool = (definition->string_pool != nullptr);
+
+    if (definition->lexer_modes) {
+        for (size_t i = 0; i < definition->lexer_mode_count; i++) {
+            free(definition->lexer_modes[i].tokens);
+            free(definition->lexer_modes[i].trivia);
+        }
+        free(definition->lexer_modes);
+    }
+    if (definition->lexer_goals) {
+        for (size_t i = 0; i < definition->lexer_goal_count; i++) free(definition->lexer_goals[i].mappings);
+        free(definition->lexer_goals);
+    }
+    free(definition->lexer_rules);
 
     if (definition->default_file_extensions) {
         if (!uses_pool) {
@@ -5247,6 +5280,189 @@ EXPORT_TEXTPARSER const char *textparser_get_lexical_goal(textparser_t handle)
     return handle ? handle->lexical_goal : nullptr;
 }
 
+static const textparser_lexer_mode *textparser_find_lexer_mode(
+    const textparser_language_definition *language,
+    const char *name)
+{
+    if (language == nullptr || name == nullptr) return nullptr;
+    for (size_t i = 0; i < language->lexer_mode_count; i++) {
+        if (strcmp(language->lexer_modes[i].name, name) == 0) return &language->lexer_modes[i];
+    }
+    return nullptr;
+}
+
+static int textparser_goal_token(
+    const textparser_language_definition *language,
+    const char *goal,
+    int token_id,
+    int *goal_id)
+{
+    if (goal_id != nullptr) *goal_id = 0;
+    if (language == nullptr || goal == nullptr) return token_id;
+    for (size_t i = 0; i < language->lexer_goal_count; i++) {
+        const textparser_lexer_goal *item = &language->lexer_goals[i];
+        if (strcmp(item->name, goal) != 0) continue;
+        if (goal_id != nullptr) *goal_id = (int)i + 1;
+        for (size_t m = 0; m < item->mapping_count; m++) {
+            if (item->mappings[m].source_token == token_id) return item->mappings[m].target_token;
+        }
+        return token_id;
+    }
+    return token_id;
+}
+
+static bool textparser_id_in_list(const int *ids, int id)
+{
+    if (ids == nullptr) return false;
+    for (size_t i = 0; ids[i] >= 0; i++) if (ids[i] == id) return true;
+    return false;
+}
+
+static bool textparser_contextual_match(
+    struct textparser_handle *handle,
+    int token_id,
+    size_t offset,
+    size_t *length)
+{
+    const textparser_token *rule = &handle->language->tokens[token_id];
+    if (rule->start_regex == nullptr && rule->startRegexFunction == nullptr) return false;
+    size_t found_at = 0;
+    size_t found_len = 0;
+    size_t total = textparser_get_total_units(handle);
+    if (offset >= total || !textparser_match_start_token(
+            handle, token_id,
+            handle->text_addr + textparser_get_byte_offset(handle, offset),
+            total - offset, &found_at, &found_len, true) || found_at != 0 || found_len == 0) {
+        return false;
+    }
+    *length = found_len;
+    return true;
+}
+
+static int textparser_contextual_scan_one(
+    struct textparser_handle *handle,
+    size_t source_offset,
+    const char *mode_name,
+    const char *goal_name,
+    const textparser_lex_token **out_token)
+{
+    *out_token = nullptr;
+    const char *mode = mode_name ? mode_name : "default";
+    const char *goal = goal_name ? goal_name : "";
+    for (textparser_lexer_cache_entry *cached = handle->lexer_cache;
+         cached != nullptr; cached = cached->next) {
+        if (cached->source_offset == source_offset && strcmp(cached->mode, mode) == 0 &&
+            strcmp(cached->goal, goal) == 0) {
+            *out_token = &cached->token;
+            return 0;
+        }
+    }
+
+    const textparser_lexer_mode *active = textparser_find_lexer_mode(handle->language, mode);
+    if (handle->language->lexer_mode_count != 0 && active == nullptr) return -1;
+    size_t total = textparser_get_total_units(handle);
+    size_t offset = source_offset;
+    size_t trivia_start = offset;
+    uint32_t flags = 0;
+    for (;;) {
+        int best = -1;
+        size_t best_len = 0;
+        for (int id = 0; id < (int)handle->token_count; id++) {
+            if (!handle->language->lexer_rules[id].is_trivia ||
+                (active != nullptr && !textparser_id_in_list(active->trivia, id))) continue;
+            size_t length = 0;
+            if (textparser_contextual_match(handle, id, offset, &length) &&
+                (length > best_len || (length == best_len && best >= 0 &&
+                 handle->language->lexer_rules[id].priority > handle->language->lexer_rules[best].priority))) {
+                best = id;
+                best_len = length;
+            }
+        }
+        if (best < 0) break;
+        flags |= textparser_lexer_span_flags(handle, offset, offset + best_len);
+        offset += best_len;
+    }
+    if (offset >= total) return 1;
+
+    int best = -1;
+    size_t best_len = 0;
+    int goal_id = 0;
+    for (int source_id = 0; source_id < (int)handle->token_count; source_id++) {
+        if (handle->language->lexer_rules[source_id].is_trivia ||
+            (active != nullptr && !textparser_id_in_list(active->tokens, source_id))) continue;
+        int id = textparser_goal_token(handle->language, goal_name, source_id, &goal_id);
+        size_t length = 0;
+        if (textparser_contextual_match(handle, id, offset, &length) &&
+            (length > best_len || (length == best_len && best >= 0 &&
+             handle->language->lexer_rules[id].priority > handle->language->lexer_rules[best].priority))) {
+            best = id;
+            best_len = length;
+        }
+    }
+    if (best < 0) return 1;
+
+    textparser_lexer_cache_entry *entry = calloc(1, sizeof(*entry));
+    if (entry == nullptr) return -1;
+    entry->mode = strdup(mode);
+    entry->goal = strdup(goal);
+    if (entry->mode == nullptr || entry->goal == nullptr) {
+        free(entry->mode); free(entry->goal); free(entry); return -1;
+    }
+    entry->source_offset = source_offset;
+    entry->token.kind = best;
+    entry->token.start = offset;
+    entry->token.end = offset + best_len;
+    entry->token.leading_trivia_start = trivia_start;
+    entry->token.leading_trivia_count = offset - trivia_start;
+    entry->token.mode = active == nullptr ? 0 : (int)(active - handle->language->lexer_modes) + 1;
+    entry->token.lexical_goal = goal_id;
+    entry->token.flags = flags;
+    entry->next = handle->lexer_cache;
+    handle->lexer_cache = entry;
+    *out_token = &entry->token;
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_lexer_peek(
+    textparser_t handle, size_t lookahead, const char *goal_name,
+    const textparser_lex_token **out_token)
+{
+    if (handle == nullptr || handle->language == nullptr || out_token == nullptr) return -1;
+    const char *modes[TEXTPARSER_MAX_MODE_STACK] = {0};
+    size_t depth = handle->mode_stack_depth;
+    for (size_t i = 0; i < depth; i++) modes[i] = handle->mode_stack[i];
+    size_t offset = handle->parser.source_offset;
+    const textparser_lex_token *token = nullptr;
+    for (size_t i = 0; i <= lookahead; i++) {
+        const char *mode = depth ? modes[depth - 1] :
+            (handle->language->initial_lexer_mode ? handle->language->initial_lexer_mode : "default");
+        int ret = textparser_contextual_scan_one(handle, offset, mode, goal_name, &token);
+        if (ret != 0) { *out_token = nullptr; return ret; }
+        if (i == lookahead) break;
+        const textparser_contextual_lexer_rule *rule = &handle->language->lexer_rules[token->kind];
+        if (rule->pop_mode && depth > 0) depth--;
+        if (rule->push_mode != nullptr && depth < TEXTPARSER_MAX_MODE_STACK) modes[depth++] = rule->push_mode;
+        offset = token->end;
+    }
+    *out_token = token;
+    return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_lexer_consume(
+    textparser_t handle, const char *goal_name, const textparser_lex_token **out_token)
+{
+    int scan = textparser_lexer_peek(handle, 0, goal_name, out_token);
+    if (scan != 0) return scan;
+    const textparser_contextual_lexer_rule *rule = &handle->language->lexer_rules[(*out_token)->kind];
+    if (rule->pop_mode && textparser_pop_mode(handle) != 0) return -1;
+    if (rule->push_mode != nullptr && textparser_push_mode(handle, rule->push_mode) != 0) return -1;
+    handle->parser.previous_token = **out_token;
+    handle->parser.has_previous_token = true;
+    handle->parser.source_offset = (*out_token)->end;
+    handle->parser.token_index++;
+    return 0;
+}
+
 EXPORT_TEXTPARSER bool textparser_has_line_terminator_between(textparser_t handle, size_t start_pos, size_t end_pos)
 {
     if (handle == nullptr || start_pos >= end_pos) {
@@ -5467,6 +5683,8 @@ typedef struct {
     size_t pending_event_count;
     unsigned speculation_depth;
     unsigned recovery_depth;
+    bool has_previous_token;
+    textparser_lex_token previous_token;
     size_t mode_depth;
     char *modes[TEXTPARSER_MAX_MODE_STACK];
     char *lexical_goal;
@@ -5570,6 +5788,8 @@ EXPORT_TEXTPARSER void textparser_speculate_begin(
     cp->pending_event_count = handle->parser.pending_event_count;
     cp->speculation_depth = handle->parser.speculation_depth;
     cp->recovery_depth = handle->parser.recovery_depth;
+    cp->has_previous_token = handle->parser.has_previous_token;
+    cp->previous_token = handle->parser.previous_token;
     cp->mode_depth = handle->mode_stack_depth;
 
     for (size_t i = 0; i < cp->mode_depth; i++) {
@@ -5645,6 +5865,8 @@ EXPORT_TEXTPARSER void textparser_speculate_rollback(
     handle->parser.pending_event_count = cp->pending_event_count;
     handle->parser.speculation_depth = cp->speculation_depth;
     handle->parser.recovery_depth = cp->recovery_depth;
+    handle->parser.has_previous_token = cp->has_previous_token;
+    handle->parser.previous_token = cp->previous_token;
     textparser_checkpoint_free(cp);
 }
 
@@ -5934,7 +6156,15 @@ static textparser_match_result textparser_parse_predicate(
     if (entry->parser_predicate != nullptr) {
         textparser_predicate_context context = {0};
         context.production_id = production->id;
-        if (handle->parser.token_index < handle->lexer_token_count) {
+        if (handle->language != nullptr && handle->language->initial_lexer_mode != nullptr) {
+            const textparser_lex_token *current = nullptr;
+            if (textparser_lexer_peek(handle, 0, handle->lexical_goal, &current) == 0) {
+                context.current = current;
+                context.has_preceding_line_terminator =
+                    (current->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) != 0;
+            }
+            if (handle->parser.has_previous_token) context.previous = &handle->parser.previous_token;
+        } else if (handle->parser.token_index < handle->lexer_token_count) {
             context.current = &handle->lexer_tokens[handle->parser.token_index];
             context.has_preceding_line_terminator =
                 (context.current->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) != 0;
@@ -5985,19 +6215,41 @@ static textparser_match_result textparser_parse_production(
     switch (production->kind) {
     case TEXTPARSER_PROD_TOKEN: {
         textparser_t handle = executor->handle;
-        if (handle->parser.token_index >= handle->lexer_token_count ||
-            handle->lexer_tokens[handle->parser.token_index].kind != production->token_id) {
-            result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
-            break;
+        const textparser_lex_token *token = nullptr;
+        bool contextual = handle->language != nullptr && handle->language->initial_lexer_mode != nullptr;
+        if (contextual) {
+            int scan = textparser_lexer_peek(handle, 0, handle->lexical_goal, &token);
+            if (scan < 0) {
+                result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+                break;
+            }
+            if (scan > 0 || token == nullptr || token->kind != production->token_id) {
+                result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+                break;
+            }
+        } else {
+            if (handle->parser.token_index >= handle->lexer_token_count ||
+                handle->lexer_tokens[handle->parser.token_index].kind != production->token_id) {
+                result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+                break;
+            }
+            token = &handle->lexer_tokens[handle->parser.token_index];
         }
-        const textparser_lex_token *token = &handle->lexer_tokens[handle->parser.token_index];
         textparser_node *node = textparser_grammar_token_node(handle, token);
         if (node == nullptr) {
             result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
             break;
         }
-        handle->parser.token_index++;
-        handle->parser.source_offset = token->end;
+        if (contextual) {
+            const textparser_lex_token *consumed = nullptr;
+            if (textparser_lexer_consume(handle, handle->lexical_goal, &consumed) != 0) {
+                result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+                break;
+            }
+        } else {
+            handle->parser.token_index++;
+            handle->parser.source_offset = token->end;
+        }
         result = textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 1);
         break;
     }
@@ -6061,6 +6313,7 @@ EXPORT_TEXTPARSER int textparser_execute_production(
     handle->parser.language = handle->language;
     handle->parser.source_offset = 0;
     handle->parser.token_index = 0;
+    handle->parser.has_previous_token = false;
     textparser_grammar_executor executor = {handle, productions, production_count, 0};
     *out_result = textparser_parse_production(&executor, start_production);
     return 0;

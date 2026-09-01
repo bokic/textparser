@@ -190,6 +190,7 @@
     },
     "lexerGoal": {
       "type": "object",
+      "description": "Maps an eligible token rule name to the replacement rule scanned for this lexical goal.",
       "additionalProperties": { "type": "string" }
     },
     "grammarContext": {
