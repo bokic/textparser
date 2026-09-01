@@ -347,6 +347,8 @@ def main(args):
     text += "    .lexer_goal_count = 0," + os.linesep
     text += "    .lexer_goals = NULL," + os.linesep
     text += "    .lexer_rules = NULL," + os.linesep
+    text += "    .operator_definition_count = 0," + os.linesep
+    text += "    .operator_definitions = NULL," + os.linesep
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:

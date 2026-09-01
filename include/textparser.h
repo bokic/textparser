@@ -217,6 +217,7 @@ typedef enum {
     TEXTPARSER_PROD_PREDICATE,
     TEXTPARSER_PROD_CONTEXT,
     TEXTPARSER_PROD_COMMIT,
+    TEXTPARSER_PROD_PRATT,
 } textparser_production_kind;
 
 /**
@@ -235,6 +236,7 @@ typedef struct {
     const char *predicate_name;
     const char *context_name;
     int64_t context_value;
+    int minimum_precedence;
 } textparser_production;
 
 typedef enum {
@@ -357,6 +359,8 @@ typedef struct {
     textparser_lexer_goal_mapping *mappings;
 } textparser_lexer_goal;
 
+struct textparser_operator_def;
+
 typedef struct {
     const char **file_extensions;
     const char *regex;
@@ -439,6 +443,8 @@ typedef struct {
     size_t lexer_goal_count;
     textparser_lexer_goal *lexer_goals;
     textparser_contextual_lexer_rule *lexer_rules;
+    size_t operator_definition_count;
+    struct textparser_operator_def *operator_definitions;
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;

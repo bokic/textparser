@@ -48,6 +48,17 @@ restores the cursor and mode stack while retaining safe cache entries.
 and declarative `TOKEN` productions use it automatically for schema-v2 lexer
 definitions.
 
+Declarative grammars can parse expressions with a real Pratt production:
+`{"pratt":{"primary":...}}`. The primary child remains ordinary grammar, so
+literals, identifiers, parenthesized expressions, and language-specific atoms
+can be composed normally. Root-level `operators` entries register prefix,
+postfix, infix, or ternary roles with explicit precedence and associativity;
+ternary entries also name their middle terminator. Pratt parsing consumes the
+contextual lexer, constructs nested operator CST nodes, supports the same token
+in prefix and infix positions, and transactionally rolls back incomplete
+expressions. `textparser_parse_pratt_expression()` executes a Pratt start
+production directly when callers need an expression-only entry point.
+
 For C, post-processing uses declaration context in function parameter lists to
 classify identifier-shaped types imported through headers. For example, in
 `adv_regex_context *ctx`, `adv_regex_context` becomes `TypeName` while `ctx`

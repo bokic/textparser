@@ -222,6 +222,7 @@
         "separatedBy": { "$ref": "#/$defs/separatedByConstruct" },
         "lookahead": { "$ref": "#/$defs/construct" },
         "not": { "$ref": "#/$defs/construct" },
+        "pratt": { "$ref": "#/$defs/prattConstruct" },
         "commit": { "type": "boolean" },
         "when": { "$ref": "#/$defs/guardCondition" },
         "withContext": { "$ref": "#/$defs/withContextConstruct" },
@@ -253,6 +254,7 @@
         "separatedBy": { "$ref": "#/$defs/separatedByConstruct" },
         "lookahead": { "$ref": "#/$defs/construct" },
         "not": { "$ref": "#/$defs/construct" },
+        "pratt": { "$ref": "#/$defs/prattConstruct" },
         "commit": { "type": "boolean" },
         "priority": { "type": "integer" },
         "when": { "$ref": "#/$defs/guardCondition" },
@@ -276,6 +278,15 @@
         "allowTrailing": { "type": "boolean", "default": false }
       },
       "required": ["element", "separator"],
+      "additionalProperties": false
+    },
+    "prattConstruct": {
+      "type": "object",
+      "required": ["primary"],
+      "properties": {
+        "primary": { "$ref": "#/$defs/construct" },
+        "minimumPrecedence": { "type": "integer", "default": 0 }
+      },
       "additionalProperties": false
     },
     "withContextConstruct": {

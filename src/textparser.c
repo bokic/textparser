@@ -2025,6 +2025,7 @@ void textparser_free_language_definition(textparser_language_definition *definit
         free(definition->lexer_goals);
     }
     free(definition->lexer_rules);
+    free(definition->operator_definitions);
 
     if (definition->default_file_extensions) {
         if (!uses_pool) {
@@ -5958,6 +5959,169 @@ static textparser_match_result textparser_parse_production(
     textparser_grammar_executor *executor,
     int production_id);
 
+static int textparser_grammar_peek_token(
+    textparser_grammar_executor *executor,
+    const textparser_lex_token **out)
+{
+    textparser_t handle = executor->handle;
+    if (handle->language != nullptr && handle->language->initial_lexer_mode != nullptr)
+        return textparser_lexer_peek(handle, 0, handle->lexical_goal, out);
+    if (handle->parser.token_index >= handle->lexer_token_count) {
+        *out = nullptr;
+        return 1;
+    }
+    *out = &handle->lexer_tokens[handle->parser.token_index];
+    return 0;
+}
+
+static textparser_match_result textparser_grammar_consume_token(
+    textparser_grammar_executor *executor,
+    int expected_kind)
+{
+    textparser_t handle = executor->handle;
+    const textparser_lex_token *token = nullptr;
+    int scan = textparser_grammar_peek_token(executor, &token);
+    if (scan < 0) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    if (scan > 0 || token == nullptr || token->kind != expected_kind)
+        return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    textparser_node *node = textparser_grammar_token_node(handle, token);
+    if (node == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    if (handle->language != nullptr && handle->language->initial_lexer_mode != nullptr) {
+        const textparser_lex_token *consumed = nullptr;
+        if (textparser_lexer_consume(handle, handle->lexical_goal, &consumed) != 0)
+            return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    } else {
+        handle->parser.token_index++;
+        handle->parser.source_offset = token->end;
+    }
+    return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 1);
+}
+
+static textparser_node *textparser_pratt_operator_node(
+    textparser_node *op,
+    textparser_node *first,
+    textparser_node *second,
+    textparser_node *third,
+    size_t source_length)
+{
+    if (op == nullptr || first == nullptr) return nullptr;
+    op->len = source_length;
+    op->child = first;
+    first->parent = op;
+    first->prev = nullptr;
+    first->next = second;
+    if (second != nullptr) {
+        second->parent = op;
+        second->prev = first;
+        second->next = third;
+    }
+    if (third != nullptr) {
+        third->parent = op;
+        third->prev = second;
+        third->next = nullptr;
+    }
+    return op;
+}
+
+static textparser_match_result textparser_parse_pratt_internal(
+    textparser_grammar_executor *executor,
+    int primary_production,
+    int minimum_precedence,
+    unsigned depth)
+{
+    if (depth >= MAX_RECURSION_DEPTH)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    textparser_t handle = executor->handle;
+    size_t start_index = handle->parser.token_index;
+    size_t start_offset = handle->parser.source_offset;
+    const textparser_lex_token *next = nullptr;
+    textparser_operator_def prefix = {0};
+    textparser_match_result left;
+    if (textparser_grammar_peek_token(executor, &next) == 0 && next != nullptr &&
+        textparser_get_operator(handle, next->kind, TEXTPARSER_OP_PREFIX, &prefix) == 0) {
+        textparser_match_result op = textparser_grammar_consume_token(executor, next->kind);
+        if (op.status != TEXTPARSER_MATCH_OK) return op;
+        textparser_match_result operand = textparser_parse_pratt_internal(
+            executor, primary_production, prefix.precedence, depth + 1);
+        if (operand.status != TEXTPARSER_MATCH_OK)
+            return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr,
+                handle->parser.token_index - start_index, operand.committed);
+        left = textparser_match_result_committed(TEXTPARSER_MATCH_OK,
+            textparser_pratt_operator_node(op.node, operand.node, nullptr, nullptr,
+                handle->parser.source_offset - start_offset),
+            handle->parser.token_index - start_index, operand.committed);
+    } else {
+        left = textparser_parse_production(executor, primary_production);
+        if (left.status != TEXTPARSER_MATCH_OK) return left;
+    }
+
+    for (;;) {
+        if (textparser_grammar_peek_token(executor, &next) != 0 || next == nullptr) break;
+        textparser_operator_def opdef = {0};
+        bool postfix = textparser_get_operator(handle, next->kind, TEXTPARSER_OP_POSTFIX, &opdef) == 0;
+        bool ternary = false;
+        if (!postfix) ternary = textparser_get_operator(handle, next->kind, TEXTPARSER_OP_TERNARY, &opdef) == 0;
+        if (!postfix && !ternary &&
+            textparser_get_operator(handle, next->kind, TEXTPARSER_OP_INFIX, &opdef) != 0) break;
+        if (opdef.precedence < minimum_precedence) break;
+
+        size_t expression_start = start_offset;
+        textparser_match_result op = textparser_grammar_consume_token(executor, next->kind);
+        if (op.status != TEXTPARSER_MATCH_OK) return op;
+        if (postfix) {
+            left.node = textparser_pratt_operator_node(op.node, left.node, nullptr, nullptr,
+                handle->parser.source_offset - expression_start);
+            left.consumed_tokens = handle->parser.token_index - start_index;
+            continue;
+        }
+        int right_min = opdef.associativity == TEXTPARSER_ASSOC_LEFT
+            ? opdef.precedence + 1 : opdef.precedence;
+        if (ternary) {
+            textparser_match_result middle = textparser_parse_pratt_internal(
+                executor, primary_production, 0, depth + 1);
+            if (middle.status != TEXTPARSER_MATCH_OK)
+                return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+            textparser_match_result separator = textparser_grammar_consume_token(
+                executor, opdef.secondary_token_id);
+            if (separator.status != TEXTPARSER_MATCH_OK)
+                return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+            textparser_match_result right = textparser_parse_pratt_internal(
+                executor, primary_production, right_min, depth + 1);
+            if (right.status != TEXTPARSER_MATCH_OK)
+                return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+            left.node = textparser_pratt_operator_node(op.node, left.node, middle.node, right.node,
+                handle->parser.source_offset - expression_start);
+            left.committed = left.committed || middle.committed || right.committed;
+        } else {
+            textparser_match_result right = textparser_parse_pratt_internal(
+                executor, primary_production, right_min, depth + 1);
+            if (right.status != TEXTPARSER_MATCH_OK)
+                return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+            left.node = textparser_pratt_operator_node(op.node, left.node, right.node, nullptr,
+                handle->parser.source_offset - expression_start);
+            left.committed = left.committed || right.committed;
+        }
+        left.consumed_tokens = handle->parser.token_index - start_index;
+    }
+    return left;
+}
+
+static textparser_match_result textparser_parse_pratt(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    if (production->child_count != 1 || production->children == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(executor->handle, &checkpoint);
+    if (checkpoint == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    textparser_match_result result = textparser_parse_pratt_internal(
+        executor, production->children[0], production->minimum_precedence, 0);
+    if (result.status == TEXTPARSER_MATCH_OK) textparser_speculate_commit(executor->handle, checkpoint);
+    else textparser_speculate_rollback(executor->handle, checkpoint);
+    return result;
+}
+
 static textparser_match_result textparser_parse_sequence(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -6291,6 +6455,9 @@ static textparser_match_result textparser_parse_production(
     case TEXTPARSER_PROD_COMMIT:
         result = textparser_match_result_committed(TEXTPARSER_MATCH_OK, nullptr, 0, true);
         break;
+    case TEXTPARSER_PROD_PRATT:
+        result = textparser_parse_pratt(executor, production);
+        break;
     default:
         result = textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
         break;
@@ -6327,6 +6494,15 @@ EXPORT_TEXTPARSER int textparser_execute_language_grammar(
     if (handle == nullptr || language == nullptr || language->grammar == nullptr ||
         language->grammar->productions == nullptr || out_result == nullptr) {
         return -1;
+    }
+    if (language->operator_definition_count != 0) {
+        free(handle->operators);
+        handle->operators = nullptr;
+        handle->operator_count = 0;
+        handle->operator_capacity = 0;
+    }
+    for (size_t i = 0; i < language->operator_definition_count; i++) {
+        if (textparser_register_operator(handle, &language->operator_definitions[i]) != 0) return -1;
     }
     return textparser_execute_production(
         handle,
@@ -6401,15 +6577,31 @@ EXPORT_TEXTPARSER int textparser_parse_pratt_expression(
         return -1;
     }
 
-    /* If AST already contains parsed nodes, construct or return root node */
-    textparser_node *root = textparser_get_first_token(handle);
-    if (!root) {
-        *out_node = nullptr;
-        return -1;
+    *out_node = nullptr;
+    if (handle->language == nullptr || handle->language->grammar == nullptr) return -1;
+    const textparser_grammar_definition *grammar = handle->language->grammar;
+    const textparser_production *start = nullptr;
+    for (size_t i = 0; i < grammar->production_count; i++)
+        if (grammar->productions[i].id == grammar->start_production) start = &grammar->productions[i];
+    if (start == nullptr || start->kind != TEXTPARSER_PROD_PRATT) return -1;
+    if (handle->language->operator_definition_count != 0) {
+        free(handle->operators);
+        handle->operators = nullptr;
+        handle->operator_count = 0;
+        handle->operator_capacity = 0;
     }
-
-    (void)min_precedence;
-    *out_node = root;
+    for (size_t i = 0; i < handle->language->operator_definition_count; i++) {
+        if (textparser_register_operator(handle, &handle->language->operator_definitions[i]) != 0) return -1;
+    }
+    textparser_production override = *start;
+    override.minimum_precedence = min_precedence;
+    textparser_grammar_executor executor = {handle, grammar->productions, grammar->production_count, 0};
+    handle->parser.source_offset = 0;
+    handle->parser.token_index = 0;
+    handle->parser.has_previous_token = false;
+    textparser_match_result result = textparser_parse_pratt(&executor, &override);
+    if (result.status != TEXTPARSER_MATCH_OK) return -1;
+    *out_node = result.node;
     return 0;
 }
 

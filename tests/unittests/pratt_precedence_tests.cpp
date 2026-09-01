@@ -60,3 +60,152 @@ TEST(pratt_precedence, register_and_query_operators) {
 
     textparser_close(handle);
 }
+
+namespace {
+const char *pratt_language_json = R"json({
+  "name":"pratt", "version":2, "caseSensitivity":true,
+  "defaultFileExtensions":["txt"], "defaultTextEncoding":"utf-8",
+  "otherTextInside":true,
+  "lexer":{
+    "tokens":{
+      "Number":{"regex":"[0-9]+"},
+      "Plus":{"regex":"\\+"},
+      "Star":{"regex":"\\*"},
+      "Minus":{"regex":"-"},
+      "Bang":{"regex":"!"},
+      "Question":{"regex":"\\?"},
+      "Colon":{"regex":":"},
+      "Equal":{"regex":"="},
+      "LParen":{"regex":"\\("},
+      "RParen":{"regex":"\\)"}
+    },
+    "trivia":{"Space":{"regex":"[ \\t\\r\\n]+"}}
+  },
+  "operators":[
+    {"token":"Plus","role":"infix","precedence":10,"associativity":"left"},
+    {"token":"Star","role":"infix","precedence":20,"associativity":"left"},
+    {"token":"Minus","roles":["prefix","infix"],"prefixPrecedence":30,"infixPrecedence":10,"associativity":"left"},
+    {"token":"Bang","role":"postfix","precedence":40},
+    {"token":"Equal","role":"infix","precedence":2,"associativity":"right"},
+    {"token":"Question","role":"ternary","precedence":5,"associativity":"right","middleTerminator":"Colon"}
+  ],
+  "grammar":{
+    "start":"Expression",
+    "productions":{
+      "Expression":{"pratt":{"primary":{"ref":"Primary"}}},
+      "Primary":{"choice":[
+        {"token":"Number"},
+        {"sequence":[{"token":"LParen"},{"ref":"Expression"},{"token":"RParen"}]}
+      ]}
+    }
+  }
+})json";
+
+int pratt_token_id(const textparser_language_definition *definition, const char *name) {
+    for (int i = 0; definition->tokens[i].name != nullptr; i++)
+        if (strcmp(definition->tokens[i].name, name) == 0) return i;
+    return -1;
+}
+
+struct PrattFixture : testing::Test {
+    textparser_language_definition *definition = nullptr;
+    void SetUp() override {
+        ASSERT_EQ(textparser_json_load_language_definition_from_string(pratt_language_json, &definition), 0);
+    }
+    void TearDown() override { textparser_free_language_definition(definition); }
+};
+} // namespace
+
+TEST_F(PrattFixture, multiplication_binds_more_tightly_than_addition) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("1+2*3", 5, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(result.node, nullptr);
+    EXPECT_EQ(result.node->token_id, pratt_token_id(definition, "Plus"));
+    ASSERT_NE(result.node->child, nullptr);
+    ASSERT_NE(result.node->child->next, nullptr);
+    EXPECT_EQ(result.node->child->next->token_id, pratt_token_id(definition, "Star"));
+}
+
+TEST_F(PrattFixture, primary_grammar_supports_parenthesized_expressions) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("1*(2+3)", 7, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.node->token_id, pratt_token_id(definition, "Star"));
+    textparser_node *parenthesized = result.node->child->next;
+    ASSERT_NE(parenthesized, nullptr);
+    ASSERT_NE(parenthesized->child, nullptr);
+    ASSERT_NE(parenthesized->child->next, nullptr);
+    EXPECT_EQ(parenthesized->child->next->token_id, pratt_token_id(definition, "Plus"));
+}
+
+TEST_F(PrattFixture, left_associative_infix_groups_left) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("1-2-3", 5, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.node->token_id, pratt_token_id(definition, "Minus"));
+    ASSERT_NE(result.node->child, nullptr);
+    EXPECT_EQ(result.node->child->token_id, pratt_token_id(definition, "Minus"));
+}
+
+TEST_F(PrattFixture, right_associative_infix_groups_right) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("1=2=3", 5, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.node->token_id, pratt_token_id(definition, "Equal"));
+    ASSERT_NE(result.node->child, nullptr);
+    ASSERT_NE(result.node->child->next, nullptr);
+    EXPECT_EQ(result.node->child->next->token_id, pratt_token_id(definition, "Equal"));
+}
+
+TEST_F(PrattFixture, prefix_and_postfix_roles_are_contextual) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("-1!", 3, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_node *root = nullptr;
+    ASSERT_EQ(textparser_parse_pratt_expression(parser.get(), 0, &root), 0);
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(root->token_id, pratt_token_id(definition, "Minus"));
+    ASSERT_NE(root->child, nullptr);
+    EXPECT_EQ(root->child->token_id, pratt_token_id(definition, "Bang"));
+}
+
+TEST_F(PrattFixture, ternary_is_right_associative) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("1?2:3?4:5", 9, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.node->token_id, pratt_token_id(definition, "Question"));
+    ASSERT_NE(result.node->child, nullptr);
+    ASSERT_NE(result.node->child->next, nullptr);
+    ASSERT_NE(result.node->child->next->next, nullptr);
+    EXPECT_EQ(result.node->child->next->next->token_id, pratt_token_id(definition, "Question"));
+}
+
+TEST_F(PrattFixture, missing_operand_or_ternary_separator_is_error) {
+    for (const char *source : {"1+", "1?2"}) {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem(source, (int)strlen(source), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_ERROR) << source;
+        textparser_parser_state_view state{};
+        ASSERT_EQ(parser.parser_state(&state), 0);
+        EXPECT_EQ(state.token_index, 0u);
+    }
+}
