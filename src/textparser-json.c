@@ -161,11 +161,14 @@ static int json_parse_grammar_construct(
         return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     }
 
-    const char *keys[] = {"token", "ref", "sequence", "choice", "optional", "repeat"};
-    json_object *values[6] = {0};
+    const char *keys[] = {
+        "token", "ref", "sequence", "choice", "optional", "repeat",
+        "lookahead", "not", "when", "withContext", "commit"
+    };
+    json_object *values[11] = {0};
     size_t present = 0;
     int selected = -1;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 11; i++) {
         if (json_object_object_get_ex(construct, keys[i], &values[i])) {
             present++;
             selected = i;
@@ -178,7 +181,7 @@ static int json_parse_grammar_construct(
         if (supported && !json_object_is_type(member.val, json_type_string)) {
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         }
-        for (int i = 0; i < 6 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
+        for (int i = 0; i < 11 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
         if (!supported) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     }
 
@@ -223,20 +226,101 @@ static int json_parse_grammar_construct(
         return 0;
     }
 
+    if (selected >= 4 && selected <= 7) {
+        if (!json_object_is_type(values[selected], json_type_object)) {
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        int child_id = -1;
+        int ret = json_grammar_append_anonymous(builder, &child_id);
+        if (ret != 0) return ret;
+        production = &builder->items[production_id];
+        switch (selected) {
+        case 4: production->kind = TEXTPARSER_PROD_OPTIONAL; break;
+        case 5: production->kind = TEXTPARSER_PROD_REPEAT; break;
+        case 6: production->kind = TEXTPARSER_PROD_LOOKAHEAD; break;
+        default: production->kind = TEXTPARSER_PROD_NOT; break;
+        }
+        int *children = malloc(sizeof(*children));
+        if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        children[0] = child_id;
+        production->children = children;
+        production->child_count = 1;
+        return json_parse_grammar_construct(builder, values[selected], child_id);
+    }
+
+    if (selected == 8) {
+        if (!json_object_is_type(values[selected], json_type_object) ||
+            json_object_object_length(values[selected]) != 1) {
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        json_object *native = nullptr;
+        if (!json_object_object_get_ex(values[selected], "native", &native) ||
+            !json_object_is_type(native, json_type_string) ||
+            json_object_get_string_len(native) == 0) {
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        production->kind = TEXTPARSER_PROD_PREDICATE;
+        production->predicate_name = textparser_string_pool_strdup(
+            builder->pool, json_object_get_string(native));
+        return production->predicate_name == nullptr ? TEXTPARSER_JSON_OUT_OF_MEMORY : 0;
+    }
+
+    if (selected == 10) {
+        if (!json_object_is_type(values[selected], json_type_boolean) ||
+            !json_object_get_boolean(values[selected])) {
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        production->kind = TEXTPARSER_PROD_COMMIT;
+        return 0;
+    }
+
     if (!json_object_is_type(values[selected], json_type_object)) {
         return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     }
-    int child_id = -1;
-    int ret = json_grammar_append_anonymous(builder, &child_id);
-    if (ret != 0) return ret;
-    production = &builder->items[production_id];
-    production->kind = selected == 4 ? TEXTPARSER_PROD_OPTIONAL : TEXTPARSER_PROD_REPEAT;
-    int *children = malloc(sizeof(*children));
-    if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
-    children[0] = child_id;
-    production->children = children;
-    production->child_count = 1;
-    return json_parse_grammar_construct(builder, values[selected], child_id);
+    json_object *set = nullptr;
+    json_object *inner_value = nullptr;
+    const char *inner_key = nullptr;
+    if (!json_object_object_get_ex(values[selected], "set", &set) ||
+        !json_object_is_type(set, json_type_object) || json_object_object_length(set) == 0) {
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    }
+    if (json_object_object_get_ex(values[selected], "ref", &inner_value)) inner_key = "ref";
+    if (json_object_object_get_ex(values[selected], "sequence", &inner_value)) {
+        if (inner_key != nullptr) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        inner_key = "sequence";
+    }
+    if (inner_key == nullptr || json_object_object_length(values[selected]) != 2) {
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    }
+
+    int current_id = production_id;
+    json_object_iter setting;
+    json_object_object_foreachC(set, setting) {
+        if (!json_object_is_type(setting.val, json_type_boolean) &&
+            !json_object_is_type(setting.val, json_type_int)) {
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        int child_id = -1;
+        int ret = json_grammar_append_anonymous(builder, &child_id);
+        if (ret != 0) return ret;
+        production = &builder->items[current_id];
+        production->kind = TEXTPARSER_PROD_CONTEXT;
+        production->context_name = textparser_string_pool_strdup(builder->pool, setting.key);
+        if (production->context_name == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        production->context_value = json_object_get_int64(setting.val);
+        int *context_child = malloc(sizeof(*context_child));
+        if (context_child == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        context_child[0] = child_id;
+        production->children = context_child;
+        production->child_count = 1;
+        current_id = child_id;
+    }
+    json_object *inner = json_object_new_object();
+    if (inner == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    json_object_object_add(inner, inner_key, json_object_get(inner_value));
+    int ret = json_parse_grammar_construct(builder, inner, current_id);
+    json_object_put(inner);
+    return ret;
 }
 
 static void json_grammar_compute_nullable(const json_grammar_builder *builder, bool *nullable)
@@ -263,6 +347,15 @@ static void json_grammar_compute_nullable(const json_grammar_builder *builder, b
             case TEXTPARSER_PROD_OPTIONAL:
             case TEXTPARSER_PROD_REPEAT:
                 value = true;
+                break;
+            case TEXTPARSER_PROD_LOOKAHEAD:
+            case TEXTPARSER_PROD_NOT:
+            case TEXTPARSER_PROD_PREDICATE:
+            case TEXTPARSER_PROD_COMMIT:
+                value = true;
+                break;
+            case TEXTPARSER_PROD_CONTEXT:
+                value = p->child_count == 1 && nullable[p->children[0]];
                 break;
             }
             if (value && !nullable[i]) {
@@ -317,9 +410,14 @@ static bool json_grammar_left_recursive_visit(
         break;
     case TEXTPARSER_PROD_OPTIONAL:
     case TEXTPARSER_PROD_REPEAT:
+    case TEXTPARSER_PROD_LOOKAHEAD:
+    case TEXTPARSER_PROD_NOT:
+    case TEXTPARSER_PROD_CONTEXT:
         cycle = json_grammar_visit_leading_child(builder, p->children[0], nullable, colors);
         break;
     case TEXTPARSER_PROD_TOKEN:
+    case TEXTPARSER_PROD_PREDICATE:
+    case TEXTPARSER_PROD_COMMIT:
         break;
     }
     colors[production_id] = 2;

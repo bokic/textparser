@@ -16,17 +16,23 @@ IDs, and arena allocation watermarks. `textparser_get_parser_state()` exposes a
 read-only state view for diagnostics and parser integration.
 
 The executable grammar core supports manually constructed `TOKEN`, `REF`,
-`SEQUENCE`, `CHOICE`, `OPTIONAL`, and zero-or-more `REPEAT` productions through
+`SEQUENCE`, `CHOICE`, `OPTIONAL`, zero-or-more `REPEAT`, `LOOKAHEAD`, `NOT`,
+`PREDICATE`, scoped `CONTEXT`, and `COMMIT` productions through
 `textparser_execute_production()`. Productions consume the immutable lexer
 stream, return a uniform `textparser_match_result`, roll back rejected branches,
-bound recursive references, and reject zero-width repeat loops.
+bound recursive references, and reject zero-width repeat loops. Lookahead is
+always rolled back, parser-aware predicates receive current/previous tokens and
+the preceding-line-terminator state, contexts are restored after their child,
+and a committed failure prevents a choice from trying later alternatives.
 
-JSON language definitions can now load those six production kinds from
+JSON language definitions can load those production kinds from
 `grammar.productions`. Nested constructs are flattened into an owned runtime
 table, token and production names are resolved to IDs, and
 `textparser_execute_language_grammar()` runs the configured start production.
 Loading rejects malformed constructs, missing names, undefined references,
 nullable repeats, and recursive cycles reachable before consuming a token.
+Native predicates use `{"when":{"native":"name"}}`, scoped integer or boolean
+contexts use `withContext.set`, and commit points use `{"commit":true}`.
 Schema-v2 `lexer.tokens` and `lexer.trivia` are normalized into the current
 lexer table so their names can be referenced by the grammar.
 

@@ -194,3 +194,100 @@ TEST_F(GrammarFixture, recursive_ref_cycle_is_bounded) {
     EXPECT_EQ(result.status, TEXTPARSER_MATCH_ERROR);
     EXPECT_EQ(result.consumed_tokens, 0u);
 }
+
+namespace {
+struct PredicateObservation {
+    int a;
+    int b;
+    bool called;
+};
+
+bool parser_predicate_observer(textparser_t parser,
+                               const textparser_predicate_context *context,
+                               void *user_data) {
+    auto *observation = static_cast<PredicateObservation *>(user_data);
+    observation->called = true;
+    textparser_context_set(parser, "PredicateLeak", 99);
+    int64_t enabled = 0;
+    return context != nullptr && context->production_id == 2 &&
+           context->previous != nullptr && context->previous->kind == observation->a &&
+           context->current != nullptr && context->current->kind == observation->b &&
+           context->has_preceding_line_terminator &&
+           textparser_context_get(parser, "Enabled", &enabled) == 0 && enabled == 7;
+}
+} // namespace
+
+TEST_F(GrammarFixture, lookahead_and_not_are_zero_width) {
+    parse("a b");
+    int a = token_id(definition, "A");
+    int b = token_id(definition, "B");
+    int c = token_id(definition, "C");
+    const int look_a[] = {0};
+    const int not_c[] = {2};
+    const int root[] = {3, 0, 4, 1};
+    const textparser_production productions[] = {
+        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
+        {2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
+        {3, "AheadA", TEXTPARSER_PROD_LOOKAHEAD, look_a, 1, -1, -1, nullptr, nullptr, 0},
+        {4, "NotC", TEXTPARSER_PROD_NOT, not_c, 1, -1, -1, nullptr, nullptr, 0},
+        {5, "Root", TEXTPARSER_PROD_SEQUENCE, root, 4, -1, -1, nullptr, nullptr, 0},
+    };
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 5, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(result.consumed_tokens, 2u);
+}
+
+TEST_F(GrammarFixture, parser_predicate_observes_tokens_trivia_and_scoped_context) {
+    parse("a\nb");
+    int a = token_id(definition, "A");
+    int b = token_id(definition, "B");
+    PredicateObservation observation{a, b, false};
+    ASSERT_EQ(textparser_register_parser_predicate(
+                  parser.get(), "test.beforeB", parser_predicate_observer, &observation), 0);
+    const int scoped_sequence[] = {2, 1};
+    const int context_child[] = {3};
+    const int root[] = {0, 4};
+    const textparser_production productions[] = {
+        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
+        {2, "BeforeB", TEXTPARSER_PROD_PREDICATE, nullptr, 0, -1, -1, "test.beforeB", nullptr, 0},
+        {3, "GuardedB", TEXTPARSER_PROD_SEQUENCE, scoped_sequence, 2, -1, -1, nullptr, nullptr, 0},
+        {4, "Context", TEXTPARSER_PROD_CONTEXT, context_child, 1, -1, -1, nullptr, "Enabled", 7},
+        {5, "Root", TEXTPARSER_PROD_SEQUENCE, root, 2, -1, -1, nullptr, nullptr, 0},
+    };
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 5, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    EXPECT_TRUE(observation.called);
+    int64_t value = 0;
+    EXPECT_NE(textparser_context_get(parser.get(), "Enabled", &value), 0);
+    EXPECT_NE(textparser_context_get(parser.get(), "PredicateLeak", &value), 0);
+}
+
+TEST_F(GrammarFixture, commit_stops_choice_rollback_after_prefix) {
+    parse("a c");
+    int a = token_id(definition, "A");
+    int b = token_id(definition, "B");
+    int c = token_id(definition, "C");
+    const int committed_alt[] = {0, 3, 1};
+    const int fallback_alt[] = {0, 2};
+    const int choices[] = {4, 5};
+    const textparser_production productions[] = {
+        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
+        {2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
+        {3, "Commit", TEXTPARSER_PROD_COMMIT, nullptr, 0, -1, -1, nullptr, nullptr, 0},
+        {4, "AB", TEXTPARSER_PROD_SEQUENCE, committed_alt, 3, -1, -1, nullptr, nullptr, 0},
+        {5, "AC", TEXTPARSER_PROD_SEQUENCE, fallback_alt, 2, -1, -1, nullptr, nullptr, 0},
+        {6, "Choice", TEXTPARSER_PROD_CHOICE, choices, 2, -1, -1, nullptr, nullptr, 0},
+    };
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 6, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_ERROR);
+    EXPECT_TRUE(result.committed);
+    textparser_parser_state_view state{};
+    ASSERT_EQ(parser.parser_state(&state), 0);
+    EXPECT_EQ(state.token_index, 1u);
+}
