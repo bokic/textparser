@@ -339,6 +339,8 @@ def main(args):
     else:
         text += "    .declaration_disambiguation = NULL," + os.linesep
 
+    # Static legacy definitions do not yet compile schema-v2 grammar tables.
+    text += "    .grammar = NULL," + os.linesep
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:
