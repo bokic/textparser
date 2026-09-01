@@ -163,12 +163,12 @@ static int json_parse_grammar_construct(
 
     const char *keys[] = {
         "token", "ref", "sequence", "choice", "optional", "repeat",
-        "lookahead", "not", "when", "withContext", "commit"
+        "lookahead", "not", "when", "withContext", "commit", "pratt"
     };
-    json_object *values[11] = {0};
+    json_object *values[12] = {0};
     size_t present = 0;
     int selected = -1;
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < 12; i++) {
         if (json_object_object_get_ex(construct, keys[i], &values[i])) {
             present++;
             selected = i;
@@ -181,7 +181,7 @@ static int json_parse_grammar_construct(
         if (supported && !json_object_is_type(member.val, json_type_string)) {
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         }
-        for (int i = 0; i < 11 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
+        for (int i = 0; i < 12 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
         if (!supported) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     }
 
@@ -274,6 +274,31 @@ static int json_parse_grammar_construct(
         return 0;
     }
 
+    if (selected == 11) {
+        if (!json_object_is_type(values[selected], json_type_object))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        json_object *primary = nullptr;
+        json_object *minimum = nullptr;
+        if (!json_object_object_get_ex(values[selected], "primary", &primary) ||
+            json_object_object_length(values[selected]) > 2)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        if (json_object_object_get_ex(values[selected], "minimumPrecedence", &minimum) &&
+            !json_object_is_type(minimum, json_type_int))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        int child_id = -1;
+        int ret = json_grammar_append_anonymous(builder, &child_id);
+        if (ret != 0) return ret;
+        int *children = malloc(sizeof(*children));
+        if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        children[0] = child_id;
+        production = &builder->items[production_id];
+        production->kind = TEXTPARSER_PROD_PRATT;
+        production->children = children;
+        production->child_count = 1;
+        production->minimum_precedence = minimum ? json_object_get_int(minimum) : 0;
+        return json_parse_grammar_construct(builder, primary, child_id);
+    }
+
     if (!json_object_is_type(values[selected], json_type_object)) {
         return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     }
@@ -357,6 +382,9 @@ static void json_grammar_compute_nullable(const json_grammar_builder *builder, b
             case TEXTPARSER_PROD_CONTEXT:
                 value = p->child_count == 1 && nullable[p->children[0]];
                 break;
+            case TEXTPARSER_PROD_PRATT:
+                value = p->child_count == 1 && nullable[p->children[0]];
+                break;
             }
             if (value && !nullable[i]) {
                 nullable[i] = true;
@@ -413,6 +441,7 @@ static bool json_grammar_left_recursive_visit(
     case TEXTPARSER_PROD_LOOKAHEAD:
     case TEXTPARSER_PROD_NOT:
     case TEXTPARSER_PROD_CONTEXT:
+    case TEXTPARSER_PROD_PRATT:
         cycle = json_grammar_visit_leading_child(builder, p->children[0], nullable, colors);
         break;
     case TEXTPARSER_PROD_TOKEN:
@@ -649,6 +678,86 @@ static int json_parse_contextual_lexer(
                 int target = json_get_token_id_by_name(json_object_get_string(pair.val), definition->tokens, token_count);
                 if (source < 0 || target < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
                 out->mappings[mapping++] = (textparser_lexer_goal_mapping){source, target};
+            }
+        }
+    }
+    return 0;
+}
+
+static int json_operator_role(const char *name, textparser_operator_role *out)
+{
+    if (strcmp(name, "prefix") == 0) *out = TEXTPARSER_OP_PREFIX;
+    else if (strcmp(name, "infix") == 0) *out = TEXTPARSER_OP_INFIX;
+    else if (strcmp(name, "postfix") == 0) *out = TEXTPARSER_OP_POSTFIX;
+    else if (strcmp(name, "ternary") == 0) *out = TEXTPARSER_OP_TERNARY;
+    else return -1;
+    return 0;
+}
+
+static int json_parse_pratt_operators(
+    json_object *root,
+    textparser_language_definition *definition,
+    size_t token_count)
+{
+    json_object *operators = nullptr;
+    if (!json_object_object_get_ex(root, "operators", &operators)) return 0;
+    if (!json_object_is_type(operators, json_type_array)) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    size_t count = 0;
+    for (size_t i = 0; i < json_object_array_length(operators); i++) {
+        json_object *rule = json_object_array_get_idx(operators, i);
+        json_object *roles = nullptr;
+        if (!json_object_is_type(rule, json_type_object)) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        if (json_object_object_get_ex(rule, "roles", &roles)) {
+            if (!json_object_is_type(roles, json_type_array) || json_object_array_length(roles) == 0)
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            count += json_object_array_length(roles);
+        } else count++;
+    }
+    definition->operator_definitions = calloc(count, sizeof(*definition->operator_definitions));
+    if (count && definition->operator_definitions == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    definition->operator_definition_count = count;
+    size_t output = 0;
+    for (size_t i = 0; i < json_object_array_length(operators); i++) {
+        json_object *rule = json_object_array_get_idx(operators, i);
+        json_object *token = nullptr;
+        json_object *role = nullptr;
+        json_object *roles = nullptr;
+        json_object *precedence = nullptr;
+        json_object *associativity = nullptr;
+        json_object *middle = nullptr;
+        if (!json_object_object_get_ex(rule, "token", &token) ||
+            !json_object_is_type(token, json_type_string)) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        int token_id = json_get_token_id_by_name(json_object_get_string(token), definition->tokens, token_count);
+        if (token_id < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+        json_object_object_get_ex(rule, "role", &role);
+        json_object_object_get_ex(rule, "roles", &roles);
+        json_object_object_get_ex(rule, "precedence", &precedence);
+        json_object_object_get_ex(rule, "associativity", &associativity);
+        json_object_object_get_ex(rule, "middleTerminator", &middle);
+        size_t role_count = roles ? json_object_array_length(roles) : 1;
+        for (size_t r = 0; r < role_count; r++) {
+            json_object *role_value = roles ? json_object_array_get_idx(roles, r) : role;
+            textparser_operator_def *out = &definition->operator_definitions[output++];
+            if (role_value == nullptr || !json_object_is_type(role_value, json_type_string) ||
+                json_operator_role(json_object_get_string(role_value), &out->role) != 0)
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            out->token_id = token_id;
+            const char *specific = out->role == TEXTPARSER_OP_PREFIX ? "prefixPrecedence" :
+                out->role == TEXTPARSER_OP_POSTFIX ? "postfixPrecedence" : "infixPrecedence";
+            json_object *specific_value = nullptr;
+            if (!json_object_object_get_ex(rule, specific, &specific_value)) specific_value = precedence;
+            if (specific_value == nullptr || !json_object_is_type(specific_value, json_type_int))
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            out->precedence = json_object_get_int(specific_value);
+            out->associativity = associativity && strcmp(json_object_get_string(associativity), "right") == 0
+                ? TEXTPARSER_ASSOC_RIGHT : TEXTPARSER_ASSOC_LEFT;
+            out->secondary_token_id = -1;
+            if (out->role == TEXTPARSER_OP_TERNARY) {
+                if (middle == nullptr || !json_object_is_type(middle, json_type_string))
+                    return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                out->secondary_token_id = json_get_token_id_by_name(
+                    json_object_get_string(middle), definition->tokens, token_count);
+                if (out->secondary_token_id < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
             }
         }
     }
@@ -1418,6 +1527,12 @@ static int textparser_json_load_language_definition_internal(struct json_object 
     ret_code = json_parse_contextual_lexer(root_obj, *definition, tokens_cnt, pool);
     if (ret_code != 0) {
         (*definition)->error_string = "Invalid contextual lexer";
+        goto err;
+    }
+
+    ret_code = json_parse_pratt_operators(root_obj, *definition, tokens_cnt);
+    if (ret_code != 0) {
+        (*definition)->error_string = "Invalid Pratt operator table";
         goto err;
     }
 

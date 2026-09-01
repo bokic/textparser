@@ -223,6 +223,12 @@ TEST(json_grammar, validates_advanced_construct_shapes_and_nullable_repeat) {
          TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"repeat":{"lookahead":{"token":"A"}}}}})",
          TEXTPARSER_JSON_GRAMMAR_NULLABLE_REPEAT},
+        {R"({"start":"Root","productions":{"Root":{"pratt":{}}}})",
+         TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"pratt":{"primary":{"token":"A"},"minimumPrecedence":"high"}}}})",
+         TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"repeat":{"pratt":{"primary":{"optional":{"token":"A"}}}}}}})",
+         TEXTPARSER_JSON_GRAMMAR_NULLABLE_REPEAT},
     };
     for (const auto &item : cases) {
         textparser_language_definition *definition = nullptr;
