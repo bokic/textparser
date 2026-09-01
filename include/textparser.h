@@ -243,6 +243,12 @@ typedef struct {
     bool committed;
 } textparser_match_result;
 
+typedef struct {
+    int start_production;
+    size_t production_count;
+    textparser_production *productions;
+} textparser_grammar_definition;
+
 typedef struct textparser_token_item {
     struct textparser_token_item *prev;
     struct textparser_token_item *next;
@@ -394,6 +400,7 @@ typedef struct {
     textparser_template_disambiguation *template_disambiguation;
     textparser_cast_disambiguation *cast_disambiguation;
     textparser_declaration_disambiguation *declaration_disambiguation;
+    textparser_grammar_definition *grammar;
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;
@@ -1237,6 +1244,13 @@ EXPORT_TEXTPARSER int textparser_execute_production(
     const textparser_production *productions,
     size_t production_count,
     int start_production,
+    textparser_match_result *out_result
+);
+
+/** Execute the grammar stored in a loaded language definition. */
+EXPORT_TEXTPARSER int textparser_execute_language_grammar(
+    textparser_t handle,
+    const textparser_language_definition *language,
     textparser_match_result *out_result
 );
 

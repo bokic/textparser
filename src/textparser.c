@@ -2017,6 +2017,16 @@ void textparser_free_language_definition(textparser_language_definition *definit
         free((void *)definition->starts_with);
     }
 
+    if (definition->grammar) {
+        if (definition->grammar->productions) {
+            for (size_t i = 0; i < definition->grammar->production_count; i++) {
+                free((void *)definition->grammar->productions[i].children);
+            }
+            free(definition->grammar->productions);
+        }
+        free(definition->grammar);
+    }
+
     if (definition->sign_merge) {
         if (definition->sign_merge->sign_tokens) {
             free((void *)definition->sign_merge->sign_tokens);
@@ -5894,6 +5904,23 @@ EXPORT_TEXTPARSER int textparser_execute_production(
     textparser_grammar_executor executor = {handle, productions, production_count, 0};
     *out_result = textparser_parse_production(&executor, start_production);
     return 0;
+}
+
+EXPORT_TEXTPARSER int textparser_execute_language_grammar(
+    textparser_t handle,
+    const textparser_language_definition *language,
+    textparser_match_result *out_result)
+{
+    if (handle == nullptr || language == nullptr || language->grammar == nullptr ||
+        language->grammar->productions == nullptr || out_result == nullptr) {
+        return -1;
+    }
+    return textparser_execute_production(
+        handle,
+        language->grammar->productions,
+        language->grammar->production_count,
+        language->grammar->start_production,
+        out_result);
 }
 
 /* -------------------------------------------------------------------------

@@ -174,6 +174,11 @@ public:
                                              start_production, out_result);
     }
 
+    int execute_language_grammar(const textparser_language_definition *language,
+                                 textparser_match_result *out_result) const {
+        return textparser_execute_language_grammar(m_handle, language, out_result);
+    }
+
     const char *get_parse_error() const {
         return textparser_parse_error(m_handle);
     }
