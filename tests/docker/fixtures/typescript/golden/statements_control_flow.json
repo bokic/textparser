@@ -1,0 +1,2260 @@
+{
+  "status": "OK",
+  "cst": {
+  "kind": "SourceFile",
+  "start": 0,
+  "end": 1007,
+  "flags": 129,
+  "category": 2,
+  "children": [
+    {
+      "kind": "Repeat",
+      "start": 0,
+      "end": 1007,
+      "flags": 129,
+      "category": 9,
+      "children": [
+        {
+          "kind": "FunctionDeclaration",
+          "start": 0,
+          "end": 886,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "FunctionKeyword",
+              "start": 76,
+              "end": 84,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "Identifier",
+              "start": 85,
+              "end": 92,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "BindingParameterList",
+              "start": 92,
+              "end": 94,
+              "flags": 129,
+              "category": 8,
+              "children": [
+                {
+                  "kind": "LParen",
+                  "start": 92,
+                  "end": 93,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "RParen",
+                  "start": 93,
+                  "end": 94,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "TypeAnnotation",
+              "start": 94,
+              "end": 102,
+              "flags": 129,
+              "category": 6,
+              "children": [
+                {
+                  "kind": "Colon",
+                  "start": 94,
+                  "end": 95,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "TypeContext",
+                  "start": 95,
+                  "end": 102,
+                  "flags": 129,
+                  "category": 9,
+                  "children": [
+                    {
+                      "kind": "ConditionalType",
+                      "start": 95,
+                      "end": 102,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "UnionType",
+                          "start": 95,
+                          "end": 102,
+                          "flags": 129,
+                          "category": 6,
+                          "children": [
+                            {
+                              "kind": "IntersectionType",
+                              "start": 95,
+                              "end": 102,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "PostfixType",
+                                  "start": 95,
+                                  "end": 102,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "NumberKeyword",
+                                      "start": 96,
+                                      "end": 102,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "BlockStatement",
+              "start": 102,
+              "end": 886,
+              "flags": 129,
+              "category": 4,
+              "children": [
+                {
+                  "kind": "LBrace",
+                  "start": 103,
+                  "end": 104,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "StatementList",
+                  "start": 104,
+                  "end": 884,
+                  "flags": 129,
+                  "category": 4,
+                  "children": [
+                    {
+                      "kind": "IfStatement",
+                      "start": 104,
+                      "end": 180,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "IfKeyword",
+                          "start": 109,
+                          "end": 111,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 112,
+                          "end": 113,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 113,
+                          "end": 118,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 118,
+                          "end": 119,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ReturnStatement",
+                          "start": 119,
+                          "end": 129,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "ReturnKeyword",
+                              "start": 120,
+                              "end": 126,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Sequence",
+                              "start": 126,
+                              "end": 128,
+                              "flags": 129,
+                              "category": 9,
+                              "children": [
+                                {
+                                  "kind": "NumericLiteral",
+                                  "start": 127,
+                                  "end": 128,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 128,
+                              "end": 129,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        },                         {
+                          "kind": "Sequence",
+                          "start": 129,
+                          "end": 180,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ElseKeyword",
+                              "start": 134,
+                              "end": 138,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "IfStatement",
+                              "start": 138,
+                              "end": 180,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "IfKeyword",
+                                  "start": 139,
+                                  "end": 141,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "LParen",
+                                  "start": 142,
+                                  "end": 143,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Identifier",
+                                  "start": 143,
+                                  "end": 150,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "RParen",
+                                  "start": 150,
+                                  "end": 151,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "ReturnStatement",
+                                  "start": 151,
+                                  "end": 161,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "ReturnKeyword",
+                                      "start": 152,
+                                      "end": 158,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "Sequence",
+                                      "start": 158,
+                                      "end": 160,
+                                      "flags": 129,
+                                      "category": 9,
+                                      "children": [
+                                        {
+                                          "kind": "NumericLiteral",
+                                          "start": 159,
+                                          "end": 160,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    },                                     {
+                                      "kind": "Semicolon",
+                                      "start": 160,
+                                      "end": 161,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "Sequence",
+                                  "start": 161,
+                                  "end": 180,
+                                  "flags": 129,
+                                  "category": 9,
+                                  "children": [
+                                    {
+                                      "kind": "ElseKeyword",
+                                      "start": 166,
+                                      "end": 170,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "ReturnStatement",
+                                      "start": 170,
+                                      "end": 180,
+                                      "flags": 129,
+                                      "category": 4,
+                                      "children": [
+                                        {
+                                          "kind": "ReturnKeyword",
+                                          "start": 171,
+                                          "end": 177,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "Sequence",
+                                          "start": 177,
+                                          "end": 179,
+                                          "flags": 129,
+                                          "category": 9,
+                                          "children": [
+                                            {
+                                              "kind": "NumericLiteral",
+                                              "start": 178,
+                                              "end": 179,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        },                                         {
+                                          "kind": "Semicolon",
+                                          "start": 179,
+                                          "end": 180,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "WhileStatement",
+                      "start": 180,
+                      "end": 212,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "WhileKeyword",
+                          "start": 186,
+                          "end": 191,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 192,
+                          "end": 193,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 193,
+                          "end": 202,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 202,
+                          "end": 203,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ExpressionStatement",
+                          "start": 203,
+                          "end": 212,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "Increment",
+                              "start": 204,
+                              "end": 212,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 204,
+                                  "end": 209,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 211,
+                              "end": 212,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "DoStatement",
+                      "start": 212,
+                      "end": 247,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "DoKeyword",
+                          "start": 217,
+                          "end": 219,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ExpressionStatement",
+                          "start": 219,
+                          "end": 228,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "Decrement",
+                              "start": 220,
+                              "end": 228,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 220,
+                                  "end": 225,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 227,
+                              "end": 228,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        },                         {
+                          "kind": "WhileKeyword",
+                          "start": 229,
+                          "end": 234,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 235,
+                          "end": 236,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 236,
+                          "end": 245,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 245,
+                          "end": 246,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 246,
+                          "end": 247,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    },                     {
+                      "kind": "ForStatement",
+                      "start": 247,
+                      "end": 289,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "ForKeyword",
+                          "start": 253,
+                          "end": 256,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 257,
+                          "end": 258,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "VariableDeclarationList",
+                          "start": 258,
+                          "end": 267,
+                          "flags": 129,
+                          "category": 3,
+                          "children": [
+                            {
+                              "kind": "LetKeyword",
+                              "start": 258,
+                              "end": 261,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "VariableDeclaration",
+                              "start": 261,
+                              "end": 267,
+                              "flags": 129,
+                              "category": 3,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 262,
+                                  "end": 263,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Sequence",
+                                  "start": 263,
+                                  "end": 267,
+                                  "flags": 129,
+                                  "category": 9,
+                                  "children": [
+                                    {
+                                      "kind": "Assign",
+                                      "start": 264,
+                                      "end": 265,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "NumericLiteral",
+                                      "start": 266,
+                                      "end": 267,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 267,
+                          "end": 268,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LessThan",
+                          "start": 269,
+                          "end": 276,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 269,
+                              "end": 270,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "NumericLiteral",
+                              "start": 273,
+                              "end": 275,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 275,
+                          "end": 276,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Increment",
+                          "start": 277,
+                          "end": 281,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 277,
+                              "end": 278,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        },                         {
+                          "kind": "RParen",
+                          "start": 280,
+                          "end": 281,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ExpressionStatement",
+                          "start": 281,
+                          "end": 289,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "Arguments",
+                              "start": 281,
+                              "end": 288,
+                              "flags": 145,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 282,
+                                  "end": 285,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "LParen",
+                                  "start": 285,
+                                  "end": 286,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Sequence",
+                                  "start": 286,
+                                  "end": 287,
+                                  "flags": 129,
+                                  "category": 9,
+                                  "children": [
+                                    {
+                                      "kind": "Argument",
+                                      "start": 286,
+                                      "end": 287,
+                                      "flags": 129,
+                                      "category": 9,
+                                      "children": [
+                                        {
+                                          "kind": "Identifier",
+                                          "start": 286,
+                                          "end": 287,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "RParen",
+                                  "start": 287,
+                                  "end": 288,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 288,
+                              "end": 289,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "ForStatement",
+                      "start": 289,
+                      "end": 309,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "ForKeyword",
+                          "start": 294,
+                          "end": 297,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 298,
+                          "end": 299,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 299,
+                          "end": 300,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 300,
+                          "end": 301,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 301,
+                          "end": 302,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "BreakStatement",
+                          "start": 302,
+                          "end": 309,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "BreakKeyword",
+                              "start": 303,
+                              "end": 308,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 308,
+                              "end": 309,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "ForStatement",
+                      "start": 309,
+                      "end": 353,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "ForKeyword",
+                          "start": 314,
+                          "end": 317,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 318,
+                          "end": 319,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ForBinding",
+                          "start": 319,
+                          "end": 328,
+                          "flags": 129,
+                          "category": 8,
+                          "children": [
+                            {
+                              "kind": "ConstKeyword",
+                              "start": 319,
+                              "end": 324,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Identifier",
+                              "start": 325,
+                              "end": 328,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        },                         {
+                          "kind": "InKeyword",
+                          "start": 329,
+                          "end": 331,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 332,
+                          "end": 338,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 338,
+                          "end": 339,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ExpressionStatement",
+                          "start": 339,
+                          "end": 353,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "Arguments",
+                              "start": 339,
+                              "end": 352,
+                              "flags": 145,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 340,
+                                  "end": 347,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "LParen",
+                                  "start": 347,
+                                  "end": 348,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Sequence",
+                                  "start": 348,
+                                  "end": 351,
+                                  "flags": 129,
+                                  "category": 9,
+                                  "children": [
+                                    {
+                                      "kind": "Argument",
+                                      "start": 348,
+                                      "end": 351,
+                                      "flags": 129,
+                                      "category": 9,
+                                      "children": [
+                                        {
+                                          "kind": "Identifier",
+                                          "start": 348,
+                                          "end": 351,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "RParen",
+                                  "start": 351,
+                                  "end": 352,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 352,
+                              "end": 353,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "ForStatement",
+                      "start": 353,
+                      "end": 397,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "ForKeyword",
+                          "start": 358,
+                          "end": 361,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 362,
+                          "end": 363,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ForBinding",
+                          "start": 363,
+                          "end": 373,
+                          "flags": 129,
+                          "category": 8,
+                          "children": [
+                            {
+                              "kind": "ConstKeyword",
+                              "start": 363,
+                              "end": 368,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Identifier",
+                              "start": 369,
+                              "end": 373,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        },                         {
+                          "kind": "OfKeyword",
+                          "start": 374,
+                          "end": 376,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 377,
+                          "end": 381,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 381,
+                          "end": 382,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ExpressionStatement",
+                          "start": 382,
+                          "end": 397,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "Arguments",
+                              "start": 382,
+                              "end": 396,
+                              "flags": 145,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 383,
+                                  "end": 390,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "LParen",
+                                  "start": 390,
+                                  "end": 391,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Sequence",
+                                  "start": 391,
+                                  "end": 395,
+                                  "flags": 129,
+                                  "category": 9,
+                                  "children": [
+                                    {
+                                      "kind": "Argument",
+                                      "start": 391,
+                                      "end": 395,
+                                      "flags": 129,
+                                      "category": 9,
+                                      "children": [
+                                        {
+                                          "kind": "Identifier",
+                                          "start": 391,
+                                          "end": 395,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "RParen",
+                                  "start": 395,
+                                  "end": 396,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 396,
+                              "end": 397,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "SwitchStatement",
+                      "start": 397,
+                      "end": 571,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "SwitchKeyword",
+                          "start": 403,
+                          "end": 409,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 410,
+                          "end": 411,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 411,
+                          "end": 415,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 415,
+                          "end": 416,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LBrace",
+                          "start": 417,
+                          "end": 418,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Repeat",
+                          "start": 418,
+                          "end": 565,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "CaseClause",
+                              "start": 418,
+                              "end": 453,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "CaseKeyword",
+                                  "start": 427,
+                                  "end": 431,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "NumericLiteral",
+                                  "start": 432,
+                                  "end": 433,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Colon",
+                                  "start": 433,
+                                  "end": 434,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "StatementList",
+                                  "start": 434,
+                                  "end": 453,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "BreakStatement",
+                                      "start": 434,
+                                      "end": 453,
+                                      "flags": 129,
+                                      "category": 4,
+                                      "children": [
+                                        {
+                                          "kind": "BreakKeyword",
+                                          "start": 447,
+                                          "end": 452,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "Semicolon",
+                                          "start": 452,
+                                          "end": 453,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },                             {
+                              "kind": "CaseClause",
+                              "start": 453,
+                              "end": 469,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "CaseKeyword",
+                                  "start": 462,
+                                  "end": 466,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "NumericLiteral",
+                                  "start": 467,
+                                  "end": 468,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Colon",
+                                  "start": 468,
+                                  "end": 469,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "CaseClause",
+                              "start": 469,
+                              "end": 507,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "CaseKeyword",
+                                  "start": 478,
+                                  "end": 482,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "NumericLiteral",
+                                  "start": 483,
+                                  "end": 484,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Colon",
+                                  "start": 484,
+                                  "end": 485,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "StatementList",
+                                  "start": 485,
+                                  "end": 507,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "ReturnStatement",
+                                      "start": 485,
+                                      "end": 507,
+                                      "flags": 129,
+                                      "category": 4,
+                                      "children": [
+                                        {
+                                          "kind": "ReturnKeyword",
+                                          "start": 498,
+                                          "end": 504,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "Sequence",
+                                          "start": 504,
+                                          "end": 506,
+                                          "flags": 129,
+                                          "category": 9,
+                                          "children": [
+                                            {
+                                              "kind": "NumericLiteral",
+                                              "start": 505,
+                                              "end": 506,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        },                                         {
+                                          "kind": "Semicolon",
+                                          "start": 506,
+                                          "end": 507,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },                             {
+                              "kind": "CaseClause",
+                              "start": 507,
+                              "end": 565,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "DefaultKeyword",
+                                  "start": 516,
+                                  "end": 523,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Colon",
+                                  "start": 523,
+                                  "end": 524,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "StatementList",
+                                  "start": 524,
+                                  "end": 565,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "ThrowStatement",
+                                      "start": 524,
+                                      "end": 565,
+                                      "flags": 129,
+                                      "category": 4,
+                                      "children": [
+                                        {
+                                          "kind": "ThrowKeyword",
+                                          "start": 537,
+                                          "end": 542,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "NewExpression",
+                                          "start": 542,
+                                          "end": 564,
+                                          "flags": 129,
+                                          "category": 5,
+                                          "children": [
+                                            {
+                                              "kind": "NewKeyword",
+                                              "start": 543,
+                                              "end": 546,
+                                              "flags": 128,
+                                              "category": 1
+                                            },                                             {
+                                              "kind": "Identifier",
+                                              "start": 547,
+                                              "end": 552,
+                                              "flags": 128,
+                                              "category": 1
+                                            },                                             {
+                                              "kind": "Arguments",
+                                              "start": 552,
+                                              "end": 564,
+                                              "flags": 129,
+                                              "category": 5,
+                                              "children": [
+                                                {
+                                                  "kind": "LParen",
+                                                  "start": 552,
+                                                  "end": 553,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                },                                                 {
+                                                  "kind": "Sequence",
+                                                  "start": 553,
+                                                  "end": 563,
+                                                  "flags": 129,
+                                                  "category": 9,
+                                                  "children": [
+                                                    {
+                                                      "kind": "Argument",
+                                                      "start": 553,
+                                                      "end": 563,
+                                                      "flags": 129,
+                                                      "category": 9,
+                                                      "children": [
+                                                        {
+                                                          "kind": "StringLiteral",
+                                                          "start": 553,
+                                                          "end": 563,
+                                                          "flags": 128,
+                                                          "category": 1
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                },                                                 {
+                                                  "kind": "RParen",
+                                                  "start": 563,
+                                                  "end": 564,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },                                         {
+                                          "kind": "Semicolon",
+                                          "start": 564,
+                                          "end": 565,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },                         {
+                          "kind": "RBrace",
+                          "start": 570,
+                          "end": 571,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    },                     {
+                      "kind": "LabeledStatement",
+                      "start": 571,
+                      "end": 624,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "Identifier",
+                          "start": 577,
+                          "end": 582,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Colon",
+                          "start": 582,
+                          "end": 583,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "ForStatement",
+                          "start": 583,
+                          "end": 624,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "ForKeyword",
+                              "start": 584,
+                              "end": 587,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "LParen",
+                              "start": 588,
+                              "end": 589,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 589,
+                              "end": 590,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Semicolon",
+                              "start": 590,
+                              "end": 591,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "RParen",
+                              "start": 591,
+                              "end": 592,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "BlockStatement",
+                              "start": 592,
+                              "end": 624,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "LBrace",
+                                  "start": 593,
+                                  "end": 594,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "StatementList",
+                                  "start": 594,
+                                  "end": 618,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "ContinueStatement",
+                                      "start": 594,
+                                      "end": 618,
+                                      "flags": 129,
+                                      "category": 4,
+                                      "children": [
+                                        {
+                                          "kind": "ContinueKeyword",
+                                          "start": 603,
+                                          "end": 611,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "Sequence",
+                                          "start": 611,
+                                          "end": 617,
+                                          "flags": 129,
+                                          "category": 9,
+                                          "children": [
+                                            {
+                                              "kind": "Identifier",
+                                              "start": 612,
+                                              "end": 617,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        },                                         {
+                                          "kind": "Semicolon",
+                                          "start": 617,
+                                          "end": 618,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "RBrace",
+                                  "start": 623,
+                                  "end": 624,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "TryStatement",
+                      "start": 624,
+                      "end": 734,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "TryKeyword",
+                          "start": 630,
+                          "end": 633,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "BlockStatement",
+                          "start": 633,
+                          "end": 658,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "LBrace",
+                              "start": 634,
+                              "end": 635,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "StatementList",
+                              "start": 635,
+                              "end": 652,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "ExpressionStatement",
+                                  "start": 635,
+                                  "end": 652,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "Arguments",
+                                      "start": 635,
+                                      "end": 651,
+                                      "flags": 145,
+                                      "category": 5,
+                                      "children": [
+                                        {
+                                          "kind": "Identifier",
+                                          "start": 644,
+                                          "end": 649,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "LParen",
+                                          "start": 649,
+                                          "end": 650,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "RParen",
+                                          "start": 650,
+                                          "end": 651,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    },                                     {
+                                      "kind": "Semicolon",
+                                      "start": 651,
+                                      "end": 652,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },                             {
+                              "kind": "RBrace",
+                              "start": 657,
+                              "end": 658,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        },                         {
+                          "kind": "Sequence",
+                          "start": 658,
+                          "end": 734,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "CatchClause",
+                              "start": 658,
+                              "end": 699,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "CatchKeyword",
+                                  "start": 659,
+                                  "end": 664,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Sequence",
+                                  "start": 664,
+                                  "end": 672,
+                                  "flags": 129,
+                                  "category": 9,
+                                  "children": [
+                                    {
+                                      "kind": "LParen",
+                                      "start": 665,
+                                      "end": 666,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "Identifier",
+                                      "start": 666,
+                                      "end": 671,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "RParen",
+                                      "start": 671,
+                                      "end": 672,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "BlockStatement",
+                                  "start": 672,
+                                  "end": 699,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "LBrace",
+                                      "start": 673,
+                                      "end": 674,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "StatementList",
+                                      "start": 674,
+                                      "end": 693,
+                                      "flags": 129,
+                                      "category": 4,
+                                      "children": [
+                                        {
+                                          "kind": "ExpressionStatement",
+                                          "start": 674,
+                                          "end": 693,
+                                          "flags": 129,
+                                          "category": 4,
+                                          "children": [
+                                            {
+                                              "kind": "Arguments",
+                                              "start": 674,
+                                              "end": 692,
+                                              "flags": 145,
+                                              "category": 5,
+                                              "children": [
+                                                {
+                                                  "kind": "Identifier",
+                                                  "start": 683,
+                                                  "end": 690,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                },                                                 {
+                                                  "kind": "LParen",
+                                                  "start": 690,
+                                                  "end": 691,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                },                                                 {
+                                                  "kind": "RParen",
+                                                  "start": 691,
+                                                  "end": 692,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                }
+                                              ]
+                                            },                                             {
+                                              "kind": "Semicolon",
+                                              "start": 692,
+                                              "end": 693,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },                                     {
+                                      "kind": "RBrace",
+                                      "start": 698,
+                                      "end": 699,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },                             {
+                              "kind": "FinallyClause",
+                              "start": 699,
+                              "end": 734,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "FinallyKeyword",
+                                  "start": 700,
+                                  "end": 707,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "BlockStatement",
+                                  "start": 707,
+                                  "end": 734,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "LBrace",
+                                      "start": 708,
+                                      "end": 709,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "StatementList",
+                                      "start": 709,
+                                      "end": 728,
+                                      "flags": 129,
+                                      "category": 4,
+                                      "children": [
+                                        {
+                                          "kind": "ExpressionStatement",
+                                          "start": 709,
+                                          "end": 728,
+                                          "flags": 129,
+                                          "category": 4,
+                                          "children": [
+                                            {
+                                              "kind": "Arguments",
+                                              "start": 709,
+                                              "end": 727,
+                                              "flags": 145,
+                                              "category": 5,
+                                              "children": [
+                                                {
+                                                  "kind": "Identifier",
+                                                  "start": 718,
+                                                  "end": 725,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                },                                                 {
+                                                  "kind": "LParen",
+                                                  "start": 725,
+                                                  "end": 726,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                },                                                 {
+                                                  "kind": "RParen",
+                                                  "start": 726,
+                                                  "end": 727,
+                                                  "flags": 128,
+                                                  "category": 1
+                                                }
+                                              ]
+                                            },                                             {
+                                              "kind": "Semicolon",
+                                              "start": 727,
+                                              "end": 728,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },                                     {
+                                      "kind": "RBrace",
+                                      "start": 733,
+                                      "end": 734,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "WithStatement",
+                      "start": 734,
+                      "end": 778,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "WithKeyword",
+                          "start": 740,
+                          "end": 744,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 745,
+                          "end": 746,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 746,
+                          "end": 752,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 752,
+                          "end": 753,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "BlockStatement",
+                          "start": 753,
+                          "end": 778,
+                          "flags": 129,
+                          "category": 4,
+                          "children": [
+                            {
+                              "kind": "LBrace",
+                              "start": 754,
+                              "end": 755,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "StatementList",
+                              "start": 755,
+                              "end": 772,
+                              "flags": 129,
+                              "category": 4,
+                              "children": [
+                                {
+                                  "kind": "ExpressionStatement",
+                                  "start": 755,
+                                  "end": 772,
+                                  "flags": 129,
+                                  "category": 4,
+                                  "children": [
+                                    {
+                                      "kind": "Arguments",
+                                      "start": 755,
+                                      "end": 771,
+                                      "flags": 145,
+                                      "category": 5,
+                                      "children": [
+                                        {
+                                          "kind": "Identifier",
+                                          "start": 764,
+                                          "end": 769,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "LParen",
+                                          "start": 769,
+                                          "end": 770,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "RParen",
+                                          "start": 770,
+                                          "end": 771,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    },                                     {
+                                      "kind": "Semicolon",
+                                      "start": 771,
+                                      "end": 772,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },                             {
+                              "kind": "RBrace",
+                              "start": 777,
+                              "end": 778,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "VariableStatement",
+                      "start": 778,
+                      "end": 835,
+                      "flags": 129,
+                      "category": 3,
+                      "children": [
+                        {
+                          "kind": "VariableDeclarationList",
+                          "start": 778,
+                          "end": 835,
+                          "flags": 129,
+                          "category": 3,
+                          "children": [
+                            {
+                              "kind": "ConstKeyword",
+                              "start": 784,
+                              "end": 789,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "VariableDeclaration",
+                              "start": 789,
+                              "end": 835,
+                              "flags": 129,
+                              "category": 3,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 790,
+                                  "end": 831,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Sequence",
+                                  "start": 831,
+                                  "end": 835,
+                                  "flags": 129,
+                                  "category": 9,
+                                  "children": [
+                                    {
+                                      "kind": "Assign",
+                                      "start": 832,
+                                      "end": 833,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "NumericLiteral",
+                                      "start": 834,
+                                      "end": 835,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 835,
+                          "end": 835,
+                          "flags": 131,
+                          "category": 9
+                        }
+                      ]
+                    },                     {
+                      "kind": "ReturnStatement",
+                      "start": 835,
+                      "end": 884,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "ReturnKeyword",
+                          "start": 840,
+                          "end": 846,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Sequence",
+                          "start": 846,
+                          "end": 884,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "Plus",
+                              "start": 847,
+                              "end": 885,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 847,
+                                  "end": 868,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Identifier",
+                                  "start": 880,
+                                  "end": 884,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            }
+                          ]
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 884,
+                          "end": 884,
+                          "flags": 131,
+                          "category": 9
+                        }
+                      ]
+                    }
+                  ]
+                },                 {
+                  "kind": "RBrace",
+                  "start": 885,
+                  "end": 886,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            }
+          ]
+        },         {
+          "kind": "IfStatement",
+          "start": 886,
+          "end": 944,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "IfKeyword",
+              "start": 888,
+              "end": 890,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "LParen",
+              "start": 891,
+              "end": 892,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "Identifier",
+              "start": 892,
+              "end": 893,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "RParen",
+              "start": 893,
+              "end": 894,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "ExpressionStatement",
+              "start": 894,
+              "end": 917,
+              "flags": 129,
+              "category": 4,
+              "children": [
+                {
+                  "kind": "Arguments",
+                  "start": 894,
+                  "end": 916,
+                  "flags": 145,
+                  "category": 5,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 899,
+                      "end": 914,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "LParen",
+                      "start": 914,
+                      "end": 915,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "RParen",
+                      "start": 915,
+                      "end": 916,
+                      "flags": 128,
+                      "category": 1
+                    }
+                  ]
+                },                 {
+                  "kind": "Semicolon",
+                  "start": 916,
+                  "end": 917,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Sequence",
+              "start": 917,
+              "end": 944,
+              "flags": 129,
+              "category": 9,
+              "children": [
+                {
+                  "kind": "ElseKeyword",
+                  "start": 918,
+                  "end": 922,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "ExpressionStatement",
+                  "start": 922,
+                  "end": 944,
+                  "flags": 129,
+                  "category": 4,
+                  "children": [
+                    {
+                      "kind": "Arguments",
+                      "start": 922,
+                      "end": 943,
+                      "flags": 145,
+                      "category": 5,
+                      "children": [
+                        {
+                          "kind": "Identifier",
+                          "start": 927,
+                          "end": 941,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LParen",
+                          "start": 941,
+                          "end": 942,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "RParen",
+                          "start": 942,
+                          "end": 943,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    },                     {
+                      "kind": "Semicolon",
+                      "start": 943,
+                      "end": 944,
+                      "flags": 128,
+                      "category": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 944,
+          "end": 977,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 944,
+              "end": 977,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 946,
+                  "end": 951,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 951,
+                  "end": 977,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 952,
+                      "end": 973,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 973,
+                      "end": 977,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 974,
+                          "end": 975,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NumericLiteral",
+                          "start": 976,
+                          "end": 977,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 977,
+              "end": 977,
+              "flags": 131,
+              "category": 9
+            }
+          ]
+        },         {
+          "kind": "WhileStatement",
+          "start": 977,
+          "end": 1007,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "WhileKeyword",
+              "start": 978,
+              "end": 983,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "LParen",
+              "start": 984,
+              "end": 985,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "Identifier",
+              "start": 985,
+              "end": 992,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "RParen",
+              "start": 992,
+              "end": 993,
+              "flags": 128,
+              "category": 1
+            },             {
+              "kind": "BlockStatement",
+              "start": 993,
+              "end": 1007,
+              "flags": 129,
+              "category": 4,
+              "children": [
+                {
+                  "kind": "LBrace",
+                  "start": 994,
+                  "end": 995,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "StatementList",
+                  "start": 995,
+                  "end": 1005,
+                  "flags": 129,
+                  "category": 4,
+                  "children": [
+                    {
+                      "kind": "BreakStatement",
+                      "start": 995,
+                      "end": 1005,
+                      "flags": 129,
+                      "category": 4,
+                      "children": [
+                        {
+                          "kind": "BreakKeyword",
+                          "start": 1000,
+                          "end": 1005,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Semicolon",
+                          "start": 1005,
+                          "end": 1005,
+                          "flags": 131,
+                          "category": 9
+                        }
+                      ]
+                    }
+                  ]
+                },                 {
+                  "kind": "RBrace",
+                  "start": 1006,
+                  "end": 1007,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+}

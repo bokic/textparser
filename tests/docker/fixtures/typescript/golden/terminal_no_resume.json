@@ -1,0 +1,6 @@
+{
+  "status": "NO",
+  "diagnostics": [
+  {"severity":0,"code":"TS1128","start":0,"length":1,"line":0,"column":0}
+]
+}

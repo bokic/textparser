@@ -59,6 +59,7 @@ EXPORT_TEXTPARSER int textparser_version_int(void);
 #define TEXTPARSER_NODE_MISSING     (1 << 1)
 #define TEXTPARSER_NODE_RECOVERED   (1 << 2)
 #define TEXTPARSER_NODE_TRIVIA      (1 << 3)
+#define TEXTPARSER_NODE_GRAMMAR_POSTFIX (1 << 4)
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #error "MSVC compiler is not supported by textparser (requires GCC/Clang extensions like __attribute__((cleanup)))"
@@ -218,6 +219,9 @@ typedef enum {
     TEXTPARSER_PROD_CONTEXT,
     TEXTPARSER_PROD_COMMIT,
     TEXTPARSER_PROD_PRATT,
+    TEXTPARSER_PROD_LEXICAL_GOAL,
+    TEXTPARSER_PROD_CAPTURE,
+    TEXTPARSER_PROD_MATCH_CAPTURE,
 } textparser_production_kind;
 
 /**
@@ -251,6 +255,8 @@ typedef struct {
     const char *commit_configuration;
     const char *recovery_handler;
     const char *recovery_configuration;
+    const char *lexical_goal;
+    const char *capture_name;
 } textparser_production;
 
 typedef enum {
@@ -293,7 +299,48 @@ typedef struct textparser_token_item {
     const char *decoded_value;
     void *user_data;
     void (*free_user_data)(void *);
+
+    /* Explicit schema-v2 CST identity and half-open source span. */
+    const char *cst_kind;
+    size_t source_start;
+    size_t source_end;
 } textparser_token_item;
+
+#define TEXTPARSER_NODE_EXPLICIT_SPAN (1u << 7)
+
+typedef enum textparser_typescript_cst_category {
+    TEXTPARSER_TS_CST_UNKNOWN = 0,
+    TEXTPARSER_TS_CST_TOKEN,
+    TEXTPARSER_TS_CST_SOURCE_FILE,
+    TEXTPARSER_TS_CST_DECLARATION,
+    TEXTPARSER_TS_CST_STATEMENT,
+    TEXTPARSER_TS_CST_EXPRESSION,
+    TEXTPARSER_TS_CST_TYPE,
+    TEXTPARSER_TS_CST_JSX,
+    TEXTPARSER_TS_CST_PATTERN,
+    TEXTPARSER_TS_CST_OTHER,
+} textparser_typescript_cst_category;
+
+typedef struct textparser_cst_node_view {
+    const char *kind;
+    size_t start;
+    size_t end;
+    uint32_t flags;
+    bool terminal;
+} textparser_cst_node_view;
+
+/** Return the stable schema-v2 kind and exact half-open source span of a CST node. */
+EXPORT_TEXTPARSER int textparser_get_cst_node_view(
+    const textparser_t handle,
+    const textparser_node *node,
+    textparser_cst_node_view *out_view
+);
+
+/** Classify a node from the TypeScript definition into a stable CST family. */
+EXPORT_TEXTPARSER textparser_typescript_cst_category textparser_typescript_cst_category_of(
+    const textparser_t handle,
+    const textparser_node *node
+);
 
 typedef struct {
     textparser_event_type type;
@@ -1377,6 +1424,10 @@ typedef struct textparser_operator_def {
     int precedence;
     enum textparser_associativity associativity;
     int secondary_token_id; // For ternary (e.g. ':' following '?')
+    /* Optional native validator invoked on the completed left operand. */
+    const char *left_validator;
+    /* Optional native validator invoked on a completed prefix operand. */
+    const char *operand_validator;
 } textparser_operator_def;
 
 /**

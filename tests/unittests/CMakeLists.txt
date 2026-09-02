@@ -82,6 +82,7 @@ add_executable( unittests
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp
   conformance_tests.cpp
+  conformance_fixture_tests.cpp
 
   tokenparser.hpp
 )
