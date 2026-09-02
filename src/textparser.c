@@ -67,6 +67,13 @@ typedef struct textparser_handler_entry {
     struct textparser_handler_entry *next;
 } textparser_handler_entry;
 
+typedef struct textparser_capture_entry {
+    const char *name;
+    size_t start;
+    size_t end;
+    struct textparser_capture_entry *next;
+} textparser_capture_entry;
+
 typedef struct {
     const char *handler_name;
     textparser_event event;
@@ -116,6 +123,7 @@ typedef struct {
 
 typedef struct textparser_lexer_cache_entry {
     size_t source_offset;
+    int source_rule;
     char *mode;
     char *goal;
     textparser_lex_token token;
@@ -4256,6 +4264,74 @@ size_t textparser_get_token_length(const textparser_token_item *token)
     return token->len;
 }
 
+EXPORT_TEXTPARSER int textparser_get_cst_node_view(
+    const textparser_t handle,
+    const textparser_node *node,
+    textparser_cst_node_view *out_view)
+{
+    if (node == nullptr || out_view == nullptr) return -1;
+    const char *kind = node->cst_kind;
+    if (kind == nullptr && handle != nullptr && handle->language != nullptr)
+        kind = textparser_get_token_type_str(handle->language, node);
+    out_view->kind = kind;
+    if ((node->node_flags & TEXTPARSER_NODE_EXPLICIT_SPAN) != 0) {
+        out_view->start = node->source_start;
+        out_view->end = node->source_end;
+    } else {
+        out_view->start = textparser_get_token_position(node);
+        out_view->end = out_view->start + node->len;
+    }
+    out_view->flags = node->node_flags;
+    out_view->terminal = node->child == nullptr &&
+        (node->node_flags & TEXTPARSER_NODE_MISSING) == 0;
+    return kind == nullptr ? -1 : 0;
+}
+
+static bool textparser_name_ends_with(const char *name, const char *suffix)
+{
+    if (name == nullptr || suffix == nullptr) return false;
+    size_t name_length = strlen(name), suffix_length = strlen(suffix);
+    return name_length >= suffix_length &&
+        strcmp(name + name_length - suffix_length, suffix) == 0;
+}
+
+EXPORT_TEXTPARSER textparser_typescript_cst_category textparser_typescript_cst_category_of(
+    const textparser_t handle,
+    const textparser_node *node)
+{
+    if (handle == nullptr || node == nullptr || handle->language == nullptr ||
+        handle->language->name == nullptr || strcmp(handle->language->name, "typescript") != 0)
+        return TEXTPARSER_TS_CST_UNKNOWN;
+    textparser_cst_node_view view = {0};
+    if (textparser_get_cst_node_view(handle, node, &view) != 0 || view.kind == nullptr)
+        return TEXTPARSER_TS_CST_UNKNOWN;
+    if (view.terminal) return TEXTPARSER_TS_CST_TOKEN;
+    const char *name = view.kind;
+    if (strcmp(name, "SourceFile") == 0) return TEXTPARSER_TS_CST_SOURCE_FILE;
+    if (strncmp(name, "JSX", 3) == 0) return TEXTPARSER_TS_CST_JSX;
+    if (textparser_name_ends_with(name, "Declaration") ||
+        strcmp(name, "VariableStatement") == 0 ||
+        strcmp(name, "VariableDeclarationList") == 0 ||
+        strcmp(name, "ClassElement") == 0 || strcmp(name, "EnumMember") == 0)
+        return TEXTPARSER_TS_CST_DECLARATION;
+    if (textparser_name_ends_with(name, "Statement") ||
+        strcmp(name, "Statement") == 0 || strcmp(name, "StatementList") == 0 ||
+        textparser_name_ends_with(name, "Clause"))
+        return TEXTPARSER_TS_CST_STATEMENT;
+    if (strstr(name, "Binding") != nullptr || strstr(name, "AssignmentTarget") != nullptr)
+        return TEXTPARSER_TS_CST_PATTERN;
+    if (textparser_name_ends_with(name, "Type") || strstr(name, "TypeParameter") != nullptr ||
+        strcmp(name, "Type") == 0 || strcmp(name, "TypeAnnotation") == 0 ||
+        strcmp(name, "TypeArguments") == 0 || strcmp(name, "TypeMember") == 0)
+        return TEXTPARSER_TS_CST_TYPE;
+    if (textparser_name_ends_with(name, "Expression") ||
+        strcmp(name, "Expression") == 0 || strcmp(name, "PrimaryExpression") == 0 ||
+        strcmp(name, "Arguments") == 0 || (node->child != nullptr &&
+            (node->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0))
+        return TEXTPARSER_TS_CST_EXPRESSION;
+    return TEXTPARSER_TS_CST_OTHER;
+}
+
 uint32_t textparser_get_token_text_color(const textparser_token_item *token)
 {
     if (token == nullptr)
@@ -5376,6 +5452,76 @@ static bool textparser_id_in_list(const int *ids, int id)
     return false;
 }
 
+static bool textparser_typescript_identifier_escapes_valid(
+    struct textparser_handle *handle, const char *text, size_t length)
+{
+    if (handle == nullptr || text == nullptr || length == 0) return false;
+    char *decoded = malloc(length + 1);
+    if (decoded == nullptr) return false;
+    size_t i = text[0] == '#' ? 1 : 0;
+    size_t decoded_length = 0;
+    while (i < length) {
+        if (text[i] != '\\') {
+            unsigned char ch = (unsigned char)text[i];
+            size_t width = ch < 0x80 ? 1 :
+                ((ch & 0xe0) == 0xc0 ? 2 : ((ch & 0xf0) == 0xe0 ? 3 : 4));
+            if (i + width > length) { free(decoded); return false; }
+            memcpy(decoded + decoded_length, text + i, width);
+            decoded_length += width;
+            i += width;
+            continue;
+        }
+        if (i + 2 >= length || text[i + 1] != 'u') { free(decoded); return false; }
+        i += 2;
+        bool braced = i < length && text[i] == '{';
+        if (braced) i++;
+        uint32_t value = 0;
+        size_t digits = 0;
+        while (i < length && digits < (braced ? 6u : 4u)) {
+            unsigned char ch = (unsigned char)text[i];
+            unsigned digit;
+            if (ch >= '0' && ch <= '9') digit = ch - '0';
+            else if (ch >= 'a' && ch <= 'f') digit = ch - 'a' + 10;
+            else if (ch >= 'A' && ch <= 'F') digit = ch - 'A' + 10;
+            else break;
+            value = value * 16 + digit;
+            i++; digits++;
+        }
+        if ((!braced && digits != 4) || (braced &&
+            (digits == 0 || i >= length || text[i++] != '}')) ||
+            value > 0x10ffff || (value >= 0xd800 && value <= 0xdfff)) {
+            free(decoded);
+            return false;
+        }
+        if (value <= 0x7f) decoded[decoded_length++] = (char)value;
+        else if (value <= 0x7ff) {
+            decoded[decoded_length++] = (char)(0xc0 | (value >> 6));
+            decoded[decoded_length++] = (char)(0x80 | (value & 0x3f));
+        } else if (value <= 0xffff) {
+            decoded[decoded_length++] = (char)(0xe0 | (value >> 12));
+            decoded[decoded_length++] = (char)(0x80 | ((value >> 6) & 0x3f));
+            decoded[decoded_length++] = (char)(0x80 | (value & 0x3f));
+        } else {
+            decoded[decoded_length++] = (char)(0xf0 | (value >> 18));
+            decoded[decoded_length++] = (char)(0x80 | ((value >> 12) & 0x3f));
+            decoded[decoded_length++] = (char)(0x80 | ((value >> 6) & 0x3f));
+            decoded[decoded_length++] = (char)(0x80 | (value & 0x3f));
+        }
+    }
+    decoded[decoded_length] = '\0';
+    static const char *identifier_pattern =
+        "(?:[$_]|\\p{ID_Start})(?:[$\\x{200C}\\x{200D}]|\\p{ID_Continue})*";
+    void *regex = nullptr;
+    size_t found_at = 0, found_length = 0;
+    bool valid = adv_regex_find_pattern_ctx(
+        handle->regex_ctx, identifier_pattern, &regex, TEXTPARSER_ENCODING_UTF_8,
+        decoded, decoded_length, &found_at, &found_length, false, true) &&
+        found_at == 0 && found_length == decoded_length;
+    adv_regex_free(handle->regex_ctx, &regex, TEXTPARSER_ENCODING_UTF_8);
+    free(decoded);
+    return valid;
+}
+
 static bool textparser_contextual_match(
     struct textparser_handle *handle,
     int token_id,
@@ -5383,6 +5529,8 @@ static bool textparser_contextual_match(
     size_t *length)
 {
     const textparser_token *rule = &handle->language->tokens[token_id];
+    if (rule->name != nullptr && strcmp(rule->name, "Hashbang") == 0 && offset != 0)
+        return false;
     if (rule->start_regex == nullptr && rule->startRegexFunction == nullptr) return false;
     size_t found_at = 0;
     size_t found_len = 0;
@@ -5394,6 +5542,13 @@ static bool textparser_contextual_match(
         return false;
     }
     *length = found_len;
+    if (rule->name != nullptr &&
+        (strcmp(rule->name, "Identifier") == 0 ||
+         strcmp(rule->name, "PrivateIdentifier") == 0) &&
+        memchr(handle->text_addr + textparser_get_byte_offset(handle, offset), '\\', found_len) != nullptr &&
+        !textparser_typescript_identifier_escapes_valid(handle,
+            handle->text_addr + textparser_get_byte_offset(handle, offset), found_len))
+        return false;
     return true;
 }
 
@@ -5402,9 +5557,11 @@ static int textparser_contextual_scan_one(
     size_t source_offset,
     const char *mode_name,
     const char *goal_name,
-    const textparser_lex_token **out_token)
+    const textparser_lex_token **out_token,
+    int *out_source_rule)
 {
     *out_token = nullptr;
+    if (out_source_rule != nullptr) *out_source_rule = -1;
     const char *mode = mode_name ? mode_name : "default";
     const char *goal = goal_name ? goal_name : "";
     for (textparser_lexer_cache_entry *cached = handle->lexer_cache;
@@ -5412,6 +5569,7 @@ static int textparser_contextual_scan_one(
         if (cached->source_offset == source_offset && strcmp(cached->mode, mode) == 0 &&
             strcmp(cached->goal, goal) == 0) {
             *out_token = &cached->token;
+            if (out_source_rule != nullptr) *out_source_rule = cached->source_rule;
             return 0;
         }
     }
@@ -5443,6 +5601,7 @@ static int textparser_contextual_scan_one(
     if (offset >= total) return 1;
 
     int best = -1;
+    int best_source = -1;
     size_t best_len = 0;
     int goal_id = 0;
     for (int source_id = 0; source_id < (int)handle->token_count; source_id++) {
@@ -5454,6 +5613,7 @@ static int textparser_contextual_scan_one(
             (length > best_len || (length == best_len && best >= 0 &&
              handle->language->lexer_rules[id].priority > handle->language->lexer_rules[best].priority))) {
             best = id;
+            best_source = source_id;
             best_len = length;
         }
     }
@@ -5467,6 +5627,7 @@ static int textparser_contextual_scan_one(
         free(entry->mode); free(entry->goal); free(entry); return -1;
     }
     entry->source_offset = source_offset;
+    entry->source_rule = best_source;
     entry->token.kind = best;
     entry->token.start = offset;
     entry->token.end = offset + best_len;
@@ -5478,6 +5639,7 @@ static int textparser_contextual_scan_one(
     entry->next = handle->lexer_cache;
     handle->lexer_cache = entry;
     *out_token = &entry->token;
+    if (out_source_rule != nullptr) *out_source_rule = best_source;
     return 0;
 }
 
@@ -5491,13 +5653,19 @@ EXPORT_TEXTPARSER int textparser_lexer_peek(
     for (size_t i = 0; i < depth; i++) modes[i] = handle->mode_stack[i];
     size_t offset = handle->parser.source_offset;
     const textparser_lex_token *token = nullptr;
+    int source_rule = -1;
     for (size_t i = 0; i <= lookahead; i++) {
         const char *mode = depth ? modes[depth - 1] :
             (handle->language->initial_lexer_mode ? handle->language->initial_lexer_mode : "default");
-        int ret = textparser_contextual_scan_one(handle, offset, mode, goal_name, &token);
+        int ret = textparser_contextual_scan_one(
+            handle, offset, mode, goal_name, &token, &source_rule);
         if (ret != 0) { *out_token = nullptr; return ret; }
         if (i == lookahead) break;
-        const textparser_contextual_lexer_rule *rule = &handle->language->lexer_rules[token->kind];
+        const textparser_contextual_lexer_rule *source = source_rule >= 0
+            ? &handle->language->lexer_rules[source_rule] : nullptr;
+        const textparser_contextual_lexer_rule *rule = source != nullptr &&
+            (source->pop_mode || source->push_mode != nullptr)
+            ? source : &handle->language->lexer_rules[token->kind];
         if (rule->pop_mode && depth > 0) depth--;
         if (rule->push_mode != nullptr && depth < TEXTPARSER_MAX_MODE_STACK) modes[depth++] = rule->push_mode;
         offset = token->end;
@@ -5511,13 +5679,33 @@ EXPORT_TEXTPARSER int textparser_lexer_consume(
 {
     int scan = textparser_lexer_peek(handle, 0, goal_name, out_token);
     if (scan != 0) return scan;
-    const textparser_contextual_lexer_rule *rule = &handle->language->lexer_rules[(*out_token)->kind];
+    int source_rule = -1;
+    const char *mode = textparser_get_current_mode(handle);
+    if (textparser_contextual_scan_one(
+            handle, handle->parser.source_offset, mode, goal_name, out_token, &source_rule) != 0)
+        return -1;
+    const textparser_contextual_lexer_rule *source = source_rule >= 0
+        ? &handle->language->lexer_rules[source_rule] : nullptr;
+    const textparser_contextual_lexer_rule *rule = source != nullptr &&
+        (source->pop_mode || source->push_mode != nullptr)
+        ? source : &handle->language->lexer_rules[(*out_token)->kind];
     if (rule->pop_mode && textparser_pop_mode(handle) != 0) return -1;
     if (rule->push_mode != nullptr && textparser_push_mode(handle, rule->push_mode) != 0) return -1;
     handle->parser.previous_token = **out_token;
     handle->parser.has_previous_token = true;
     handle->parser.source_offset = (*out_token)->end;
     handle->parser.token_index++;
+    const char *token_name = handle->language->tokens[(*out_token)->kind].name;
+    if (token_name != nullptr &&
+        (strncmp(token_name, "Invalid", 7) == 0 ||
+         strncmp(token_name, "Unterminated", 12) == 0)) {
+        const char *message = strncmp(token_name, "Unterminated", 12) == 0
+            ? "Unterminated literal." : "Invalid lexical token.";
+        if (textparser_report_diagnostic(
+                handle, TEXTPARSER_SEVERITY_ERROR, "TS_LEXICAL", message,
+                (*out_token)->start, (*out_token)->end - (*out_token)->start) != 0)
+            return -1;
+    }
     return 0;
 }
 
@@ -5934,8 +6122,15 @@ typedef struct {
     size_t production_count;
     unsigned recursion_depth;
     size_t furthest_failure_offset;
+    size_t furthest_failure_length;
+    int furthest_unexpected_token;
     const textparser_production *furthest_failure;
+    const char *typescript_diagnostic_code;
+    const char *typescript_diagnostic_message;
+    size_t typescript_diagnostic_start;
+    size_t typescript_diagnostic_length;
     size_t initial_diagnostic_count;
+    textparser_capture_entry *captures;
 } textparser_grammar_executor;
 
 static textparser_match_result textparser_match_result_make(
@@ -5981,7 +6176,14 @@ static textparser_node *textparser_grammar_token_node(
     const textparser_lex_token *token)
 {
     textparser_node *node = textparser_alloc_token(handle, token->kind, token->end - token->start);
-    if (node != nullptr) node->decoded_value = token->decoded_value;
+    if (node != nullptr) {
+        node->decoded_value = token->decoded_value;
+        node->source_start = token->start;
+        node->source_end = token->end;
+        node->node_flags |= TEXTPARSER_NODE_EXPLICIT_SPAN;
+        if (handle->language != nullptr && handle->language->tokens != nullptr && token->kind >= 0)
+            node->cst_kind = handle->language->tokens[token->kind].name;
+    }
     return node;
 }
 
@@ -5989,12 +6191,25 @@ static textparser_node *textparser_grammar_group_node(
     textparser_t handle,
     const textparser_production *production,
     textparser_node *first_child,
+    size_t source_start,
     size_t source_length)
 {
     if (first_child == nullptr) return nullptr;
     textparser_node *node = textparser_alloc_token(handle, production->id, source_length);
     if (node == nullptr) return nullptr;
     node->node_flags |= TEXTPARSER_NODE_SYNTHETIC;
+    node->node_flags |= TEXTPARSER_NODE_EXPLICIT_SPAN;
+    static const char *production_kinds[] = {
+        "Token", "Reference", "Sequence", "Choice", "Optional", "Repeat",
+        "Lookahead", "NegativeLookahead", "Predicate", "Context", "Commit",
+        "PrattExpression", "LexicalGoal", "Capture", "MatchCapture"
+    };
+    node->cst_kind = production->name != nullptr ? production->name :
+        (production->kind >= TEXTPARSER_PROD_TOKEN &&
+         production->kind <= TEXTPARSER_PROD_MATCH_CAPTURE
+            ? production_kinds[production->kind] : "Production");
+    node->source_start = source_start;
+    node->source_end = source_start + source_length;
     node->child = first_child;
     for (textparser_node *child = first_child; child != nullptr; child = child->next) {
         child->parent = node;
@@ -6061,11 +6276,56 @@ static void textparser_grammar_note_failure(
     textparser_grammar_executor *executor,
     const textparser_production *production)
 {
-    size_t offset = executor->handle->parser.source_offset;
-    if (executor->furthest_failure == nullptr || offset > executor->furthest_failure_offset) {
+    const textparser_lex_token *unexpected = nullptr;
+    int peek = textparser_grammar_peek_token(executor, &unexpected);
+    bool typescript = executor->handle->language != nullptr &&
+        executor->handle->language->name != nullptr &&
+        strcmp(executor->handle->language->name, "typescript") == 0;
+    size_t offset = typescript
+        ? (unexpected != nullptr ? unexpected->start : textparser_get_total_units(executor->handle))
+        : executor->handle->parser.source_offset;
+    size_t length = typescript && unexpected != nullptr
+        ? unexpected->end - unexpected->start : 0;
+    int description_priority = production != nullptr && production->expected_description != nullptr
+        ? (strcmp(production->expected_description, "expression") == 0 ? 1 : 2) : 0;
+    int previous_priority = executor->furthest_failure != nullptr &&
+        executor->furthest_failure->expected_description != nullptr
+        ? (strcmp(executor->furthest_failure->expected_description, "expression") == 0 ? 1 : 2) : 0;
+    bool prefer_description = offset == executor->furthest_failure_offset &&
+        description_priority > previous_priority;
+    if (executor->furthest_failure == nullptr || offset > executor->furthest_failure_offset ||
+        prefer_description) {
         executor->furthest_failure_offset = offset;
+        executor->furthest_failure_length = length;
+        executor->furthest_unexpected_token = peek == 0 && unexpected != nullptr
+            ? unexpected->kind : -1;
         executor->furthest_failure = production;
     }
+}
+
+static bool textparser_is_typescript_language(const textparser_t handle)
+{
+    return handle != nullptr && handle->language != nullptr &&
+        handle->language->name != nullptr &&
+        strcmp(handle->language->name, "typescript") == 0;
+}
+
+static const char *textparser_typescript_token_spelling(const char *name)
+{
+    if (name == nullptr) return nullptr;
+    if (strcmp(name, "LParen") == 0) return "(";
+    if (strcmp(name, "RParen") == 0) return ")";
+    if (strcmp(name, "LBracket") == 0) return "[";
+    if (strcmp(name, "RBracket") == 0) return "]";
+    if (strcmp(name, "LBrace") == 0) return "{";
+    if (strcmp(name, "RBrace") == 0) return "}";
+    if (strcmp(name, "Semicolon") == 0) return ";";
+    if (strcmp(name, "Colon") == 0) return ":";
+    if (strcmp(name, "Comma") == 0) return ",";
+    if (strcmp(name, "GreaterThan") == 0) return ">";
+    if (strcmp(name, "Assign") == 0) return "=";
+    if (strcmp(name, "Arrow") == 0) return "=>";
+    return nullptr;
 }
 
 static int textparser_grammar_report_expected(
@@ -6082,6 +6342,44 @@ static int textparser_grammar_report_expected(
     const char *name = production && production->expected_description
         ? production->expected_description
         : (production && production->name ? production->name : "syntax element");
+    if (textparser_is_typescript_language(executor->handle)) {
+        if (recovered) {
+            const char *code = "TS1128";
+            const char *recovery_message = "Declaration or statement expected.";
+            if (production != nullptr && production->name != nullptr) {
+                if (strcmp(production->name, "ClassElement") == 0) {
+                    code = "TS1068";
+                    recovery_message = "Unexpected token. A constructor, method, accessor, or property was expected.";
+                } else if (strcmp(production->name, "TypeMember") == 0) {
+                    code = "TS1131";
+                    recovery_message = "Property or signature expected.";
+                } else if (strcmp(production->name, "CaseClause") == 0) {
+                    code = "TS1130";
+                    recovery_message = "'case' or 'default' expected.";
+                }
+            }
+            return textparser_report_diagnostic(executor->handle, TEXTPARSER_SEVERITY_ERROR,
+                code, recovery_message, start, length);
+        }
+        const char *token_name = nullptr;
+        if (production != nullptr && production->kind == TEXTPARSER_PROD_TOKEN &&
+            executor->handle->language->tokens != nullptr)
+            token_name = executor->handle->language->tokens[production->token_id].name;
+        const char *spelling = textparser_typescript_token_spelling(token_name);
+        bool expression_expected = production != nullptr &&
+            production->expected_description != nullptr &&
+            strcmp(production->expected_description, "expression") == 0;
+        const char *code = expression_expected ? "TS1109" :
+            token_name != nullptr && strcmp(token_name, "Identifier") == 0
+                ? "TS1003" : "TS1005";
+        if (spelling != nullptr) snprintf(message, sizeof(message), "'%s' expected.", spelling);
+        else if (expression_expected) snprintf(message, sizeof(message), "Expression expected.");
+        else if (token_name != nullptr && strcmp(token_name, "Identifier") == 0)
+            snprintf(message, sizeof(message), "Identifier expected.");
+        else snprintf(message, sizeof(message), "Expected %s.", name);
+        return textparser_report_diagnostic(executor->handle, TEXTPARSER_SEVERITY_ERROR,
+            code, message, start, length);
+    }
     snprintf(message, sizeof(message), recovered ? "Recovered while parsing %s." : "Expected %s.", name);
     return textparser_report_diagnostic(executor->handle, TEXTPARSER_SEVERITY_ERROR,
         recovered ? "TEXTPARSER_RECOVERED" : "TEXTPARSER_EXPECTED", message, start, length);
@@ -6106,13 +6404,20 @@ static bool textparser_grammar_is_sync(
 static textparser_match_result textparser_grammar_missing_token(
     textparser_grammar_executor *executor,
     const textparser_production *production,
-    int token_kind)
+    int token_kind,
+    bool report_error)
 {
     textparser_node *node = textparser_alloc_token(executor->handle, token_kind, 0);
     if (node == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
     node->node_flags |= TEXTPARSER_NODE_SYNTHETIC | TEXTPARSER_NODE_MISSING;
-    textparser_grammar_report_expected(executor, production,
-        executor->handle->parser.source_offset, 0, false);
+    node->node_flags |= TEXTPARSER_NODE_EXPLICIT_SPAN;
+    node->source_start = executor->handle->parser.source_offset;
+    node->source_end = executor->handle->parser.source_offset;
+    if (executor->handle->language != nullptr && token_kind >= 0)
+        node->cst_kind = executor->handle->language->tokens[token_kind].name;
+    if (report_error)
+        textparser_grammar_report_expected(executor, production,
+            executor->handle->parser.source_offset, 0, false);
     executor->handle->parser.recovery_depth++;
     return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 0);
 }
@@ -6134,6 +6439,10 @@ static textparser_match_result textparser_grammar_synchronize(
     const textparser_production *production)
 {
     textparser_t handle = executor->handle;
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(handle, &checkpoint);
+    if (checkpoint == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
     size_t maximum = handle->language && handle->language->maximum_skipped_tokens
         ? handle->language->maximum_skipped_tokens : 256;
     size_t start_offset = handle->parser.source_offset;
@@ -6145,18 +6454,53 @@ static textparser_match_result textparser_grammar_synchronize(
         int peek = textparser_grammar_peek_token(executor, &token);
         if (peek != 0 || token == nullptr || textparser_grammar_is_sync(executor, production, token->kind)) break;
         textparser_match_result skipped = textparser_grammar_consume_token(executor, token->kind);
-        if (skipped.status != TEXTPARSER_MATCH_OK) return skipped;
+        if (skipped.status != TEXTPARSER_MATCH_OK) {
+            textparser_speculate_rollback(handle, checkpoint);
+            return skipped;
+        }
         textparser_grammar_append_node(&first, &last, skipped.node);
     }
     size_t consumed = handle->parser.token_index - start_index;
-    if (consumed == 0) return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    if (consumed == 0) {
+        textparser_speculate_rollback(handle, checkpoint);
+        return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+
+    /* A TypeScript recovery must reach a real boundary. At EOF there is no
+       enclosing list iteration to resume, so preserving the original failure
+       gives callers the precise terminal diagnostic instead of accepting an
+       incomplete file. A final semicolon is likewise not useful by itself. */
+    if (textparser_is_typescript_language(handle)) {
+        const textparser_lex_token *boundary = nullptr;
+        int boundary_status = textparser_grammar_peek_token(executor, &boundary);
+        bool can_resume = boundary_status == 0 && boundary != nullptr &&
+            textparser_grammar_is_sync(executor, production, boundary->kind);
+        if (can_resume && handle->language != nullptr &&
+            strcmp(handle->language->tokens[boundary->kind].name, "Semicolon") == 0) {
+            const textparser_lex_token *following = nullptr;
+            int following_status = handle->language->initial_lexer_mode != nullptr
+                ? textparser_lexer_peek(handle, 1, handle->lexical_goal, &following)
+                : (handle->parser.token_index + 1 < handle->lexer_token_count
+                    ? (following = &handle->lexer_tokens[handle->parser.token_index + 1], 0) : 1);
+            can_resume = following_status == 0 && following != nullptr;
+        }
+        if (!can_resume) {
+            textparser_speculate_rollback(handle, checkpoint);
+            return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+        }
+    }
     textparser_node *node = textparser_grammar_group_node(
-        handle, production, first, handle->parser.source_offset - start_offset);
-    if (node == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+        handle, production, first, start_offset,
+        handle->parser.source_offset - start_offset);
+    if (node == nullptr) {
+        textparser_speculate_rollback(handle, checkpoint);
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
     node->node_flags |= TEXTPARSER_NODE_RECOVERED;
     textparser_grammar_report_expected(executor, production, start_offset,
         handle->parser.source_offset - start_offset, true);
     handle->parser.recovery_depth++;
+    textparser_speculate_commit(handle, checkpoint);
     return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, consumed);
 }
 
@@ -6169,6 +6513,11 @@ static textparser_node *textparser_pratt_operator_node(
 {
     if (op == nullptr || first == nullptr) return nullptr;
     op->len = source_length;
+    if ((first->node_flags & TEXTPARSER_NODE_EXPLICIT_SPAN) != 0) {
+        op->node_flags |= TEXTPARSER_NODE_EXPLICIT_SPAN;
+        op->source_start = first->source_start;
+        op->source_end = first->source_start + source_length;
+    }
     op->child = first;
     first->parent = op;
     first->prev = nullptr;
@@ -6186,9 +6535,887 @@ static textparser_node *textparser_pratt_operator_node(
     return op;
 }
 
+typedef enum {
+    TEXTPARSER_TS_TARGET_INVALID = 0,
+    TEXTPARSER_TS_TARGET_ASSIGNABLE = 1,
+    TEXTPARSER_TS_TARGET_OPTIONAL_CHAIN = 2,
+} textparser_ts_target_state;
+
+static const char *textparser_grammar_node_production_name(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node)
+{
+    if (node == nullptr || (node->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0) return nullptr;
+    const textparser_production *production = textparser_find_production(executor, node->token_id);
+    return production == nullptr ? nullptr : production->name;
+}
+
+static const char *textparser_grammar_node_token_name(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node)
+{
+    if (node == nullptr || (node->node_flags & TEXTPARSER_NODE_SYNTHETIC) != 0 ||
+        executor->handle->language == nullptr || executor->handle->language->tokens == nullptr)
+        return nullptr;
+    for (size_t i = 0; executor->handle->language->tokens[i].name != nullptr; i++)
+        if ((int)i == node->token_id) return executor->handle->language->tokens[i].name;
+    return nullptr;
+}
+
+static const textparser_node *textparser_node_first_terminal(const textparser_node *node)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        if ((item->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0) return item;
+        const textparser_node *nested = textparser_node_first_terminal(item->child);
+        if (nested != nullptr) return nested;
+    }
+    return nullptr;
+}
+
+typedef struct textparser_typescript_label_frame {
+    const textparser_node *name;
+    bool iteration;
+    unsigned function_depth;
+    const struct textparser_typescript_label_frame *previous;
+} textparser_typescript_label_frame;
+
+typedef struct textparser_typescript_legality_context {
+    unsigned function_depth;
+    unsigned iteration_depth;
+    unsigned switch_depth;
+    bool async_function;
+    bool generator_function;
+    bool function_body;
+    bool ambient;
+    bool ambient_declare_allowed;
+    const textparser_typescript_label_frame *labels;
+} textparser_typescript_legality_context;
+
+static const textparser_node *textparser_typescript_node_token(
+    const textparser_node *node,
+    const char *token_name)
+{
+    if (node == nullptr || token_name == nullptr) return nullptr;
+    for (const textparser_node *child = node->child; child != nullptr; child = child->next) {
+        if ((child->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0 &&
+            child->cst_kind != nullptr && strcmp(child->cst_kind, token_name) == 0)
+            return child;
+        const textparser_node *nested = textparser_typescript_node_token(child, token_name);
+        if (nested != nullptr) return nested;
+    }
+    return nullptr;
+}
+
+static const textparser_node *textparser_typescript_header_token(
+    const textparser_node *node,
+    const char *token_name)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        if (item->cst_kind != nullptr &&
+            (strcmp(item->cst_kind, "BlockStatement") == 0 ||
+             strcmp(item->cst_kind, "ClassBody") == 0 ||
+             strcmp(item->cst_kind, "ArrowBody") == 0 ||
+             strcmp(item->cst_kind, "BindingParameterList") == 0 ||
+             strcmp(item->cst_kind, "TypeParametersContext") == 0 ||
+             strcmp(item->cst_kind, "TypeAnnotation") == 0 ||
+             strcmp(item->cst_kind, "Decorator") == 0 ||
+             strcmp(item->cst_kind, "ClassMemberName") == 0 ||
+             strcmp(item->cst_kind, "ObjectPropertyName") == 0))
+            continue;
+        if ((item->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0 &&
+            item->cst_kind != nullptr && strcmp(item->cst_kind, token_name) == 0)
+            return item;
+        const textparser_node *nested = textparser_typescript_header_token(
+            item->child, token_name);
+        if (nested != nullptr) return nested;
+    }
+    return nullptr;
+}
+
+static bool textparser_typescript_subtree_has_header_token(
+    const textparser_node *node,
+    const char *token_name)
+{
+    return textparser_typescript_header_token(node, token_name) != nullptr;
+}
+
+static bool textparser_typescript_same_identifier(
+    textparser_t handle,
+    const textparser_node *left,
+    const textparser_node *right)
+{
+    if (handle == nullptr || left == nullptr || right == nullptr ||
+        left->source_end < left->source_start || right->source_end < right->source_start)
+        return false;
+    size_t left_length = left->source_end - left->source_start;
+    size_t right_length = right->source_end - right->source_start;
+    return left_length == right_length && left->source_end <= handle->text_size &&
+        right->source_end <= handle->text_size &&
+        memcmp(handle->text_addr + left->source_start,
+            handle->text_addr + right->source_start, left_length) == 0;
+}
+
+static bool textparser_typescript_label_targets_iteration(const textparser_node *node)
+{
+    if (node == nullptr) return false;
+    const char *kind = node->cst_kind;
+    if (kind != nullptr &&
+        (strcmp(kind, "IterationStatement") == 0 ||
+         strcmp(kind, "WhileStatement") == 0 ||
+         strcmp(kind, "DoStatement") == 0 ||
+         strcmp(kind, "ForStatement") == 0))
+        return true;
+    if (kind != nullptr && strcmp(kind, "LabeledStatement") != 0 &&
+        strcmp(kind, "Statement") != 0 && strncmp(kind, "Production", 10) != 0)
+        return false;
+    for (const textparser_node *child = node->child; child != nullptr; child = child->next)
+        if ((child->node_flags & TEXTPARSER_NODE_SYNTHETIC) != 0 &&
+            textparser_typescript_label_targets_iteration(child))
+            return true;
+    return false;
+}
+
+static const textparser_typescript_label_frame *textparser_typescript_find_label(
+    textparser_t handle,
+    const textparser_typescript_label_frame *labels,
+    const textparser_node *name)
+{
+    for (const textparser_typescript_label_frame *label = labels;
+         label != nullptr; label = label->previous)
+        if (textparser_typescript_same_identifier(handle, label->name, name)) return label;
+    return nullptr;
+}
+
+static const textparser_typescript_label_frame *textparser_typescript_find_local_label(
+    textparser_t handle,
+    const textparser_typescript_label_frame *labels,
+    const textparser_node *name,
+    unsigned function_depth)
+{
+    const textparser_typescript_label_frame *label =
+        textparser_typescript_find_label(handle, labels, name);
+    return label != nullptr && label->function_depth == function_depth ? label : nullptr;
+}
+
+static void textparser_typescript_report_node_diagnostic(
+    textparser_t handle,
+    const textparser_node *node,
+    const char *code,
+    const char *message)
+{
+    const textparser_node *terminal = textparser_node_first_terminal(node == nullptr
+        ? nullptr : node->child);
+    size_t start = terminal != nullptr ? terminal->source_start
+        : node != nullptr ? node->source_start : 0;
+    size_t end = terminal != nullptr ? terminal->source_end
+        : node != nullptr ? node->source_end : start;
+    textparser_report_diagnostic(handle, TEXTPARSER_SEVERITY_ERROR, code, message,
+        start, end >= start ? end - start : 0);
+}
+
+static bool textparser_typescript_is_header_boundary(const char *kind)
+{
+    return kind != nullptr &&
+        (strcmp(kind, "BlockStatement") == 0 || strcmp(kind, "ArrowBody") == 0 ||
+         strcmp(kind, "ClassBody") == 0 ||
+         strcmp(kind, "BindingParameterList") == 0 ||
+         strcmp(kind, "TypeParametersContext") == 0 ||
+         strcmp(kind, "TypeAnnotation") == 0 || strcmp(kind, "Decorator") == 0 ||
+         strcmp(kind, "ClassMemberName") == 0 ||
+         strcmp(kind, "ObjectPropertyName") == 0);
+}
+
+static unsigned textparser_typescript_modifier_bit(const char *kind, bool *accessibility)
+{
+    *accessibility = false;
+    if (kind == nullptr) return 0;
+    if (strcmp(kind, "PublicKeyword") == 0) { *accessibility = true; return 1u << 0; }
+    if (strcmp(kind, "PrivateKeyword") == 0) { *accessibility = true; return 1u << 1; }
+    if (strcmp(kind, "ProtectedKeyword") == 0) { *accessibility = true; return 1u << 2; }
+    if (strcmp(kind, "StaticKeyword") == 0) return 1u << 3;
+    if (strcmp(kind, "ReadonlyKeyword") == 0) return 1u << 4;
+    if (strcmp(kind, "AbstractKeyword") == 0) return 1u << 5;
+    if (strcmp(kind, "OverrideKeyword") == 0) return 1u << 6;
+    if (strcmp(kind, "DeclareKeyword") == 0) return 1u << 7;
+    if (strcmp(kind, "AccessorKeyword") == 0) return 1u << 8;
+    if (strcmp(kind, "AsyncKeyword") == 0) return 1u << 9;
+    return 0;
+}
+
+static void textparser_typescript_report_modifier_diagnostic(
+    textparser_t handle,
+    const textparser_node *modifier,
+    const char *code,
+    const char *suffix)
+{
+    char spelling[24] = {0};
+    size_t length = modifier->source_end - modifier->source_start;
+    if (length >= sizeof(spelling)) length = sizeof(spelling) - 1;
+    if (modifier->source_start + length <= handle->text_size)
+        memcpy(spelling, handle->text_addr + modifier->source_start, length);
+    char message[128];
+    snprintf(message, sizeof(message), "'%s' modifier %s", spelling, suffix);
+    textparser_typescript_report_node_diagnostic(handle, modifier, code, message);
+}
+
+static void textparser_typescript_check_modifier_nodes(
+    textparser_t handle,
+    const textparser_node *node,
+    unsigned *seen,
+    bool *seen_accessibility)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        if (textparser_typescript_is_header_boundary(item->cst_kind)) continue;
+        if ((item->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0) {
+            bool accessibility = false;
+            unsigned bit = textparser_typescript_modifier_bit(item->cst_kind, &accessibility);
+            if (bit != 0) {
+                if (accessibility && *seen_accessibility)
+                    textparser_typescript_report_node_diagnostic(handle, item, "TS1028",
+                        "Accessibility modifier already seen.");
+                else if ((*seen & bit) != 0)
+                    textparser_typescript_report_modifier_diagnostic(handle, item, "TS1030",
+                        "already seen.");
+                *seen |= bit;
+                if (accessibility) *seen_accessibility = true;
+            }
+        }
+        textparser_typescript_check_modifier_nodes(
+            handle, item->child, seen, seen_accessibility);
+    }
+}
+
+static size_t textparser_typescript_count_parameters_from_span(
+    textparser_t handle,
+    const textparser_node *parameter_list)
+{
+    if (handle == nullptr || parameter_list == nullptr ||
+        parameter_list->source_end > handle->text_size ||
+        parameter_list->source_end <= parameter_list->source_start + 1) return 0;
+    size_t start = parameter_list->source_start + 1;
+    size_t end = parameter_list->source_end - 1;
+    while (start < end && isspace((unsigned char)handle->text_addr[start])) start++;
+    while (end > start && isspace((unsigned char)handle->text_addr[end - 1])) end--;
+    if (start == end) return 0;
+    size_t count = 1;
+    unsigned round = 0, square = 0, brace = 0, angle = 0;
+    for (size_t i = start; i < end; i++) {
+        char c = handle->text_addr[i];
+        if (c == '(') round++; else if (c == ')' && round != 0) round--;
+        else if (c == '[') square++; else if (c == ']' && square != 0) square--;
+        else if (c == '{') brace++; else if (c == '}' && brace != 0) brace--;
+        else if (c == '<') angle++; else if (c == '>' && angle != 0) angle--;
+        else if (c == ',' && round == 0 && square == 0 && brace == 0 && angle == 0) count++;
+    }
+    return count;
+}
+
+static bool textparser_typescript_preceded_by_declare(
+    textparser_t handle,
+    const textparser_node *node)
+{
+    if (handle == nullptr || node == nullptr) return false;
+    size_t start = node->source_start;
+    while (start > 0 && handle->text_addr[start - 1] != '\n' &&
+        handle->text_addr[start - 1] != '\r' && handle->text_addr[start - 1] != ';' &&
+        handle->text_addr[start - 1] != '{' && handle->text_addr[start - 1] != '}') start--;
+    static const char word[] = "declare";
+    for (size_t i = start; i + sizeof(word) - 1 <= node->source_start; i++)
+        if (memcmp(handle->text_addr + i, word, sizeof(word) - 1) == 0) return true;
+    return false;
+}
+
+static bool textparser_typescript_header_has_accessor_word(
+    textparser_t handle,
+    const textparser_node *node,
+    size_t end,
+    const char *word)
+{
+    if (handle == nullptr || node == nullptr || end > handle->text_size) return false;
+    size_t region_start = node->source_start;
+    while (region_start > 0) {
+        char previous = handle->text_addr[region_start - 1];
+        if (previous == '\n' || previous == '\r' || previous == ';' || previous == '{' ||
+            previous == '}') break;
+        region_start--;
+    }
+    size_t word_length = strlen(word);
+    for (size_t i = region_start; i + word_length <= end; i++) {
+        if (memcmp(handle->text_addr + i, word, word_length) != 0) continue;
+        bool left_boundary = i == region_start ||
+            !(isalnum((unsigned char)handle->text_addr[i - 1]) ||
+              handle->text_addr[i - 1] == '_' || handle->text_addr[i - 1] == '$');
+        size_t after = i + word_length;
+        bool right_boundary = after == end ||
+            !(isalnum((unsigned char)handle->text_addr[after]) ||
+              handle->text_addr[after] == '_' || handle->text_addr[after] == '$');
+        if (!left_boundary || !right_boundary) continue;
+        while (after < end && isspace((unsigned char)handle->text_addr[after])) after++;
+        if (after < end && handle->text_addr[after] != '(') return true;
+    }
+    return false;
+}
+
+static const textparser_node *textparser_typescript_find_kind(
+    const textparser_node *node,
+    const char *kind)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        if (item->cst_kind != nullptr && strcmp(item->cst_kind, kind) == 0) return item;
+        const textparser_node *nested = textparser_typescript_find_kind(item->child, kind);
+        if (nested != nullptr) return nested;
+    }
+    return nullptr;
+}
+
+static const textparser_node *textparser_typescript_find_kind_after(
+    const textparser_node *node,
+    const char *kind,
+    size_t position)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        if (item->source_start >= position && item->cst_kind != nullptr &&
+            strcmp(item->cst_kind, kind) == 0) return item;
+        const textparser_node *nested = textparser_typescript_find_kind_after(
+            item->child, kind, position);
+        if (nested != nullptr) return nested;
+    }
+    return nullptr;
+}
+
+static bool textparser_typescript_is_ambient_statement(const char *kind)
+{
+    if (kind == nullptr) return false;
+    static const char *statements[] = {
+        "ExpressionStatement", "IfStatement", "WhileStatement", "DoStatement",
+        "ForStatement", "ContinueStatement", "BreakStatement", "ReturnStatement",
+        "ThrowStatement", "SwitchStatement", "TryStatement", "WithStatement",
+        "DebuggerStatement", "LabeledStatement", nullptr
+    };
+    for (size_t i = 0; statements[i] != nullptr; i++)
+        if (strcmp(kind, statements[i]) == 0) return true;
+    return false;
+}
+
+static bool textparser_typescript_declaration_file(const textparser_t handle)
+{
+    const char *filename = handle == nullptr ? nullptr : handle->filename;
+    if (filename == nullptr) return false;
+    size_t length = strlen(filename);
+#ifdef _WIN32
+#define TEXTPARSER_DTS_SUFFIX(suffix) (length >= sizeof(suffix) - 1 && \
+    _stricmp(filename + length - (sizeof(suffix) - 1), suffix) == 0)
+#else
+#define TEXTPARSER_DTS_SUFFIX(suffix) (length >= sizeof(suffix) - 1 && \
+    strcasecmp(filename + length - (sizeof(suffix) - 1), suffix) == 0)
+#endif
+    bool result = TEXTPARSER_DTS_SUFFIX(".d.ts") || TEXTPARSER_DTS_SUFFIX(".d.mts") ||
+        TEXTPARSER_DTS_SUFFIX(".d.cts");
+#undef TEXTPARSER_DTS_SUFFIX
+    return result;
+}
+
+static bool textparser_typescript_has_declared_ancestor(const textparser_node *node)
+{
+    for (const textparser_node *parent = node == nullptr ? nullptr : node->parent;
+         parent != nullptr; parent = parent->parent) {
+        const char *kind = parent->cst_kind;
+        if (kind != nullptr &&
+            (strcmp(kind, "SourceFile") == 0 ||
+             strcmp(kind, "Statement") == 0 ||
+             strcmp(kind, "Repeat") == 0)) break;
+        if (textparser_typescript_node_token(parent, "DeclareKeyword") != nullptr) return true;
+    }
+    return false;
+}
+
+static void textparser_typescript_check_legality_nodes(
+    textparser_t handle,
+    const textparser_node *node,
+    textparser_typescript_legality_context context)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        const char *kind = item->cst_kind;
+        textparser_typescript_legality_context child_context = context;
+        bool declaration_with_modifiers = kind != nullptr &&
+            (strcmp(kind, "DeclaredVariableStatement") == 0 ||
+             strcmp(kind, "FunctionDeclaration") == 0 ||
+             strcmp(kind, "DefaultFunctionDeclaration") == 0 ||
+             strcmp(kind, "ClassDeclaration") == 0 ||
+             strcmp(kind, "DefaultClassDeclaration") == 0 ||
+             strcmp(kind, "InterfaceDeclaration") == 0 ||
+             strcmp(kind, "TypeAliasDeclaration") == 0 ||
+             strcmp(kind, "EnumDeclaration") == 0 ||
+             strcmp(kind, "NamespaceDeclaration") == 0 ||
+             strcmp(kind, "GlobalDeclaration") == 0);
+        const textparser_node *declare_modifier = declaration_with_modifiers
+            ? textparser_typescript_header_token(item->child, "DeclareKeyword") : nullptr;
+        bool ambient_declarator = kind != nullptr &&
+            (strcmp(kind, "VariableDeclaration") == 0 ||
+             strcmp(kind, "PropertyDeclaration") == 0) &&
+            (textparser_typescript_has_declared_ancestor(item) ||
+             textparser_typescript_preceded_by_declare(handle, item));
+        bool establishes_ambient = context.ambient || declare_modifier != nullptr ||
+            ambient_declarator ||
+            (kind != nullptr && strcmp(kind, "GlobalDeclaration") == 0);
+        child_context.ambient = establishes_ambient;
+        if (context.ambient && !context.ambient_declare_allowed && declare_modifier != nullptr)
+            textparser_typescript_report_node_diagnostic(handle, declare_modifier, "TS1038",
+                "A 'declare' modifier cannot be used in an already ambient context.");
+        if (declare_modifier != nullptr || (kind != nullptr &&
+            (strcmp(kind, "NamespaceDeclaration") == 0 ||
+             strcmp(kind, "GlobalDeclaration") == 0 ||
+             strcmp(kind, "ClassDeclaration") == 0 ||
+             strcmp(kind, "DefaultClassDeclaration") == 0)))
+            child_context.ambient_declare_allowed = false;
+
+        if (kind != nullptr &&
+            (strcmp(kind, "FunctionDeclaration") == 0 ||
+             strcmp(kind, "DefaultFunctionDeclaration") == 0 ||
+             strcmp(kind, "ClassDeclaration") == 0 ||
+             strcmp(kind, "DefaultClassDeclaration") == 0 ||
+             strcmp(kind, "MethodDeclaration") == 0 ||
+             strcmp(kind, "PropertyDeclaration") == 0 ||
+             strcmp(kind, "ConstructorDeclaration") == 0 ||
+             strcmp(kind, "BindingParameter") == 0)) {
+            unsigned seen_modifiers = 0;
+            bool seen_accessibility = false;
+            textparser_typescript_check_modifier_nodes(
+                handle, item->child, &seen_modifiers, &seen_accessibility);
+        }
+
+        if (kind != nullptr && strcmp(kind, "MethodDeclaration") == 0) {
+            const textparser_node *readonly_modifier =
+                textparser_typescript_header_token(item->child, "ReadonlyKeyword");
+            const textparser_node *accessor_modifier =
+                textparser_typescript_header_token(item->child, "AccessorKeyword");
+            if (readonly_modifier != nullptr)
+                textparser_typescript_report_node_diagnostic(handle, readonly_modifier, "TS1024",
+                    "'readonly' modifier can only appear on a property declaration or index signature.");
+            if (accessor_modifier != nullptr)
+                textparser_typescript_report_modifier_diagnostic(handle, accessor_modifier, "TS1031",
+                    "cannot appear on class elements of this kind.");
+        } else if (kind != nullptr && strcmp(kind, "PropertyDeclaration") == 0) {
+            const textparser_node *async_modifier =
+                textparser_typescript_header_token(item->child, "AsyncKeyword");
+            if (async_modifier != nullptr)
+                textparser_typescript_report_modifier_diagnostic(handle, async_modifier, "TS1042",
+                    "cannot be used here.");
+        }
+
+        if (kind != nullptr && strcmp(kind, "MethodDeclaration") == 0) {
+            const textparser_node *parameter_list_node =
+                textparser_typescript_find_kind(item->child, "BindingParameterList");
+            size_t member_start = parameter_list_node == nullptr
+                ? item->source_end : parameter_list_node->source_start;
+            bool getter = textparser_typescript_header_has_accessor_word(
+                handle, item, member_start, "get");
+            bool setter = textparser_typescript_header_has_accessor_word(
+                handle, item, member_start, "set");
+            size_t parameters = textparser_typescript_count_parameters_from_span(
+                handle, parameter_list_node);
+            if (getter && parameters != 0)
+                textparser_typescript_report_node_diagnostic(handle, item, "TS1054",
+                    "A 'get' accessor cannot have parameters.");
+            if (setter && parameters != 1)
+                textparser_typescript_report_node_diagnostic(handle, item, "TS1049",
+                    "A 'set' accessor must have exactly one parameter.");
+            if ((getter || setter) && textparser_typescript_find_kind(
+                    item->child, "TypeParametersContext") != nullptr)
+                textparser_typescript_report_node_diagnostic(handle, item, "TS1094",
+                    "An accessor cannot have type parameters.");
+            const textparser_node *parameter_list =
+                textparser_typescript_find_kind(item->child, "BindingParameterList");
+            if (setter && parameter_list != nullptr && textparser_typescript_find_kind_after(
+                    item->child, "TypeAnnotation", parameter_list->source_end) != nullptr)
+                textparser_typescript_report_node_diagnostic(handle, item, "TS1095",
+                    "A 'set' accessor cannot have a return type annotation.");
+            if (establishes_ambient && (getter || setter))
+                textparser_typescript_report_node_diagnostic(handle, item, "TS1086",
+                    "An accessor cannot be declared in an ambient context.");
+        }
+
+        if (establishes_ambient && kind != nullptr &&
+            (strcmp(kind, "VariableDeclaration") == 0 ||
+             strcmp(kind, "PropertyDeclaration") == 0)) {
+            const textparser_node *initializer = textparser_typescript_find_kind(
+                item->child, "Assign");
+            if (initializer != nullptr)
+                textparser_typescript_report_node_diagnostic(handle, initializer, "TS1039",
+                    "Initializers are not allowed in ambient contexts.");
+        }
+        if (context.ambient && textparser_typescript_is_ambient_statement(kind))
+            textparser_typescript_report_node_diagnostic(handle, item, "TS1036",
+                "Statements are not allowed in ambient contexts.");
+
+        bool implementation_declaration = kind != nullptr &&
+            (strcmp(kind, "FunctionDeclaration") == 0 ||
+             strcmp(kind, "DefaultFunctionDeclaration") == 0 ||
+             strcmp(kind, "MethodDeclaration") == 0 ||
+             strcmp(kind, "ConstructorDeclaration") == 0);
+        if (establishes_ambient && implementation_declaration) {
+            const textparser_node *body =
+                textparser_typescript_find_kind(item->child, "BlockStatement");
+            if (body != nullptr)
+                textparser_typescript_report_node_diagnostic(handle, body, "TS1183",
+                    "An implementation cannot be declared in ambient contexts.");
+            const textparser_node *async_modifier =
+                textparser_typescript_header_token(item->child, "AsyncKeyword");
+            if (async_modifier != nullptr)
+                textparser_typescript_report_modifier_diagnostic(handle, async_modifier, "TS1040",
+                    "cannot be used in an ambient context.");
+        }
+
+        bool function_boundary = kind != nullptr &&
+            (strcmp(kind, "FunctionDeclaration") == 0 ||
+             strcmp(kind, "DefaultFunctionDeclaration") == 0 ||
+             strcmp(kind, "FunctionExpression") == 0 ||
+             strcmp(kind, "ArrowFunction") == 0 ||
+             strcmp(kind, "AsyncArrowFunction") == 0 ||
+             strcmp(kind, "GenericArrowFunction") == 0 ||
+             strcmp(kind, "ParenthesizedArrowFunction") == 0 ||
+             strcmp(kind, "IdentifierArrowFunction") == 0 ||
+             strcmp(kind, "MethodDeclaration") == 0 ||
+             strcmp(kind, "ObjectMethodDeclaration") == 0 ||
+             strcmp(kind, "ObjectAccessorDeclaration") == 0 ||
+             strcmp(kind, "ConstructorDeclaration") == 0);
+        bool static_block_boundary = kind != nullptr &&
+            strcmp(kind, "ClassStaticBlock") == 0;
+        if (static_block_boundary) {
+            child_context.function_depth++;
+            child_context.iteration_depth = 0;
+            child_context.switch_depth = 0;
+            child_context.async_function = false;
+            child_context.generator_function = false;
+            child_context.function_body = false;
+            child_context.ambient = context.ambient;
+        } else if (function_boundary) {
+            child_context.function_depth++;
+            child_context.iteration_depth = 0;
+            child_context.switch_depth = 0;
+            child_context.async_function =
+                textparser_typescript_subtree_has_header_token(item->child, "AsyncKeyword");
+            child_context.generator_function =
+                textparser_typescript_subtree_has_header_token(item->child, "Multiply");
+            child_context.function_body = true;
+            if (establishes_ambient) child_context.ambient = false;
+        } else if (kind != nullptr &&
+            (strcmp(kind, "WhileStatement") == 0 ||
+             strcmp(kind, "DoStatement") == 0 ||
+             strcmp(kind, "ForStatement") == 0)) {
+            child_context.iteration_depth++;
+        } else if (kind != nullptr && strcmp(kind, "SwitchStatement") == 0) {
+            child_context.switch_depth++;
+        }
+
+        textparser_typescript_label_frame label_frame = {0};
+        if (kind != nullptr && strcmp(kind, "LabeledStatement") == 0) {
+            label_frame.name = textparser_typescript_node_token(item, "Identifier");
+            label_frame.iteration = textparser_typescript_label_targets_iteration(item);
+            label_frame.function_depth = context.function_depth;
+            label_frame.previous = context.labels;
+            if (label_frame.name != nullptr && textparser_typescript_find_local_label(
+                    handle, context.labels, label_frame.name, context.function_depth) != nullptr)
+                textparser_typescript_report_node_diagnostic(handle, label_frame.name,
+                    "TS1114", "Duplicate label.");
+            child_context.labels = &label_frame;
+        }
+
+        const textparser_node *jump_label = kind != nullptr &&
+            (strcmp(kind, "BreakStatement") == 0 || strcmp(kind, "ContinueStatement") == 0)
+            ? textparser_typescript_node_token(item, "Identifier") : nullptr;
+        const textparser_typescript_label_frame *target = jump_label == nullptr ? nullptr
+            : textparser_typescript_find_label(handle, context.labels, jump_label);
+        if (kind != nullptr && strcmp(kind, "ReturnStatement") == 0 &&
+            !context.function_body) {
+            textparser_typescript_report_node_diagnostic(handle, item, "TS1108",
+                "A 'return' statement can only be used within a function body.");
+        } else if (kind != nullptr && strcmp(kind, "BreakStatement") == 0 &&
+            jump_label == nullptr &&
+            context.iteration_depth == 0 && context.switch_depth == 0) {
+            textparser_typescript_report_node_diagnostic(handle, item, "TS1105",
+                "A 'break' statement can only be used within an enclosing iteration or switch statement.");
+        } else if (kind != nullptr && strcmp(kind, "ContinueStatement") == 0 &&
+            jump_label == nullptr &&
+            context.iteration_depth == 0) {
+            textparser_typescript_report_node_diagnostic(handle, item, "TS1104",
+                "A 'continue' statement can only be used within an enclosing iteration statement.");
+        } else if (kind != nullptr && strcmp(kind, "BreakStatement") == 0 &&
+            jump_label != nullptr && target != nullptr &&
+            target->function_depth != context.function_depth) {
+            textparser_typescript_report_node_diagnostic(handle, jump_label, "TS1107",
+                "Jump target cannot cross function boundary.");
+        } else if (kind != nullptr && strcmp(kind, "ContinueStatement") == 0 &&
+            jump_label != nullptr && target != nullptr &&
+            target->function_depth != context.function_depth) {
+            textparser_typescript_report_node_diagnostic(handle, jump_label, "TS1107",
+                "Jump target cannot cross function boundary.");
+        } else if (kind != nullptr && strcmp(kind, "BreakStatement") == 0 &&
+            jump_label != nullptr && target == nullptr) {
+            textparser_typescript_report_node_diagnostic(handle, jump_label, "TS1116",
+                "A 'break' statement can only jump to a label of an enclosing statement.");
+        } else if (kind != nullptr && strcmp(kind, "ContinueStatement") == 0 &&
+            jump_label != nullptr && (target == nullptr || !target->iteration)) {
+            textparser_typescript_report_node_diagnostic(handle, jump_label, "TS1115",
+                "A 'continue' statement can only jump to a label of an enclosing iteration statement.");
+        } else if (kind != nullptr && strcmp(kind, "AwaitKeyword") == 0 &&
+            context.function_depth != 0 && !context.async_function) {
+            textparser_typescript_report_node_diagnostic(handle, item, "TS1308",
+                "'await' expressions are only allowed within async functions and at the top levels of modules.");
+        } else if (kind != nullptr && strcmp(kind, "YieldExpression") == 0 &&
+            (context.function_depth == 0 || !context.generator_function)) {
+            textparser_typescript_report_node_diagnostic(handle, item, "TS1163",
+                "A 'yield' expression is only allowed in a generator body.");
+        }
+        textparser_typescript_check_legality_nodes(handle, item->child, child_context);
+    }
+}
+
+static void textparser_typescript_check_legality(
+    textparser_t handle,
+    const textparser_node *root)
+{
+    textparser_typescript_legality_context context = {0};
+    context.ambient = textparser_typescript_declaration_file(handle);
+    context.ambient_declare_allowed = context.ambient;
+    textparser_typescript_check_legality_nodes(handle, root, context);
+}
+
+static const textparser_node *textparser_node_last_child(const textparser_node *node)
+{
+    const textparser_node *last = node == nullptr ? nullptr : node->child;
+    if (last == nullptr) return nullptr;
+    while (last->next != nullptr) last = last->next;
+    return last;
+}
+
+static const textparser_node *textparser_find_named_single_child(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node,
+    const char **name)
+{
+    const textparser_node *current = node;
+    while (current != nullptr) {
+        const char *current_name = textparser_grammar_node_production_name(executor, current);
+        if (current_name != nullptr) {
+            *name = current_name;
+            return current;
+        }
+        if (current->child == nullptr || current->child->next != nullptr) break;
+        current = current->child;
+    }
+    *name = nullptr;
+    return current;
+}
+
+static textparser_ts_target_state textparser_typescript_assignment_target(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node,
+    bool allow_pattern);
+
+static bool textparser_typescript_pattern_value(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node)
+{
+    if (node == nullptr) return false;
+    const char *token = textparser_grammar_node_token_name(executor, node);
+    if (token != nullptr && strcmp(token, "Assign") == 0 && node->child != nullptr)
+        return textparser_typescript_assignment_target(executor, node->child, true) ==
+            TEXTPARSER_TS_TARGET_ASSIGNABLE;
+    return textparser_typescript_assignment_target(executor, node, true) ==
+        TEXTPARSER_TS_TARGET_ASSIGNABLE;
+}
+
+static bool textparser_typescript_array_pattern_nodes_internal(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node,
+    bool *seen_rest)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        const char *token = textparser_grammar_node_token_name(executor, item);
+        if (*seen_rest && token != nullptr && strcmp(token, "Comma") == 0) return false;
+        const char *name = textparser_grammar_node_production_name(executor, item);
+        if (name != nullptr && strcmp(name, "ArrayElement") == 0) {
+            const textparser_node *value = textparser_node_last_child(item);
+            const textparser_node *first = textparser_node_first_terminal(item->child);
+            const char *first_name = textparser_grammar_node_token_name(executor, first);
+            bool rest = first_name != nullptr && strcmp(first_name, "Ellipsis") == 0;
+            if (*seen_rest || (rest
+                    ? textparser_typescript_assignment_target(executor, value, true) !=
+                        TEXTPARSER_TS_TARGET_ASSIGNABLE
+                    : !textparser_typescript_pattern_value(executor, value)))
+                return false;
+            *seen_rest = rest;
+            continue;
+        }
+        if (!textparser_typescript_array_pattern_nodes_internal(
+                executor, item->child, seen_rest)) return false;
+    }
+    return true;
+}
+
+static bool textparser_typescript_array_pattern_nodes(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node)
+{
+    bool seen_rest = false;
+    return textparser_typescript_array_pattern_nodes_internal(executor, node, &seen_rest);
+}
+
+static bool textparser_typescript_object_pattern_element(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node,
+    bool *is_rest)
+{
+    const char *name = nullptr;
+    const textparser_node *element = textparser_find_named_single_child(executor, node, &name);
+    if (element == nullptr || name == nullptr) return false;
+    *is_rest = false;
+    if (strcmp(name, "ObjectShorthandProperty") == 0) return true;
+    if (strcmp(name, "ObjectPropertyAssignment") == 0)
+        return textparser_typescript_pattern_value(executor, textparser_node_last_child(element));
+    if (strcmp(name, "ObjectSpreadAssignment") == 0) {
+        *is_rest = true;
+        return textparser_typescript_assignment_target(
+            executor, textparser_node_last_child(element), true) == TEXTPARSER_TS_TARGET_ASSIGNABLE;
+    }
+    return false;
+}
+
+static bool textparser_typescript_object_pattern_nodes_internal(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node,
+    bool *seen_rest)
+{
+    for (const textparser_node *item = node; item != nullptr; item = item->next) {
+        const char *token = textparser_grammar_node_token_name(executor, item);
+        if (*seen_rest && token != nullptr && strcmp(token, "Comma") == 0) return false;
+        const char *name = textparser_grammar_node_production_name(executor, item);
+        if (name != nullptr && (strcmp(name, "ObjectShorthandProperty") == 0 ||
+                strcmp(name, "ObjectPropertyAssignment") == 0 ||
+                strcmp(name, "ObjectSpreadAssignment") == 0 ||
+                strcmp(name, "ObjectMethodDeclaration") == 0 ||
+                strcmp(name, "ObjectAccessorDeclaration") == 0)) {
+            bool rest = false;
+            if (*seen_rest || !textparser_typescript_object_pattern_element(executor, item, &rest))
+                return false;
+            *seen_rest = rest;
+            continue;
+        }
+        if (!textparser_typescript_object_pattern_nodes_internal(
+                executor, item->child, seen_rest)) return false;
+    }
+    return true;
+}
+
+static bool textparser_typescript_object_pattern_nodes(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node)
+{
+    bool seen_rest = false;
+    return textparser_typescript_object_pattern_nodes_internal(executor, node, &seen_rest);
+}
+
+static textparser_ts_target_state textparser_typescript_assignment_target(
+    const textparser_grammar_executor *executor,
+    const textparser_node *node,
+    bool allow_pattern)
+{
+    if (node == nullptr) return TEXTPARSER_TS_TARGET_INVALID;
+    const char *token = textparser_grammar_node_token_name(executor, node);
+    if (token != nullptr && strcmp(token, "LogicalNot") == 0 &&
+        (node->node_flags & TEXTPARSER_NODE_GRAMMAR_POSTFIX) != 0)
+        return textparser_typescript_assignment_target(executor, node->child, allow_pattern);
+    if (token != nullptr)
+        return strcmp(token, "Identifier") == 0
+            ? TEXTPARSER_TS_TARGET_ASSIGNABLE : TEXTPARSER_TS_TARGET_INVALID;
+
+    const char *name = textparser_grammar_node_production_name(executor, node);
+    const textparser_node *possible_suffix = node->child == nullptr
+        ? nullptr : textparser_node_first_terminal(node->child->next);
+    const char *possible_suffix_name = textparser_grammar_node_token_name(
+        executor, possible_suffix);
+    bool is_postfix_node = possible_suffix_name != nullptr &&
+        (strcmp(possible_suffix_name, "OptionalChain") == 0 ||
+         strcmp(possible_suffix_name, "LParen") == 0 ||
+         strcmp(possible_suffix_name, "LBracket") == 0 ||
+         strcmp(possible_suffix_name, "Dot") == 0 ||
+         strcmp(possible_suffix_name, "LogicalNot") == 0);
+    if (is_postfix_node) {
+        const textparser_node *left = node->child;
+        const char *suffix = possible_suffix_name;
+        if (suffix == nullptr) return TEXTPARSER_TS_TARGET_INVALID;
+        if (strcmp(suffix, "OptionalChain") == 0) return TEXTPARSER_TS_TARGET_OPTIONAL_CHAIN;
+        if (strcmp(suffix, "LParen") == 0) return TEXTPARSER_TS_TARGET_INVALID;
+        textparser_ts_target_state base = textparser_typescript_assignment_target(
+            executor, left, allow_pattern);
+        if (strcmp(suffix, "LogicalNot") == 0) return base;
+        if (strcmp(suffix, "Dot") == 0 || strcmp(suffix, "LBracket") == 0)
+            return base == TEXTPARSER_TS_TARGET_OPTIONAL_CHAIN
+                ? TEXTPARSER_TS_TARGET_OPTIONAL_CHAIN : TEXTPARSER_TS_TARGET_ASSIGNABLE;
+        return TEXTPARSER_TS_TARGET_INVALID;
+    }
+    if (allow_pattern && name != nullptr && strcmp(name, "ArrayLiteralExpression") == 0)
+        return textparser_typescript_array_pattern_nodes(executor, node->child)
+            ? TEXTPARSER_TS_TARGET_ASSIGNABLE : TEXTPARSER_TS_TARGET_INVALID;
+    if (allow_pattern && name != nullptr && strcmp(name, "ObjectLiteralBody") == 0)
+        return textparser_typescript_object_pattern_nodes(executor, node->child)
+            ? TEXTPARSER_TS_TARGET_ASSIGNABLE : TEXTPARSER_TS_TARGET_INVALID;
+
+    if (node->child != nullptr && node->child->next == nullptr)
+        return textparser_typescript_assignment_target(executor, node->child, allow_pattern);
+
+    const textparser_node *first = textparser_node_first_terminal(node->child);
+    const textparser_node *last_child = textparser_node_last_child(node);
+    const textparser_node *last = textparser_node_first_terminal(last_child);
+    const char *first_name = textparser_grammar_node_token_name(executor, first);
+    const char *last_name = textparser_grammar_node_token_name(executor, last);
+    if (first_name != nullptr && last_name != nullptr &&
+        strcmp(first_name, "LParen") == 0 && strcmp(last_name, "RParen") == 0) {
+        const textparser_node *middle = node->child == nullptr ? nullptr : node->child->next;
+        textparser_ts_target_state inner = textparser_typescript_assignment_target(
+            executor, middle, allow_pattern);
+        return inner == TEXTPARSER_TS_TARGET_ASSIGNABLE
+            ? inner : TEXTPARSER_TS_TARGET_INVALID;
+    }
+    return TEXTPARSER_TS_TARGET_INVALID;
+}
+
+static bool textparser_pratt_validate_operand(
+    textparser_grammar_executor *executor,
+    const char *validator,
+    const textparser_node *node,
+    bool allow_pattern)
+{
+    if (validator == nullptr) return true;
+    bool assignment = strcmp(validator, "typescript.assignmentTarget") == 0;
+    bool update = strcmp(validator, "typescript.updateTarget") == 0;
+    if (assignment || update) {
+        textparser_ts_target_state state = textparser_typescript_assignment_target(
+            executor, node, allow_pattern);
+        if (state == TEXTPARSER_TS_TARGET_ASSIGNABLE) return true;
+        if (textparser_is_typescript_language(executor->handle)) {
+            size_t start = node != nullptr ? node->source_start : executor->handle->parser.source_offset;
+            size_t end = node != nullptr ? node->source_end : start;
+            executor->typescript_diagnostic_code = update ? "TS2357" :
+                state == TEXTPARSER_TS_TARGET_OPTIONAL_CHAIN ? "TS2779" : "TS2364";
+            executor->typescript_diagnostic_message = update
+                ? "The operand of an increment or decrement operator must be a variable or a property access."
+                : state == TEXTPARSER_TS_TARGET_OPTIONAL_CHAIN
+                    ? "The left-hand side of an assignment expression may not be an optional property access."
+                    : "The left-hand side of an assignment expression must be a variable or a property access.";
+            executor->typescript_diagnostic_start = start;
+            executor->typescript_diagnostic_length = end >= start ? end - start : 0;
+        }
+        return false;
+    }
+    return false;
+}
+
 static textparser_match_result textparser_parse_pratt_internal(
     textparser_grammar_executor *executor,
     int primary_production,
+    int postfix_production,
     int minimum_precedence,
     unsigned depth)
 {
@@ -6200,15 +7427,27 @@ static textparser_match_result textparser_parse_pratt_internal(
     const textparser_lex_token *next = nullptr;
     textparser_operator_def prefix = {0};
     textparser_match_result left;
+    bool has_expression_goals = false;
+    if (handle->language != nullptr) {
+        for (size_t i = 0; i < handle->language->lexer_goal_count; i++) {
+            if (strcmp(handle->language->lexer_goals[i].name, "ExpressionStart") == 0)
+                has_expression_goals = true;
+        }
+    }
+    if (has_expression_goals) textparser_set_lexical_goal(handle, "ExpressionStart");
     if (textparser_grammar_peek_token(executor, &next) == 0 && next != nullptr &&
         textparser_get_operator(handle, next->kind, TEXTPARSER_OP_PREFIX, &prefix) == 0) {
         textparser_match_result op = textparser_grammar_consume_token(executor, next->kind);
         if (op.status != TEXTPARSER_MATCH_OK) return op;
         textparser_match_result operand = textparser_parse_pratt_internal(
-            executor, primary_production, prefix.precedence, depth + 1);
+            executor, primary_production, postfix_production, prefix.precedence, depth + 1);
         if (operand.status != TEXTPARSER_MATCH_OK)
             return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr,
                 handle->parser.token_index - start_index, operand.committed);
+        if (!textparser_pratt_validate_operand(
+                executor, prefix.operand_validator, operand.node, false))
+            return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr,
+                handle->parser.token_index - start_index, true);
         left = textparser_match_result_committed(TEXTPARSER_MATCH_OK,
             textparser_pratt_operator_node(op.node, operand.node, nullptr, nullptr,
                 handle->parser.source_offset - start_offset),
@@ -6218,15 +7457,70 @@ static textparser_match_result textparser_parse_pratt_internal(
         if (left.status != TEXTPARSER_MATCH_OK) return left;
     }
 
+    if (has_expression_goals) textparser_set_lexical_goal(handle, "ExpressionContinuation");
     for (;;) {
+        if (postfix_production >= 0) {
+            void *suffix_checkpoint = nullptr;
+            textparser_speculate_begin(handle, &suffix_checkpoint);
+            if (suffix_checkpoint == nullptr)
+                return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+            textparser_match_result suffix = textparser_parse_production(executor, postfix_production);
+            if (suffix.status == TEXTPARSER_MATCH_OK) {
+                if (suffix.consumed_tokens == 0) {
+                    textparser_speculate_rollback(handle, suffix_checkpoint);
+                    return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+                }
+                textparser_speculate_commit(handle, suffix_checkpoint);
+                textparser_node *suffix_children = suffix.node ? suffix.node->child : nullptr;
+                if (suffix.node == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+                suffix.node->child = left.node;
+                left.node->parent = suffix.node;
+                left.node->prev = nullptr;
+                left.node->next = suffix_children;
+                if (suffix_children != nullptr) {
+                    suffix_children->prev = left.node;
+                    for (textparser_node *child = suffix_children; child != nullptr; child = child->next)
+                        child->parent = suffix.node;
+                }
+                suffix.node->len = handle->parser.source_offset - start_offset;
+                suffix.node->node_flags |= TEXTPARSER_NODE_GRAMMAR_POSTFIX;
+                suffix.node->node_flags |= TEXTPARSER_NODE_EXPLICIT_SPAN;
+                suffix.node->source_start = start_offset;
+                suffix.node->source_end = handle->parser.source_offset;
+                left.node = suffix.node;
+                left.consumed_tokens = handle->parser.token_index - start_index;
+                left.committed = left.committed || suffix.committed;
+                continue;
+            }
+            if (suffix.committed) {
+                textparser_speculate_commit(handle, suffix_checkpoint);
+                return textparser_match_result_committed(
+                    TEXTPARSER_MATCH_ERROR, nullptr,
+                    handle->parser.token_index - start_index, true);
+            }
+            textparser_match_status suffix_status = suffix.status;
+            textparser_speculate_rollback(handle, suffix_checkpoint);
+            if (suffix_status != TEXTPARSER_MATCH_NO)
+                return textparser_match_result_make(suffix_status, nullptr, 0);
+        }
         if (textparser_grammar_peek_token(executor, &next) != 0 || next == nullptr) break;
         textparser_operator_def opdef = {0};
         bool postfix = textparser_get_operator(handle, next->kind, TEXTPARSER_OP_POSTFIX, &opdef) == 0;
+        if (postfix && (next->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) != 0)
+            break;
         bool ternary = false;
         if (!postfix) ternary = textparser_get_operator(handle, next->kind, TEXTPARSER_OP_TERNARY, &opdef) == 0;
         if (!postfix && !ternary &&
             textparser_get_operator(handle, next->kind, TEXTPARSER_OP_INFIX, &opdef) != 0) break;
         if (opdef.precedence < minimum_precedence) break;
+
+        const char *operator_name = handle->language != nullptr && handle->language->tokens != nullptr
+            ? handle->language->tokens[next->kind].name : nullptr;
+        bool allow_assignment_pattern = operator_name != nullptr && strcmp(operator_name, "Assign") == 0;
+        if (!textparser_pratt_validate_operand(
+                executor, opdef.left_validator, left.node, allow_assignment_pattern))
+            return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr,
+                handle->parser.token_index - start_index, true);
 
         size_t expression_start = start_offset;
         textparser_match_result op = textparser_grammar_consume_token(executor, next->kind);
@@ -6241,15 +7535,16 @@ static textparser_match_result textparser_parse_pratt_internal(
             ? opdef.precedence + 1 : opdef.precedence;
         if (ternary) {
             textparser_match_result middle = textparser_parse_pratt_internal(
-                executor, primary_production, 0, depth + 1);
+                executor, primary_production, postfix_production, 0, depth + 1);
             if (middle.status != TEXTPARSER_MATCH_OK)
                 return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+            if (has_expression_goals) textparser_set_lexical_goal(handle, "ExpressionContinuation");
             textparser_match_result separator = textparser_grammar_consume_token(
                 executor, opdef.secondary_token_id);
             if (separator.status != TEXTPARSER_MATCH_OK)
                 return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
             textparser_match_result right = textparser_parse_pratt_internal(
-                executor, primary_production, right_min, depth + 1);
+                executor, primary_production, postfix_production, right_min, depth + 1);
             if (right.status != TEXTPARSER_MATCH_OK)
                 return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
             left.node = textparser_pratt_operator_node(op.node, left.node, middle.node, right.node,
@@ -6257,13 +7552,14 @@ static textparser_match_result textparser_parse_pratt_internal(
             left.committed = left.committed || middle.committed || right.committed;
         } else {
             textparser_match_result right = textparser_parse_pratt_internal(
-                executor, primary_production, right_min, depth + 1);
+                executor, primary_production, postfix_production, right_min, depth + 1);
             if (right.status != TEXTPARSER_MATCH_OK)
                 return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
             left.node = textparser_pratt_operator_node(op.node, left.node, right.node, nullptr,
                 handle->parser.source_offset - expression_start);
             left.committed = left.committed || right.committed;
         }
+        if (has_expression_goals) textparser_set_lexical_goal(handle, "ExpressionContinuation");
         left.consumed_tokens = handle->parser.token_index - start_index;
     }
     return left;
@@ -6273,15 +7569,29 @@ static textparser_match_result textparser_parse_pratt(
     textparser_grammar_executor *executor,
     const textparser_production *production)
 {
-    if (production->child_count != 1 || production->children == nullptr)
+    if ((production->child_count != 1 && production->child_count != 2) || production->children == nullptr)
         return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    char *saved_goal = executor->handle->lexical_goal
+        ? strdup(executor->handle->lexical_goal) : nullptr;
+    if (executor->handle->lexical_goal != nullptr && saved_goal == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
     void *checkpoint = nullptr;
     textparser_speculate_begin(executor->handle, &checkpoint);
-    if (checkpoint == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    if (checkpoint == nullptr) {
+        free(saved_goal);
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
     textparser_match_result result = textparser_parse_pratt_internal(
-        executor, production->children[0], production->minimum_precedence, 0);
-    if (result.status == TEXTPARSER_MATCH_OK) textparser_speculate_commit(executor->handle, checkpoint);
-    else textparser_speculate_rollback(executor->handle, checkpoint);
+        executor, production->children[0],
+        production->child_count == 2 ? production->children[1] : -1,
+        production->minimum_precedence, 0);
+    if (result.status == TEXTPARSER_MATCH_OK) {
+        textparser_set_lexical_goal(executor->handle, saved_goal);
+        textparser_speculate_commit(executor->handle, checkpoint);
+    } else {
+        textparser_speculate_rollback(executor->handle, checkpoint);
+    }
+    free(saved_goal);
     return result;
 }
 
@@ -6316,7 +7626,8 @@ static textparser_match_result textparser_parse_sequence(
     }
 
     textparser_node *node = textparser_grammar_group_node(
-        handle, production, first, handle->parser.source_offset - start_offset);
+        handle, production, first, start_offset,
+        handle->parser.source_offset - start_offset);
     if (first != nullptr && node == nullptr) {
         textparser_speculate_rollback(handle, checkpoint);
         return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
@@ -6338,6 +7649,12 @@ static textparser_match_result textparser_parse_choice(
         textparser_match_result result = textparser_parse_production(executor, production->children[i]);
         if (result.status == TEXTPARSER_MATCH_OK) {
             textparser_speculate_commit(handle, checkpoint);
+            if (production->name != nullptr && result.node != nullptr &&
+                result.node->cst_kind != nullptr &&
+                strcmp(result.node->cst_kind, "Sequence") == 0 &&
+                result.node->child != nullptr) {
+                result.node->cst_kind = production->name;
+            }
             return result;
         }
         textparser_match_status status = result.status;
@@ -6435,7 +7752,8 @@ static textparser_match_result textparser_parse_repeat(
     }
 
     textparser_node *node = textparser_grammar_group_node(
-        handle, production, first, handle->parser.source_offset - start_offset);
+        handle, production, first, start_offset,
+        handle->parser.source_offset - start_offset);
     if (first != nullptr && node == nullptr) {
         textparser_speculate_rollback(handle, outer);
         return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
@@ -6475,6 +7793,82 @@ static textparser_match_result textparser_parse_predicate(
     if (production->predicate_name == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
     textparser_predicate_entry *entry = handle->predicates;
     while (entry != nullptr && strcmp(entry->name, production->predicate_name) != 0) entry = entry->next;
+    if (entry == nullptr && strcmp(production->predicate_name,
+            "typescript.noLineTerminatorBefore") == 0) {
+        const textparser_lex_token *current = nullptr;
+        int scan = textparser_grammar_peek_token(executor, &current);
+        bool accepted = scan > 0 || current == nullptr ||
+            (current->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) == 0;
+        return textparser_match_result_make(
+            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+    if (entry == nullptr && strcmp(production->predicate_name,
+            "typescript.isMetaIdentifier") == 0) {
+        const textparser_lex_token *current = nullptr;
+        int scan = textparser_grammar_peek_token(executor, &current);
+        bool accepted = scan == 0 && current != nullptr &&
+            current->end - current->start == 4 &&
+            current->end <= handle->text_size &&
+            memcmp(handle->text_addr + current->start, "meta", 4) == 0;
+        return textparser_match_result_make(
+            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+    if (entry == nullptr && strcmp(production->predicate_name,
+            "typescript.canFollowTypeArgumentsInExpression") == 0) {
+        const textparser_lex_token *current = nullptr;
+        int scan = textparser_grammar_peek_token(executor, &current);
+        bool accepted = scan > 0 || current == nullptr;
+        if (!accepted && current->kind >= 0 &&
+            current->kind < (int)handle->token_count) {
+            const char *name = handle->language->tokens[current->kind].name;
+            static const char *allowed[] = {
+                "Dot", "OptionalChain", "LBracket", "NoSubstitutionTemplateLiteral",
+                "TemplateHead", "LogicalNot", "Increment", "Decrement", "Exponent",
+                "Multiply", "Slash", "Remainder", "Plus", "Minus", "LeftShift",
+                "RightShift", "UnsignedRightShift", "LessThan", "LessEqual",
+                "GreaterThan", "GreaterEqual", "Equal", "NotEqual", "StrictEqual",
+                "StrictNotEqual", "BitAnd", "BitXor", "BitOr", "LogicalAnd",
+                "LogicalOr", "NullishCoalesce", "Question", "Colon", "Assign",
+                "PlusAssign", "MinusAssign", "MultiplyAssign", "DivideAssign",
+                "RemainderAssign", "ExponentAssign", "LeftShiftAssign",
+                "RightShiftAssign", "UnsignedRightShiftAssign", "BitAndAssign",
+                "BitOrAssign", "BitXorAssign", "NullishCoalesceAssign",
+                "LogicalAndAssign", "LogicalOrAssign",
+                "Comma", "Semicolon", "RParen", "RBracket", "RBrace", nullptr
+            };
+            for (size_t i = 0; name != nullptr && allowed[i] != nullptr; i++) {
+                if (strcmp(name, allowed[i]) == 0) { accepted = true; break; }
+            }
+        }
+        return textparser_match_result_make(
+            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+    if (entry == nullptr &&
+        (strcmp(production->predicate_name, "typescript.allowsJSX") == 0 ||
+         strcmp(production->predicate_name, "typescript.disallowsJSX") == 0 ||
+         strcmp(production->predicate_name, "typescript.allowsTypeScript") == 0)) {
+        const char *filename = handle->filename;
+        size_t length = filename == nullptr ? 0 : strlen(filename);
+#ifdef _WIN32
+#define TEXTPARSER_SUFFIX_EQUAL(suffix) \
+        (length >= sizeof(suffix) - 1 && _stricmp(filename + length - (sizeof(suffix) - 1), suffix) == 0)
+#else
+#define TEXTPARSER_SUFFIX_EQUAL(suffix) \
+        (length >= sizeof(suffix) - 1 && strcasecmp(filename + length - (sizeof(suffix) - 1), suffix) == 0)
+#endif
+        bool jsx = filename != nullptr &&
+            (TEXTPARSER_SUFFIX_EQUAL(".tsx") || TEXTPARSER_SUFFIX_EQUAL(".jsx"));
+        bool javascript = filename != nullptr &&
+            (TEXTPARSER_SUFFIX_EQUAL(".js") || TEXTPARSER_SUFFIX_EQUAL(".jsx") ||
+             TEXTPARSER_SUFFIX_EQUAL(".mjs") || TEXTPARSER_SUFFIX_EQUAL(".cjs"));
+#undef TEXTPARSER_SUFFIX_EQUAL
+        bool accepted = strcmp(production->predicate_name,
+            "typescript.allowsJSX") == 0 ? jsx :
+            (strcmp(production->predicate_name, "typescript.disallowsJSX") == 0
+                ? !jsx : !javascript);
+        return textparser_match_result_make(
+            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
     if (entry == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
     void *checkpoint = nullptr;
     textparser_speculate_begin(handle, &checkpoint);
@@ -6527,6 +7921,144 @@ static textparser_match_result textparser_parse_context(
     return result;
 }
 
+static textparser_match_result textparser_parse_lexical_goal(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    if (production->lexical_goal == nullptr || production->child_count != 1 ||
+        production->children == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    textparser_t handle = executor->handle;
+    char *saved = handle->lexical_goal ? strdup(handle->lexical_goal) : nullptr;
+    if (handle->lexical_goal != nullptr && saved == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    textparser_set_lexical_goal(handle, production->lexical_goal);
+    textparser_match_result result = textparser_parse_production(executor, production->children[0]);
+    textparser_set_lexical_goal(handle, saved);
+    free(saved);
+    return result;
+}
+
+static textparser_match_result textparser_parse_capture(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    if (production->capture_name == nullptr || production->children == nullptr ||
+        production->child_count != 2)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    textparser_t handle = executor->handle;
+    const textparser_lex_token *first_token = nullptr;
+    int scan = textparser_grammar_peek_token(executor, &first_token);
+    if (scan < 0) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    if (scan > 0 || first_token == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    size_t start_index = handle->parser.token_index;
+    size_t start_offset = handle->parser.source_offset;
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(handle, &checkpoint);
+    if (checkpoint == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    textparser_match_result captured = textparser_parse_production(executor, production->children[0]);
+    if (captured.status != TEXTPARSER_MATCH_OK) {
+        if (captured.committed) {
+            size_t consumed = handle->parser.token_index - start_index;
+            textparser_speculate_commit(handle, checkpoint);
+            return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr, consumed, true);
+        }
+        textparser_match_status status = captured.status;
+        textparser_speculate_rollback(handle, checkpoint);
+        return textparser_match_result_make(status, nullptr, 0);
+    }
+    textparser_capture_entry entry = {
+        .name = production->capture_name,
+        .start = first_token->start,
+        .end = handle->parser.source_offset,
+        .next = executor->captures,
+    };
+    executor->captures = &entry;
+    textparser_match_result remainder = textparser_parse_production(executor, production->children[1]);
+    executor->captures = entry.next;
+    if (remainder.status != TEXTPARSER_MATCH_OK) {
+        textparser_match_status status = remainder.status;
+        bool committed = captured.committed || remainder.committed;
+        if (committed) {
+            size_t consumed = handle->parser.token_index - start_index;
+            textparser_speculate_commit(handle, checkpoint);
+            return textparser_match_result_committed(TEXTPARSER_MATCH_ERROR, nullptr, consumed, true);
+        }
+        textparser_speculate_rollback(handle, checkpoint);
+        return textparser_match_result_make(status, nullptr, 0);
+    }
+    textparser_node *first = nullptr;
+    textparser_node *last = nullptr;
+    textparser_grammar_append_node(&first, &last, captured.node);
+    textparser_grammar_append_node(&first, &last, remainder.node);
+    textparser_node *node = textparser_grammar_group_node(
+        handle, production, first, start_offset,
+        handle->parser.source_offset - start_offset);
+    if (first != nullptr && node == nullptr) {
+        textparser_speculate_rollback(handle, checkpoint);
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
+    size_t consumed = handle->parser.token_index - start_index;
+    textparser_speculate_commit(handle, checkpoint);
+    return textparser_match_result_committed(
+        TEXTPARSER_MATCH_OK, node, consumed, captured.committed || remainder.committed);
+}
+
+static textparser_match_result textparser_parse_match_capture(
+    textparser_grammar_executor *executor,
+    const textparser_production *production)
+{
+    if (production->capture_name == nullptr || production->children == nullptr ||
+        production->child_count != 1)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    textparser_capture_entry *capture = executor->captures;
+    while (capture != nullptr && strcmp(capture->name, production->capture_name) != 0)
+        capture = capture->next;
+    if (capture == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    const textparser_lex_token *first_token = nullptr;
+    int scan = textparser_grammar_peek_token(executor, &first_token);
+    if (scan < 0) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    if (scan > 0 || first_token == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(executor->handle, &checkpoint);
+    if (checkpoint == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    textparser_match_result result = textparser_parse_production(executor, production->children[0]);
+    if (result.status != TEXTPARSER_MATCH_OK) {
+        if (result.committed) {
+            textparser_speculate_commit(executor->handle, checkpoint);
+            return textparser_match_result_committed(
+                TEXTPARSER_MATCH_ERROR, nullptr, result.consumed_tokens, true);
+        }
+        textparser_match_status status = result.status;
+        textparser_speculate_rollback(executor->handle, checkpoint);
+        return textparser_match_result_make(status, nullptr, 0);
+    }
+    size_t match_start = first_token->start;
+    size_t match_end = executor->handle->parser.source_offset;
+    size_t captured_length = capture->end - capture->start;
+    size_t match_length = match_end - match_start;
+    bool equal = capture->end <= executor->handle->text_size &&
+        match_end <= executor->handle->text_size && captured_length == match_length &&
+        memcmp(executor->handle->text_addr + capture->start,
+               executor->handle->text_addr + match_start, captured_length) == 0;
+    if (!equal) {
+        if (result.committed) {
+            textparser_speculate_commit(executor->handle, checkpoint);
+            return textparser_match_result_committed(
+                TEXTPARSER_MATCH_ERROR, nullptr, result.consumed_tokens, true);
+        }
+        textparser_speculate_rollback(executor->handle, checkpoint);
+        return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+    textparser_speculate_commit(executor->handle, checkpoint);
+    return result;
+}
+
 static textparser_match_result textparser_parse_production(
     textparser_grammar_executor *executor,
     int production_id)
@@ -6555,7 +8087,8 @@ static textparser_match_result textparser_parse_production(
                 textparser_grammar_note_failure(executor, production);
                 if (production->allow_automatic_semicolon &&
                     textparser_grammar_can_insert_semicolon(executor, production)) {
-                    result = textparser_grammar_missing_token(executor, production, production->token_id);
+                    result = textparser_grammar_missing_token(
+                        executor, production, production->token_id, false);
                     break;
                 }
                 result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
@@ -6567,7 +8100,8 @@ static textparser_match_result textparser_parse_production(
                 textparser_grammar_note_failure(executor, production);
                 if (production->allow_automatic_semicolon &&
                     textparser_grammar_can_insert_semicolon(executor, production)) {
-                    result = textparser_grammar_missing_token(executor, production, production->token_id);
+                    result = textparser_grammar_missing_token(
+                        executor, production, production->token_id, false);
                     break;
                 }
                 result = textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
@@ -6628,6 +8162,15 @@ static textparser_match_result textparser_parse_production(
     case TEXTPARSER_PROD_CONTEXT:
         result = textparser_parse_context(executor, production);
         break;
+    case TEXTPARSER_PROD_LEXICAL_GOAL:
+        result = textparser_parse_lexical_goal(executor, production);
+        break;
+    case TEXTPARSER_PROD_CAPTURE:
+        result = textparser_parse_capture(executor, production);
+        break;
+    case TEXTPARSER_PROD_MATCH_CAPTURE:
+        result = textparser_parse_match_capture(executor, production);
+        break;
     case TEXTPARSER_PROD_COMMIT:
         result = textparser_match_result_committed(TEXTPARSER_MATCH_OK, nullptr, 0, true);
         break;
@@ -6645,14 +8188,19 @@ static textparser_match_result textparser_parse_production(
         executor->handle->parser.recovery_depth < maximum_attempts) {
         if (production->recovery_insert_enabled) {
             result = textparser_grammar_missing_token(
-                executor, production, production->recovery_insert_token);
+                executor, production, production->recovery_insert_token, true);
         } else if (production->recovery_skip &&
+            (result.status == TEXTPARSER_MATCH_NO || production->name == nullptr ||
+             strcmp(production->name, "Statement") != 0) &&
             (production->recovery_sync_token_count != 0 ||
              (executor->handle->language && executor->handle->language->recovery_sync_token_count != 0))) {
             textparser_match_result recovered = textparser_grammar_synchronize(executor, production);
             if (recovered.status != TEXTPARSER_MATCH_NO) result = recovered;
         }
     }
+    if ((result.status == TEXTPARSER_MATCH_NO || result.status == TEXTPARSER_MATCH_ERROR) &&
+        production->expected_description != nullptr)
+        textparser_grammar_note_failure(executor, production);
     if (result.status == TEXTPARSER_MATCH_OK && result.node != nullptr) {
         textparser_event event = {0};
         event.node = result.node;
@@ -6733,10 +8281,36 @@ EXPORT_TEXTPARSER int textparser_execute_production(
     } else {
         textparser_speculate_rollback(handle, checkpoint);
     }
-    if (out_result->status != TEXTPARSER_MATCH_OK && executor.furthest_failure != nullptr &&
+    if (out_result->status != TEXTPARSER_MATCH_OK &&
         handle->diagnostic_count == executor.initial_diagnostic_count) {
-        textparser_grammar_report_expected(&executor, executor.furthest_failure,
-            executor.furthest_failure_offset, 0, false);
+        if (executor.typescript_diagnostic_code != nullptr) {
+            textparser_report_diagnostic(handle, TEXTPARSER_SEVERITY_ERROR,
+                executor.typescript_diagnostic_code, executor.typescript_diagnostic_message,
+                executor.typescript_diagnostic_start, executor.typescript_diagnostic_length);
+        } else if (executor.furthest_failure != nullptr) {
+            textparser_grammar_report_expected(&executor, executor.furthest_failure,
+                executor.furthest_failure_offset, executor.furthest_failure_length, false);
+        }
+    } else if (out_result->status == TEXTPARSER_MATCH_OK &&
+        textparser_is_typescript_language(handle) &&
+        handle->diagnostic_count == executor.initial_diagnostic_count) {
+        const textparser_lex_token *remaining = nullptr;
+        int peek = textparser_grammar_peek_token(&executor, &remaining);
+        if (peek == 0 && remaining != nullptr) {
+            if (executor.typescript_diagnostic_code != nullptr) {
+                textparser_report_diagnostic(handle, TEXTPARSER_SEVERITY_ERROR,
+                    executor.typescript_diagnostic_code, executor.typescript_diagnostic_message,
+                    executor.typescript_diagnostic_start, executor.typescript_diagnostic_length);
+            } else if (executor.furthest_failure != nullptr &&
+                executor.furthest_failure_offset > remaining->start) {
+                textparser_grammar_report_expected(&executor, executor.furthest_failure,
+                    executor.furthest_failure_offset, executor.furthest_failure_length, false);
+            } else {
+                textparser_report_diagnostic(handle, TEXTPARSER_SEVERITY_ERROR, "TS1128",
+                    "Declaration or statement expected.", remaining->start,
+                    remaining->end - remaining->start);
+            }
+        }
     }
     return 0;
 }
@@ -6765,8 +8339,7 @@ EXPORT_TEXTPARSER int textparser_execute_language_grammar(
         language->grammar->production_count,
         language->grammar->start_production,
         out_result);
-    if (status != 0 || out_result->status != TEXTPARSER_MATCH_OK ||
-        language->grammar->source_complete_handler == nullptr) return status;
+    if (status != 0 || out_result->status != TEXTPARSER_MATCH_OK) return status;
     textparser_grammar_executor executor = {
         .handle = handle,
         .productions = language->grammar->productions,
@@ -6779,6 +8352,9 @@ EXPORT_TEXTPARSER int textparser_execute_language_grammar(
         *out_result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
         return status;
     }
+    if (textparser_is_typescript_language(handle))
+        textparser_typescript_check_legality(handle, out_result->node);
+    if (language->grammar->source_complete_handler == nullptr) return status;
     textparser_event event = {0};
     event.type = TEXTPARSER_EVENT_SOURCE_COMPLETE;
     event.node = out_result->node;

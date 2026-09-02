@@ -173,12 +173,13 @@ static int json_parse_grammar_construct_core(
 
     const char *keys[] = {
         "token", "ref", "sequence", "choice", "optional", "repeat",
-        "lookahead", "not", "when", "withContext", "commit", "pratt"
+        "lookahead", "not", "when", "withContext", "commit", "pratt", "withGoal",
+        "capture", "matchCapture"
     };
-    json_object *values[12] = {0};
+    json_object *values[15] = {0};
     size_t present = 0;
     int selected = -1;
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 15; i++) {
         if (json_object_object_get_ex(construct, keys[i], &values[i])) {
             present++;
             selected = i;
@@ -191,7 +192,7 @@ static int json_parse_grammar_construct_core(
         if (supported && !json_object_is_type(member.val, json_type_string)) {
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         }
-        for (int i = 0; i < 12 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
+        for (int i = 0; i < 15 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
         if (!supported) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     }
 
@@ -289,11 +290,45 @@ static int json_parse_grammar_construct_core(
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         json_object *primary = nullptr;
         json_object *minimum = nullptr;
+        json_object *postfix = nullptr;
         if (!json_object_object_get_ex(values[selected], "primary", &primary) ||
-            json_object_object_length(values[selected]) > 2)
+            json_object_object_length(values[selected]) > 3)
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         if (json_object_object_get_ex(values[selected], "minimumPrecedence", &minimum) &&
             !json_object_is_type(minimum, json_type_int))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        if (json_object_object_get_ex(values[selected], "postfix", &postfix) &&
+            !json_object_is_type(postfix, json_type_object))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        size_t child_count = postfix != nullptr ? 2 : 1;
+        int *children = calloc(child_count, sizeof(*children));
+        if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        production = &builder->items[production_id];
+        production->kind = TEXTPARSER_PROD_PRATT;
+        production->children = children;
+        production->child_count = child_count;
+        production->minimum_precedence = minimum ? json_object_get_int(minimum) : 0;
+        for (size_t i = 0; i < child_count; i++) {
+            int child_id = -1;
+            int ret = json_grammar_append_anonymous(builder, &child_id);
+            if (ret != 0) return ret;
+            children[i] = child_id;
+            ret = json_parse_grammar_construct(builder, i == 0 ? primary : postfix, child_id);
+            if (ret != 0) return ret;
+        }
+        return 0;
+    }
+
+    if (selected == 12) {
+        if (!json_object_is_type(values[selected], json_type_object) ||
+            json_object_object_length(values[selected]) != 2)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        json_object *name = nullptr;
+        json_object *inner = nullptr;
+        if (!json_object_object_get_ex(values[selected], "name", &name) ||
+            !json_object_is_type(name, json_type_string) || json_object_get_string_len(name) == 0 ||
+            !json_object_object_get_ex(values[selected], "production", &inner) ||
+            !json_object_is_type(inner, json_type_object))
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         int child_id = -1;
         int ret = json_grammar_append_anonymous(builder, &child_id);
@@ -302,11 +337,51 @@ static int json_parse_grammar_construct_core(
         if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
         children[0] = child_id;
         production = &builder->items[production_id];
-        production->kind = TEXTPARSER_PROD_PRATT;
+        production->kind = TEXTPARSER_PROD_LEXICAL_GOAL;
         production->children = children;
         production->child_count = 1;
-        production->minimum_precedence = minimum ? json_object_get_int(minimum) : 0;
-        return json_parse_grammar_construct(builder, primary, child_id);
+        production->lexical_goal = textparser_string_pool_strdup(
+            builder->pool, json_object_get_string(name));
+        if (production->lexical_goal == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        return json_parse_grammar_construct(builder, inner, child_id);
+    }
+
+    if (selected == 13 || selected == 14) {
+        if (!json_object_is_type(values[selected], json_type_object))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        size_t expected_fields = selected == 13 ? 3 : 2;
+        if ((size_t)json_object_object_length(values[selected]) != expected_fields)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        json_object *name = nullptr;
+        json_object *inner = nullptr;
+        json_object *then = nullptr;
+        if (!json_object_object_get_ex(values[selected], "name", &name) ||
+            !json_object_is_type(name, json_type_string) || json_object_get_string_len(name) == 0 ||
+            !json_object_object_get_ex(values[selected], "production", &inner) ||
+            !json_object_is_type(inner, json_type_object) ||
+            (selected == 13 &&
+             (!json_object_object_get_ex(values[selected], "then", &then) ||
+              !json_object_is_type(then, json_type_object))))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        size_t child_count = selected == 13 ? 2 : 1;
+        int *children = calloc(child_count, sizeof(*children));
+        if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        production = &builder->items[production_id];
+        production->kind = selected == 13 ? TEXTPARSER_PROD_CAPTURE : TEXTPARSER_PROD_MATCH_CAPTURE;
+        production->children = children;
+        production->child_count = child_count;
+        production->capture_name = textparser_string_pool_strdup(
+            builder->pool, json_object_get_string(name));
+        if (production->capture_name == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        for (size_t i = 0; i < child_count; i++) {
+            int child_id = -1;
+            int ret = json_grammar_append_anonymous(builder, &child_id);
+            if (ret != 0) return ret;
+            children[i] = child_id;
+            ret = json_parse_grammar_construct(builder, i == 0 ? inner : then, child_id);
+            if (ret != 0) return ret;
+        }
+        return 0;
     }
 
     if (!json_object_is_type(values[selected], json_type_object)) {
@@ -578,10 +653,15 @@ static void json_grammar_compute_nullable(const json_grammar_builder *builder, b
                 value = true;
                 break;
             case TEXTPARSER_PROD_CONTEXT:
+            case TEXTPARSER_PROD_LEXICAL_GOAL:
+            case TEXTPARSER_PROD_MATCH_CAPTURE:
                 value = p->child_count == 1 && nullable[p->children[0]];
                 break;
+            case TEXTPARSER_PROD_CAPTURE:
+                value = p->child_count == 2 && nullable[p->children[0]] && nullable[p->children[1]];
+                break;
             case TEXTPARSER_PROD_PRATT:
-                value = p->child_count == 1 && nullable[p->children[0]];
+                value = p->child_count >= 1 && nullable[p->children[0]];
                 break;
             }
             if (value && !nullable[i]) {
@@ -639,8 +719,15 @@ static bool json_grammar_left_recursive_visit(
     case TEXTPARSER_PROD_LOOKAHEAD:
     case TEXTPARSER_PROD_NOT:
     case TEXTPARSER_PROD_CONTEXT:
+    case TEXTPARSER_PROD_LEXICAL_GOAL:
     case TEXTPARSER_PROD_PRATT:
+    case TEXTPARSER_PROD_MATCH_CAPTURE:
         cycle = json_grammar_visit_leading_child(builder, p->children[0], nullable, colors);
+        break;
+    case TEXTPARSER_PROD_CAPTURE:
+        cycle = json_grammar_visit_leading_child(builder, p->children[0], nullable, colors);
+        if (!cycle && nullable[p->children[0]])
+            cycle = json_grammar_visit_leading_child(builder, p->children[1], nullable, colors);
         break;
     case TEXTPARSER_PROD_TOKEN:
     case TEXTPARSER_PROD_PREDICATE:
@@ -664,6 +751,11 @@ static int json_validate_grammar(json_grammar_builder *builder)
     for (size_t i = 0; i < builder->count; i++) {
         const textparser_production *p = &builder->items[i];
         if (p->kind == TEXTPARSER_PROD_REPEAT && nullable[p->children[0]]) {
+            free(nullable);
+            free(colors);
+            return TEXTPARSER_JSON_GRAMMAR_NULLABLE_REPEAT;
+        }
+        if (p->kind == TEXTPARSER_PROD_PRATT && p->child_count == 2 && nullable[p->children[1]]) {
             free(nullable);
             free(colors);
             return TEXTPARSER_JSON_GRAMMAR_NULLABLE_REPEAT;
@@ -853,9 +945,10 @@ static int json_parse_contextual_lexer(
     }
     json_object *tokens = nullptr;
     if (json_object_object_get_ex(lexer, "tokens", &tokens) && json_object_is_type(tokens, json_type_object)) {
-        size_t id = 0;
         json_object_iter item;
         json_object_object_foreachC(tokens, item) {
+            int id = json_get_token_id_by_name(item.key, definition->tokens, token_count);
+            if (id < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
             json_object *field = nullptr;
             if (json_object_object_get_ex(item.val, "priority", &field))
                 definition->lexer_rules[id].priority = json_object_get_int(field);
@@ -866,7 +959,6 @@ static int json_parse_contextual_lexer(
             }
             if (json_object_object_get_ex(item.val, "popMode", &field))
                 definition->lexer_rules[id].pop_mode = json_object_get_boolean(field);
-            id++;
         }
     }
 
@@ -990,6 +1082,8 @@ static int json_parse_pratt_operators(
         json_object *precedence = nullptr;
         json_object *associativity = nullptr;
         json_object *middle = nullptr;
+        json_object *left_validator = nullptr;
+        json_object *operand_validator = nullptr;
         if (!json_object_object_get_ex(rule, "token", &token) ||
             !json_object_is_type(token, json_type_string)) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         int token_id = json_get_token_id_by_name(json_object_get_string(token), definition->tokens, token_count);
@@ -999,6 +1093,12 @@ static int json_parse_pratt_operators(
         json_object_object_get_ex(rule, "precedence", &precedence);
         json_object_object_get_ex(rule, "associativity", &associativity);
         json_object_object_get_ex(rule, "middleTerminator", &middle);
+        json_object_object_get_ex(rule, "leftValidator", &left_validator);
+        json_object_object_get_ex(rule, "operandValidator", &operand_validator);
+        if (left_validator != nullptr && !json_object_is_type(left_validator, json_type_string))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        if (operand_validator != nullptr && !json_object_is_type(operand_validator, json_type_string))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         size_t role_count = roles ? json_object_array_length(roles) : 1;
         for (size_t r = 0; r < role_count; r++) {
             json_object *role_value = roles ? json_object_array_get_idx(roles, r) : role;
@@ -1017,6 +1117,16 @@ static int json_parse_pratt_operators(
             out->associativity = associativity && strcmp(json_object_get_string(associativity), "right") == 0
                 ? TEXTPARSER_ASSOC_RIGHT : TEXTPARSER_ASSOC_LEFT;
             out->secondary_token_id = -1;
+            out->left_validator = left_validator == nullptr ? nullptr :
+                textparser_string_pool_strdup(definition->string_pool,
+                    json_object_get_string(left_validator));
+            if (left_validator != nullptr && out->left_validator == nullptr)
+                return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            out->operand_validator = operand_validator == nullptr ? nullptr :
+                textparser_string_pool_strdup(definition->string_pool,
+                    json_object_get_string(operand_validator));
+            if (operand_validator != nullptr && out->operand_validator == nullptr)
+                return TEXTPARSER_JSON_OUT_OF_MEMORY;
             if (out->role == TEXTPARSER_OP_TERNARY) {
                 if (middle == nullptr || !json_object_is_type(middle, json_type_string))
                     return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;

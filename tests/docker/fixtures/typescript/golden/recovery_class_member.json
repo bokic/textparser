@@ -1,0 +1,7 @@
+{
+  "status": "OK",
+  "diagnostics": [
+  {"severity":0,"code":"TS1068","start":11,"length":26,"line":0,"column":11},
+  {"severity":0,"code":"TS1068","start":88,"length":18,"line":4,"column":27}
+]
+}

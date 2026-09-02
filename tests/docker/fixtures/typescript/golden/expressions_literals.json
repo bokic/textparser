@@ -1,0 +1,4141 @@
+{
+  "status": "OK",
+  "cst": {
+  "kind": "SourceFile",
+  "start": 0,
+  "end": 1273,
+  "flags": 129,
+  "category": 2,
+  "children": [
+    {
+      "kind": "Repeat",
+      "start": 0,
+      "end": 1273,
+      "flags": 129,
+      "category": 9,
+      "children": [
+        {
+          "kind": "VariableStatement",
+          "start": 0,
+          "end": 99,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 0,
+              "end": 98,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 73,
+                  "end": 78,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 78,
+                  "end": 98,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 79,
+                      "end": 85,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 85,
+                      "end": 93,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 85,
+                          "end": 86,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 86,
+                          "end": 93,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 86,
+                              "end": 93,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 86,
+                                  "end": 93,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 86,
+                                      "end": 93,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 86,
+                                          "end": 93,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 87,
+                                              "end": 93,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 93,
+                      "end": 98,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 94,
+                          "end": 95,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NumericLiteral",
+                          "start": 96,
+                          "end": 98,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 98,
+              "end": 99,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 99,
+          "end": 130,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 99,
+              "end": 129,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 100,
+                  "end": 105,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 105,
+                  "end": 129,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 106,
+                      "end": 111,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 111,
+                      "end": 119,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 111,
+                          "end": 112,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 112,
+                          "end": 119,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 112,
+                              "end": 119,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 112,
+                                  "end": 119,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 112,
+                                      "end": 119,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 112,
+                                          "end": 119,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 113,
+                                              "end": 119,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 119,
+                      "end": 129,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 120,
+                          "end": 121,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NumericLiteral",
+                          "start": 122,
+                          "end": 129,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 129,
+              "end": 130,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 130,
+          "end": 155,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 130,
+              "end": 154,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 131,
+                  "end": 136,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 136,
+                  "end": 154,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 137,
+                      "end": 140,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 140,
+                      "end": 148,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 140,
+                          "end": 141,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 141,
+                          "end": 148,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 141,
+                              "end": 148,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 141,
+                                  "end": 148,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 141,
+                                      "end": 148,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 141,
+                                          "end": 148,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "BigIntKeyword",
+                                              "start": 142,
+                                              "end": 148,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 148,
+                      "end": 154,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 149,
+                          "end": 150,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "BigIntLiteral",
+                          "start": 151,
+                          "end": 154,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 154,
+              "end": 155,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 155,
+          "end": 186,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 155,
+              "end": 185,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 156,
+                  "end": 161,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 161,
+                  "end": 185,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 162,
+                      "end": 168,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 168,
+                      "end": 176,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 168,
+                          "end": 169,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 169,
+                          "end": 176,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 169,
+                              "end": 176,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 169,
+                                  "end": 176,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 169,
+                                      "end": 176,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 169,
+                                          "end": 176,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 170,
+                                              "end": 176,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 176,
+                      "end": 185,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 177,
+                          "end": 178,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NumericLiteral",
+                          "start": 179,
+                          "end": 185,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 185,
+              "end": 186,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 186,
+          "end": 219,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 186,
+              "end": 218,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 187,
+                  "end": 192,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 192,
+                  "end": 218,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 193,
+                      "end": 196,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 196,
+                      "end": 204,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 196,
+                          "end": 197,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 197,
+                          "end": 204,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 197,
+                              "end": 204,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 197,
+                                  "end": 204,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 197,
+                                      "end": 204,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 197,
+                                          "end": 204,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 198,
+                                              "end": 204,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 204,
+                      "end": 218,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 205,
+                          "end": 206,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NumericLiteral",
+                          "start": 207,
+                          "end": 218,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 218,
+              "end": 219,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 219,
+          "end": 246,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 219,
+              "end": 245,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 220,
+                  "end": 225,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 225,
+                  "end": 245,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 226,
+                      "end": 229,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 229,
+                      "end": 237,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 229,
+                          "end": 230,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 230,
+                          "end": 237,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 230,
+                              "end": 237,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 230,
+                                  "end": 237,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 230,
+                                      "end": 237,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 230,
+                                          "end": 237,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 231,
+                                              "end": 237,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 237,
+                      "end": 245,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 238,
+                          "end": 239,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NumericLiteral",
+                          "start": 240,
+                          "end": 245,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 245,
+              "end": 246,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 246,
+          "end": 276,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 246,
+              "end": 275,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 247,
+                  "end": 252,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 252,
+                  "end": 275,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 253,
+                      "end": 257,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 257,
+                      "end": 265,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 257,
+                          "end": 258,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 258,
+                          "end": 265,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 258,
+                              "end": 265,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 258,
+                                  "end": 265,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 258,
+                                      "end": 265,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 258,
+                                          "end": 265,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "StringKeyword",
+                                              "start": 259,
+                                              "end": 265,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 265,
+                      "end": 275,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 266,
+                          "end": 267,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "StringLiteral",
+                          "start": 268,
+                          "end": 275,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 275,
+              "end": 276,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 276,
+          "end": 308,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 276,
+              "end": 307,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 277,
+                  "end": 282,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 282,
+                  "end": 307,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 283,
+                      "end": 289,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 289,
+                      "end": 297,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 289,
+                          "end": 290,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 290,
+                          "end": 297,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 290,
+                              "end": 297,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 290,
+                                  "end": 297,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 290,
+                                      "end": 297,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 290,
+                                          "end": 297,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "StringKeyword",
+                                              "start": 291,
+                                              "end": 297,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 297,
+                      "end": 307,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 298,
+                          "end": 299,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "StringLiteral",
+                          "start": 300,
+                          "end": 307,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 307,
+              "end": 308,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 308,
+          "end": 336,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 308,
+              "end": 335,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 309,
+                  "end": 314,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 314,
+                  "end": 335,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 315,
+                      "end": 319,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 319,
+                      "end": 328,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 319,
+                          "end": 320,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 320,
+                          "end": 328,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 320,
+                              "end": 328,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 320,
+                                  "end": 328,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 320,
+                                      "end": 328,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 320,
+                                          "end": 328,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "BooleanKeyword",
+                                              "start": 321,
+                                              "end": 328,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 328,
+                      "end": 335,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 329,
+                          "end": 330,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TrueKeyword",
+                          "start": 331,
+                          "end": 335,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 335,
+              "end": 336,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 336,
+          "end": 364,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 336,
+              "end": 363,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 337,
+                  "end": 342,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 342,
+                  "end": 363,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 343,
+                      "end": 350,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 350,
+                      "end": 356,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 350,
+                          "end": 351,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 351,
+                          "end": 356,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 351,
+                              "end": 356,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 351,
+                                  "end": 356,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 351,
+                                      "end": 356,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 351,
+                                          "end": 356,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NullKeyword",
+                                              "start": 352,
+                                              "end": 356,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 356,
+                      "end": 363,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 357,
+                          "end": 358,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NullKeyword",
+                          "start": 359,
+                          "end": 363,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 363,
+              "end": 364,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 364,
+          "end": 400,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 364,
+              "end": 399,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 365,
+                  "end": 370,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 370,
+                  "end": 399,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 371,
+                      "end": 376,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 376,
+                      "end": 387,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 376,
+                          "end": 377,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 377,
+                          "end": 387,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 377,
+                              "end": 387,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 377,
+                                  "end": 387,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 377,
+                                      "end": 387,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 377,
+                                          "end": 387,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "UndefinedKeyword",
+                                              "start": 378,
+                                              "end": 387,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 387,
+                      "end": 399,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 388,
+                          "end": 389,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "UndefinedKeyword",
+                          "start": 390,
+                          "end": 399,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 399,
+              "end": 400,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 400,
+          "end": 450,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 400,
+              "end": 449,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "LetKeyword",
+                  "start": 402,
+                  "end": 405,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 405,
+                  "end": 449,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 406,
+                      "end": 412,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 412,
+                      "end": 449,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 413,
+                          "end": 414,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Plus",
+                          "start": 415,
+                          "end": 450,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 415,
+                              "end": 421,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Remainder",
+                              "start": 424,
+                              "end": 450,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Multiply",
+                                  "start": 424,
+                                  "end": 444,
+                                  "flags": 128,
+                                  "category": 5,
+                                  "children": [
+                                    {
+                                      "kind": "Identifier",
+                                      "start": 424,
+                                      "end": 429,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "BasePrimaryExpression",
+                                      "start": 431,
+                                      "end": 443,
+                                      "flags": 129,
+                                      "category": 5,
+                                      "children": [
+                                        {
+                                          "kind": "LParen",
+                                          "start": 432,
+                                          "end": 433,
+                                          "flags": 128,
+                                          "category": 1
+                                        },                                         {
+                                          "kind": "Minus",
+                                          "start": 433,
+                                          "end": 442,
+                                          "flags": 128,
+                                          "category": 5,
+                                          "children": [
+                                            {
+                                              "kind": "Identifier",
+                                              "start": 433,
+                                              "end": 436,
+                                              "flags": 128,
+                                              "category": 1
+                                            },                                             {
+                                              "kind": "Identifier",
+                                              "start": 439,
+                                              "end": 442,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        },                                         {
+                                          "kind": "RParen",
+                                          "start": 442,
+                                          "end": 443,
+                                          "flags": 128,
+                                          "category": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "Identifier",
+                                  "start": 446,
+                                  "end": 449,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 449,
+              "end": 450,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 450,
+          "end": 472,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "Assign",
+              "start": 451,
+              "end": 472,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 451,
+                  "end": 457,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "Exponent",
+                  "start": 460,
+                  "end": 472,
+                  "flags": 128,
+                  "category": 5,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 460,
+                      "end": 466,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "NumericLiteral",
+                      "start": 470,
+                      "end": 471,
+                      "flags": 128,
+                      "category": 1
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 471,
+              "end": 472,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 472,
+          "end": 497,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "Assign",
+              "start": 473,
+              "end": 497,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 473,
+                  "end": 479,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "Slash",
+                  "start": 482,
+                  "end": 497,
+                  "flags": 128,
+                  "category": 5,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 482,
+                      "end": 488,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "Identifier",
+                      "start": 491,
+                      "end": 496,
+                      "flags": 128,
+                      "category": 1
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 496,
+              "end": 497,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 497,
+          "end": 510,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "PlusAssign",
+              "start": 498,
+              "end": 510,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 498,
+                  "end": 504,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 508,
+                  "end": 509,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 509,
+              "end": 510,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 510,
+          "end": 523,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "MinusAssign",
+              "start": 511,
+              "end": 523,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 511,
+                  "end": 517,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 521,
+                  "end": 522,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 522,
+              "end": 523,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 523,
+          "end": 536,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "MultiplyAssign",
+              "start": 524,
+              "end": 536,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 524,
+                  "end": 530,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 534,
+                  "end": 535,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 535,
+              "end": 536,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 536,
+          "end": 549,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "DivideAssign",
+              "start": 537,
+              "end": 549,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 537,
+                  "end": 543,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 547,
+                  "end": 548,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 548,
+              "end": 549,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 549,
+          "end": 562,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "RemainderAssign",
+              "start": 550,
+              "end": 562,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 550,
+                  "end": 556,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 560,
+                  "end": 561,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 561,
+              "end": 562,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 562,
+          "end": 576,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "ExponentAssign",
+              "start": 563,
+              "end": 576,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 563,
+                  "end": 569,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 574,
+                  "end": 575,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 575,
+              "end": 576,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 576,
+          "end": 590,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "LeftShiftAssign",
+              "start": 577,
+              "end": 590,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 577,
+                  "end": 583,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 588,
+                  "end": 589,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 589,
+              "end": 590,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 590,
+          "end": 604,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "RightShiftAssign",
+              "start": 591,
+              "end": 604,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 591,
+                  "end": 597,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 602,
+                  "end": 603,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 603,
+              "end": 604,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 604,
+          "end": 619,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "UnsignedRightShiftAssign",
+              "start": 605,
+              "end": 619,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 605,
+                  "end": 611,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 617,
+                  "end": 618,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 618,
+              "end": 619,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 619,
+          "end": 632,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "BitOrAssign",
+              "start": 620,
+              "end": 632,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 620,
+                  "end": 626,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 630,
+                  "end": 631,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 631,
+              "end": 632,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 632,
+          "end": 646,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "BitAndAssign",
+              "start": 633,
+              "end": 646,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 633,
+                  "end": 639,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 643,
+                  "end": 645,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 645,
+              "end": 646,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 646,
+          "end": 659,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "BitXorAssign",
+              "start": 647,
+              "end": 659,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 647,
+                  "end": 653,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 657,
+                  "end": 658,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 658,
+              "end": 659,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 659,
+          "end": 687,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 659,
+              "end": 686,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "LetKeyword",
+                  "start": 660,
+                  "end": 663,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 663,
+                  "end": 686,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 664,
+                      "end": 672,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 672,
+                      "end": 686,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 673,
+                          "end": 674,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "NullishCoalesce",
+                          "start": 675,
+                          "end": 687,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 675,
+                              "end": 681,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "NumericLiteral",
+                              "start": 685,
+                              "end": 686,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 686,
+              "end": 687,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 687,
+          "end": 703,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "NullishCoalesceAssign",
+              "start": 688,
+              "end": 703,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 688,
+                  "end": 696,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 701,
+                  "end": 702,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 702,
+              "end": 703,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 703,
+          "end": 724,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 703,
+              "end": 723,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "LetKeyword",
+                  "start": 704,
+                  "end": 707,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 707,
+                  "end": 723,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 708,
+                      "end": 714,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 714,
+                      "end": 723,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 715,
+                          "end": 716,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Identifier",
+                          "start": 717,
+                          "end": 723,
+                          "flags": 128,
+                          "category": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 723,
+              "end": 724,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 724,
+          "end": 739,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "LogicalAndAssign",
+              "start": 725,
+              "end": 739,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 725,
+                  "end": 731,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 736,
+                  "end": 738,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 738,
+              "end": 739,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "ExpressionStatement",
+          "start": 739,
+          "end": 754,
+          "flags": 129,
+          "category": 4,
+          "children": [
+            {
+              "kind": "LogicalOrAssign",
+              "start": 740,
+              "end": 754,
+              "flags": 128,
+              "category": 5,
+              "children": [
+                {
+                  "kind": "Identifier",
+                  "start": 740,
+                  "end": 746,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "NumericLiteral",
+                  "start": 751,
+                  "end": 753,
+                  "flags": 128,
+                  "category": 1
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 753,
+              "end": 754,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 754,
+          "end": 787,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 754,
+              "end": 786,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 756,
+                  "end": 761,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 761,
+                  "end": 786,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 762,
+                      "end": 769,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 769,
+                      "end": 778,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 769,
+                          "end": 770,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 770,
+                          "end": 778,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 770,
+                              "end": 778,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 770,
+                                  "end": 778,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 770,
+                                      "end": 778,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 770,
+                                          "end": 778,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "BooleanKeyword",
+                                              "start": 771,
+                                              "end": 778,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 778,
+                      "end": 786,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 779,
+                          "end": 780,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LogicalNot",
+                          "start": 782,
+                          "end": 788,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 782,
+                              "end": 786,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 786,
+              "end": 787,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 787,
+          "end": 823,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 787,
+              "end": 822,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 788,
+                  "end": 793,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 793,
+                  "end": 822,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 794,
+                      "end": 804,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 804,
+                      "end": 812,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 804,
+                          "end": 805,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 805,
+                          "end": 812,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 805,
+                              "end": 812,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 805,
+                                  "end": 812,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 805,
+                                      "end": 812,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 805,
+                                          "end": 812,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 806,
+                                              "end": 812,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 812,
+                      "end": 822,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 813,
+                          "end": 814,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "BitNot",
+                          "start": 816,
+                          "end": 824,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 816,
+                              "end": 822,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 822,
+              "end": 823,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 823,
+          "end": 859,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 823,
+              "end": 858,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 824,
+                  "end": 829,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 829,
+                  "end": 858,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 830,
+                      "end": 840,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 840,
+                      "end": 848,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 840,
+                          "end": 841,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 841,
+                          "end": 848,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 841,
+                              "end": 848,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 841,
+                                  "end": 848,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 841,
+                                      "end": 848,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 841,
+                                          "end": 848,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 842,
+                                              "end": 848,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 848,
+                      "end": 858,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 849,
+                          "end": 850,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Minus",
+                          "start": 852,
+                          "end": 860,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 852,
+                              "end": 858,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 858,
+              "end": 859,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 859,
+          "end": 894,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 859,
+              "end": 893,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 860,
+                  "end": 865,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 865,
+                  "end": 893,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 866,
+                      "end": 875,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 875,
+                      "end": 883,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 875,
+                          "end": 876,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 876,
+                          "end": 883,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 876,
+                              "end": 883,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 876,
+                                  "end": 883,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 876,
+                                      "end": 883,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 876,
+                                          "end": 883,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 877,
+                                              "end": 883,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 883,
+                      "end": 893,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 884,
+                          "end": 885,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Plus",
+                          "start": 887,
+                          "end": 895,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 887,
+                              "end": 893,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 893,
+              "end": 894,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 894,
+          "end": 935,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 894,
+              "end": 934,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 895,
+                  "end": 900,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 900,
+                  "end": 934,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 901,
+                      "end": 910,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 910,
+                      "end": 918,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 910,
+                          "end": 911,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 911,
+                          "end": 918,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 911,
+                              "end": 918,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 911,
+                                  "end": 918,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 911,
+                                      "end": 918,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 911,
+                                          "end": 918,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 912,
+                                              "end": 918,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 918,
+                      "end": 934,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 919,
+                          "end": 920,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Increment",
+                          "start": 923,
+                          "end": 937,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 923,
+                              "end": 934,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 934,
+              "end": 935,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 935,
+          "end": 1025,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 935,
+              "end": 1024,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 937,
+                  "end": 942,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 942,
+                  "end": 1024,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 943,
+                      "end": 951,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 951,
+                      "end": 960,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 951,
+                          "end": 952,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 952,
+                          "end": 960,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 952,
+                              "end": 960,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 952,
+                                  "end": 960,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 952,
+                                      "end": 960,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 952,
+                                          "end": 960,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "BooleanKeyword",
+                                              "start": 953,
+                                              "end": 960,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 960,
+                      "end": 1024,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 961,
+                          "end": 962,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LogicalOr",
+                          "start": 963,
+                          "end": 1025,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "LogicalAnd",
+                              "start": 963,
+                              "end": 994,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "LessThan",
+                                  "start": 963,
+                                  "end": 978,
+                                  "flags": 128,
+                                  "category": 5,
+                                  "children": [
+                                    {
+                                      "kind": "Identifier",
+                                      "start": 963,
+                                      "end": 969,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "Identifier",
+                                      "start": 972,
+                                      "end": 977,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "LessEqual",
+                                  "start": 981,
+                                  "end": 994,
+                                  "flags": 128,
+                                  "category": 5,
+                                  "children": [
+                                    {
+                                      "kind": "Identifier",
+                                      "start": 981,
+                                      "end": 986,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "Identifier",
+                                      "start": 990,
+                                      "end": 993,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },                             {
+                              "kind": "LogicalAnd",
+                              "start": 997,
+                              "end": 1025,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "GreaterEqual",
+                                  "start": 997,
+                                  "end": 1011,
+                                  "flags": 128,
+                                  "category": 5,
+                                  "children": [
+                                    {
+                                      "kind": "Identifier",
+                                      "start": 997,
+                                      "end": 1000,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "Identifier",
+                                      "start": 1004,
+                                      "end": 1010,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                },                                 {
+                                  "kind": "NotEqual",
+                                  "start": 1014,
+                                  "end": 1025,
+                                  "flags": 128,
+                                  "category": 5,
+                                  "children": [
+                                    {
+                                      "kind": "Identifier",
+                                      "start": 1014,
+                                      "end": 1017,
+                                      "flags": 128,
+                                      "category": 1
+                                    },                                     {
+                                      "kind": "Identifier",
+                                      "start": 1021,
+                                      "end": 1024,
+                                      "flags": 128,
+                                      "category": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 1024,
+              "end": 1025,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 1025,
+          "end": 1087,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 1025,
+              "end": 1086,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 1026,
+                  "end": 1031,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 1031,
+                  "end": 1086,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 1032,
+                      "end": 1040,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 1040,
+                      "end": 1049,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 1040,
+                          "end": 1041,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 1041,
+                          "end": 1049,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 1041,
+                              "end": 1049,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 1041,
+                                  "end": 1049,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 1041,
+                                      "end": 1049,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 1041,
+                                          "end": 1049,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "BooleanKeyword",
+                                              "start": 1042,
+                                              "end": 1049,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 1049,
+                      "end": 1086,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 1050,
+                          "end": 1051,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LogicalOr",
+                          "start": 1052,
+                          "end": 1087,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "StrictEqual",
+                              "start": 1052,
+                              "end": 1069,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 1052,
+                                  "end": 1058,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Identifier",
+                                  "start": 1063,
+                                  "end": 1068,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "StrictNotEqual",
+                              "start": 1072,
+                              "end": 1087,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 1072,
+                                  "end": 1078,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Identifier",
+                                  "start": 1083,
+                                  "end": 1086,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 1086,
+              "end": 1087,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 1087,
+          "end": 1134,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 1087,
+              "end": 1133,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 1088,
+                  "end": 1093,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 1093,
+                  "end": 1133,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 1094,
+                      "end": 1101,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 1101,
+                      "end": 1109,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 1101,
+                          "end": 1102,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 1102,
+                          "end": 1109,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 1102,
+                              "end": 1109,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 1102,
+                                  "end": 1109,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 1102,
+                                      "end": 1109,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 1102,
+                                          "end": 1109,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "NumberKeyword",
+                                              "start": 1103,
+                                              "end": 1109,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 1109,
+                      "end": 1133,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 1110,
+                          "end": 1111,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "Question",
+                          "start": 1112,
+                          "end": 1134,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 1112,
+                              "end": 1116,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Identifier",
+                              "start": 1119,
+                              "end": 1125,
+                              "flags": 128,
+                              "category": 1
+                            },                             {
+                              "kind": "Identifier",
+                              "start": 1128,
+                              "end": 1133,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 1133,
+              "end": 1134,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 1134,
+          "end": 1203,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 1134,
+              "end": 1202,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 1136,
+                  "end": 1141,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 1141,
+                  "end": 1202,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 1142,
+                      "end": 1150,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 1150,
+                      "end": 1159,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 1150,
+                          "end": 1151,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 1151,
+                          "end": 1159,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 1151,
+                              "end": 1159,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 1151,
+                                  "end": 1159,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 1151,
+                                      "end": 1159,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 1151,
+                                          "end": 1159,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "BooleanKeyword",
+                                              "start": 1152,
+                                              "end": 1159,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 1159,
+                      "end": 1202,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 1160,
+                          "end": 1161,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "LogicalOr",
+                          "start": 1162,
+                          "end": 1203,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "InKeyword",
+                              "start": 1162,
+                              "end": 1177,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 1162,
+                                  "end": 1166,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Identifier",
+                                  "start": 1170,
+                                  "end": 1176,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            },                             {
+                              "kind": "InstanceofKeyword",
+                              "start": 1180,
+                              "end": 1203,
+                              "flags": 128,
+                              "category": 5,
+                              "children": [
+                                {
+                                  "kind": "Identifier",
+                                  "start": 1180,
+                                  "end": 1185,
+                                  "flags": 128,
+                                  "category": 1
+                                },                                 {
+                                  "kind": "Identifier",
+                                  "start": 1197,
+                                  "end": 1202,
+                                  "flags": 128,
+                                  "category": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 1202,
+              "end": 1203,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 1203,
+          "end": 1232,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 1203,
+              "end": 1231,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 1204,
+                  "end": 1209,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 1209,
+                  "end": 1231,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 1210,
+                      "end": 1216,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 1216,
+                      "end": 1222,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 1216,
+                          "end": 1217,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 1217,
+                          "end": 1222,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 1217,
+                              "end": 1222,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 1217,
+                                  "end": 1222,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 1217,
+                                      "end": 1222,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 1217,
+                                          "end": 1222,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "VoidKeyword",
+                                              "start": 1218,
+                                              "end": 1222,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 1222,
+                      "end": 1231,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 1223,
+                          "end": 1224,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "VoidKeyword",
+                          "start": 1230,
+                          "end": 1237,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "NumericLiteral",
+                              "start": 1230,
+                              "end": 1231,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 1231,
+              "end": 1232,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        },         {
+          "kind": "VariableStatement",
+          "start": 1232,
+          "end": 1273,
+          "flags": 129,
+          "category": 3,
+          "children": [
+            {
+              "kind": "VariableDeclarationList",
+              "start": 1232,
+              "end": 1272,
+              "flags": 129,
+              "category": 3,
+              "children": [
+                {
+                  "kind": "ConstKeyword",
+                  "start": 1233,
+                  "end": 1238,
+                  "flags": 128,
+                  "category": 1
+                },                 {
+                  "kind": "VariableDeclaration",
+                  "start": 1238,
+                  "end": 1272,
+                  "flags": 129,
+                  "category": 3,
+                  "children": [
+                    {
+                      "kind": "Identifier",
+                      "start": 1239,
+                      "end": 1250,
+                      "flags": 128,
+                      "category": 1
+                    },                     {
+                      "kind": "TypeAnnotation",
+                      "start": 1250,
+                      "end": 1258,
+                      "flags": 129,
+                      "category": 6,
+                      "children": [
+                        {
+                          "kind": "Colon",
+                          "start": 1250,
+                          "end": 1251,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeContext",
+                          "start": 1251,
+                          "end": 1258,
+                          "flags": 129,
+                          "category": 9,
+                          "children": [
+                            {
+                              "kind": "ConditionalType",
+                              "start": 1251,
+                              "end": 1258,
+                              "flags": 129,
+                              "category": 6,
+                              "children": [
+                                {
+                                  "kind": "UnionType",
+                                  "start": 1251,
+                                  "end": 1258,
+                                  "flags": 129,
+                                  "category": 6,
+                                  "children": [
+                                    {
+                                      "kind": "IntersectionType",
+                                      "start": 1251,
+                                      "end": 1258,
+                                      "flags": 129,
+                                      "category": 6,
+                                      "children": [
+                                        {
+                                          "kind": "PostfixType",
+                                          "start": 1251,
+                                          "end": 1258,
+                                          "flags": 129,
+                                          "category": 6,
+                                          "children": [
+                                            {
+                                              "kind": "StringKeyword",
+                                              "start": 1252,
+                                              "end": 1258,
+                                              "flags": 128,
+                                              "category": 1
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },                     {
+                      "kind": "Sequence",
+                      "start": 1258,
+                      "end": 1272,
+                      "flags": 129,
+                      "category": 9,
+                      "children": [
+                        {
+                          "kind": "Assign",
+                          "start": 1259,
+                          "end": 1260,
+                          "flags": 128,
+                          "category": 1
+                        },                         {
+                          "kind": "TypeofKeyword",
+                          "start": 1268,
+                          "end": 1280,
+                          "flags": 128,
+                          "category": 5,
+                          "children": [
+                            {
+                              "kind": "Identifier",
+                              "start": 1268,
+                              "end": 1272,
+                              "flags": 128,
+                              "category": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },             {
+              "kind": "Semicolon",
+              "start": 1272,
+              "end": 1273,
+              "flags": 128,
+              "category": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+}

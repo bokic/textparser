@@ -12,7 +12,7 @@ TEST(pratt_precedence, register_and_query_operators) {
     ASSERT_NE(handle, nullptr);
 
     // Register binary addition
-    textparser_operator_def add_op;
+    textparser_operator_def add_op{};
     add_op.token_id = 100;
     add_op.role = TEXTPARSER_OP_INFIX;
     add_op.precedence = 10;
@@ -22,7 +22,7 @@ TEST(pratt_precedence, register_and_query_operators) {
     EXPECT_EQ(textparser_register_operator(handle, &add_op), 0);
 
     // Register unary negation
-    textparser_operator_def neg_op;
+    textparser_operator_def neg_op{};
     neg_op.token_id = 101;
     neg_op.role = TEXTPARSER_OP_PREFIX;
     neg_op.precedence = 15;
@@ -32,7 +32,7 @@ TEST(pratt_precedence, register_and_query_operators) {
     EXPECT_EQ(textparser_register_operator(handle, &neg_op), 0);
 
     // Register ternary conditional
-    textparser_operator_def cond_op;
+    textparser_operator_def cond_op{};
     cond_op.token_id = 102;
     cond_op.role = TEXTPARSER_OP_TERNARY;
     cond_op.precedence = 4;
@@ -42,10 +42,12 @@ TEST(pratt_precedence, register_and_query_operators) {
     EXPECT_EQ(textparser_register_operator(handle, &cond_op), 0);
 
     // Query operators
-    textparser_operator_def query_op;
+    textparser_operator_def query_op{};
     EXPECT_EQ(textparser_get_operator(handle, 100, TEXTPARSER_OP_INFIX, &query_op), 0);
     EXPECT_EQ(query_op.precedence, 10);
     EXPECT_EQ(query_op.associativity, TEXTPARSER_ASSOC_LEFT);
+    EXPECT_EQ(query_op.left_validator, nullptr);
+    EXPECT_EQ(query_op.operand_validator, nullptr);
 
     EXPECT_EQ(textparser_get_operator(handle, 101, TEXTPARSER_OP_PREFIX, &query_op), 0);
     EXPECT_EQ(query_op.precedence, 15);
@@ -78,6 +80,8 @@ const char *pratt_language_json = R"json({
       "Equal":{"regex":"="},
       "LParen":{"regex":"\\("},
       "RParen":{"regex":"\\)"}
+      ,"Name":{"regex":"[a-z]+"}
+      ,"Dot":{"regex":"\\."}
     },
     "trivia":{"Space":{"regex":"[ \\t\\r\\n]+"}}
   },
@@ -92,9 +96,13 @@ const char *pratt_language_json = R"json({
   "grammar":{
     "start":"Expression",
     "productions":{
-      "Expression":{"pratt":{"primary":{"ref":"Primary"}}},
+      "Expression":{"pratt":{
+        "primary":{"ref":"Primary"},
+        "postfix":{"sequence":[{"token":"Dot"},{"token":"Name"}]}
+      }},
       "Primary":{"choice":[
         {"token":"Number"},
+        {"token":"Name"},
         {"sequence":[{"token":"LParen"},{"ref":"Expression"},{"token":"RParen"}]}
       ]}
     }
@@ -143,6 +151,20 @@ TEST_F(PrattFixture, primary_grammar_supports_parenthesized_expressions) {
     ASSERT_NE(parenthesized->child, nullptr);
     ASSERT_NE(parenthesized->child->next, nullptr);
     EXPECT_EQ(parenthesized->child->next->token_id, pratt_token_id(definition, "Plus"));
+}
+
+TEST_F(PrattFixture, grammar_postfix_productions_bind_before_infix_operators) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("value.member+2", 14, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(result.node, nullptr);
+    EXPECT_EQ(result.node->token_id, pratt_token_id(definition, "Plus"));
+    ASSERT_NE(result.node->child, nullptr);
+    EXPECT_NE(result.node->child->node_flags & TEXTPARSER_NODE_SYNTHETIC, 0u);
+    EXPECT_EQ(result.node->child->len, 12u);
 }
 
 TEST_F(PrattFixture, left_associative_infix_groups_left) {

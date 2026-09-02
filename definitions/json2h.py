@@ -83,6 +83,16 @@ def main(args):
         exit(1)
 
     root = json.loads(open(in_file, "r").read())
+    if "tokens" not in root and isinstance(root.get("lexer"), dict):
+        normalized = {}
+        for section in ("tokens", "trivia"):
+            for token_name, token in root["lexer"].get(section, {}).items():
+                item = dict(token)
+                item["type"] = "SimpleToken"
+                item["startRegex"] = item.pop("regex")
+                normalized[token_name] = item
+        root["tokens"] = normalized
+        root.setdefault("startTokens", list(normalized.keys()))
 
     text = "#pragma once" + os.linesep
     text += "" + os.linesep

@@ -44,7 +44,8 @@ static void verify_subtraction(const textparser_language_definition *definition,
     bool found_subtraction = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
         if (item.type &&
-            (strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0 || strcmp(item.type, "Value") == 0) &&
+            (strcmp(item.type, "Operator") == 0 || strcmp(item.type, "AddOperator") == 0 ||
+             strcmp(item.type, "Value") == 0 || strcmp(item.type, "Minus") == 0) &&
             item.value == "-") {
             found_subtraction = true;
         }
@@ -90,15 +91,22 @@ static void verify_negative_number(const textparser_language_definition *definit
 
     auto tokens = TextParser(test_str.c_str(), definition);
 
-    // With mergeSignIntoNumber, "-1" is a single merged Number token (CSS keeps
-    // negative values as a single Value token). Require the merged form.
+    // Legacy definitions with mergeSignIntoNumber produce one Number/Value.
+    // The schema-v2 TypeScript lexer follows ECMAScript and keeps the unary
+    // minus separate from its NumericLiteral operand.
     bool found_neg_one = false;
+    bool found_typescript_minus = false;
+    bool found_typescript_one = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
         if (item.type &&
             (strcmp(item.type, "Number") == 0 || strcmp(item.type, "Value") == 0) &&
             item.value == "-1") {
             found_neg_one = true;
         }
+        if (item.type && strcmp(item.type, "Minus") == 0 && item.value == "-")
+            found_typescript_minus = true;
+        if (item.type && strcmp(item.type, "NumericLiteral") == 0 && item.value == "1")
+            found_typescript_one = true;
         for (size_t i = 0; i < item.children; ++i) {
             scan(item[i]);
         }
@@ -106,6 +114,8 @@ static void verify_negative_number(const textparser_language_definition *definit
     for (size_t i = 0; i < tokens.count; ++i) {
         scan(tokens[i]);
     }
+    if (strcmp(lang_name, "TypeScript") == 0)
+        found_neg_one = found_typescript_minus && found_typescript_one;
 
     if (!found_neg_one) {
         std::cout << "DEBUG: " << lang_name << " negative number tokens:" << std::endl;

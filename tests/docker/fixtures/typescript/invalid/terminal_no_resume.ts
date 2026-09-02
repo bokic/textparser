@@ -1,0 +1,1 @@
+) terminal junk with no resumption point extends far beyond any sync token in the file and keeps going with more random text until the very end of the source without ever reaching a semicolon or closing brace to continue parsing from, so the parser must preserve the original terminal failure instead of fabricating a recovery

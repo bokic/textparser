@@ -1,0 +1,7 @@
+{
+  "status": "OK",
+  "diagnostics": [
+  {"severity":0,"code":"TS1131","start":17,"length":25,"line":0,"column":17},
+  {"severity":0,"code":"TS1131","start":79,"length":18,"line":4,"column":14}
+]
+}

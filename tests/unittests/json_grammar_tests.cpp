@@ -141,6 +141,13 @@ TEST(json_grammar, validates_structure_and_names) {
         {R"({"start":"Root","productions":{"Root":{"optional":[]}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"token":"A","allowASI":"yes"}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"sequence":[],"allowASI":true}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"withGoal":{"production":{"token":"A"}}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"withGoal":{"name":"","production":{"token":"A"}}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"withGoal":{"name":"Type","production":[]}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"pratt":{"primary":{"token":"A"},"postfix":[]}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"capture":{"name":"","production":{"token":"A"},"then":{"token":"B"}}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"capture":{"name":"x","production":{"token":"A"}}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
+        {R"({"start":"Root","productions":{"Root":{"matchCapture":{"name":"x","production":[]}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"token":"A","recover":{"skip":true}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
         {R"({"start":"Root","productions":{"Root":{"token":"A","recoverUntil":["Missing"]}}})", TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN},
         {R"({"start":"Root","productions":{"Root":{"token":"A","events":{"onCommit":""}}}})", TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION},
@@ -153,6 +160,73 @@ TEST(json_grammar, validates_structure_and_names) {
         EXPECT_EQ(definition, nullptr);
         EXPECT_STRNE(textparser_json_strerror(item.expected), "Unknown JSON parser error");
     }
+}
+
+TEST(json_grammar, validates_pratt_operand_validator_shapes) {
+    for (const char *operators : {
+             R"([{"token":"A","role":"infix","precedence":1,"leftValidator":true}])",
+             R"([{"token":"A","role":"prefix","precedence":1,"operandValidator":[]}])",
+         }) {
+        std::string json = R"({
+          "name":"validators", "version":2, "caseSensitivity":true,
+          "defaultFileExtensions":["txt"], "defaultTextEncoding":"utf-8",
+          "otherTextInside":true,
+          "lexer":{"tokens":{"A":{"regex":"a"}},"modes":{"default":{"tokens":["A"]}}},
+          "operators":)" + std::string(operators) + R"(,
+          "grammar":{"start":"Root","productions":{"Root":{"token":"A"}}}
+        })";
+        textparser_language_definition *definition = nullptr;
+        EXPECT_EQ(textparser_json_load_language_definition_from_string(json.c_str(), &definition),
+                  TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+        EXPECT_EQ(definition, nullptr);
+    }
+}
+
+TEST(json_grammar, rejects_nullable_pratt_postfix_production) {
+    textparser_language_definition *definition = nullptr;
+    EXPECT_EQ(load(R"({
+      "start":"Root",
+      "productions":{"Root":{"pratt":{
+        "primary":{"token":"A"}, "postfix":{"optional":{"token":"B"}}
+      }}}
+    })", &definition), TEXTPARSER_JSON_GRAMMAR_NULLABLE_REPEAT);
+    EXPECT_EQ(definition, nullptr);
+}
+
+TEST(json_grammar, capture_equality_is_nested_and_transactional) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{"Root":{"capture":{
+        "name":"pair", "production":{"token":"A"},
+        "then":{"sequence":[
+          {"capture":{
+            "name":"pair", "production":{"token":"B"},
+            "then":{"matchCapture":{"name":"pair","production":{"choice":[{"token":"A"},{"token":"B"}]}}}
+          }},
+          {"matchCapture":{"name":"pair","production":{"choice":[{"token":"A"},{"token":"B"}]}}}
+        ]}
+      }}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    textparser::Parser parser;
+    for (const char *source : {"abba", "abaa"}) {
+        ASSERT_EQ(parser.openmem(source, 4, TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        if (std::strcmp(source, "abba") == 0) {
+            EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+            EXPECT_EQ(result.consumed_tokens, 4u);
+        } else {
+            EXPECT_EQ(result.status, TEXTPARSER_MATCH_NO);
+            textparser_parser_state_view state{};
+            ASSERT_EQ(parser.parser_state(&state), 0);
+            EXPECT_EQ(state.source_offset, 0u);
+        }
+        parser.reset();
+    }
+    textparser_free_language_definition(definition);
 }
 
 TEST(json_grammar, inserts_missing_tokens_for_automatic_semicolon_recovery) {
@@ -178,12 +252,7 @@ TEST(json_grammar, inserts_missing_tokens_for_automatic_semicolon_recovery) {
     EXPECT_EQ(missing->len, 0u);
     EXPECT_NE(missing->node_flags & TEXTPARSER_NODE_MISSING, 0u);
     EXPECT_NE(missing->node_flags & TEXTPARSER_NODE_SYNTHETIC, 0u);
-    ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 1u);
-    textparser_diagnostic diagnostic{};
-    ASSERT_EQ(textparser_get_diagnostic(parser.get(), 0, &diagnostic), 0);
-    EXPECT_STREQ(diagnostic.code, "TEXTPARSER_EXPECTED");
-    EXPECT_STREQ(diagnostic.message, "Expected semicolon.");
-    EXPECT_EQ(diagnostic.start_pos, 1u);
+    EXPECT_EQ(textparser_get_diagnostic_count(parser.get()), 0u);
     parser.reset();
     textparser_free_language_definition(definition);
 }
