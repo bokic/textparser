@@ -1,7 +1,7 @@
 @echo off
 
 SET JSON_C_VERSION=0.19-20260627
-SET PCRE2_VERSION=10.47
+SET PCRE2_VERSION=10.48
 
 REM "Visual Studio 18 2026" generator requires CMake >= 4.2
 where cmake.exe >nul 2>&1
