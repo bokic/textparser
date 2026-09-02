@@ -20,7 +20,7 @@ if(NOT WIN32)
 endif()
 
 add_library(libtextparser SHARED
-    ${CMAKE_BINARY_DIR}/version.c
+    ${TEXTPARSER_VERSION_C_FILE}
     textparser.c
     adv_regex.c
     adv_regex.h

@@ -71,6 +71,10 @@ configure_file(
     @ONLY
 )
 
+# Referenced from src/CMakeLists.txt; supports building textparser either as
+# the top-level project or as an add_subdirectory() child of another project.
+set(TEXTPARSER_VERSION_C_FILE "${CMAKE_CURRENT_BINARY_DIR}/version.c")
+
 if(WIN32)
     set(RC_EXE_OUT_FILE "${CMAKE_BINARY_DIR}/version_exe.rc")
     set(RC_OUT_NAME "textparser")
