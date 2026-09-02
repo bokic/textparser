@@ -32,6 +32,17 @@
 - Implement code validator for each computer language.
 - Tree-sitter Compatible Token Schema
   - Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.
+- Differential verification against tree-sitter-typescript started
+  (`tests/treesitter_compare/`): acceptance parity over the TypeScript fixture
+  corpus plus a node-kind / tree-shape comparison for a 26-construct corpus.
+  Result: TypeScript grammar coverage is at parity with tree-sitter-typescript
+  for the corpus; the remaining CST work is a normalization/mapping layer, not
+  pure renaming (the grammar emits TypeScript-compiler AST kinds plus engine
+  scaffolding nodes `Repeat`/`Sequence`/`TypeContext`, unconditionally
+  materialized type combinators, and operator-named Pratt roots; see
+  `tests/treesitter_compare/README.md`). Two textparser defects were found
+  (see `BUGS.md`): missing `TS1243` `accessor`+`readonly` legality and JSX
+  attribute values that are arrow expressions.
 
 ## 1.3 (Cleanup)
 

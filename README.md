@@ -323,7 +323,24 @@ are implemented and covered by fixtures and corner-case tests; template
 literal types with `${Type}` substitutions (`type T = \`user:${string}\``) now
 parse, including nested, union, mapped, and conditional positions. Each
 `BUGS.md` entry is validated against the real `tsc` compiler so only genuine
-TypeScript gaps are tracked, and the file is now empty.
+TypeScript gaps are tracked; the file currently holds the `accessor`+`readonly`
+`TS1243` legality gap and the JSX-arrow-attribute acceptance gap, both found by
+the tree-sitter differential verification below.
+
+A 10q differential harness (`tests/treesitter_compare/`) verifies the
+TypeScript grammar against the reference **tree-sitter-typescript** grammar
+(typescript + tsx) over the conformance fixture corpus and a 26-construct
+corpus. Acceptance is at parity with tree-sitter for the corpus: the invalid
+fixtures are rejected by both parsers, and the only valid-fixture divergences
+are a tree-sitter-typescript gap (`import defer`, valid in tsc/textparser) and
+a textparser over-acceptance (`override readonly accessor x`, rejected by tsc
+with `TS1243`). The node-kind/shape comparison shows the grammar emits
+TypeScript-compiler AST kinds plus engine scaffolding nodes
+(`Repeat`/`Sequence`/`TypeContext`), unconditionally materialized type
+combinators (`ConditionalType`/`UnionType`/`IntersectionType`/`PostfixType`
+around a single primitive), operator-named Pratt roots (`Plus`, `Assign`, ...),
+and keyword/operator leaves - a normalization/mapping layer, not a pure
+rename, is therefore the remaining ROADMAP-1.2 alignment work.
 
 
 Declarative production lifecycle events are transactional. `onValidate` runs
