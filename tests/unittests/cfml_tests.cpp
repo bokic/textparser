@@ -2070,6 +2070,58 @@ TEST(parse_CFML, category_2_declarations_and_modifiers) {
     EXPECT_TRUE(has_token_value(tokens, "Keyword", "function"));
 }
 
+TEST(parse_CFML, new_keyword) {
+    // 2.4b `new` is a keyword (object instantiation in CFML script)
+    textparser_suppress_errors() = true;
+
+    // Object instantiation in a cfscript body
+    {
+        auto tokens = TextParser(R"(<cfscript>x = new com.foo.Bar();</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "Keyword", "new"));
+        EXPECT_TRUE(has_token_value(tokens, "Variable", "x"));
+        EXPECT_TRUE(has_token_value(tokens, "Function", "Bar"));
+    }
+
+    // Object instantiation in a <cfset> tag expression
+    {
+        auto tokens = TextParser(R"(<cfset obj = new my.User() />)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "Keyword", "new"));
+        EXPECT_TRUE(has_token_value(tokens, "Variable", "obj"));
+        EXPECT_TRUE(has_token_value(tokens, "Function", "User"));
+    }
+
+    // `new` followed by a bare variable
+    {
+        auto tokens = TextParser(R"(<cfscript>a = new b();</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "Keyword", "new"));
+        EXPECT_TRUE(has_token_value(tokens, "Function", "b"));
+    }
+
+    // `new` is a standalone keyword (not fused with identifiers around it)
+    {
+        auto tokens = TextParser(R"(<cfscript>x = new;</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "Keyword", "new"));
+    }
+
+    // Lone `new` inside a function declaration name
+    {
+        auto tokens = TextParser(R"(<cfscript>function new(){}</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "Keyword", "new"));
+    }
+
+    // `\b` word boundary: identifiers merely containing `new` are NOT keywords
+    {
+        auto tokens = TextParser(R"(<cfscript>newer = 1; renew(); mynew = 2; newStuf = 3;</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "Variable", "newer"));
+        EXPECT_TRUE(has_token_value(tokens, "Function", "renew"));
+        EXPECT_TRUE(has_token_value(tokens, "Variable", "mynew"));
+        EXPECT_TRUE(has_token_value(tokens, "Variable", "newStuf"));
+        EXPECT_FALSE(has_token_value(tokens, "Keyword", "new"));
+    }
+
+    textparser_suppress_errors() = false;
+}
+
 TEST(parse_CFML, category_2_properties_parameters_concurrency) {
     // 2.6 & 2.7 Properties, Params & Concurrency
     auto tokens = TextParser(R"(<cfscript>property name="id" required="true"; param name="p" default="1"; lock name="L" { super.init(); null; } transaction { thread name="T" {} }</cfscript>)", &cfml_definition);
