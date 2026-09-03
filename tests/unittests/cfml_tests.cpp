@@ -1650,9 +1650,12 @@ TEST(parse_CFML, sign_merge_whitespace_not_merged) {
 
 TEST(parse_CFML, sign_merge_double_minus_single_pass) {
     auto tokens = TextParser(R"(<cfset c = --1 />)", &cfml_definition);
-    // "--1" merges only once: AddOperator("-") + Number("-1")
-    EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
-    EXPECT_TRUE(has_token_value(tokens, "Number", "-1"));
+    // "--" matches IncDecOperator before AddOperator, so it lexes as a single
+    // IncDecOperator("--") rather than two AddOperator("-") tokens merged with the number.
+    EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "--"));
+    EXPECT_TRUE(has_token_value(tokens, "Number", "1"));
+    EXPECT_FALSE(has_token_value(tokens, "AddOperator", "-"));
+    EXPECT_FALSE(has_token_value(tokens, "Number", "-1"));
     EXPECT_FALSE(has_token_value(tokens, "Number", "--1"));
 }
 
@@ -1938,6 +1941,78 @@ TEST(parse_CFML, category_1_unary_increment_decrement) {
         }
     }
     EXPECT_EQ(inc_dec_count, 4);
+}
+
+TEST(parse_CFML, inc_dec_lexes_before_add_operator) {
+    // Unstaged definition change: IncDecOperator ("++"/"--") is listed before
+    // AddOperator ("+"/"-") in the Operator group's nestedTokens, so adjacent
+    // double signs lex as a single IncDecOperator instead of two AddOperators.
+    textparser_suppress_errors() = true;
+
+    // Postfix increment/decrement in a cfscript body
+    {
+        auto tokens = TextParser(R"(<cfscript>x++; y--;</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "++"));
+        EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "--"));
+        EXPECT_FALSE(has_token_value(tokens, "AddOperator", "++"));
+        EXPECT_FALSE(has_token_value(tokens, "AddOperator", "+"));
+        EXPECT_FALSE(has_token_value(tokens, "Operator", "++"));
+    }
+
+    // Prefix increment/decrement
+    {
+        auto tokens = TextParser(R"(<cfscript>++p; --q;</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "++"));
+        EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "--"));
+        EXPECT_FALSE(has_token_value(tokens, "AddOperator", "++"));
+        EXPECT_FALSE(has_token_value(tokens, "AddOperator", "--"));
+    }
+
+    // Single +/- still lex as AddOperator (adjacency matters)
+    {
+        auto tokens = TextParser(R"(<cfscript>a + b - c;</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "AddOperator", "+"));
+        EXPECT_TRUE(has_token_value(tokens, "AddOperator", "-"));
+        EXPECT_FALSE(has_token_value(tokens, "IncDecOperator", "+"));
+        EXPECT_FALSE(has_token_value(tokens, "IncDecOperator", "-"));
+    }
+
+    // Space-separated signs are two AddOperators, not a merged IncDecOperator
+    {
+        auto tokens = TextParser(R"(<cfscript>a + + b;</cfscript>)", &cfml_definition);
+        EXPECT_FALSE(has_token_value(tokens, "IncDecOperator", "++"));
+        EXPECT_TRUE(has_token_value(tokens, "AddOperator", "+"));
+    }
+
+    // IncDecOperator mixed with binary arithmetic
+    {
+        auto tokens = TextParser(R"(<cfscript>x++ + y;</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "++"));
+        EXPECT_TRUE(has_token_value(tokens, "AddOperator", "+"));
+    }
+
+    // IncDecOperator inside an array index
+    {
+        auto tokens = TextParser(R"(<cfscript>arr[++n];</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "++"));
+    }
+
+    // In a <cfset> tag expression
+    {
+        auto tokens = TextParser(R"(<cfset x++ />)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "IncDecOperator", "++"));
+        EXPECT_FALSE(has_token_value(tokens, "AddOperator", "++"));
+    }
+
+    // Compound assignment operators (+=, -=) remain AssignOperator, unaffected
+    {
+        auto tokens = TextParser(R"(<cfscript>i += 1; i -= 1;</cfscript>)", &cfml_definition);
+        EXPECT_TRUE(has_token_value(tokens, "AssignOperator", "+="));
+        EXPECT_TRUE(has_token_value(tokens, "AssignOperator", "-="));
+        EXPECT_FALSE(has_token_value(tokens, "IncDecOperator", "++"));
+    }
+
+    textparser_suppress_errors() = false;
 }
 
 TEST(parse_CFML, category_2_control_flow_keywords) {

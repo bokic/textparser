@@ -491,8 +491,8 @@
         "LogicalAndOperator",
         "LogicalNotOperator",
         "ConcatOperator",
-        "AddOperator",
         "IncDecOperator",
+        "AddOperator",
         "MulOperator",
         "PowerOperator"
       ]
