@@ -1294,6 +1294,89 @@ TEST(parse_CFML, context_nested_tokens_attribute_hashes_always_active) {
     EXPECT_FALSE(item_has_token_type(tokens[0][1], "SharpExpression"));
 }
 
+TEST(parse_CFML, mail_tag_pair) {
+    // MailTagPair: <cfmail> is an output-capable body tag.
+    auto tokens = TextParser(R"(<cfmail to="a@b.c" subject="Hi">Hello #name#</cfmail>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "MailTagPair");
+
+    // MailStartTag -> Expression with attributes
+    ASSERT_GE(tokens[0].children, 1);
+    EXPECT_STREQ(tokens[0][0].type, "MailStartTag");
+    EXPECT_TRUE(item_has_token_type(tokens[0][0], "Expression"));
+
+    // Body is an OutputExpression and hashes parse as SharpExpression
+    EXPECT_TRUE(has_token_type(tokens, "MailEndTag"));
+    EXPECT_TRUE(item_has_token_type(tokens[0][1], "SharpExpression"));
+    EXPECT_TRUE(has_token_value(tokens, "SharpExpression", "#name#"));
+}
+
+TEST(parse_CFML, mail_tag_pair_output_expression_body) {
+    // cfmail body parses #...# as SharpExpression (output-capable body tag)
+    auto tokens = TextParser(R"(<cfmail to="a@b.c">Hi #user# !</cfmail>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "MailTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+    EXPECT_TRUE(has_token_value(tokens, "SharpExpression", "#user#"));
+}
+
+TEST(parse_CFML, savecontent_tag_pair) {
+    // SavecontentTagPair: <cfsavecontent> is an output-capable body tag.
+    auto tokens = TextParser(R"(<cfsavecontent variable="body">Hello</cfsavecontent>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "SavecontentTagPair");
+
+    ASSERT_GE(tokens[0].children, 1);
+    EXPECT_STREQ(tokens[0][0].type, "SavecontentStartTag");
+    EXPECT_TRUE(item_has_token_type(tokens[0][0], "Expression"));
+    EXPECT_TRUE(has_token_type(tokens, "SavecontentEndTag"));
+}
+
+TEST(parse_CFML, savecontent_tag_pair_output_expression_body) {
+    // cfsavecontent body parses #...# as SharpExpression (output-capable body tag)
+    auto tokens = TextParser(R"(<cfsavecontent variable="body"><cfoutput>#x#</cfoutput></cfsavecontent>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "SavecontentTagPair");
+    EXPECT_TRUE(item_has_token_type(tokens[0], "OutputTagPair"));
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+}
+
+TEST(parse_CFML, mail_savecontent_not_generic_end_tag) {
+    // </cfmail> / </cfsavecontent> must match the dedicated end tags, not generic EndTag
+    auto tokens = TextParser(R"(<cfmail to="a">x</cfmail><cfsavecontent variable="v">y</cfsavecontent>)", &cfml_definition);
+    ASSERT_EQ(tokens.count, 2);
+    EXPECT_STREQ(tokens[0].type, "MailTagPair");
+    EXPECT_STREQ(tokens[1].type, "SavecontentTagPair");
+
+    // A non-mail generic closing tag still matches generic EndTag
+    auto tokens2 = TextParser(R"(</cfwhatever>)", &cfml_definition);
+    EXPECT_TRUE(has_token_type(tokens2, "EndTag"));
+}
+
+TEST(parse_CFML, context_nested_tokens_cfloop_under_mail) {
+    // cfloop body hash inside cfmail should parse as SharpExpression
+    auto tokens = TextParser(R"(<cfmail to="a"><cfloop index="i" from="1" to="2">#i#</cfloop></cfmail>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "MailTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+}
+
+TEST(parse_CFML, context_nested_tokens_cfloop_under_savecontent) {
+    // cfloop body hash inside cfsavecontent should parse as SharpExpression
+    auto tokens = TextParser(R"(<cfsavecontent variable="v"><cfloop index="i" from="1" to="2">#i#</cfloop></cfsavecontent>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "SavecontentTagPair");
+    EXPECT_TRUE(has_token_type(tokens, "SharpExpression"));
+}
+
+TEST(parse_CFML, context_nested_tokens_cfloop_top_level_unchanged) {
+    // Top-level cfloop body hash still does NOT parse as SharpExpression
+    auto tokens = TextParser(R"(<cfloop index="i" from="1" to="2">#i#</cfloop>)", &cfml_definition);
+    EXPECT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "LoopTagPair");
+    EXPECT_FALSE(has_token_type(tokens, "SharpExpression"));
+}
+
 TEST(parse_CFML, context_nested_tokens_runtime_json_load) {
     // Test that contextNestedTokens parsed from runtime JSON string behaves identically
     const char *custom_json = R"json({

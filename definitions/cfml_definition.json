@@ -34,6 +34,8 @@
     "OutputTagPair",
     "QueryTagPair",
     "LoopTagPair",
+    "MailTagPair",
+    "SavecontentTagPair",
     "StartTag",
     "EndTag",
     "Comment"
@@ -149,6 +151,56 @@
       "startRegex": "<\\/cfloop>",
       "textColor": "0xabd90c"
     },
+    "MailTagPair": {
+      "type": "GroupAllChildrenInSameOrder",
+      "otherTextInside": true,
+      "multiLine": true,
+      "nestedTokens": [
+        "MailStartTag",
+        "OutputExpression",
+        "MailEndTag"
+      ]
+    },
+    "MailStartTag": {
+      "type": "StartStop",
+      "startRegex": "<cfmail(?=[\\>\\s])",
+      "endRegex": "\\/?>",
+      "multiLine": true,
+      "textColor": "0xabd90c",
+      "nestedTokens": [
+        "Expression"
+      ]
+    },
+    "MailEndTag": {
+      "type": "SimpleToken",
+      "startRegex": "<\\/cfmail>",
+      "textColor": "0xabd90c"
+    },
+    "SavecontentTagPair": {
+      "type": "GroupAllChildrenInSameOrder",
+      "otherTextInside": true,
+      "multiLine": true,
+      "nestedTokens": [
+        "SavecontentStartTag",
+        "OutputExpression",
+        "SavecontentEndTag"
+      ]
+    },
+    "SavecontentStartTag": {
+      "type": "StartStop",
+      "startRegex": "<cfsavecontent(?=[\\>\\s])",
+      "endRegex": "\\/?>",
+      "multiLine": true,
+      "textColor": "0xabd90c",
+      "nestedTokens": [
+        "Expression"
+      ]
+    },
+    "SavecontentEndTag": {
+      "type": "SimpleToken",
+      "startRegex": "<\\/cfsavecontent>",
+      "textColor": "0xabd90c"
+    },
     "StartTag": {
       "type": "StartStop",
       "startRegex": "<(?:cf[a-z0-9_]*|[a-zA-Z0-9_]+:[a-zA-Z0-9_]+)",
@@ -161,7 +213,7 @@
     },
     "EndTag": {
       "type": "StartStop",
-      "startRegex": "<\\/(?:cf(?!output)(?!script)(?!query)(?!loop)[a-z0-9_]*|[a-zA-Z0-9_]+:[a-zA-Z0-9_]+)",
+      "startRegex": "<\\/(?:cf(?!output)(?!script)(?!query)(?!loop)(?!mail)(?!savecontent)[a-z0-9_]*|[a-zA-Z0-9_]+:[a-zA-Z0-9_]+)",
       "endRegex": "\\/?>",
       "multiLine": true,
       "textColor": "0xabd90c",
@@ -295,6 +347,8 @@
         "OutputTagPair",
         "QueryTagPair",
         "LoopTagPair",
+        "MailTagPair",
+        "SavecontentTagPair",
         "StartTag",
         "EndTag",
         "Comment",
@@ -311,6 +365,8 @@
         "OutputTagPair",
         "QueryTagPair",
         "LoopTagPair",
+        "MailTagPair",
+        "SavecontentTagPair",
         "StartTag",
         "EndTag",
         "Comment",
@@ -327,6 +383,8 @@
         "OutputTagPair",
         "QueryTagPair",
         "LoopTagPair",
+        "MailTagPair",
+        "SavecontentTagPair",
         "StartTag",
         "EndTag",
         "Comment"
@@ -337,13 +395,17 @@
             "OutputExpression",
             "QueryExpression",
             "OutputTagPair",
-            "QueryTagPair"
+            "QueryTagPair",
+            "MailTagPair",
+            "SavecontentTagPair"
           ],
           "nestedTokens": [
             "ScriptTagPair",
             "OutputTagPair",
             "QueryTagPair",
             "LoopTagPair",
+            "MailTagPair",
+            "SavecontentTagPair",
             "StartTag",
             "EndTag",
             "Comment",
@@ -524,6 +586,8 @@
         "OutputTagPair",
         "QueryTagPair",
         "LoopTagPair",
+        "MailTagPair",
+        "SavecontentTagPair",
         "StartTag",
         "EndTag",
         "Comment",
@@ -540,6 +604,10 @@
         "LoopStartTag",
         "LoopExpression",
         "LoopEndTag",
+        "MailStartTag",
+        "MailEndTag",
+        "SavecontentStartTag",
+        "SavecontentEndTag",
         "SharpChar",
         "SharpExpression",
         "ExpressionEnd",
@@ -573,6 +641,8 @@
         "OutputTagPair",
         "QueryTagPair",
         "LoopTagPair",
+        "MailTagPair",
+        "SavecontentTagPair",
         "StartTag",
         "EndTag",
         "Comment",
@@ -589,6 +659,10 @@
         "LoopStartTag",
         "LoopExpression",
         "LoopEndTag",
+        "MailStartTag",
+        "MailEndTag",
+        "SavecontentStartTag",
+        "SavecontentEndTag",
         "SharpChar",
         "SharpExpression",
         "ExpressionEnd",
