@@ -2297,3 +2297,19 @@ TEST(parse_CFML, category_4_cfc_annotations_and_modifiers) {
     EXPECT_STREQ(textparser_get_token_type_str(&cfml_definition, first), "ScriptExpression");
     textparser_close(handle);
 }
+
+TEST(parse_CFML, case_insensitivity_custom_tags_and_numbers) {
+    // Test custom tags with upper/mixed case in prefix and tag name
+    auto tokens = TextParser(R"(<CF_CUSTOM_TAG attr="val">Content</CF_CUSTOM_TAG><MyNamespace:MyTag test="1"></MyNamespace:MyTag>)", &cfml_definition);
+    EXPECT_TRUE(has_token_type(tokens, "StartTag"));
+    EXPECT_TRUE(has_token_type(tokens, "EndTag"));
+
+    // Test numbers with uppercase and lowercase exponent
+    auto num1 = TextParser(R"(<cfset a = 1.5E+10 />)", &cfml_definition);
+    EXPECT_TRUE(has_token_type(num1, "Number"));
+    EXPECT_TRUE(has_token_value(num1, "Number", "1.5E+10"));
+
+    auto num2 = TextParser(R"(<cfset b = 2.5e-3 />)", &cfml_definition);
+    EXPECT_TRUE(has_token_type(num2, "Number"));
+    EXPECT_TRUE(has_token_value(num2, "Number", "2.5e-3"));
+}
