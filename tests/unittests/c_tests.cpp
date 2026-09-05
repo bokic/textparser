@@ -636,3 +636,27 @@ size_t sz = sizeof(int);
     EXPECT_TRUE(variables.contains("i"));
     EXPECT_TRUE(variables.contains("sz"));
 }
+
+TEST(parse_C, format_specifier_inside_double_string) {
+    auto tokens = TextParser(R"(printf("Hello %s, number: %05d, float: %.2f%%!\n", name, 42, 3.14);)", &c_definition);
+
+    std::vector<std::string> format_specs;
+    std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
+        if (item.type && strcmp(item.type, "FormatSpecifier") == 0) {
+            format_specs.push_back(item.value);
+        }
+        for (size_t i = 0; i < item.children; ++i) {
+            scan(item[i]);
+        }
+    };
+
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan(tokens[i]);
+    }
+
+    ASSERT_EQ(format_specs.size(), 4u);
+    EXPECT_EQ(format_specs[0], "%s");
+    EXPECT_EQ(format_specs[1], "%05d");
+    EXPECT_EQ(format_specs[2], "%.2f");
+    EXPECT_EQ(format_specs[3], "%%");
+}
