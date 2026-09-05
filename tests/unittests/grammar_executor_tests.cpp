@@ -291,3 +291,105 @@ TEST_F(GrammarFixture, commit_stops_choice_rollback_after_prefix) {
     ASSERT_EQ(parser.parser_state(&state), 0);
     EXPECT_EQ(state.token_index, 1u);
 }
+
+TEST_F(GrammarFixture, memoization_reuses_cached_production_and_respects_context) {
+    parse("a a");
+    int a = token_id(definition, "A");
+    ASSERT_GE(a, 0);
+
+    const textparser_production productions[] = {
+        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+        {1, "Statement", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+    };
+
+    textparser_match_result res1{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 1, &res1), 0);
+    EXPECT_EQ(res1.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(res1.consumed_tokens, 1u);
+    ASSERT_NE(res1.node, nullptr);
+
+    // Re-execute starting from token 0; it should hit the memo cache and return the exact same node pointer
+    textparser_match_result res2{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 1, &res2), 0);
+    EXPECT_EQ(res2.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(res2.consumed_tokens, 1u);
+    EXPECT_EQ(res2.node, res1.node);
+
+    // Under a different scoped context, the memo key differs so it should re-evaluate and create a distinct node
+    ASSERT_EQ(textparser_context_set(parser.get(), "DifferentContext", 1), 0);
+    textparser_match_result res3{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 1, &res3), 0);
+    EXPECT_EQ(res3.status, TEXTPARSER_MATCH_OK);
+    EXPECT_EQ(res3.consumed_tokens, 1u);
+    EXPECT_NE(res3.node, res1.node);
+}
+
+TEST_F(GrammarFixture, memoization_invalidates_on_edit_and_shifts_subsequent) {
+    parse("a b c");
+    int a = token_id(definition, "A");
+    int b = token_id(definition, "B");
+    int c = token_id(definition, "C");
+
+    const int root1_children[] = {3, 4, 5};
+    const int root2_children[] = {3, 4, 4, 5};
+
+    const textparser_production productions[] = {
+        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
+        {2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
+        {3, "StatementA", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+        {4, "StatementB", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
+        {5, "StatementC", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
+        {6, "Root1", TEXTPARSER_PROD_SEQUENCE, root1_children, 3, -1, -1, nullptr, nullptr, 0},
+        {7, "Root2", TEXTPARSER_PROD_SEQUENCE, root2_children, 4, -1, -1, nullptr, nullptr, 0},
+    };
+
+    // Parse Root1 = (StatementA @ 0, StatementB @ 1, StatementC @ 2)
+    textparser_match_result res1{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 6, &res1), 0);
+    EXPECT_EQ(res1.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(res1.node, nullptr);
+    ASSERT_NE(res1.node->child, nullptr); // StatementA
+    const textparser_node *nodeA1 = res1.node->child;
+    ASSERT_NE(nodeA1->next, nullptr);    // StatementB
+    const textparser_node *nodeB1 = nodeA1->next;
+    ASSERT_NE(nodeB1->next, nullptr);    // StatementC
+    const textparser_node *nodeC1 = nodeB1->next;
+
+    // Incremental edit: replace 'b' at offset 2 (len 1) with 'b b' (len 3)
+    textparser_t handle = parser.get();
+    textparser_dirty_range dirty{};
+    const char *rep = "b b";
+    ASSERT_EQ(textparser_parse_incremental(handle, definition, 2, 1, rep, strlen(rep), &dirty), 0);
+
+    // After edit, the token stream is: "a" (tok 0), "b" (tok 1), "b" (tok 2), "c" (tok 3).
+    // Incremental shift should:
+    // - Keep StatementA at token 0 (unaffected)
+    // - Invalidate StatementB at token 1 (within dirty range)
+    // - Shift StatementC from token 2 to token 3 (+1 delta tokens)
+    //
+    // Now execute Root2 = (StatementA, StatementB, StatementB, StatementC):
+    textparser_match_result res2{};
+    ASSERT_EQ(parser.execute_production(productions, std::size(productions), 7, &res2), 0);
+    EXPECT_EQ(res2.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(res2.node, nullptr);
+    ASSERT_NE(res2.node->child, nullptr);
+    const textparser_node *nodeA2 = res2.node->child;
+    ASSERT_NE(nodeA2->next, nullptr);
+    const textparser_node *nodeB2_1 = nodeA2->next;
+    ASSERT_NE(nodeB2_1->next, nullptr);
+    const textparser_node *nodeB2_2 = nodeB2_1->next;
+    ASSERT_NE(nodeB2_2->next, nullptr);
+    const textparser_node *nodeC2 = nodeB2_2->next;
+
+    // StatementA at token 0 must be reused (same node pointer)
+    EXPECT_EQ(nodeA2, nodeA1);
+
+    // StatementC at token 3 must be reused from shifted memo entry (same node pointer)
+    EXPECT_EQ(nodeC2, nodeC1);
+
+    // StatementB at token 1 was invalidated and reparsed (different node pointer)
+    EXPECT_NE(nodeB2_1, nodeB1);
+}
+
+
