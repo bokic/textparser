@@ -2427,20 +2427,134 @@ bool _gen_cfml_LoopEndTag_start(enum textparser_encoding encoding, const char *s
     return false;
 }
 
-// StartTag: <cf[a-z0-9_]+
+bool _gen_cfml_MailStartTag_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        size_t m = cf_tag_prefix_match(encoding, start, 0, max_len, "<cfmail", is_caseless);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = cf_tag_prefix_match(encoding, start, pos, max_len, "<cfmail", is_caseless);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_cfml_MailStartTag_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_html_Tag_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_cfml_MailEndTag_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        if (str_match_at(encoding, start, 0, max_len, "</cfmail>", is_caseless)) {
+            if (offset) *offset = 0;
+            if (length) *length = 9;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        if (str_match_at(encoding, start, pos, max_len, "</cfmail>", is_caseless)) {
+            if (offset) *offset = pos;
+            if (length) *length = 9;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_cfml_SavecontentStartTag_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        size_t m = cf_tag_prefix_match(encoding, start, 0, max_len, "<cfsavecontent", is_caseless);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = cf_tag_prefix_match(encoding, start, pos, max_len, "<cfsavecontent", is_caseless);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_cfml_SavecontentStartTag_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_html_Tag_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+bool _gen_cfml_SavecontentEndTag_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        if (str_match_at(encoding, start, 0, max_len, "</cfsavecontent>", is_caseless)) {
+            if (offset) *offset = 0;
+            if (length) *length = 16;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        if (str_match_at(encoding, start, pos, max_len, "</cfsavecontent>", is_caseless)) {
+            if (offset) *offset = pos;
+            if (length) *length = 16;
+            return true;
+        }
+    }
+    return false;
+}
+
+// StartTag: <(?:cf[a-z0-9_]*|[a-z0-9_]+:[a-z0-9_]+)
 static size_t cfml_start_tag_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless)
 {
-    if (!str_match_at(encoding, start, pos, max_len, "<cf", caseless)) return 0;
-    size_t i = pos + 3;
-    size_t tag_chars = 0;
+    if (pos >= max_len || get_char_at(encoding, start, pos) != '<') return 0;
+    if (str_match_at(encoding, start, pos, max_len, "<cf", caseless)) {
+        size_t i = pos + 3;
+        while (i < max_len) {
+            uint32_t c = get_char_at(encoding, start, i);
+            if (is_alnum_codepoint(c) || c == '_') i++;
+            else break;
+        }
+        return i - pos;
+    }
+    // Check [a-z0-9_]+:[a-z0-9_]+
+    size_t i = pos + 1;
+    size_t prefix_len = 0;
     while (i < max_len) {
         uint32_t c = get_char_at(encoding, start, i);
         if (is_alnum_codepoint(c) || c == '_') {
             i++;
-            tag_chars++;
+            prefix_len++;
         } else break;
     }
-    if (tag_chars == 0) return 0;
+    if (prefix_len == 0 || i >= max_len || get_char_at(encoding, start, i) != ':') return 0;
+    i++; // skip ':'
+    size_t suffix_len = 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (is_alnum_codepoint(c) || c == '_') {
+            i++;
+            suffix_len++;
+        } else break;
+    }
+    if (suffix_len == 0) return 0;
     return i - pos;
 }
 
@@ -2471,37 +2585,65 @@ bool _gen_cfml_StartTag_end(enum textparser_encoding encoding, const char *start
     return _gen_html_Tag_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
 
-// EndTag: <\/cf(?!output)(?!script)(?!query)(?!loop)[a-z0-9_]+
+// EndTag: <\/(?:cf(?!output)(?!script)(?!query)(?!loop)(?!mail)(?!savecontent)[a-z0-9_]*|[a-z0-9_]+:[a-z0-9_]+)
 static size_t cfml_end_tag_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless)
 {
-    if (!str_match_at(encoding, start, pos, max_len, "</cf", caseless)) return 0;
-    size_t i = pos + 4;
-    // Check negative lookaheads: output, script, query, loop
-    if (str_match_at(encoding, start, i, max_len, "output", caseless)) {
-        size_t next_pos = i + 6;
-        if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
+    if (pos + 1 >= max_len || get_char_at(encoding, start, pos) != '<' || get_char_at(encoding, start, pos + 1) != '/') return 0;
+    if (str_match_at(encoding, start, pos, max_len, "</cf", caseless)) {
+        size_t i = pos + 4;
+        // Check negative lookaheads: output, script, query, loop, mail, savecontent
+        if (str_match_at(encoding, start, i, max_len, "output", caseless)) {
+            size_t next_pos = i + 6;
+            if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
+        }
+        if (str_match_at(encoding, start, i, max_len, "script", caseless)) {
+            size_t next_pos = i + 6;
+            if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
+        }
+        if (str_match_at(encoding, start, i, max_len, "query", caseless)) {
+            size_t next_pos = i + 5;
+            if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
+        }
+        if (str_match_at(encoding, start, i, max_len, "loop", caseless)) {
+            size_t next_pos = i + 4;
+            if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
+        }
+        if (str_match_at(encoding, start, i, max_len, "mail", caseless)) {
+            size_t next_pos = i + 4;
+            if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
+        }
+        if (str_match_at(encoding, start, i, max_len, "savecontent", caseless)) {
+            size_t next_pos = i + 11;
+            if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
+        }
+        while (i < max_len) {
+            uint32_t c = get_char_at(encoding, start, i);
+            if (is_alnum_codepoint(c) || c == '_') i++;
+            else break;
+        }
+        return i - pos;
     }
-    if (str_match_at(encoding, start, i, max_len, "script", caseless)) {
-        size_t next_pos = i + 6;
-        if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
-    }
-    if (str_match_at(encoding, start, i, max_len, "query", caseless)) {
-        size_t next_pos = i + 5;
-        if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
-    }
-    if (str_match_at(encoding, start, i, max_len, "loop", caseless)) {
-        size_t next_pos = i + 4;
-        if (next_pos == max_len || !is_alnum_codepoint(get_char_at(encoding, start, next_pos))) return 0;
-    }
-    size_t tag_chars = 0;
+    // Check [a-z0-9_]+:[a-z0-9_]+
+    size_t i = pos + 2;
+    size_t prefix_len = 0;
     while (i < max_len) {
         uint32_t c = get_char_at(encoding, start, i);
         if (is_alnum_codepoint(c) || c == '_') {
             i++;
-            tag_chars++;
+            prefix_len++;
         } else break;
     }
-    if (tag_chars == 0) return 0;
+    if (prefix_len == 0 || i >= max_len || get_char_at(encoding, start, i) != ':') return 0;
+    i++; // skip ':'
+    size_t suffix_len = 0;
+    while (i < max_len) {
+        uint32_t c = get_char_at(encoding, start, i);
+        if (is_alnum_codepoint(c) || c == '_') {
+            i++;
+            suffix_len++;
+        } else break;
+    }
+    if (suffix_len == 0) return 0;
     return i - pos;
 }
 
@@ -3382,7 +3524,7 @@ static size_t cfml_kw_match_at(enum textparser_encoding encoding, const void *st
         "default", "include", "thread", "return", "public", "remote", "static", "import",
         "switch", "catch", "retry", "param", "throw", "while", "super", "break",
         "final", "this", "then", "else", "lock", "null", "case", "var", "try", "for",
-        "in", "if", "do", NULL
+        "new", "in", "if", "do", NULL
     };
     for (int k = 0; kws[k] != NULL; k++) {
         size_t wm = cfml_word_op_match(encoding, start, pos, max_len, kws[k], caseless);
@@ -3787,6 +3929,54 @@ bool _gen_cpp_TypeCast_start(enum textparser_encoding encoding, const char *star
 bool _gen_cpp_TypeCast_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     return _gen_c_Parenthesis_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// DataType
+bool _gen_cpp_DataType_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_DataType_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// TagSpecifier: struct\b|union\b|enum\b|class\b
+static size_t cpp_tagspec_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless) {
+    static const char *const specs[] = {"struct", "union", "enum", "class", NULL};
+    for (int k = 0; specs[k] != NULL; k++) {
+        size_t len = strlen(specs[k]);
+        if (str_match_at(encoding, start, pos, max_len, specs[k], caseless)) {
+            if (pos + len == max_len) return len;
+            uint32_t after = get_char_at(encoding, start, pos + len);
+            if (!is_alnum_codepoint(after) && after != '_') return len;
+        }
+    }
+    return 0;
+}
+
+bool _gen_cpp_TagSpecifier_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        size_t m = cpp_tagspec_match_at(encoding, start, 0, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = cpp_tagspec_match_at(encoding, start, pos, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+// TypeName
+bool _gen_cpp_TypeName_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_TypeName_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
 
 /* ========================================================================= */
