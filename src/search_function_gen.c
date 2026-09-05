@@ -617,6 +617,122 @@ static size_t c_escape_match_at(enum textparser_encoding encoding, const void *s
     return 0;
 }
 
+// FormatSpecifier: %(?:%|(?:[1-9][0-9]*\$)?[-+ #0']*(?:\*(?:[1-9][0-9]*\$)?|[0-9]+)?(?:\.(?:\*(?:[1-9][0-9]*\$)?|[0-9]*))?(?:hh|ll|[hljztL])?[diouxXfFeEgGaAcspnbB])
+static size_t c_formatspec_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len) {
+    if (pos >= max_len || get_char_at(encoding, start, pos) != '%') return 0;
+    size_t i = pos + 1;
+    if (i >= max_len) return 0;
+    uint32_t c = get_char_at(encoding, start, i);
+    if (c == '%') return 2; // %%
+
+    // Optional positional argument: [1-9][0-9]*\$
+    if (c >= '1' && c <= '9') {
+        size_t p = i + 1;
+        while (p < max_len && is_digit_codepoint(get_char_at(encoding, start, p))) p++;
+        if (p < max_len && get_char_at(encoding, start, p) == '$') {
+            i = p + 1;
+        }
+    }
+
+    // Flags: [-+ #0']*
+    while (i < max_len) {
+        uint32_t fl = get_char_at(encoding, start, i);
+        if (fl == '-' || fl == '+' || fl == ' ' || fl == '#' || fl == '0' || fl == '\'') {
+            i++;
+        } else {
+            break;
+        }
+    }
+
+    // Width: \*(?:[1-9][0-9]*\$)? | [0-9]+
+    if (i < max_len) {
+        uint32_t w = get_char_at(encoding, start, i);
+        if (w == '*') {
+            i++;
+            if (i < max_len && get_char_at(encoding, start, i) >= '1' && get_char_at(encoding, start, i) <= '9') {
+                size_t p = i + 1;
+                while (p < max_len && is_digit_codepoint(get_char_at(encoding, start, p))) p++;
+                if (p < max_len && get_char_at(encoding, start, p) == '$') {
+                    i = p + 1;
+                }
+            }
+        } else if (is_digit_codepoint(w)) {
+            while (i < max_len && is_digit_codepoint(get_char_at(encoding, start, i))) i++;
+        }
+    }
+
+    // Precision: \.(?:\*(?:[1-9][0-9]*\$)?|[0-9]*)
+    if (i < max_len && get_char_at(encoding, start, i) == '.') {
+        i++;
+        if (i < max_len && get_char_at(encoding, start, i) == '*') {
+            i++;
+            if (i < max_len && get_char_at(encoding, start, i) >= '1' && get_char_at(encoding, start, i) <= '9') {
+                size_t p = i + 1;
+                while (p < max_len && is_digit_codepoint(get_char_at(encoding, start, p))) p++;
+                if (p < max_len && get_char_at(encoding, start, p) == '$') {
+                    i = p + 1;
+                }
+            }
+        } else {
+            while (i < max_len && is_digit_codepoint(get_char_at(encoding, start, i))) i++;
+        }
+    }
+
+    // Length modifier: hh | ll | [hljztL]
+    if (i < max_len) {
+        if (i + 1 < max_len) {
+            uint32_t l0 = get_char_at(encoding, start, i);
+            uint32_t l1 = get_char_at(encoding, start, i + 1);
+            if ((l0 == 'h' && l1 == 'h') || (l0 == 'l' && l1 == 'l')) {
+                i += 2;
+            } else if (l0 == 'h' || l0 == 'l' || l0 == 'j' || l0 == 'z' || l0 == 't' || l0 == 'L') {
+                i++;
+            }
+        } else {
+            uint32_t l0 = get_char_at(encoding, start, i);
+            if (l0 == 'h' || l0 == 'l' || l0 == 'j' || l0 == 'z' || l0 == 't' || l0 == 'L') {
+                i++;
+            }
+        }
+    }
+
+    // Specifier: [diouxXfFeEgGaAcspnbB]
+    if (i < max_len) {
+        uint32_t spec = get_char_at(encoding, start, i);
+        if (spec == 'd' || spec == 'i' || spec == 'o' || spec == 'u' || spec == 'x' || spec == 'X' ||
+            spec == 'f' || spec == 'F' || spec == 'e' || spec == 'E' || spec == 'g' || spec == 'G' ||
+            spec == 'a' || spec == 'A' || spec == 'c' || spec == 's' || spec == 'p' || spec == 'n' ||
+            spec == 'b' || spec == 'B') {
+            return (i + 1) - pos;
+        }
+    }
+
+    return 0;
+}
+
+bool _gen_c_FormatSpecifier_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    (void)is_caseless;
+    if (only_at_start) {
+        size_t m = c_formatspec_match_at(encoding, start, 0, max_len);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = c_formatspec_match_at(encoding, start, pos, max_len);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool _gen_c_StringEscape_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
 {
     (void)is_caseless;
@@ -3789,6 +3905,53 @@ bool _gen_cpp_TypeCast_end(enum textparser_encoding encoding, const char *start,
     return _gen_c_Parenthesis_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
 }
 
+bool _gen_cpp_DataType_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_c_DataType_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+// TagSpecifier: struct\b|union\b|enum\b|class\b
+static size_t cpp_tagspec_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless) {
+    static const char *const specs[] = {"struct", "union", "enum", "class", NULL};
+    for (int k = 0; specs[k] != NULL; k++) {
+        size_t len = strlen(specs[k]);
+        if (str_match_at(encoding, start, pos, max_len, specs[k], caseless)) {
+            if (pos + len == max_len) return len;
+            uint32_t after = get_char_at(encoding, start, pos + len);
+            if (!is_alnum_codepoint(after) && after != '_') return len;
+        }
+    }
+    return 0;
+}
+
+bool _gen_cpp_TagSpecifier_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    if (only_at_start) {
+        size_t m = cpp_tagspec_match_at(encoding, start, 0, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = 0;
+            if (length) *length = m;
+            return true;
+        }
+        return false;
+    }
+    for (size_t pos = 0; pos < max_len; pos++) {
+        size_t m = cpp_tagspec_match_at(encoding, start, pos, max_len, is_caseless);
+        if (m > 0) {
+            if (offset) *offset = pos;
+            if (length) *length = m;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool _gen_cpp_TypeName_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
+{
+    return _gen_cpp_Variable_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
+}
+
+
 /* ========================================================================= */
 /* === Python Matchers Implementation ===                                    */
 /* ========================================================================= */
@@ -5213,201 +5376,6 @@ bool _gen_rust_ArrayIndex_end(enum textparser_encoding encoding, const char *sta
 
 /* ========================================================================= */
 
-/* ========================================================================= */
-/* === TypeScript Matchers Implementation ===                                */
-/* ========================================================================= */
-
-bool _gen_typescript_LineComment_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_LineComment_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_BlockComment_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_BlockComment_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_BlockComment_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_BlockComment_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-
-// TypeScript Keywords
-static const char *const ts_keywords[] = {
-    "implements", "instanceof", "satisfies", "undefined", "interface", "namespace",
-    "debugger", "function", "continue", "abstract", "readonly", "declare",
-    "default", "extends", "finally", "private", "protected", "unknown",
-    "typeof", "delete", "export", "import", "module", "public", "return",
-    "static", "switch", "catch", "class", "const", "infer", "keyof", "never",
-    "super", "throw", "while", "yield", "async", "await", "break", "false",
-    "null", "this", "type", "void", "with", "case", "else", "enum", "from",
-    "true", "var", "let", "any", "for", "try", "do", "if", "in", "is", "of",
-    NULL
-};
-
-static size_t ts_keyword_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len, bool caseless) {
-    if (pos >= max_len) return 0;
-    uint32_t c = get_char_at(encoding, start, pos);
-    if (!is_alpha_codepoint(c) && c != '_') return 0;
-    for (int k = 0; ts_keywords[k] != NULL; k++) {
-        size_t kw_len = strlen(ts_keywords[k]);
-        if (str_match_at(encoding, start, pos, max_len, ts_keywords[k], caseless)) {
-            if (pos + kw_len == max_len) return kw_len;
-            uint32_t after = get_char_at(encoding, start, pos + kw_len);
-            if (!is_alnum_codepoint(after) && after != '_' && after != '$') {
-                return kw_len;
-            }
-        }
-    }
-    return 0;
-}
-
-bool _gen_typescript_Keyword_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    if (only_at_start) {
-        size_t m = ts_keyword_match_at(encoding, start, 0, max_len, is_caseless);
-        if (m > 0) {
-            if (offset) *offset = 0;
-            if (length) *length = m;
-            return true;
-        }
-        return false;
-    }
-    for (size_t pos = 0; pos < max_len; pos++) {
-        size_t m = ts_keyword_match_at(encoding, start, pos, max_len, is_caseless);
-        if (m > 0) {
-            if (offset) *offset = pos;
-            if (length) *length = m;
-            return true;
-        }
-    }
-    return false;
-}
-
-bool _gen_typescript_Boolean_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_Boolean_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_Variable_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_javascript_Variable_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_CodeBlock_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_CodeBlock_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_CodeBlock_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_CodeBlock_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_Regex_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_javascript_Regex_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-
-// TypeScript Operator
-static size_t ts_op_match_at(enum textparser_encoding encoding, const void *start, size_t pos, size_t max_len) {
-    if (pos >= max_len) return 0;
-    if (pos + 4 <= max_len) {
-        if (str_match_at(encoding, start, pos, max_len, ">>>=", false)) return 4;
-    }
-    if (pos + 3 <= max_len) {
-        static const char *const ts_ops3[] = {
-            "\?\?=", "&&=", "||=", "===", "!==", "**=", "<<=", ">>=", NULL
-        };
-        for (int k = 0; ts_ops3[k] != NULL; k++) {
-            if (str_match_at(encoding, start, pos, max_len, ts_ops3[k], false)) return 3;
-        }
-    }
-    if (pos + 2 <= max_len) {
-        static const char *const ts_ops2[] = {
-            "++", "--", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=",
-            "=>", "==", "!=", "<=", ">=", "&&", "||", "??", "?.", "?:",
-            "<<", ">>", "**", "::", NULL
-        };
-        for (int k = 0; ts_ops2[k] != NULL; k++) {
-            if (str_match_at(encoding, start, pos, max_len, ts_ops2[k], false)) return 2;
-        }
-    }
-    uint32_t c = get_char_at(encoding, start, pos);
-    if (c == '=' || c == '<' || c == '>' || c == '!' || c == '&' ||
-        c == '|' || c == '^' || c == '~' || c == '+' || c == '-' ||
-        c == '*' || c == '/' || c == '%' || c == '?' || c == ':' ||
-        c == ';' || c == '.' || c == ',') {
-        return 1;
-    }
-    return 0;
-}
-
-bool _gen_typescript_Operator_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    (void)is_caseless;
-    if (only_at_start) {
-        size_t m = ts_op_match_at(encoding, start, 0, max_len);
-        if (m > 0) {
-            if (offset) *offset = 0;
-            if (length) *length = m;
-            return true;
-        }
-        return false;
-    }
-    for (size_t pos = 0; pos < max_len; pos++) {
-        size_t m = ts_op_match_at(encoding, start, pos, max_len);
-        if (m > 0) {
-            if (offset) *offset = pos;
-            if (length) *length = m;
-            return true;
-        }
-    }
-    return false;
-}
-
-bool _gen_typescript_SingleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_SingleString_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_SingleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_SingleString_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_DoubleString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_DoubleString_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_DoubleString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_DoubleString_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_TemplateString_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_javascript_TemplateString_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_TemplateString_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_javascript_TemplateString_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_StringEscape_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_javascript_StringEscape_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_Number_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_javascript_Number_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_Parenthesis_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_Parenthesis_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_Parenthesis_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_Parenthesis_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_ArrayIndex_start(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_ArrayIndex_start(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
-bool _gen_typescript_ArrayIndex_end(enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start)
-{
-    return _gen_c_ArrayIndex_end(encoding, start, max_len, offset, length, is_caseless, only_at_start);
-}
 
 /* ========================================================================= */
 /* === Java Matchers Implementation ===                                      */
