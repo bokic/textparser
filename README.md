@@ -25,6 +25,21 @@ always rolled back, parser-aware predicates receive current/previous tokens and
 the preceding-line-terminator state, contexts are restored after their child,
 and a committed failure prevents a choice from trying later alternatives.
 
+Memoizable grammar productions (such as statements and declarations) support
+sub-1ms incremental Packrat parsing with subtree reuse:
+1. **Packrat / Subtree Memoization Reuse**: Successful production matches cache
+   their match result, consumed token count, source length, and AST node.
+2. **Context & Lexical Goal Keying**: Cached results are keyed by
+   `(production_id, token_index, context_hash, lexical_goal)` so changes in
+   surrounding contextual state or lexical scan goals invalidate outdated entries.
+3. **Incremental Shift & Invalidation on Delta Edits**: During incremental
+   updates (`textparser_parse_incremental`), memo entries overlapping the edited
+   token range are purged, while memo entries strictly after the edit are shifted
+   by the token delta count so downstream subtrees are reused without reparsing.
+4. **Diagnostic Snapshotting & Generational Retention**: Speculative checkpoints
+   and incremental rollbacks snapshot and restore memo tables, diagnostics, and
+   arena watermarks transactionally.
+
 JSON language definitions can load those production kinds from
 `grammar.productions`. Nested constructs are flattened into an owned runtime
 table, token and production names are resolved to IDs, and

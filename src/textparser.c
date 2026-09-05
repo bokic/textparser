@@ -198,9 +198,20 @@ struct textparser_handle {
     size_t lexer_trivia_count;
     textparser_lexer_cache_entry *lexer_cache;
 
+    /* Packrat memoization table for grammar productions. */
+    struct textparser_memo_entry *grammar_memo;
+    uint64_t next_memo_seq;
+
     /* Shared transactional state used by all grammar operations. */
     textparser_parser_runtime parser;
 };
+
+static void textparser_memo_clear(struct textparser_handle *handle);
+static void textparser_memo_shift_and_invalidate(
+    struct textparser_handle *handle,
+    size_t dirty_start_token,
+    size_t dirty_end_token,
+    ssize_t delta_tokens);
 
 static void textparser_clear_lexer_streams(struct textparser_handle *handle)
 {
@@ -2687,6 +2698,9 @@ void textparser_close(textparser_t handle)
     handle->diagnostic_count = 0;
     handle->diagnostic_capacity = 0;
 
+    /* Free memo table */
+    textparser_memo_clear(handle);
+
     free(handle);
 }
 
@@ -2899,7 +2913,6 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     if (handle == nullptr || definition == nullptr)
         return -1;
 
-    textparser_clear_lexer_streams(handle);
     handle->parser.owner = handle;
     handle->parser.language = definition;
     handle->parser.source_offset = 0;
@@ -3280,7 +3293,31 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         handle->no_lines = 0;
     }
 
-    return textparser_rebuild_lexer_streams(handle);
+    size_t old_token_count = handle->lexer_token_count;
+    size_t old_dirty_tok_start = old_token_count;
+    size_t old_dirty_tok_end = old_token_count;
+    if (handle->lexer_tokens != nullptr) {
+        for (size_t i = 0; i < old_token_count; i++) {
+            if (handle->lexer_tokens[i].end > start_pos) {
+                old_dirty_tok_start = i;
+                break;
+            }
+        }
+        for (size_t i = old_dirty_tok_start; i < old_token_count; i++) {
+            if (handle->lexer_tokens[i].start >= old_end_bound) {
+                old_dirty_tok_end = i;
+                break;
+            }
+        }
+    }
+
+    int rebuild_status = textparser_rebuild_lexer_streams(handle);
+    if (rebuild_status == TEXTPARSER_OK) {
+        ssize_t delta_tokens = (ssize_t)handle->lexer_token_count - (ssize_t)old_token_count;
+        textparser_memo_shift_and_invalidate(handle, old_dirty_tok_start, old_dirty_tok_end, delta_tokens);
+    }
+
+    return rebuild_status;
 }
 
 static bool get_operator_info(
@@ -5937,6 +5974,7 @@ typedef struct {
     textparser_context_entry *contexts;
     textparser_diagnostic *diagnostics;
     size_t diagnostic_count;
+    uint64_t memo_seq;
 } textparser_parser_checkpoint;
 
 static void textparser_free_context_list(textparser_context_entry *context)
@@ -6016,6 +6054,152 @@ static void textparser_checkpoint_free(textparser_parser_checkpoint *checkpoint)
     free(checkpoint);
 }
 
+typedef struct textparser_memo_entry {
+    int production_id;
+    size_t token_index;
+    uint32_t context_hash;
+    char *lexical_goal;
+    textparser_match_result result;
+    size_t source_length;
+    uint64_t seq;
+    struct textparser_memo_entry *next;
+} textparser_memo_entry;
+
+static uint32_t textparser_hash_contexts(const textparser_context_entry *head)
+{
+    uint32_t h = 2166136261u;
+    for (const textparser_context_entry *c = head; c != nullptr; c = c->next) {
+        if (c->name != nullptr) {
+            for (const char *p = c->name; *p; p++) {
+                h ^= (uint8_t)*p;
+                h *= 16777619u;
+            }
+        }
+        uint64_t val = (uint64_t)c->value;
+        for (int i = 0; i < 8; i++) {
+            h ^= (uint8_t)(val >> (i * 8));
+            h *= 16777619u;
+        }
+    }
+    return h;
+}
+
+static void textparser_memo_clear(textparser_t handle)
+{
+    if (handle == nullptr) return;
+    textparser_memo_entry *curr = handle->grammar_memo;
+    while (curr != nullptr) {
+        textparser_memo_entry *next = curr->next;
+        free(curr->lexical_goal);
+        free(curr);
+        curr = next;
+    }
+    handle->grammar_memo = nullptr;
+}
+
+static void textparser_memo_shift_and_invalidate(
+    textparser_t handle,
+    size_t dirty_start_token,
+    size_t dirty_end_token,
+    ssize_t delta_tokens)
+{
+    if (handle == nullptr) return;
+    textparser_memo_entry **head_ptr = &handle->grammar_memo;
+    while (*head_ptr != nullptr) {
+        textparser_memo_entry *entry = *head_ptr;
+        size_t entry_start = entry->token_index;
+        size_t entry_end = entry->token_index + entry->result.consumed_tokens;
+
+        // Invalidate if overlapping the dirty token range
+        if (entry_end > dirty_start_token && entry_start < dirty_end_token) {
+            *head_ptr = entry->next;
+            free(entry->lexical_goal);
+            free(entry);
+        } else {
+            // If strictly after the dirty token range, shift by delta_tokens
+            if (entry_start >= dirty_end_token && delta_tokens != 0) {
+                entry->token_index = (size_t)((ssize_t)entry->token_index + delta_tokens);
+            }
+            head_ptr = &entry->next;
+        }
+    }
+}
+
+static void textparser_memo_rollback(textparser_t handle, uint64_t seq)
+{
+    if (handle == nullptr) return;
+    textparser_memo_entry **head_ptr = &handle->grammar_memo;
+    while (*head_ptr != nullptr) {
+        textparser_memo_entry *entry = *head_ptr;
+        if (entry->seq > seq) {
+            *head_ptr = entry->next;
+            free(entry->lexical_goal);
+            free(entry);
+        } else {
+            head_ptr = &entry->next;
+        }
+    }
+}
+
+static const textparser_memo_entry *textparser_memo_lookup(
+    textparser_t handle,
+    int production_id,
+    size_t token_index,
+    uint32_t context_hash,
+    const char *lexical_goal)
+{
+    if (handle == nullptr) return nullptr;
+    for (const textparser_memo_entry *e = handle->grammar_memo; e != nullptr; e = e->next) {
+        if (e->production_id == production_id &&
+            e->token_index == token_index &&
+            e->context_hash == context_hash) {
+            if ((e->lexical_goal == nullptr && lexical_goal == nullptr) ||
+                (e->lexical_goal != nullptr && lexical_goal != nullptr &&
+                 strcmp(e->lexical_goal, lexical_goal) == 0)) {
+                return e;
+            }
+        }
+    }
+    return nullptr;
+}
+
+static void textparser_memo_store(
+    textparser_t handle,
+    int production_id,
+    size_t token_index,
+    uint32_t context_hash,
+    const char *lexical_goal,
+    const textparser_match_result *result,
+    size_t source_length)
+{
+    if (handle == nullptr || result == nullptr) return;
+    textparser_memo_entry *entry = malloc(sizeof(*entry));
+    if (entry == nullptr) return;
+    entry->production_id = production_id;
+    entry->token_index = token_index;
+    entry->context_hash = context_hash;
+    entry->lexical_goal = lexical_goal ? strdup(lexical_goal) : nullptr;
+    entry->result = *result;
+    entry->source_length = source_length;
+    entry->seq = ++handle->next_memo_seq;
+    entry->next = handle->grammar_memo;
+    handle->grammar_memo = entry;
+}
+
+static bool textparser_is_memoizable_production(const textparser_production *production)
+{
+    if (production == nullptr || production->name == nullptr) return false;
+    const char *n = production->name;
+    return (strncmp(n, "Statement", 9) == 0 ||
+            strncmp(n, "Declaration", 11) == 0 ||
+            strcmp(n, "ClassElement") == 0 ||
+            strcmp(n, "TypeMember") == 0 ||
+            strcmp(n, "FunctionDeclaration") == 0 ||
+            strcmp(n, "VariableStatement") == 0 ||
+            strcmp(n, "ExportDeclaration") == 0 ||
+            strcmp(n, "ImportDeclaration") == 0);
+}
+
 EXPORT_TEXTPARSER void textparser_speculate_begin(
     textparser_t handle,
     void **out_checkpoint)
@@ -6049,6 +6233,7 @@ EXPORT_TEXTPARSER void textparser_speculate_begin(
     cp->diagnostic_count = handle->diagnostic_count;
     cp->diagnostics = textparser_clone_diagnostics(handle->diagnostics, cp->diagnostic_count);
     if (cp->diagnostic_count != 0 && cp->diagnostics == nullptr) goto fail;
+    cp->memo_seq = handle->next_memo_seq;
 
     handle->parser.speculation_depth++;
     *out_checkpoint = cp;
@@ -6113,6 +6298,7 @@ EXPORT_TEXTPARSER void textparser_speculate_rollback(
     handle->parser.recovery_depth = cp->recovery_depth;
     handle->parser.has_previous_token = cp->has_previous_token;
     handle->parser.previous_token = cp->previous_token;
+    textparser_memo_rollback(handle, cp->memo_seq);
     textparser_checkpoint_free(cp);
 }
 
@@ -8068,6 +8254,21 @@ static textparser_match_result textparser_parse_production(
     }
     const textparser_production *production = textparser_find_production(executor, production_id);
     if (production == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+
+    bool can_memoize = textparser_is_memoizable_production(production);
+    uint32_t ctx_hash = 0;
+    size_t start_token_idx = executor->handle->parser.token_index;
+    if (can_memoize) {
+        ctx_hash = textparser_hash_contexts(executor->handle->contexts);
+        const textparser_memo_entry *cached = textparser_memo_lookup(
+            executor->handle, production_id, start_token_idx, ctx_hash, executor->handle->lexical_goal);
+        if (cached != nullptr) {
+            executor->handle->parser.token_index += cached->result.consumed_tokens;
+            executor->handle->parser.source_offset += cached->source_length;
+            return cached->result;
+        }
+    }
+
     size_t event_start = executor->handle->parser.source_offset;
     executor->recursion_depth++;
     textparser_match_result result;
@@ -8236,6 +8437,11 @@ static textparser_match_result textparser_parse_production(
                     production->commit_handler, &event) != 0)
                 result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
         }
+    }
+    if (can_memoize && result.status == TEXTPARSER_MATCH_OK) {
+        size_t src_len = executor->handle->parser.source_offset - event_start;
+        textparser_memo_store(executor->handle, production_id, start_token_idx,
+                              ctx_hash, executor->handle->lexical_goal, &result, src_len);
     }
     executor->recursion_depth--;
     return result;
