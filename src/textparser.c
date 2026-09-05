@@ -561,14 +561,12 @@ static textparser_token_item *textparser_alloc_token(struct textparser_handle *h
             handle->current_chunk_index++;
             handle->current_chunk = handle->chunks[handle->current_chunk_index];
             handle->current_chunk_used = 0;
-            memset(handle->current_chunk, 0, handle->chunk_size);
         } else {
             void *new_chunk = malloc(handle->chunk_size);
             if (new_chunk == nullptr) {
                 handle->error = "Can't allocate memory!";
                 return nullptr;
             }
-            memset(new_chunk, 0, handle->chunk_size);
 
             if (handle->chunk_count >= handle->chunk_capacity) {
                 size_t new_capacity = handle->chunk_capacity == 0 ? 4 : handle->chunk_capacity * 2;
