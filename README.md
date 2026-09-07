@@ -1,11 +1,11 @@
 # textparser 🚀
 
-[![Language: C](https://shields.io)](https://wikipedia.org)
-[![Language: Rust](https://shields.io)](https://rust-lang.org)
-[![Language: Python](https://shields.io)](https://python.org)
-[![Language: Java](https://shields.io)](https://java.com)
-[![License: LGPL v3](https://shields.io)](https://gnu.org)
-[![Arch Linux AUR](https://shields.io)](https://archlinux.org)
+[![Language: C](https://img.shields.io/badge/Language-C-blue?logo=c&logoColor=white)](https://en.wikipedia.org/wiki/C_(programming_language))
+[![Language: Rust](https://img.shields.io/badge/Language-Rust-orange?logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![Language: Python](https://img.shields.io/badge/Language-Python-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![Language: Java](https://img.shields.io/badge/Language-Java-ED8B00?logo=openjdk&logoColor=white)](https://www.java.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Arch Linux AUR](https://img.shields.io/badge/Arch_Linux-AUR-1793D1?logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/textparser)
 
 A lightning-fast, multi-language **Abstract Syntax Tree (AST) generator** and syntax highlighter. Architected with a high-performance **C core engine** powered by **PCRE2** and **JSON-C**, `textparser` provides native, zero-overhead bindings and ports for **Rust**, **Python**, **Java**, and **WebAssembly (WASM)**.
 
@@ -81,13 +81,13 @@ sudo ninja install
 ### 💻 CLI Usage (AST Generation)
 Generate a clean, structured JSON representation of a source file's AST:
 ```bash
-textparser --lang c --file main.c --format json
+textparser main.c --json
 ```
 
 ### 🎨 Colorized Cat (`ccat`)
 View your code with automatic, high-performance syntax highlighting in the terminal:
 ```bash
-textparser --ccat main.rs
+ccat main.rs
 ```
 
 ---
@@ -104,6 +104,6 @@ Contributions are what make the open-source community an amazing place to learn,
 
 ## 📄 License
 
-This project is licensed under the **GNU Lesser General Public License v3.0 (LGPL-3.0)** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 Developed with ❤️ by [Boris Barbulovski (bokic)](https://github.com).
