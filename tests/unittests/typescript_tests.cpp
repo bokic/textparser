@@ -811,6 +811,7 @@ TEST_F(TypeScriptExpressionFixture, validates_class_modifiers_and_accessor_shape
         "  static static duplicate() {}\n"
         "  readonly method() {}\n"
         "  accessor wrong() {}\n"
+        "  readonly accessor conflict = 1;\n"
         "  async field: number;\n"
         "  get read(value: number) {}\n"
         "  set write() {}\n"
@@ -818,11 +819,11 @@ TEST_F(TypeScriptExpressionFixture, validates_class_modifiers_and_accessor_shape
         "  get generic<T>() {}\n"
         "}"), nullptr);
     const char *codes[] = {
-        "TS1028", "TS1030", "TS1024", "TS1031", "TS1042",
+        "TS1028", "TS1030", "TS1024", "TS1031", "TS1243", "TS1042",
         "TS1054", "TS1049", "TS1095", "TS1094",
     };
-    ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 9u);
-    for (size_t i = 0; i < 9; i++) {
+    ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 10u);
+    for (size_t i = 0; i < 10; i++) {
         textparser_diagnostic diagnostic{};
         ASSERT_EQ(textparser_get_diagnostic(parser.get(), i, &diagnostic), 0);
         EXPECT_STREQ(diagnostic.code, codes[i]);

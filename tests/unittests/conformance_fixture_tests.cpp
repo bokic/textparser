@@ -505,4 +505,14 @@ TEST_F(TypeScriptLegalityRegression, template_literal_types) {
     expect_clean("type T = `plain`;");
 }
 
+TEST_F(TypeScriptLegalityRegression, accessor_cannot_be_combined_with_readonly) {
+    // TS1243: 'accessor' modifier cannot be used with 'readonly' modifier.
+    expect_one("class C { readonly accessor x = 2; }", "TS1243");
+    expect_one("class C { override readonly accessor x = 2; }", "TS1243");
+    expect_one("class C { accessor readonly x = 2; }", "TS1243");
+    expect_clean("class C { accessor x = 2; }");
+    expect_clean("class C { override accessor x = 2; }");
+    expect_clean("class C { readonly x = 2; }");
+}
+
 } // namespace

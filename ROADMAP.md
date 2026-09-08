@@ -40,9 +40,9 @@
   pure renaming (the grammar emits TypeScript-compiler AST kinds plus engine
   scaffolding nodes `Repeat`/`Sequence`/`TypeContext`, unconditionally
   materialized type combinators, and operator-named Pratt roots; see
-  `tests/treesitter_compare/README.md`). Two textparser defects were found
-  (see `BUGS.md`): missing `TS1243` `accessor`+`readonly` legality and JSX
-  attribute values that are arrow expressions.
+  `tests/treesitter_compare/README.md`). One remaining textparser defect
+  tracks in `BUGS.md`: JSX attribute values that are arrow expressions
+  (TS1243 `accessor`+`readonly` legality has been resolved).
 
 ## 1.3 (Cleanup)
 

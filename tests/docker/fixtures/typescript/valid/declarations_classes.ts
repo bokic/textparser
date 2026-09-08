@@ -41,7 +41,6 @@ export class Derived extends Base {
     declare field: number;
     declare readonly declaredOnly: string;
     accessor auto: number = 1;
-    override readonly accessor autoAccessor = 2;
 }
 
 export class WithIndexSignature {

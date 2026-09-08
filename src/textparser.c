@@ -7182,9 +7182,16 @@ static void textparser_typescript_check_legality_nodes(
         } else if (kind != nullptr && strcmp(kind, "PropertyDeclaration") == 0) {
             const textparser_node *async_modifier =
                 textparser_typescript_header_token(item->child, "AsyncKeyword");
+            const textparser_node *readonly_modifier =
+                textparser_typescript_header_token(item->child, "ReadonlyKeyword");
+            const textparser_node *accessor_modifier =
+                textparser_typescript_header_token(item->child, "AccessorKeyword");
             if (async_modifier != nullptr)
                 textparser_typescript_report_modifier_diagnostic(handle, async_modifier, "TS1042",
                     "cannot be used here.");
+            if (accessor_modifier != nullptr && readonly_modifier != nullptr)
+                textparser_typescript_report_node_diagnostic(handle, accessor_modifier, "TS1243",
+                    "'accessor' modifier cannot be used with 'readonly' modifier.");
         }
 
         if (kind != nullptr && strcmp(kind, "MethodDeclaration") == 0) {

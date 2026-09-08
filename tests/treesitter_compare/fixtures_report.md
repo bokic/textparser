@@ -5,7 +5,7 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 | fixture | tp status | tp diagnostics | tp rejects | ts rejects | parity |
 |---|---|---|---|---|---|
 | declaration_file.d.ts (valid) | OK | 0 | False | False | OK |
-| declarations_classes.ts (valid) | OK | 0 | False | True | MISMATCH |
+| declarations_classes.ts (valid) | OK | 0 | False | False | OK |
 | destructuring_patterns.ts (valid) | OK | 0 | False | False | OK |
 | expressions_calls_templates.ts (valid) | OK | 0 | False | False | OK |
 | expressions_literals.ts (valid) | OK | 0 | False | False | OK |
@@ -26,10 +26,10 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 
 | textparser kind | count | | tree-sitter kind | count |
 |---|---|---|---|---|
-| Identifier | 983 | | identifier | 801 |
-| Sequence | 612 | | tok:; | 453 |
-| Semicolon | 440 | | tok:= | 328 |
-| Assign | 325 | | tok:: | 257 |
+| Identifier | 982 | | identifier | 801 |
+| Sequence | 611 | | tok:; | 452 |
+| Semicolon | 439 | | tok:= | 327 |
+| Assign | 324 | | tok:: | 257 |
 | PostfixType | 312 | | variable_declarator | 243 |
 | IntersectionType | 309 | | lexical_declaration | 242 |
 | ConditionalType | 293 | | tok:} | 226 |
@@ -37,16 +37,16 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 | Colon | 248 | | tok:{ | 212 |
 | VariableDeclaration | 241 | | tok:) | 194 |
 | VariableDeclarationList | 241 | | predefined_type | 191 |
-| VariableStatement | 240 | | property_identifier | 189 |
+| VariableStatement | 240 | | property_identifier | 187 |
 | ConstKeyword | 223 | | tok:( | 186 |
-| Repeat | 192 | | type_annotation | 185 |
-| TypeContext | 188 | | number | 156 |
+| Repeat | 191 | | type_annotation | 185 |
+| TypeContext | 188 | | number | 155 |
 | LBrace | 186 | | tok:, | 151 |
 | RBrace | 186 | | tok: | 138 |
 | LParen | 183 | | type_identifier | 130 |
 | RParen | 183 | | formal_parameters | 103 |
 | Comma | 150 | | tok:number | 90 |
-| NumericLiteral | 150 | | statement_block | 80 |
+| NumericLiteral | 149 | | statement_block | 80 |
 | TypeAnnotation | 139 | | tok:] | 78 |
 | NumberKeyword | 88 | | tok:[ | 77 |
 | BindingParameterList | 80 | | string | 72 |
@@ -73,8 +73,8 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 | BasePrimaryExpression | 37 | | literal_type | 29 |
 | ObjectLiteralBody | 35 | | return_statement | 29 |
 | ExportedDeclaration | 34 | | tok:function | 29 |
-| ClassElement | 32 | | tok:return | 29 |
-| Dot | 32 | | array | 25 |
+| Dot | 32 | | tok:return | 29 |
+| ClassElement | 31 | | array | 25 |
 | JSXOpen | 31 | | tok:... | 24 |
 | BindingElement | 30 | | tok:=> | 24 |
 | FunctionKeyword | 29 | | tok:let | 24 |
@@ -104,35 +104,35 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 | JSXExpressionStart | 19 | | union_type | 16 |
 | JSXText | 19 | | ambient_declaration | 15 |
 | Multiply | 18 | | augmented_assignment_expression | 15 |
-| Capture | 17 | | public_field_definition | 15 |
-| DeclareKeyword | 17 | | tok:? | 15 |
-| JSXExpressionContainer | 17 | | accessibility_modifier | 14 |
-| JSXPairedElement | 17 | | class_declaration | 14 |
-| BitOr | 16 | | object_type | 14 |
+| Capture | 17 | | tok:? | 15 |
+| DeclareKeyword | 17 | | accessibility_modifier | 14 |
+| JSXExpressionContainer | 17 | | class_declaration | 14 |
+| JSXPairedElement | 17 | | object_type | 14 |
+| BitOr | 16 | | public_field_definition | 14 |
 | ImportKeyword | 16 | | template_string | 14 |
 | ParameterList | 16 | | tok:${ | 14 |
 | Question | 16 | | unary_expression | 14 |
-| ArrayBindingPattern | 15 | | ERROR | 13 |
-| ClassBody | 15 | | arrow_function | 13 |
-| ClassKeyword | 15 | | jsx_text | 13 |
-| ArrowBody | 13 | | rest_pattern | 13 |
-| ClassDeclaration | 13 | | tok:from | 13 |
+| ArrayBindingPattern | 15 | | arrow_function | 13 |
+| ClassBody | 15 | | jsx_text | 13 |
+| ClassKeyword | 15 | | rest_pattern | 13 |
+| ArrowBody | 13 | | tok:from | 13 |
+| ClassDeclaration | 13 | | ERROR | 12 |
 | FromKeyword | 13 | | tok:as | 12 |
-| ObjectMethodDeclaration | 13 | | tok:readonly | 12 |
-| TemplateHead | 13 | | array_type | 11 |
-| TemplateTail | 13 | | assignment_expression | 11 |
-| AsKeyword | 12 | | function_type | 11 |
-| PropertyDeclaration | 12 | | import_statement | 11 |
-| ReadonlyKeyword | 12 | | jsx_self_closing_element | 11 |
-| SourceFile | 12 | | method_signature | 11 |
-| ThisKeyword | 12 | | pair_pattern | 11 |
-| TypeParameterDeclaration | 12 | | tok:/> | 11 |
-| TypeSuffix | 12 | | tok:?. | 11 |
-| BooleanKeyword | 11 | | tok:boolean | 11 |
-| FunctionType | 11 | | type_arguments | 11 |
-| JSXSelfClosingElement | 11 | | interface_body | 10 |
-| JSXSelfClosingEnd | 11 | | interface_declaration | 10 |
-| OptionalChain | 11 | | spread_element | 10 |
+| ObjectMethodDeclaration | 13 | | array_type | 11 |
+| TemplateHead | 13 | | assignment_expression | 11 |
+| TemplateTail | 13 | | function_type | 11 |
+| AsKeyword | 12 | | import_statement | 11 |
+| SourceFile | 12 | | jsx_self_closing_element | 11 |
+| ThisKeyword | 12 | | method_signature | 11 |
+| TypeParameterDeclaration | 12 | | pair_pattern | 11 |
+| TypeSuffix | 12 | | tok:/> | 11 |
+| BooleanKeyword | 11 | | tok:?. | 11 |
+| FunctionType | 11 | | tok:boolean | 11 |
+| JSXSelfClosingElement | 11 | | tok:readonly | 11 |
+| JSXSelfClosingEnd | 11 | | type_arguments | 11 |
+| OptionalChain | 11 | | interface_body | 10 |
+| PropertyDeclaration | 11 | | interface_declaration | 10 |
+| ReadonlyKeyword | 11 | | spread_element | 10 |
 | TypeList | 11 | | this | 10 |
 | AsyncKeyword | 10 | | tok:interface | 10 |
 | ImportDeclaration | 10 | | import_clause | 9 |
@@ -189,22 +189,22 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 | TemplateLiteralType | 5 | | tok:typeof | 5 |
 | TupleType | 5 | | tuple_type | 5 |
 | TypeofKeyword | 5 | | conditional_type | 4 |
-| AccessorKeyword | 4 | | empty_statement | 4 |
-| ArrayBindingRestElement | 4 | | if_statement | 4 |
-| CaseClause | 4 | | internal_module | 4 |
-| DefaultExportDeclaration | 4 | | parenthesized_type | 4 |
-| IfKeyword | 4 | | private_property_identifier | 4 |
-| IfStatement | 4 | | subscript_expression | 4 |
-| LogicalOr | 4 | | tok:?? | 4 |
-| MethodSignature | 4 | | tok:if | 4 |
-| NullishCoalesce | 4 | | tok:of | 4 |
-| ObjectSpreadAssignment | 4 | | tok:private | 4 |
-| OfKeyword | 4 | | tok:public | 4 |
-| ParenthesizedType | 4 | | tok:|| | 4 |
-| PrivateIdentifier | 4 | | undefined | 4 |
-| PrivateKeyword | 4 | | update_expression | 4 |
-| PublicKeyword | 4 | | abstract_method_signature | 3 |
-| UndefinedKeyword | 4 | | continue_statement | 3 |
+| ArrayBindingRestElement | 4 | | empty_statement | 4 |
+| CaseClause | 4 | | if_statement | 4 |
+| DefaultExportDeclaration | 4 | | internal_module | 4 |
+| IfKeyword | 4 | | parenthesized_type | 4 |
+| IfStatement | 4 | | private_property_identifier | 4 |
+| LogicalOr | 4 | | subscript_expression | 4 |
+| MethodSignature | 4 | | tok:?? | 4 |
+| NullishCoalesce | 4 | | tok:if | 4 |
+| ObjectSpreadAssignment | 4 | | tok:of | 4 |
+| OfKeyword | 4 | | tok:private | 4 |
+| ParenthesizedType | 4 | | tok:public | 4 |
+| PrivateIdentifier | 4 | | tok:|| | 4 |
+| PrivateKeyword | 4 | | undefined | 4 |
+| PublicKeyword | 4 | | update_expression | 4 |
+| UndefinedKeyword | 4 | | abstract_method_signature | 3 |
+| AccessorKeyword | 3 | | continue_statement | 3 |
 | BigIntKeyword | 3 | | else_clause | 3 |
 | BitAnd | 3 | | enum_body | 3 |
 | BreakKeyword | 3 | | enum_declaration | 3 |
@@ -217,97 +217,96 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 | Increment | 3 | | statement_identifier | 3 |
 | JSXFragment | 3 | | switch_body | 3 |
 | ObjectKeyword | 3 | | switch_statement | 3 |
-| OverrideKeyword | 3 | | ternary_expression | 3 |
-| StaticKeyword | 3 | | tok:& | 3 |
-| SymbolKeyword | 3 | | tok:++ | 3 |
-| TypeOperatorOrPostfixType | 3 | | tok:continue | 3 |
-| TypeQuery | 3 | | tok:else | 3 |
-| WhileKeyword | 3 | | tok:enum | 3 |
-| AsyncArrowFunction | 2 | | tok:static | 3 |
-| BigIntLiteral | 2 | | tok:switch | 3 |
-| CatchClause | 2 | | tok:while | 3 |
-| CatchKeyword | 2 | | tok:with | 3 |
-| Exponent | 2 | | type_query | 3 |
-| ExportAllDeclaration | 2 | | abstract_class_declaration | 2 |
-| FalseKeyword | 2 | | as_expression | 2 |
-| GenericArrowFunction | 2 | | catch_clause | 2 |
-| ImportClause | 2 | | class_heritage | 2 |
-| InstanceofKeyword | 2 | | extends_clause | 2 |
-| KeyofKeyword | 2 | | false | 2 |
-| ModuleKeyword | 2 | | generator_function_declaration | 2 |
-| NamespaceImport | 2 | | import | 2 |
-| NeverKeyword | 2 | | import_alias | 2 |
+| StaticKeyword | 3 | | ternary_expression | 3 |
+| SymbolKeyword | 3 | | tok:& | 3 |
+| TypeOperatorOrPostfixType | 3 | | tok:++ | 3 |
+| TypeQuery | 3 | | tok:continue | 3 |
+| WhileKeyword | 3 | | tok:else | 3 |
+| AsyncArrowFunction | 2 | | tok:enum | 3 |
+| BigIntLiteral | 2 | | tok:static | 3 |
+| CatchClause | 2 | | tok:switch | 3 |
+| CatchKeyword | 2 | | tok:while | 3 |
+| Exponent | 2 | | tok:with | 3 |
+| ExportAllDeclaration | 2 | | type_query | 3 |
+| FalseKeyword | 2 | | abstract_class_declaration | 2 |
+| GenericArrowFunction | 2 | | as_expression | 2 |
+| ImportClause | 2 | | catch_clause | 2 |
+| InstanceofKeyword | 2 | | class_heritage | 2 |
+| KeyofKeyword | 2 | | extends_clause | 2 |
+| ModuleKeyword | 2 | | false | 2 |
+| NamespaceImport | 2 | | generator_function_declaration | 2 |
+| NeverKeyword | 2 | | import | 2 |
+| OverrideKeyword | 2 | | import_alias | 2 |
 | Remainder | 2 | | index_type_query | 2 |
 | RestBindingParameter | 2 | | module | 2 |
 | StrictEqual | 2 | | namespace_import | 2 |
 | StrictNotEqual | 2 | | object_assignment_pattern | 2 |
-| ThrowKeyword | 2 | | override_modifier | 2 |
-| ThrowStatement | 2 | | sequence_expression | 2 |
-| TryKeyword | 2 | | switch_default | 2 |
-| TryStatement | 2 | | this_type | 2 |
-| TypePredicate | 2 | | throw_statement | 2 |
-| WhileStatement | 2 | | tok:!== | 2 |
-| AnyKeyword | 1 | | tok:% | 2 |
-| AssertsKeyword | 1 | | tok:** | 2 |
-| BitAndAssign | 1 | | tok:=== | 2 |
-| BitNot | 1 | | tok:any | 2 |
-| BitOrAssign | 1 | | tok:catch | 2 |
-| BitXorAssign | 1 | | tok:instanceof | 2 |
-| CallSignature | 1 | | tok:keyof | 2 |
-| ClassStaticBlock | 1 | | tok:module | 2 |
-| ContinueKeyword | 1 | | tok:never | 2 |
-| ContinueStatement | 1 | | tok:object | 2 |
-| Decrement | 1 | | tok:override | 2 |
-| DefaultClassDeclaration | 1 | | tok:symbol | 2 |
-| DefaultFunctionDeclaration | 1 | | tok:throw | 2 |
-| DefaultInterfaceDeclaration | 1 | | tok:try | 2 |
-| DeferKeyword | 1 | | tok:unique symbol | 2 |
-| DeleteKeyword | 1 | | try_statement | 2 |
-| DivideAssign | 1 | | while_statement | 2 |
-| DoKeyword | 1 | | MISSING | 1 |
-| DoStatement | 1 | | asserts | 1 |
-| DynamicImportExpression | 1 | | call_signature | 1 |
-| ExponentAssign | 1 | | class | 1 |
-| ExportAsNamespaceDeclaration | 1 | | class_static_block | 1 |
-| ExportedImportEqualsDeclaration | 1 | | constraint | 1 |
-| FinallyClause | 1 | | do_statement | 1 |
-| FinallyKeyword | 1 | | extends_type_clause | 1 |
-| GreaterEqual | 1 | | finally_clause | 1 |
-| Hashbang | 1 | | hash_bang_line | 1 |
-| IdentifierArrowFunction | 1 | | import_require_clause | 1 |
-| ImportMetaExpression | 1 | | infer_type | 1 |
-| ImportType | 1 | | instantiation_expression | 1 |
-| InferKeyword | 1 | | labeled_statement | 1 |
-| InferType | 1 | | lookup_type | 1 |
-| IsKeyword | 1 | | mapped_type_clause | 1 |
-| LabeledStatement | 1 | | meta_property | 1 |
-| LeftShift | 1 | | namespace_export | 1 |
-| LeftShiftAssign | 1 | | nested_identifier | 1 |
-| LessEqual | 1 | | opting_type_annotation | 1 |
-| LiteralType | 1 | | optional_type | 1 |
-| LogicalAndAssign | 1 | | rest_type | 1 |
-| LogicalOrAssign | 1 | | satisfies_expression | 1 |
-| MappedType | 1 | | tok:  | 1 |
-| MinusAssign | 1 | | tok: (escape_sequence)  | 1 |
-| MultiplyAssign | 1 | | tok: (escape_sequence) (escape_sequence)  | 1 |
-| NotEqual | 1 | | tok: (string_fragment) (escape_sequence) (string_fragment)  | 1 |
-| NullishCoalesceAssign | 1 | | tok: (string_fragment) (escape_sequence) (string_fragment) (escape_sequence) (string_fragment) (escape_sequence) (string_fragment) (escape_sequence) (string_fragment) (escape_sequence)  | 1 |
-| PlusAssign | 1 | | tok:!= | 1 |
-| RemainderAssign | 1 | | tok:%= | 1 |
-| RequireKeyword | 1 | | tok:&&= | 1 |
-| RightShift | 1 | | tok:&= | 1 |
-| RightShiftAssign | 1 | | tok:**= | 1 |
-| SatisfiesKeyword | 1 | | tok:*= | 1 |
-| SwitchKeyword | 1 | | tok:+= | 1 |
-| SwitchStatement | 1 | | tok:-- | 1 |
-| TemplateMiddle | 1 | | tok:-= | 1 |
-| UniqueKeyword | 1 | | tok:/= | 1 |
-| UnsignedRightShift | 1 | | tok:<< | 1 |
-| UnsignedRightShiftAssign | 1 | | tok:<<= | 1 |
-| VarKeyword | 1 | | tok:<= | 1 |
-| WithKeyword | 1 | | tok:>= | 1 |
-| WithStatement | 1 | | tok:>> | 1 |
-| | | | tok:>>= | 1 |
+| ThrowKeyword | 2 | | sequence_expression | 2 |
+| ThrowStatement | 2 | | switch_default | 2 |
+| TryKeyword | 2 | | this_type | 2 |
+| TryStatement | 2 | | throw_statement | 2 |
+| TypePredicate | 2 | | tok:!== | 2 |
+| WhileStatement | 2 | | tok:% | 2 |
+| AnyKeyword | 1 | | tok:** | 2 |
+| AssertsKeyword | 1 | | tok:=== | 2 |
+| BitAndAssign | 1 | | tok:any | 2 |
+| BitNot | 1 | | tok:catch | 2 |
+| BitOrAssign | 1 | | tok:instanceof | 2 |
+| BitXorAssign | 1 | | tok:keyof | 2 |
+| CallSignature | 1 | | tok:module | 2 |
+| ClassStaticBlock | 1 | | tok:never | 2 |
+| ContinueKeyword | 1 | | tok:object | 2 |
+| ContinueStatement | 1 | | tok:symbol | 2 |
+| Decrement | 1 | | tok:throw | 2 |
+| DefaultClassDeclaration | 1 | | tok:try | 2 |
+| DefaultFunctionDeclaration | 1 | | tok:unique symbol | 2 |
+| DefaultInterfaceDeclaration | 1 | | try_statement | 2 |
+| DeferKeyword | 1 | | while_statement | 2 |
+| DeleteKeyword | 1 | | MISSING | 1 |
+| DivideAssign | 1 | | asserts | 1 |
+| DoKeyword | 1 | | call_signature | 1 |
+| DoStatement | 1 | | class | 1 |
+| DynamicImportExpression | 1 | | class_static_block | 1 |
+| ExponentAssign | 1 | | constraint | 1 |
+| ExportAsNamespaceDeclaration | 1 | | do_statement | 1 |
+| ExportedImportEqualsDeclaration | 1 | | extends_type_clause | 1 |
+| FinallyClause | 1 | | finally_clause | 1 |
+| FinallyKeyword | 1 | | hash_bang_line | 1 |
+| GreaterEqual | 1 | | import_require_clause | 1 |
+| Hashbang | 1 | | infer_type | 1 |
+| IdentifierArrowFunction | 1 | | instantiation_expression | 1 |
+| ImportMetaExpression | 1 | | labeled_statement | 1 |
+| ImportType | 1 | | lookup_type | 1 |
+| InferKeyword | 1 | | mapped_type_clause | 1 |
+| InferType | 1 | | meta_property | 1 |
+| IsKeyword | 1 | | namespace_export | 1 |
+| LabeledStatement | 1 | | nested_identifier | 1 |
+| LeftShift | 1 | | opting_type_annotation | 1 |
+| LeftShiftAssign | 1 | | optional_type | 1 |
+| LessEqual | 1 | | override_modifier | 1 |
+| LiteralType | 1 | | rest_type | 1 |
+| LogicalAndAssign | 1 | | satisfies_expression | 1 |
+| LogicalOrAssign | 1 | | tok:  | 1 |
+| MappedType | 1 | | tok: (escape_sequence)  | 1 |
+| MinusAssign | 1 | | tok: (escape_sequence) (escape_sequence)  | 1 |
+| MultiplyAssign | 1 | | tok: (string_fragment) (escape_sequence) (string_fragment)  | 1 |
+| NotEqual | 1 | | tok: (string_fragment) (escape_sequence) (string_fragment) (escape_sequence) (string_fragment) (escape_sequence) (string_fragment) (escape_sequence) (string_fragment) (escape_sequence)  | 1 |
+| NullishCoalesceAssign | 1 | | tok:!= | 1 |
+| PlusAssign | 1 | | tok:%= | 1 |
+| RemainderAssign | 1 | | tok:&&= | 1 |
+| RequireKeyword | 1 | | tok:&= | 1 |
+| RightShift | 1 | | tok:**= | 1 |
+| RightShiftAssign | 1 | | tok:*= | 1 |
+| SatisfiesKeyword | 1 | | tok:+= | 1 |
+| SwitchKeyword | 1 | | tok:-- | 1 |
+| SwitchStatement | 1 | | tok:-= | 1 |
+| TemplateMiddle | 1 | | tok:/= | 1 |
+| UniqueKeyword | 1 | | tok:<< | 1 |
+| UnsignedRightShift | 1 | | tok:<<= | 1 |
+| UnsignedRightShiftAssign | 1 | | tok:<= | 1 |
+| VarKeyword | 1 | | tok:>= | 1 |
+| WithKeyword | 1 | | tok:>> | 1 |
+| WithStatement | 1 | | tok:>>= | 1 |
 | | | | tok:>>> | 1 |
 | | | | tok:>>>= | 1 |
 | | | | tok:?: | 1 |
@@ -321,6 +320,7 @@ textparser statuses/diagnostics come from the committed golden CSTs (`tests/dock
 | | | | tok:infer | 1 |
 | | | | tok:is | 1 |
 | | | | tok:meta | 1 |
+| | | | tok:override | 1 |
 | | | | tok:require | 1 |
 | | | | tok:satisfies | 1 |
 | | | | tok:var | 1 |

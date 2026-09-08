@@ -58,23 +58,14 @@ is intentionally not compared.
 
 * All 5 invalid fixtures under `tests/docker/fixtures/typescript/invalid` are
   rejected by both parsers.
-* 10 of 12 valid fixtures parse cleanly under both.
-* Two committed *valid* fixtures diverge. Both were checked against real
-  `tsc 7.0.2`:
-
-  1. `declarations_classes.ts` contains
-     `override readonly accessor autoAccessor = 2;`. `tsc` rejects it with
-     **TS1243** (`'accessor' modifier cannot be used with 'readonly'
-     modifier`) and tree-sitter-typescript also emits an ERROR node - so this
-     is a **textparser over-acceptance**: the grammar accepts a modifier
-     combination that both references reject (missing TS1243 legality
-     diagnostic; see `BUGS.md`). The fixture/golden pair must move that line to
-     the invalid corpus once TS1243 lands.
-  2. `modules_imports.ts` contains `import defer * as ns from "./deferred";`.
-     `tsc 7.0.2` reports only the semantic module-not-found error (syntax is
-     fine) and textparser accepts it; current tree-sitter-typescript cannot
-     parse `import defer`, so this is a **tree-sitter grammar lag**, not a
-     textparser bug.
+* 11 of 12 valid fixtures parse cleanly under both.
+* The only valid fixture divergence against tree-sitter is:
+  `modules_imports.ts` contains `import defer * as ns from "./deferred";`.
+  `tsc 7.0.2` reports only the semantic module-not-found error (syntax is
+  fine) and textparser accepts it; current tree-sitter-typescript cannot
+  parse `import defer`, so this is a **tree-sitter grammar lag**, not a
+  textparser bug. (A previous over-acceptance in `declarations_classes.ts`
+  with `override readonly accessor` was fixed under **TS1243**).
 
 * The 26-construct corpus (`constructs_report.md`) is at parity for all
   constructs except the same two lines above plus one genuine textparser gap:
