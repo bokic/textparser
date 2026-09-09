@@ -74,6 +74,22 @@ ninja
 sudo ninja install
 ```
 
+### Windows builds
+
+The Windows scripts use LLVM/Clang and Ninja. Build dependencies and the
+project for one architecture, or omit the architecture to build both `x64`
+and `arm64`:
+
+```bat
+cd windows
+build_deps.bat [x64|arm64]
+build.bat [x64|arm64]
+build_zip.bat [x64|arm64]
+```
+
+Architecture-specific binaries and ZIP archives are written separately, for
+example to `bin\arm64` and `windows\textparser-<version>-arm64.zip`.
+
 ---
 
 ## 💡 Quick Usage Examples
