@@ -7113,6 +7113,24 @@ static bool textparser_typescript_has_declared_ancestor(const textparser_node *n
     return false;
 }
 
+static bool textparser_typescript_is_function_expression_node(const textparser_node *node)
+{
+    /* The grammar parses `function`/`async function` expressions under the
+       BasePrimaryExpression choice (the FunctionHead lexical goal flattens the
+       construct instead of materialising a FunctionExpression CST node).  A
+       `function` keyword that begins the construct - i.e. is a direct child -
+       is therefore the structural marker that this BasePrimaryExpression opens
+       a function body for return/await/yield legality. */
+    if (node == nullptr || node->cst_kind == nullptr ||
+        strcmp(node->cst_kind, "BasePrimaryExpression") != 0)
+        return false;
+    for (const textparser_node *child = node->child; child != nullptr; child = child->next) {
+        if (child->cst_kind != nullptr && strcmp(child->cst_kind, "FunctionKeyword") == 0)
+            return true;
+    }
+    return false;
+}
+
 static void textparser_typescript_check_legality_nodes(
     textparser_t handle,
     const textparser_node *node,
@@ -7269,7 +7287,8 @@ static void textparser_typescript_check_legality_nodes(
              strcmp(kind, "MethodDeclaration") == 0 ||
              strcmp(kind, "ObjectMethodDeclaration") == 0 ||
              strcmp(kind, "ObjectAccessorDeclaration") == 0 ||
-             strcmp(kind, "ConstructorDeclaration") == 0);
+             strcmp(kind, "ConstructorDeclaration") == 0) ||
+            textparser_typescript_is_function_expression_node(item);
         bool static_block_boundary = kind != nullptr &&
             strcmp(kind, "ClassStaticBlock") == 0;
         if (static_block_boundary) {
@@ -7777,6 +7796,17 @@ static textparser_match_result textparser_parse_pratt(
         production->child_count == 2 ? production->children[1] : -1,
         production->minimum_precedence, 0);
     if (result.status == TEXTPARSER_MATCH_OK) {
+        /* A successfully completed expression is a cut boundary.  The commit
+           flags raised while disambiguating inside the expression (arrow
+           bodies, call arguments, member/index suffixes, array/object literal
+           openers, ...) must not leak into the enclosing construct.  If they
+           did, a later failure *after* the finished expression would be
+           reported as a hard committed error and structural backtracking that
+           legitimately re-classifies the enclosing production would be
+           suppressed (e.g. choosing the paired JSX element form once a
+           self-closing tag attempt has consumed attribute-value expressions
+           such as arrow functions or call expressions). */
+        result.committed = false;
         textparser_set_lexical_goal(executor->handle, saved_goal);
         textparser_speculate_commit(executor->handle, checkpoint);
     } else {

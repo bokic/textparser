@@ -43,7 +43,7 @@ Generated artifacts:
 * `fixtures_report.md` - parity matrix over
   `tests/docker/fixtures/typescript/{valid,invalid}` (17 files) plus a
   node-kind census for each parser (committed for reference, regenerable).
-* `constructs_report.md` - 26 single-construct sources with the full CST of
+* `constructs_report.md` - 28 single-construct sources with the full CST of
   both parsers side by side (committed for reference, regenerable).
 * `summary.json` - kind-count summary.
 * `work/*.ts`, `work/*.tp.txt`, `work/*.ts.txt` - per-file raw outputs
@@ -67,12 +67,15 @@ is intentionally not compared.
   textparser bug. (A previous over-acceptance in `declarations_classes.ts`
   with `override readonly accessor` was fixed under **TS1243**).
 
-* The 26-construct corpus (`constructs_report.md`) is at parity for all
-  constructs except the same two lines above plus one genuine textparser gap:
-  **an arrow function used directly as a JSX/TSX attribute value**,
-  e.g. `<div onClick={() => go()} />`, fails in textparser with `TS1005`
-  (')' expected at the closing brace). `tsc` and tree-sitter both accept it.
-  See `BUGS.md`.
+* The 28-construct corpus (`constructs_report.md`) is at parity for all
+  constructs except the same tree-sitter `import defer` line above. The earlier
+  textparser acceptance gap (an arrow function used directly as a JSX/TSX
+  attribute value, e.g. `<div onClick={() => go()} />`, previously failing with
+  `TS1005`) is closed: attribute expressions no longer poison the
+  self-closing/paired tag decision, and JSX expression containers track nested
+  braces so object-literal and arrow-block-body attribute values parse, and
+  `return`/`await`/`yield` legality inside flattened `function` expression
+  bodies matches `tsc`; no open textparser defects remain.
 
 ### Node kinds & tree shape
 

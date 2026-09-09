@@ -172,6 +172,8 @@
       "JSXSelfClosingEnd": {"regex": "/>", "popMode": true},
       "JSXExpressionStart": {"regex": "\\{", "pushMode": "JSXExpression"},
       "JSXExpressionEnd": {"regex": "\\}", "popMode": true},
+      "JSXExpressionLBrace": {"regex": "\\{", "pushMode": "JSXExpressionBlock"},
+      "JSXExpressionRBrace": {"regex": "\\}", "popMode": true},
       "JSXIdentifier": {"regex": "[$_\\p{L}\\p{Nl}][$_\\p{L}\\p{Nl}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}\\x{200C}\\x{200D}-]*", "textColor": "0x4ec9b0"},
       "JSXText": {"regex": "[^<{]+", "textColor": "0xd4d4d4"}
       ,"TemplateLBrace": {"regex": "\\{", "pushMode": "TemplateNestedExpression"}
@@ -243,7 +245,33 @@
           "StrictEqual", "StrictNotEqual", "UnsignedRightShift", "Exponent", "Increment", "Decrement",
           "Equal", "NotEqual", "LessEqual", "GreaterEqual", "LeftShift", "RightShift", "LogicalAnd", "LogicalOr",
           "NullishCoalesce", "OptionalChain", "PlusAssign", "MinusAssign", "MultiplyAssign", "DivideAssign", "RemainderAssign", "ExponentAssign", "LeftShiftAssign", "RightShiftAssign", "UnsignedRightShiftAssign", "BitAndAssign", "BitOrAssign", "BitXorAssign", "NullishCoalesceAssign", "LogicalAndAssign", "LogicalOrAssign", "Arrow", "Ellipsis",
-          "LParen", "RParen", "LBracket", "RBracket", "LBrace", "JSXExpressionEnd", "Dot", "Semicolon",
+          "LParen", "RParen", "LBracket", "RBracket", "JSXExpressionLBrace", "JSXExpressionEnd", "Dot", "Semicolon",
+          "Question", "Colon", "Comma", "Assign", "Plus", "Minus", "Multiply", "Slash", "Remainder",
+          "LessThan", "GreaterThan", "BitAnd", "BitOr", "BitXor", "LogicalNot", "BitNot", "At", "Identifier", "PrivateIdentifier"
+        ],
+        "trivia": ["WhitespaceTrivia", "LineCommentTrivia", "BlockCommentTrivia"]
+      },
+      "JSXExpressionBlock": {
+        "tokens": [
+          "TypeofKeyword", "VoidKeyword", "DeleteKeyword", "AwaitKeyword", "YieldKeyword", "InstanceofKeyword", "InKeyword", "OutKeyword",
+          "ThisKeyword", "TrueKeyword", "FalseKeyword", "NullKeyword", "UndefinedKeyword",
+          "AnyKeyword", "UnknownKeyword", "NeverKeyword", "NumberKeyword", "BigIntKeyword", "BooleanKeyword",
+          "StringKeyword", "SymbolKeyword", "ObjectKeyword", "KeyofKeyword", "ReadonlyKeyword", "UniqueKeyword",
+          "InferKeyword", "ExtendsKeyword", "NewKeyword", "AbstractKeyword", "IsKeyword", "AssertsKeyword", "AsKeyword", "SatisfiesKeyword", "ImportKeyword",
+          "IfKeyword", "ElseKeyword", "WhileKeyword", "DoKeyword", "ForKeyword", "OfKeyword", "ContinueKeyword",
+          "BreakKeyword", "ReturnKeyword", "ThrowKeyword", "SwitchKeyword", "CaseKeyword", "DefaultKeyword",
+          "TryKeyword", "CatchKeyword", "FinallyKeyword", "WithKeyword", "DebuggerKeyword",
+          "VarKeyword", "LetKeyword", "ConstKeyword", "FunctionKeyword", "ClassKeyword", "InterfaceKeyword",
+          "TypeKeyword", "EnumKeyword", "NamespaceKeyword", "ModuleKeyword", "DeclareKeyword", "AsyncKeyword",
+          "PublicKeyword", "PrivateKeyword", "ProtectedKeyword", "StaticKeyword", "OverrideKeyword", "AccessorKeyword",
+          "GetKeyword", "SetKeyword", "ConstructorKeyword", "ImplementsKeyword",
+          "ExportKeyword", "FromKeyword", "RequireKeyword", "GlobalKeyword", "AssertKeyword", "DeferKeyword", "UsingKeyword",
+          "BigIntLiteral", "NumericLiteral", "StringLiteral", "NoSubstitutionTemplateLiteral", "TemplateHead",
+          "InvalidNumericLiteral", "UnterminatedStringLiteral", "UnterminatedTemplateLiteral", "InvalidIdentifier",
+          "StrictEqual", "StrictNotEqual", "UnsignedRightShift", "Exponent", "Increment", "Decrement",
+          "Equal", "NotEqual", "LessEqual", "GreaterEqual", "LeftShift", "RightShift", "LogicalAnd", "LogicalOr",
+          "NullishCoalesce", "OptionalChain", "PlusAssign", "MinusAssign", "MultiplyAssign", "DivideAssign", "RemainderAssign", "ExponentAssign", "LeftShiftAssign", "RightShiftAssign", "UnsignedRightShiftAssign", "BitAndAssign", "BitOrAssign", "BitXorAssign", "NullishCoalesceAssign", "LogicalAndAssign", "LogicalOrAssign", "Arrow", "Ellipsis",
+          "LParen", "RParen", "LBracket", "RBracket", "JSXExpressionLBrace", "JSXExpressionRBrace", "Dot", "Semicolon",
           "Question", "Colon", "Comma", "Assign", "Plus", "Minus", "Multiply", "Slash", "Remainder",
           "LessThan", "GreaterThan", "BitAnd", "BitOr", "BitXor", "LogicalNot", "BitNot", "At", "Identifier", "PrivateIdentifier"
         ],
@@ -261,6 +289,7 @@
     "goals": {
       "ExpressionStart": {
         "TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace",
         "Slash": "RegularExpressionLiteral",
         "LessThan": "JSXOpen",
         "AnyKeyword": "Identifier", "UnknownKeyword": "Identifier", "NeverKeyword": "Identifier",
@@ -278,6 +307,7 @@
       },
       "ExpressionContinuation": {
         "TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace",
         "AnyKeyword": "Identifier", "UnknownKeyword": "Identifier", "NeverKeyword": "Identifier",
         "NumberKeyword": "Identifier", "BigIntKeyword": "Identifier", "BooleanKeyword": "Identifier",
         "StringKeyword": "Identifier", "SymbolKeyword": "Identifier", "ObjectKeyword": "Identifier",
@@ -291,13 +321,19 @@
         "FromKeyword": "Identifier", "RequireKeyword": "Identifier", "GlobalKeyword": "Identifier", "AssertKeyword": "Identifier",
         "DeferKeyword": "Identifier", "UsingKeyword": "Identifier", "OutKeyword": "Identifier"
       },
-      "ObjectLiteral": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace"},
-      "FunctionHead": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace"},
-      "ArrowHead": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace"},
-      "ClassHead": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace"},
-      "Assertion": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace"},
+      "ObjectLiteral": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace"},
+      "FunctionHead": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace"},
+      "ArrowHead": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace"},
+      "ClassHead": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace"},
+      "Assertion": {"TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace"},
       "Type": {
         "TemplateLBrace": "LBrace", "TemplateNestedRBrace": "RBrace",
+        "JSXExpressionLBrace": "LBrace", "JSXExpressionRBrace": "RBrace",
         "RightShift": "GreaterThan", "UnsignedRightShift": "GreaterThan",
         "InterfaceKeyword": "Identifier", "TypeKeyword": "Identifier", "NamespaceKeyword": "Identifier", "ModuleKeyword": "Identifier",
         "DeclareKeyword": "Identifier", "AsyncKeyword": "Identifier", "PublicKeyword": "Identifier", "PrivateKeyword": "Identifier",

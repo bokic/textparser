@@ -34,15 +34,17 @@
   - Align token types and node names with standard Tree-sitter conventions (`primitive_type`, `type_identifier`, `identifier`, `compound_statement`, `parameter_list`, etc.) for seamless editor theme and query compatibility.
 - Differential verification against tree-sitter-typescript started
   (`tests/treesitter_compare/`): acceptance parity over the TypeScript fixture
-  corpus plus a node-kind / tree-shape comparison for a 26-construct corpus.
+  corpus plus a node-kind / tree-shape comparison for a 28-construct corpus.
   Result: TypeScript grammar coverage is at parity with tree-sitter-typescript
   for the corpus; the remaining CST work is a normalization/mapping layer, not
   pure renaming (the grammar emits TypeScript-compiler AST kinds plus engine
   scaffolding nodes `Repeat`/`Sequence`/`TypeContext`, unconditionally
   materialized type combinators, and operator-named Pratt roots; see
-  `tests/treesitter_compare/README.md`). One remaining textparser defect
-  tracks in `BUGS.md`: JSX attribute values that are arrow expressions
-  (TS1243 `accessor`+`readonly` legality has been resolved).
+  `tests/treesitter_compare/README.md`). JSX attribute values that are arrow
+  expressions, their commit-scoping during tag-kind backtracking, nested
+  braces inside JSX expression containers (object literals, arrow block
+  bodies), and `return`/`await`/`yield` legality inside flattened `function`
+  expression bodies are resolved; no open textparser defects remain.
 
 ## 1.3 (Cleanup)
 

@@ -363,8 +363,19 @@ protected:
     }
 
     void expect_clean(const char *source, const char *filename = "sample.ts") {
-        EXPECT_TRUE(codes(source, filename).empty())
-            << "Expected zero diagnostics for: " << source;
+        ParseOutcome outcome = parse_fixture(definition, source, filename);
+        std::vector<std::string> got;
+        for (const auto &r : outcome.diagnostics) got.push_back(r.code);
+        EXPECT_TRUE(got.empty())
+            << "Expected zero diagnostics for: " << source
+            << " got codes: [";
+        if (!got.empty()) {
+            for (size_t i = 0; i < outcome.diagnostics.size(); ++i) {
+                std::cerr << (i ? ", " : "") << outcome.diagnostics[i].code
+                    << "@" << outcome.diagnostics[i].start << "+" << outcome.diagnostics[i].length;
+            }
+            std::cerr << "]" << std::endl;
+        }
     }
 
     std::vector<std::string> expect_one(const char *source, const char *code) {
@@ -513,6 +524,63 @@ TEST_F(TypeScriptLegalityRegression, accessor_cannot_be_combined_with_readonly) 
     expect_clean("class C { accessor x = 2; }");
     expect_clean("class C { override accessor x = 2; }");
     expect_clean("class C { readonly x = 2; }");
+}
+
+TEST_F(TypeScriptLegalityRegression, jsx_attributes_with_arrow_functions) {
+    // Paired JSX elements with arrow function attributes followed by other attributes/children
+    expect_clean("const el = <div onClick={() => go()} disabled>Hi {name}</div>;", "sample.tsx");
+    expect_clean("<div a={() => 1}></div>;", "sample.tsx");
+    expect_clean("<div a={() => { return 1; }}>Hello</div>;", "sample.tsx");
+    expect_clean("<button onClick={(e) => handleClick(e)} disabled={false}>Click</button>;", "sample.tsx");
+    // Self-closing elements with arrow function attributes
+    expect_clean("<div onClick={() => go()} disabled />;", "sample.tsx");
+    expect_clean("<input onChange={(val) => update(val)} />", "sample.tsx");
+    // Nested elements and mixed attributes
+    expect_clean("<div fn={() => <span />} active><span>{() => 2}</span></div>;", "sample.tsx");
+
+    // Arrow-headed attribute values must not poison the paired/self-closing
+    // backtrack decision (commit points inside the attribute expression).
+    expect_clean("<div a={f()}></div>;", "sample.tsx");
+    expect_clean("<div a={a.b.c} />;", "sample.tsx");
+    expect_clean("<div a={arr[0]} b={f(1)}>x</div>;", "sample.tsx");
+}
+
+TEST_F(TypeScriptLegalityRegression, jsx_expression_containers_nest_braces) {
+    // Object literals and arrow block bodies appear inside JSX expression
+    // containers; their inner braces must not terminate the container early.
+    expect_clean("<div style={{ width: 100, color: \"red\" }} />;", "sample.tsx");
+    expect_clean("<div style={{ width: 100 }}>text</div>;", "sample.tsx");
+    expect_clean("<div>{ { nested: { deep: [1, 2] } } }</div>;", "sample.tsx");
+    expect_clean("<div a={() => { return 1; }}>Hello</div>;", "sample.tsx");
+    expect_clean("<button onClick={() => { handle(); }} />;", "sample.tsx");
+    expect_clean("<div>{() => { return <span>hi</span>; }}</div>;", "sample.tsx");
+    expect_clean("<div>{(() => ({ a: { b: 1 } }))()}</div>;", "sample.tsx");
+    expect_clean("const el = <ul>{items.map((item) => { return <li key={item.id}>{item.name}</li>; })}</ul>;", "sample.tsx");
+
+    // Multiple sibling containers and attributes after a nested-brace container
+    expect_clean("<div fn={() => { const x = { y: 1 }; return x.y; }} active><span>{() => 2}</span></div>;", "sample.tsx");
+}
+
+TEST_F(TypeScriptLegalityRegression, function_expression_bodies_are_return_scopes) {
+    // A `return` inside a `function` (or generator/async) expression body is
+    // legal: the flattened FunctionHead parse must still open a function body.
+    expect_clean("const f = function () { return 1; };");
+    expect_clean("const f = function named() { return 1; };");
+    expect_clean("const f = async function (x) { return x; };");
+    expect_clean("const g = function* () { yield 1; return 2; };");
+    expect_clean("let r = (function () { return 1; })();");
+    expect_clean("const outer = function () { return function () { return 1; }; };");
+    expect_clean("const arr = [function () { return 1; }, function () { return 2; }];");
+    expect_clean("foo(function () { return 1; });");
+
+    // Returns that genuinely escape any function body are still errors.
+    expect_one("return 2;", "TS1108");
+    expect_one("const x = 1;\nreturn x;", "TS1108");
+
+    // await/yield legality also uses the function boundary.
+    expect_one("const f = function () { await x; };", "TS1308");
+    expect_clean("const f = async function () { await x; };");
+    expect_clean("await x;");
 }
 
 } // namespace

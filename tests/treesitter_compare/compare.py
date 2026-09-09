@@ -50,6 +50,8 @@ CONSTRUCTS = {
     "call_chain": (".ts", "const v = obj.method(1, 2).prop[3];\n"),
     "template": (".ts", "const tpl = tag`hi ${name}!`;\n"),
     "jsx_attr": (".tsx", "const el = <div onClick={() => go()} disabled>Hi {name}</div>;\n"),
+    "jsx_attr_block": (".tsx", "<div a={() => { return 1; }}>Hello</div>;\n"),
+    "jsx_attr_object": (".tsx", "const el = <div style={{ width: 100 }}>Hi</div>;\n"),
     "dts_ambient": (".d.ts", "declare var gv: number;\ndeclare function gf(a: string): void;\n"),
     "new_expr": (".ts", "const made = new Foo.Bar(1);\n"),
 }

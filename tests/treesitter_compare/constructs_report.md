@@ -1753,13 +1753,60 @@ SourceFile
 const el = <div onClick={() => go()} disabled>Hi {name}</div>;
 ```
 
-- textparser status: `ERROR`
+- textparser status: `OK`
 - tree-sitter root error: `False`
 
 **textparser CST**
 
 ```
-(no cst)
+SourceFile
+    Repeat
+        VariableStatement
+            VariableDeclarationList
+                ConstKeyword
+                VariableDeclaration
+                    Identifier
+                    Sequence
+                        Assign
+                        BasePrimaryExpression
+                            JSXPairedElement
+                                JSXOpen
+                                Capture
+                                    JSXElementName
+                                        JSXIdentifier
+                                    Sequence
+                                        Repeat
+                                            JSXAttribute
+                                                JSXIdentifier
+                                                Sequence
+                                                    Assign
+                                                    JSXExpressionContainer
+                                                        JSXExpressionStart
+                                                        ParenthesizedArrowFunction
+                                                            BindingParameterList
+                                                                LParen
+                                                                RParen
+                                                            ArrowBody
+                                                                Arrow
+                                                                Arguments
+                                                                    Identifier
+                                                                    LParen
+                                                                    RParen
+                                                        JSXExpressionEnd
+                                            JSXAttribute
+                                                JSXIdentifier
+                                        JSXTagEnd
+                                        Repeat
+                                            JSXText
+                                            JSXExpressionContainer
+                                                JSXExpressionStart
+                                                Identifier
+                                                JSXExpressionEnd
+                                        JSXCloseStart
+                                        JSXElementName
+                                            JSXIdentifier
+                                        JSXClosingTagEnd
+            Semicolon
 ```
 
 **tree-sitter CST**
@@ -1799,6 +1846,188 @@ const el = <div onClick={() => go()} disabled>Hi {name}</div>;
                     "{"
                         identifier
                     "}"
+                    jsx_closing_element
+                    "</"
+                        identifier
+                    ">"
+        ";"
+```
+
+
+## jsx_attr_block.tsx
+
+```
+<div a={() => { return 1; }}>Hello</div>;
+```
+
+- textparser status: `OK`
+- tree-sitter root error: `False`
+
+**textparser CST**
+
+```
+SourceFile
+    Repeat
+        ExpressionStatement
+            BasePrimaryExpression
+                JSXPairedElement
+                    JSXOpen
+                    Capture
+                        JSXElementName
+                            JSXIdentifier
+                        Sequence
+                            Repeat
+                                JSXAttribute
+                                    JSXIdentifier
+                                    Sequence
+                                        Assign
+                                        JSXExpressionContainer
+                                            JSXExpressionStart
+                                            ParenthesizedArrowFunction
+                                                BindingParameterList
+                                                    LParen
+                                                    RParen
+                                                ArrowBody
+                                                    Arrow
+                                                    BlockStatement
+                                                        LBrace
+                                                        StatementList
+                                                            ReturnStatement
+                                                                ReturnKeyword
+                                                                Sequence
+                                                                    NumericLiteral
+                                                                Semicolon
+                                                        RBrace
+                                            JSXExpressionEnd
+                            JSXTagEnd
+                            Repeat
+                                JSXText
+                            JSXCloseStart
+                            JSXElementName
+                                JSXIdentifier
+                            JSXClosingTagEnd
+            Semicolon
+```
+
+**tree-sitter CST**
+
+```
+    program
+        expression_statement
+            jsx_element
+                jsx_opening_element
+                "<"
+                    identifier
+                    jsx_attribute
+                        property_identifier
+                    "="
+                        jsx_expression
+                        "{"
+                            arrow_function
+                                formal_parameters
+                                "("
+                                ")"
+                            "=>"
+                                statement_block
+                                "{"
+                                    return_statement
+                                    "return"
+                                        number
+                                    ";"
+                                "}"
+                        "}"
+                ">"
+                jsx_text
+                jsx_closing_element
+                "</"
+                    identifier
+                ">"
+        ";"
+```
+
+
+## jsx_attr_object.tsx
+
+```
+const el = <div style={{ width: 100 }}>Hi</div>;
+```
+
+- textparser status: `OK`
+- tree-sitter root error: `False`
+
+**textparser CST**
+
+```
+SourceFile
+    Repeat
+        VariableStatement
+            VariableDeclarationList
+                ConstKeyword
+                VariableDeclaration
+                    Identifier
+                    Sequence
+                        Assign
+                        BasePrimaryExpression
+                            JSXPairedElement
+                                JSXOpen
+                                Capture
+                                    JSXElementName
+                                        JSXIdentifier
+                                    Sequence
+                                        Repeat
+                                            JSXAttribute
+                                                JSXIdentifier
+                                                Sequence
+                                                    Assign
+                                                    JSXExpressionContainer
+                                                        JSXExpressionStart
+                                                        ObjectLiteralBody
+                                                            LBrace
+                                                            Sequence
+                                                                ObjectPropertyAssignment
+                                                                    Identifier
+                                                                    Colon
+                                                                    NumericLiteral
+                                                            RBrace
+                                                        JSXExpressionEnd
+                                        JSXTagEnd
+                                        Repeat
+                                            JSXText
+                                        JSXCloseStart
+                                        JSXElementName
+                                            JSXIdentifier
+                                        JSXClosingTagEnd
+            Semicolon
+```
+
+**tree-sitter CST**
+
+```
+    program
+        lexical_declaration
+        "const"
+            variable_declarator
+                identifier
+            "="
+                jsx_element
+                    jsx_opening_element
+                    "<"
+                        identifier
+                        jsx_attribute
+                            property_identifier
+                        "="
+                            jsx_expression
+                            "{"
+                                object
+                                "{"
+                                    pair
+                                        property_identifier
+                                    ":"
+                                        number
+                                "}"
+                            "}"
+                    ">"
+                    jsx_text
                     jsx_closing_element
                     "</"
                         identifier
