@@ -39,13 +39,13 @@ if exist "%PCRE_SOURCE%\" rmdir /s /q "%PCRE_SOURCE%"
 curl -L --output "%~dp0json-c.zip" https://github.com/json-c/json-c/archive/refs/tags/json-c-%JSON_C_VERSION%.zip || exit /b 1
 call :verify_sha1 "%~dp0json-c.zip" "%JSON_C_SHA1%"
 if errorlevel 1 exit /b 1
-tar --exclude=*/tests/*.test -xf "%~dp0json-c.zip" -C "%~dp0" || exit /b 1
+tar --exclude=*/tests/*.test -xf "%~dp0json-c.zip" -C "%~dp0." || exit /b 1
 del "%~dp0json-c.zip"
 
 curl -L --output "%~dp0pcre2.zip" https://github.com/PCRE2Project/pcre2/releases/download/pcre2-%PCRE2_VERSION%/pcre2-%PCRE2_VERSION%.zip || exit /b 1
 call :verify_sha1 "%~dp0pcre2.zip" "%PCRE2_SHA1%"
 if errorlevel 1 exit /b 1
-tar -xf "%~dp0pcre2.zip" -C "%~dp0" || exit /b 1
+tar -xf "%~dp0pcre2.zip" -C "%~dp0." || exit /b 1
 del "%~dp0pcre2.zip"
 
 if /i "%ARCH%"=="both" (
@@ -113,7 +113,7 @@ cmake.exe --build "%PCRE_BUILD%" --target pcre2-8-shared pcre2-16-shared pcre2-3
 )
 
 if not exist "%ROOT_DIR%\include\" mkdir "%ROOT_DIR%\include"
-xcopy /y /e "%PCRE_BUILD%\interface" "%ROOT_DIR%\include" >nul || exit /b 1
+xcopy /y "%PCRE_SOURCE%\src\*.h" "%ROOT_DIR%\include" >nul || exit /b 1
 for %%F in (pcre2-8 pcre2-16 pcre2-32 pcre2-posix) do (
     copy /y "%PCRE_BUILD%\%%F.dll" "%ARCH_BIN_DIR%" >nul || exit /b 1
     copy /y "%PCRE_BUILD%\%%F.lib" "%ARCH_BIN_DIR%" >nul || exit /b 1
