@@ -74,6 +74,7 @@ target_link_libraries(benchmark_cfml PRIVATE
     cfml
 )
 if(WIN32)
+    target_include_directories(benchmark_cfml PRIVATE ../../include/pcre2)
     target_link_directories(benchmark_cfml PRIVATE ../../bin)
     target_link_libraries(benchmark_cfml PRIVATE
         pcre2-8.lib
@@ -150,6 +151,7 @@ target_link_libraries(benchmark_sqlite PRIVATE
     benchmark::benchmark_main
 )
 if(WIN32)
+    target_include_directories(benchmark_sqlite PRIVATE ../../include/pcre2)
     target_link_directories(benchmark_sqlite PRIVATE ../../bin)
     target_link_libraries(benchmark_sqlite PRIVATE
         pcre2-8.lib

@@ -112,8 +112,9 @@ cmake.exe --build "%PCRE_BUILD%" --target pcre2-8-shared pcre2-16-shared pcre2-3
     exit /b 1
 )
 
-if not exist "%ROOT_DIR%\include\" mkdir "%ROOT_DIR%\include"
-xcopy /y "%PCRE_SOURCE%\src\*.h" "%ROOT_DIR%\include" >nul || exit /b 1
+if not exist "%ROOT_DIR%\include\pcre2\" mkdir "%ROOT_DIR%\include\pcre2"
+xcopy /y "%PCRE_SOURCE%\src\*.h" "%ROOT_DIR%\include\pcre2" >nul || exit /b 1
+xcopy /y "%PCRE_BUILD%\interface\pcre2.h" "%ROOT_DIR%\include\pcre2" >nul || exit /b 1
 for %%F in (pcre2-8 pcre2-16 pcre2-32 pcre2-posix) do (
     copy /y "%PCRE_BUILD%\%%F.dll" "%ARCH_BIN_DIR%" >nul || exit /b 1
     copy /y "%PCRE_BUILD%\%%F.lib" "%ARCH_BIN_DIR%" >nul || exit /b 1
