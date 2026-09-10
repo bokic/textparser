@@ -113,6 +113,26 @@ fn test_invalid_definition_json() {
 }
 
 #[test]
+fn test_missing_start_regex_does_not_match_input() {
+    let definition = r#"{
+      "startTokens": ["Number"],
+      "tokens": {"Number": {"type": "SimpleToken"}}
+    }"#;
+    let parser = TextParser::from_json_str(definition).unwrap();
+    let tokens = parser.parse("1").unwrap();
+    assert!(tokens.is_empty());
+}
+
+#[test]
+fn test_unmatched_required_delimiter_keeps_existing_token_length_behavior() {
+    let parser = TextParser::from_json_str(JSON_DEF).unwrap();
+    let text = "{\"key\": 1";
+    let tokens = parser.parse(text).unwrap();
+    assert_eq!(tokens[0].id, "Object");
+    assert_eq!(tokens[0].length, text.len());
+}
+
+#[test]
 fn test_sign_merge_and_post_process() {
     let calc_def = r#"{
       "name": "calc",
