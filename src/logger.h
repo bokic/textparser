@@ -12,9 +12,7 @@
 #define TEXTPARSER_LOGGING_LEVEL TEXTPARSER_LOGGING_LEVEL_NONE
 #endif
 
-#if TEXTPARSER_LOGGING_LEVEL < TEXTPARSER_LOGGING_LEVEL_NONE
 #include <stdio.h>
-#endif
 
 #define ANSI_RESET           "\033[0m"
 #define ANSI_BOLD            "\033[1m"
@@ -29,9 +27,9 @@
 #define ANSI_BLUE_FG         "\033[0;34m"
 #define ANSI_MAGENTA_FG      "\033[0;35m"
 
-#define LOGV(fmt, ...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_VERBOSE) { printf(ANSI_BOLD            " [V] " ANSI_RESET      " %s():%d", __func__, __LINE__); printf(" - " fmt ANSI_RESET "\n"  __VA_OPT__(,) __VA_ARGS__); fflush(stdout); } } while (0)
-#define LOGI(fmt, ...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_INFO)    { printf(ANSI_GREEN_BOLD_BG   " [I] " ANSI_GREEN_FG   " %s():%d", __func__, __LINE__); printf(" - " fmt ANSI_RESET "\n"  __VA_OPT__(,) __VA_ARGS__); fflush(stdout); } } while (0)
-#define LOGD(fmt, ...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_DEBUG)   { printf(ANSI_BLUE_BOLD_BG    " [D] " ANSI_BLUE_FG    " %s():%d", __func__, __LINE__); printf(" - " fmt ANSI_RESET "\n"  __VA_OPT__(,) __VA_ARGS__); fflush(stdout); } } while (0)
-#define LOGW(fmt, ...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_WARNING) { printf(ANSI_YELLOW_BOLD_BG  " [W] " ANSI_YELLOW_FG  " %s():%d", __func__, __LINE__); printf(" - " fmt ANSI_RESET "\n"  __VA_OPT__(,) __VA_ARGS__); fflush(stdout); } } while (0)
-#define LOGE(fmt, ...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_ERROR)   { printf(ANSI_RED_BOLD_BG     " [E] " ANSI_RED_FG     " %s():%d", __func__, __LINE__); printf(" - " fmt ANSI_RESET "\n"  __VA_OPT__(,) __VA_ARGS__); fflush(stdout); } } while (0)
-#define LOGF(fmt, ...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_FATAL)   { printf(ANSI_MAGENTA_BOLD_BG " [F] " ANSI_MAGENTA_FG " %s():%d", __func__, __LINE__); printf(" - " fmt ANSI_RESET "\n"  __VA_OPT__(,) __VA_ARGS__); fflush(stdout); } } while (0)
+#define LOGV(...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_VERBOSE) { printf(ANSI_BOLD            " [V] " ANSI_RESET      " %s():%d - ", __func__, __LINE__); printf(__VA_ARGS__); printf(ANSI_RESET "\n"); fflush(stdout); } } while (0)
+#define LOGI(...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_INFO)    { printf(ANSI_GREEN_BOLD_BG   " [I] " ANSI_GREEN_FG   " %s():%d - ", __func__, __LINE__); printf(__VA_ARGS__); printf(ANSI_RESET "\n"); fflush(stdout); } } while (0)
+#define LOGD(...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_DEBUG)   { printf(ANSI_BLUE_BOLD_BG    " [D] " ANSI_BLUE_FG    " %s():%d - ", __func__, __LINE__); printf(__VA_ARGS__); printf(ANSI_RESET "\n"); fflush(stdout); } } while (0)
+#define LOGW(...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_WARNING) { printf(ANSI_YELLOW_BOLD_BG  " [W] " ANSI_YELLOW_FG  " %s():%d - ", __func__, __LINE__); printf(__VA_ARGS__); printf(ANSI_RESET "\n"); fflush(stdout); } } while (0)
+#define LOGE(...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_ERROR)   { printf(ANSI_RED_BOLD_BG     " [E] " ANSI_RED_FG     " %s():%d - ", __func__, __LINE__); printf(__VA_ARGS__); printf(ANSI_RESET "\n"); fflush(stdout); } } while (0)
+#define LOGF(...) do { if (TEXTPARSER_LOGGING_LEVEL <= TEXTPARSER_LOGGING_LEVEL_FATAL)   { printf(ANSI_MAGENTA_BOLD_BG " [F] " ANSI_MAGENTA_FG " %s():%d - ", __func__, __LINE__); printf(__VA_ARGS__); printf(ANSI_RESET "\n"); fflush(stdout); } } while (0)
