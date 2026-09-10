@@ -1301,12 +1301,13 @@ static int textparser_json_load_language_definition_internal(struct json_object 
             if (bom_str != nullptr) {
                 char *str_copy = strdup(bom_str);
                 if (str_copy != nullptr) {
-                    char *saveptr = nullptr;
-                    char *token = strtok_r(str_copy, ",", &saveptr);
+                    char *token = str_copy;
                     while (token != nullptr) {
+                        char *next = strchr(token, ',');
+                        if (next != nullptr) *next++ = '\0';
                         while (*token == ' ' || *token == '\t') token++;
-                        char *end = token + strlen(token) - 1;
-                        while (end > token && (*end == ' ' || *end == '\t')) { *end = '\0'; end--; }
+                        char *end = token + strlen(token);
+                        while (end > token && (end[-1] == ' ' || end[-1] == '\t')) *--end = '\0';
 
                         if (strcasecmp(token, "utf-8") == 0) bom_mask |= TEXTPARSER_BOM_UTF_8;
                         else if (strcasecmp(token, "utf-16-be") == 0) bom_mask |= TEXTPARSER_BOM_UTF_16_BE;
@@ -1314,7 +1315,7 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                         else if (strcasecmp(token, "utf-32-be") == 0) bom_mask |= TEXTPARSER_BOM_UTF_32_BE;
                         else if (strcasecmp(token, "utf-32-le") == 0) bom_mask |= TEXTPARSER_BOM_UTF_32_LE;
 
-                        token = strtok_r(nullptr, ",", &saveptr);
+                        token = next;
                     }
                     free(str_copy);
                 }

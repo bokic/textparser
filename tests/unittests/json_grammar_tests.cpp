@@ -56,6 +56,43 @@ textparser_action lifecycle_handler(textparser_t,
 
 } // namespace
 
+TEST(json_grammar, supported_bom_comma_separated_strings) {
+    const struct {
+        const char *value;
+        int mask;
+    } cases[] = {
+        {"", 0},
+        {",,,", 0},
+        {" \t ", 0},
+        {", \t ,,,", 0},
+        {"unknown", 0},
+        {"utf-8", TEXTPARSER_BOM_UTF_8},
+        {", UTF-8 ,\tutf-16-LE\t,,unknown,utf-8, ",
+         TEXTPARSER_BOM_UTF_8 | TEXTPARSER_BOM_UTF_16_LE},
+        {"utf-8,utf-16-be,utf-16-le,utf-32-be,utf-32-le",
+         TEXTPARSER_BOM_UTF_8 | TEXTPARSER_BOM_UTF_16_BE |
+         TEXTPARSER_BOM_UTF_16_LE | TEXTPARSER_BOM_UTF_32_BE |
+         TEXTPARSER_BOM_UTF_32_LE},
+    };
+    for (const char *key : {"supportedBom", "SupportedBom"}) {
+        for (const auto &entry : cases) {
+            SCOPED_TRACE(std::string(key) + ": " + entry.value);
+            std::string escaped;
+            for (char c : std::string(entry.value))
+                escaped += c == '\t' ? "\\t" : std::string(1, c);
+            std::string json = language_with_grammar(
+                R"({"start":"Root","productions":{"Root":{"token":"A"}}})");
+            json.insert(1, std::string("\"") + key + "\":\"" + escaped + "\",");
+            textparser_language_definition *definition = nullptr;
+            ASSERT_EQ(textparser_json_load_language_definition_from_string(
+                          json.c_str(), &definition), TEXTPARSER_JSON_NO_ERROR);
+            ASSERT_NE(definition, nullptr);
+            EXPECT_EQ(definition->supported_bom, entry.mask);
+            textparser_free_language_definition(definition);
+        }
+    }
+}
+
 TEST(json_grammar, loads_flattens_resolves_and_executes) {
     const std::string grammar = R"json({
       "start":"Root",
