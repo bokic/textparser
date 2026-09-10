@@ -213,7 +213,7 @@
     },
     "EndTag": {
       "type": "StartStop",
-      "startRegex": "<\\/(?:cf(?!output)(?!script)(?!query)(?!loop)(?!mail)(?!savecontent)[a-z0-9_]*|[a-z0-9_]+:[a-z0-9_]+)",
+      "startRegex": "<\\/(?:cf(?!(?:output|script|query|loop|mail|savecontent)\\b)[a-z0-9_]*|[a-z0-9_]+:[a-z0-9_]+)",
       "endRegex": "\\/?>",
       "multiLine": true,
       "textColor": "0xabd90c",
@@ -305,8 +305,8 @@
         "Boolean",
         "Keyword",
         "Function",
-        "Operator",
         "ObjectMember",
+        "Operator",
         "Variable",
         "CodeBlock",
         "Parenthesis",
@@ -331,8 +331,8 @@
         "Boolean",
         "Keyword",
         "Function",
-        "Operator",
         "ObjectMember",
+        "Operator",
         "Variable",
         "Parenthesis",
         "ArrayIndex"
@@ -424,7 +424,7 @@
     },
     "ScriptLineComment": {
       "type": "SimpleToken",
-      "startRegex": "\\/\\/.*[^\\r\\n]"
+      "startRegex": "\\/\\/[^\\r\\n]*"
     },
     "ExpressionEnd": {
       "type": "SimpleToken",
@@ -529,7 +529,17 @@
     },
     "MulOperator": {
       "type": "SimpleToken",
-      "startRegex": "\\*|\\/|\\\\|mod\\b|\\%",
+      "startRegex": "\\*|\\/",
+      "textColor": "0x35b2dd"
+    },
+    "IntegerDivOperator": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\",
+      "textColor": "0x35b2dd"
+    },
+    "ModOperator": {
+      "type": "SimpleToken",
+      "startRegex": "mod\\b|\\%",
       "textColor": "0x35b2dd"
     },
     "PowerOperator": {
@@ -556,6 +566,8 @@
         "IncDecOperator",
         "AddOperator",
         "MulOperator",
+        "IntegerDivOperator",
+        "ModOperator",
         "PowerOperator"
       ]
     },
@@ -621,8 +633,8 @@
         "Boolean",
         "Keyword",
         "Function",
-        "Operator",
         "ObjectMember",
+        "Operator",
         "Variable",
         "CodeBlock",
         "Parenthesis",
@@ -676,8 +688,8 @@
         "Boolean",
         "Keyword",
         "Function",
-        "Operator",
         "ObjectMember",
+        "Operator",
         "Variable",
         "CodeBlock",
         "Parenthesis",
@@ -755,6 +767,18 @@
     {
       "operators": [
         "AddOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "ModOperator"
+      ],
+      "associativity": "left"
+    },
+    {
+      "operators": [
+        "IntegerDivOperator"
       ],
       "associativity": "left"
     },

@@ -1904,6 +1904,153 @@ TEST(parse_CFML, all_project_cfml_files) {
 #include <thread>
 #include <vector>
 
+// Exercise the actual JSON as well as the generated C definition.
+class CFMLDefinitionAudit : public ::testing::Test {
+protected:
+    textparser_language_definition *runtime = nullptr;
+    void SetUp() override {
+        const auto path = std::filesystem::path(__FILE__).parent_path()
+            .parent_path().parent_path() / "definitions/cfml_definition.json";
+        ASSERT_EQ(textparser_json_load_language_definition_from_json_file(
+            path.string().c_str(), &runtime), 0);
+        ASSERT_NE(runtime, nullptr);
+    }
+    void TearDown() override { textparser_free_language_definition(runtime); }
+};
+
+TEST_F(CFMLDefinitionAudit, ordinary_comments_members_and_closing_tags) {
+    for (const auto *definition : {&cfml_definition,
+                                  static_cast<const textparser_language_definition *>(runtime)}) {
+        auto script = TextParser("<cfscript>// comment\r\nx = user.name;\n</cfscript>", definition);
+        EXPECT_TRUE(has_token_value(script, "ScriptLineComment", "// comment"));
+        EXPECT_TRUE(has_token_value(script, "ObjectMember", "."));
+        auto tags = TextParser("<cfif true>ok</cfif>", definition);
+        EXPECT_TRUE(has_token_type(tags, "EndTag"));
+    }
+}
+
+TEST_F(CFMLDefinitionAudit, safe_navigation_is_one_token) {
+    for (const auto *definition : {&cfml_definition,
+                                  static_cast<const textparser_language_definition *>(runtime)}) {
+        for (const char *source : {
+                 "<cfscript>x = user?.profile?.name;</cfscript>",
+                 "<cfset x = user?.name>",
+                 "<cfoutput>#user?.name#</cfoutput>"}) {
+            SCOPED_TRACE(source);
+            auto tokens = TextParser(source, definition);
+            EXPECT_TRUE(has_token_value(tokens, "ObjectMember", "?."));
+            EXPECT_FALSE(has_token_value(tokens, "TernaryOperator", "?"));
+        }
+    }
+}
+
+TEST_F(CFMLDefinitionAudit, json_empty_line_comments) {
+    for (const auto *definition : {&cfml_definition,
+                                  static_cast<const textparser_language_definition *>(runtime)}) {
+        for (const char *newline : {"\n", "\r\n", "\r"}) {
+            const std::string source = std::string("<cfscript>//") + newline + "x=1;</cfscript>";
+            SCOPED_TRACE(source);
+            auto tokens = TextParser(source.c_str(), definition);
+            EXPECT_TRUE(has_token_value(tokens, "ScriptLineComment", "//"));
+            EXPECT_FALSE(has_token_value(tokens, "MulOperator", "/"));
+            EXPECT_TRUE(has_token_value(tokens, "Variable", "x"));
+        }
+        // EOF immediately after // is also a complete line comment.
+        auto script_definition = *definition;
+        int starts[] = {0, TextParser_END};
+        for (int i = 0; definition->tokens[i].name; ++i) {
+            if (strcmp(definition->tokens[i].name, "ScriptExpression") == 0) {
+                starts[0] = i;
+                break;
+            }
+        }
+        script_definition.starts_with = starts;
+        auto eof = TextParser("//", &script_definition);
+        EXPECT_TRUE(has_token_value(eof, "ScriptLineComment", "//"));
+    }
+}
+
+TEST_F(CFMLDefinitionAudit, json_closing_tag_prefix_boundaries) {
+    for (const auto *definition : {&cfml_definition,
+                                  static_cast<const textparser_language_definition *>(runtime)}) {
+        for (const char *source : {
+                 "<cfmailpart type=\"text\">hello</cfmailpart>",
+                 "<cfmailpart type=\"text\">hello</CFMAILPART>",
+                 "<cfqueryresult>hello</cfqueryresult>"}) {
+            SCOPED_TRACE(source);
+            auto tokens = TextParser(source, definition);
+            EXPECT_TRUE(has_token_type(tokens, "EndTag"));
+        }
+        auto mail = TextParser("<cfmail><cfmailpart>hello</cfmailpart></cfmail>", definition);
+        EXPECT_TRUE(has_token_type(mail, "EndTag"));
+        EXPECT_TRUE(has_token_value(mail, "MailEndTag", "</cfmail>"));
+    }
+}
+
+TEST_F(CFMLDefinitionAudit, arithmetic_precedence_tree) {
+    struct Case {
+        const char *expression;
+        const char *outer;
+        const char *inner;
+        const char *inner_text;
+    };
+    const Case cases[] = {
+        {"8 MOD 3 * 2", "ModOperator", "MulOperator", "3 * 2"},
+        {"8 % 3 * 2", "ModOperator", "MulOperator", "3 * 2"},
+        {"8 mod 6 / 2", "ModOperator", "MulOperator", "6 / 2"},
+        {"8 \\ 3 * 2", "IntegerDivOperator", "MulOperator", "3 * 2"},
+        {"8 MOD 5 \\ 2", "ModOperator", "IntegerDivOperator", "5 \\ 2"},
+        {"8 * 3 MOD 5", "ModOperator", "MulOperator", "8 * 3"},
+        {"8 * 3 \\ 5", "IntegerDivOperator", "MulOperator", "8 * 3"},
+        {"8 \\ 3 MOD 2", "ModOperator", "IntegerDivOperator", "8 \\ 3"},
+        {"8 MOD 3 + 2", "AddOperator", "ModOperator", "8 MOD 3"},
+        {"8 MOD 3 MOD 2", "ModOperator", "ModOperator", "8 MOD 3"},
+        {"8 \\ 3 \\ 2", "IntegerDivOperator", "IntegerDivOperator", "8 \\ 3"},
+        {"8 / 4 * 2", "MulOperator", "MulOperator", "8 / 4"},
+    };
+    for (const auto *definition : {&cfml_definition,
+                                  static_cast<const textparser_language_definition *>(runtime)}) {
+        for (const auto &test : cases) {
+            SCOPED_TRACE(test.expression);
+            const std::string source = std::string("<cfset res = ") + test.expression + ">";
+            textparser_t handle = nullptr;
+            ASSERT_EQ(textparser_openmem(source.c_str(), source.size(), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+            ASSERT_EQ(textparser_parse(handle, definition), 0);
+            auto *root = textparser_get_first_token(handle);
+            textparser_post_process(&root, definition);
+            // Find a direct outer/inner operator relationship, checking the
+            // complete inner expression so reversed associativity cannot pass.
+            bool found = false;
+            std::function<void(textparser_token_item *)> visit = [&](auto *node) {
+                for (; node; node = node->next) {
+                    const char *name = textparser_get_token_type_str(definition, node);
+                    if (name && strcmp(name, test.outer) == 0) {
+                        for (auto *child = node->child; child; child = child->next) {
+                            const char *child_name = textparser_get_token_type_str(definition, child);
+                            if (child->child && child_name && strcmp(child_name, test.inner) == 0) {
+                                char *value = textparser_get_token_text(handle, child);
+                                if (value) {
+                                    std::string expression(value);
+                                    const auto first = expression.find_first_not_of(" \t\r\n");
+                                    const auto last = expression.find_last_not_of(" \t\r\n");
+                                    if (first != std::string::npos &&
+                                        expression.substr(first, last - first + 1) == test.inner_text)
+                                        found = true;
+                                }
+                                textparser_free_token_text(value);
+                            }
+                        }
+                    }
+                    visit(node->child);
+                }
+            };
+            visit(root);
+            EXPECT_TRUE(found);
+            textparser_close(handle);
+        }
+    }
+}
+
 TEST(parse_CFML, concurrent_multi_threaded_parse_and_cleanup) {
     const int num_threads = 16;
     const int iterations_per_thread = 20;
@@ -1933,10 +2080,11 @@ TEST(parse_CFML, category_1_safe_navigation_operator) {
     ASSERT_EQ(tokens.count, 1);
     EXPECT_STREQ(tokens[0].type, "ScriptTagPair");
 
-    // Check that ?. is parsed as ObjectMember and not error
+    // Check the complete operator, not just the plain dot left by a split ?..
     bool found_member = false;
     for (size_t i = 0; i < tokens[0][1].children; ++i) {
-        if (strcmp(tokens[0][1][i].type, "ObjectMember") == 0) {
+        if (strcmp(tokens[0][1][i].type, "ObjectMember") == 0 &&
+            tokens[0][1][i].value == "?.") {
             found_member = true;
         }
     }

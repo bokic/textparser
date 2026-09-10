@@ -683,11 +683,11 @@ TEST(parse_CFML_Precedence, verified_coldfusion_spec_cases) {
         EXPECT_TRUE(has_token_type(tokens, "AddOperator"));
     }
 
-    // Rank 2: Multiplicative (MulOperator: *, /, \, %, MOD)
+    // Modulo has its own precedence below integer division and multiplication.
     {
         auto tokens = TextParser(R"(<cfset res = a mod b />)", &cfml_definition);
         ASSERT_EQ(tokens.count, 1);
-        EXPECT_TRUE(has_token_type(tokens, "MulOperator"));
+        EXPECT_TRUE(has_token_type(tokens, "ModOperator"));
     }
 
     // Rank 13: TernaryOperator (?, :, ?:)
@@ -836,5 +836,4 @@ TEST(parse_Delimiters, container_start_end_delimiters) {
 
     textparser_close(handle);
 }
-
 
