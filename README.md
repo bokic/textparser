@@ -66,12 +66,9 @@ Ensure you have `cmake`, `ninja` (optional but recommended), `libpcre2`, and `li
 
 ### Compiling the C Core & CLI
 ```bash
-git clone https://github.com
+git clone https://github.com/bokic/textparser.git
 cd textparser
-mkdir build && cd build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
-ninja
-sudo ninja install
+./build.sh
 ```
 
 ### Windows builds
