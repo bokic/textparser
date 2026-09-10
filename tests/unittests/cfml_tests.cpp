@@ -2055,9 +2055,10 @@ TEST(parse_CFML, concurrent_multi_threaded_parse_and_cleanup) {
     const int num_threads = 16;
     const int iterations_per_thread = 20;
     std::vector<std::thread> threads;
+    std::vector<int> completed_iterations(num_threads, 0);
 
     for (int t = 0; t < num_threads; ++t) {
-        threads.emplace_back([iterations_per_thread, t]() {
+        threads.emplace_back([t, &completed_iterations]() {
             for (int i = 0; i < iterations_per_thread; ++i) {
                 std::string snippet = "<cfset x = " + std::to_string(t * 100 + i) + "><cfoutput>#x#</cfoutput>";
                 textparser_t handle = nullptr;
@@ -2065,12 +2066,16 @@ TEST(parse_CFML, concurrent_multi_threaded_parse_and_cleanup) {
                 ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
                 EXPECT_NE(textparser_get_first_token(handle), nullptr);
                 textparser_close(handle);
+                ++completed_iterations[t];
             }
         });
     }
 
     for (auto &th : threads) {
         th.join();
+    }
+    for (int t = 0; t < num_threads; ++t) {
+        EXPECT_EQ(completed_iterations[t], iterations_per_thread) << "Thread " << t;
     }
 }
 

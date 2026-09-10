@@ -23,8 +23,9 @@ if(NOT TARGET GTest::gtest_main)
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(googletest)
 
-  # Suppress warnings from googletest sources
-  if(NOT MSVC AND NOT WIN32)
+  # Clang also warns about Google's Windows SEH (__try) implementation.
+  # Keep these Clang-specific suppressions scoped to fetched dependency sources.
+  if(CMAKE_CXX_COMPILER_ID MATCHES "^(AppleClang|Clang)$")
     target_compile_options(gtest PRIVATE -Wno-character-conversion -Wno-language-extension-token)
     target_compile_options(gmock PRIVATE -Wno-character-conversion -Wno-language-extension-token)
   endif()
