@@ -32,6 +32,12 @@ endif()
 
 enable_testing()
 
+if(NOT MSVC)
+  add_test(NAME json2h_generated_headers
+    COMMAND ${CMAKE_COMMAND} -E env "CXX=${CMAKE_CXX_COMPILER}"
+      ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/test_json2h.py")
+endif()
+
 
 
 add_executable( unittests

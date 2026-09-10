@@ -359,6 +359,11 @@ def main(args):
     text += "    .lexer_rules = NULL," + os.linesep
     text += "    .operator_definition_count = 0," + os.linesep
     text += "    .operator_definitions = NULL," + os.linesep
+    text += "    .maximum_diagnostics = 0," + os.linesep
+    text += "    .maximum_skipped_tokens = 0," + os.linesep
+    text += "    .maximum_recovery_attempts = 0," + os.linesep
+    text += "    .recovery_sync_token_count = 0," + os.linesep
+    text += "    .recovery_sync_tokens = NULL," + os.linesep
 
     text += "    .tokens = (textparser_token[]) {" + os.linesep
     for token in root["tokens"]:

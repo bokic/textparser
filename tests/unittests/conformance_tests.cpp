@@ -265,7 +265,8 @@ TEST(conformance_operator_precedence, register_all_roles) {
         textparser_operator_def def = {
             .token_id = op.token_id, .role = op.role,
             .precedence = op.precedence, .associativity = op.op_assoc,
-            .secondary_token_id = 0
+            .secondary_token_id = 0,
+            .left_validator = nullptr, .operand_validator = nullptr
         };
         EXPECT_EQ(textparser_register_operator(handle, &def), 0);
     }
@@ -288,10 +289,10 @@ TEST(conformance_operator_precedence, re_register_overwrites) {
     ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
     ASSERT_NE(handle, nullptr);
 
-    textparser_operator_def def1 = {.token_id=300,.role=TEXTPARSER_OP_INFIX,.precedence=5,.associativity=TEXTPARSER_ASSOC_LEFT,.secondary_token_id=0};
+    textparser_operator_def def1 = {.token_id=300,.role=TEXTPARSER_OP_INFIX,.precedence=5,.associativity=TEXTPARSER_ASSOC_LEFT,.secondary_token_id=0,.left_validator=nullptr,.operand_validator=nullptr};
     EXPECT_EQ(textparser_register_operator(handle, &def1), 0);
 
-    textparser_operator_def def2 = {.token_id=300,.role=TEXTPARSER_OP_INFIX,.precedence=20,.associativity=TEXTPARSER_ASSOC_RIGHT,.secondary_token_id=0};
+    textparser_operator_def def2 = {.token_id=300,.role=TEXTPARSER_OP_INFIX,.precedence=20,.associativity=TEXTPARSER_ASSOC_RIGHT,.secondary_token_id=0,.left_validator=nullptr,.operand_validator=nullptr};
     EXPECT_EQ(textparser_register_operator(handle, &def2), 0);
 
     textparser_operator_def out = {};

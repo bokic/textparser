@@ -752,6 +752,26 @@ TEST_F(TypeScriptExpressionFixture, honors_control_flow_context_and_function_bou
     }
 }
 
+TEST_F(TypeScriptExpressionFixture, isolates_function_expression_and_arrow_control_flow) {
+    const char *sources[] = {
+        "while (ready) { const nested = function () { return; break; continue; }; }",
+        "while (ready) { const nested = () => { return; break; continue; }; }",
+    };
+    for (const char *source : sources) {
+        SCOPED_TRACE(source);
+        ASSERT_NE(parse_source(source), nullptr);
+        ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 2u);
+        textparser_diagnostic diagnostic{};
+        ASSERT_EQ(textparser_get_diagnostic(parser.get(), 0, &diagnostic), 0);
+        EXPECT_STREQ(diagnostic.code, "TS1105");
+        ASSERT_EQ(textparser_get_diagnostic(parser.get(), 1, &diagnostic), 0);
+        EXPECT_STREQ(diagnostic.code, "TS1104");
+    }
+
+    ASSERT_NE(parse_source("while (ready) { { continue; break; } }"), nullptr);
+    EXPECT_EQ(textparser_get_diagnostic_count(parser.get()), 0u);
+}
+
 TEST_F(TypeScriptExpressionFixture, resolves_labels_and_rejects_invalid_jump_targets) {
     ASSERT_NE(parse_source(
         "outer: inner: while (ready) { continue outer; break inner; }\n"

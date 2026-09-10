@@ -466,7 +466,7 @@ TEST_F(TypeScriptLegalityRegression, compound_assignment_operators) {
     // left-hand side (TS2364 / TS2779).
     for (const char *op : {
              "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "|=",
-             "&=", "^=", "??=", "||=", "&&=",
+             "&=", "^=", "?" "?=", "||=", "&&=",
          }) {
         std::string source = std::string("let x = 5; x ") + op + " 2;";
         expect_clean(source.c_str());
@@ -477,13 +477,13 @@ TEST_F(TypeScriptLegalityRegression, compound_assignment_operators) {
     expect_clean("o.a.b **= 2;");
     expect_clean("o[\"k\"] ||= 1;");
     expect_clean("x >>= 1; x >>>= 1;");
-    expect_clean("let y = f<string>; y ??= 1;");
+    expect_clean("let y = f<string>; y ?" "?= 1;");
 
     // Invalid left-hand sides keep the assignment diagnostics.
     EXPECT_EQ(codes("1 **= 2;"), std::vector<std::string>{"TS2364"});
     EXPECT_EQ(codes("let x = (a + b) <<= 2;"), std::vector<std::string>{"TS2364"});
     EXPECT_EQ(codes("f() &&= 2;"), std::vector<std::string>{"TS2364"});
-    EXPECT_EQ(codes("x?.y ??= 1;"), std::vector<std::string>{"TS2779"});
+    EXPECT_EQ(codes("x?.y ?" "?= 1;"), std::vector<std::string>{"TS2779"});
 }
 
 TEST_F(TypeScriptLegalityRegression, jsx_namespaced_attributes) {

@@ -7275,7 +7275,7 @@ static void textparser_typescript_check_legality_nodes(
                     "cannot be used in an ambient context.");
         }
 
-        bool function_boundary = kind != nullptr &&
+        bool function_boundary = (kind != nullptr &&
             (strcmp(kind, "FunctionDeclaration") == 0 ||
              strcmp(kind, "DefaultFunctionDeclaration") == 0 ||
              strcmp(kind, "FunctionExpression") == 0 ||
@@ -7287,7 +7287,7 @@ static void textparser_typescript_check_legality_nodes(
              strcmp(kind, "MethodDeclaration") == 0 ||
              strcmp(kind, "ObjectMethodDeclaration") == 0 ||
              strcmp(kind, "ObjectAccessorDeclaration") == 0 ||
-             strcmp(kind, "ConstructorDeclaration") == 0) ||
+             strcmp(kind, "ConstructorDeclaration") == 0)) ||
             textparser_typescript_is_function_expression_node(item);
         bool static_block_boundary = kind != nullptr &&
             strcmp(kind, "ClassStaticBlock") == 0;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 #include <textparser-json.h>
+#include "production_helpers.hpp"
 
 #include <cstring>
 
@@ -63,14 +64,14 @@ TEST_F(GrammarFixture, token_ref_sequence_optional_and_repeat) {
     const int optional_c_child[] = {2};
     const int root_children[] = {0, 5, 6};
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1},
-        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1},
-        {2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1},
-        {3, "BRef", TEXTPARSER_PROD_REF, nullptr, 0, -1, 1},
-        {4, "BRefSequence", TEXTPARSER_PROD_SEQUENCE, ref_b_child, 1, -1, -1},
-        {5, "RepeatB", TEXTPARSER_PROD_REPEAT, repeat_b_child, 1, -1, -1},
-        {6, "OptionalC", TEXTPARSER_PROD_OPTIONAL, optional_c_child, 1, -1, -1},
-        {7, "Root", TEXTPARSER_PROD_SEQUENCE, root_children, 3, -1, -1},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1),
+        make_test_production(1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1),
+        make_test_production(2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1),
+        make_test_production(3, "BRef", TEXTPARSER_PROD_REF, nullptr, 0, -1, 1),
+        make_test_production(4, "BRefSequence", TEXTPARSER_PROD_SEQUENCE, ref_b_child, 1, -1, -1),
+        make_test_production(5, "RepeatB", TEXTPARSER_PROD_REPEAT, repeat_b_child, 1, -1, -1),
+        make_test_production(6, "OptionalC", TEXTPARSER_PROD_OPTIONAL, optional_c_child, 1, -1, -1),
+        make_test_production(7, "Root", TEXTPARSER_PROD_SEQUENCE, root_children, 3, -1, -1),
     };
 
     textparser_match_result result{};
@@ -98,10 +99,10 @@ TEST_F(GrammarFixture, choice_rolls_back_failed_alternative) {
     const int failed_children[] = {0, 1};
     const int choices[] = {2, 0};
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1},
-        {1, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1},
-        {2, "AC", TEXTPARSER_PROD_SEQUENCE, failed_children, 2, -1, -1},
-        {3, "Choice", TEXTPARSER_PROD_CHOICE, choices, 2, -1, -1},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1),
+        make_test_production(1, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1),
+        make_test_production(2, "AC", TEXTPARSER_PROD_SEQUENCE, failed_children, 2, -1, -1),
+        make_test_production(3, "Choice", TEXTPARSER_PROD_CHOICE, choices, 2, -1, -1),
     };
 
     textparser_match_result result{};
@@ -118,9 +119,9 @@ TEST_F(GrammarFixture, failed_sequence_restores_cursor) {
     int c = token_id(definition, "C");
     const int children[] = {0, 1};
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1},
-        {1, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1},
-        {2, "AC", TEXTPARSER_PROD_SEQUENCE, children, 2, -1, -1},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1),
+        make_test_production(1, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1),
+        make_test_production(2, "AC", TEXTPARSER_PROD_SEQUENCE, children, 2, -1, -1),
     };
 
     textparser_match_result result{};
@@ -141,10 +142,10 @@ TEST_F(GrammarFixture, optional_mismatch_and_empty_repeat_succeed) {
     const int repeat_child[] = {1};
     const int root_children[] = {1, 2};
     const textparser_production productions[] = {
-        {0, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1},
-        {1, "OptionalB", TEXTPARSER_PROD_OPTIONAL, optional_child, 1, -1, -1},
-        {2, "RepeatOptional", TEXTPARSER_PROD_REPEAT, repeat_child, 1, -1, -1},
-        {3, "Root", TEXTPARSER_PROD_SEQUENCE, root_children, 2, -1, -1},
+        make_test_production(0, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1),
+        make_test_production(1, "OptionalB", TEXTPARSER_PROD_OPTIONAL, optional_child, 1, -1, -1),
+        make_test_production(2, "RepeatOptional", TEXTPARSER_PROD_REPEAT, repeat_child, 1, -1, -1),
+        make_test_production(3, "Root", TEXTPARSER_PROD_SEQUENCE, root_children, 2, -1, -1),
     };
 
     textparser_match_result optional{};
@@ -163,10 +164,10 @@ TEST_F(GrammarFixture, invalid_references_shapes_and_arguments_are_errors) {
     parse("a");
     const int too_many_optional_children[] = {0, 0};
     const textparser_production productions[] = {
-        {0, "BadRef", TEXTPARSER_PROD_REF, nullptr, 0, -1, 99},
-        {1, "BadOptional", TEXTPARSER_PROD_OPTIONAL, too_many_optional_children, 2, -1, -1},
-        {2, "EmptySequence", TEXTPARSER_PROD_SEQUENCE, nullptr, 0, -1, -1},
-        {3, "EmptyChoice", TEXTPARSER_PROD_CHOICE, nullptr, 0, -1, -1},
+        make_test_production(0, "BadRef", TEXTPARSER_PROD_REF, nullptr, 0, -1, 99),
+        make_test_production(1, "BadOptional", TEXTPARSER_PROD_OPTIONAL, too_many_optional_children, 2, -1, -1),
+        make_test_production(2, "EmptySequence", TEXTPARSER_PROD_SEQUENCE, nullptr, 0, -1, -1),
+        make_test_production(3, "EmptyChoice", TEXTPARSER_PROD_CHOICE, nullptr, 0, -1, -1),
     };
     textparser_match_result result{};
     ASSERT_EQ(parser.execute_production(productions, std::size(productions), 0, &result), 0);
@@ -186,8 +187,8 @@ TEST_F(GrammarFixture, invalid_references_shapes_and_arguments_are_errors) {
 TEST_F(GrammarFixture, recursive_ref_cycle_is_bounded) {
     parse("a");
     const textparser_production productions[] = {
-        {0, "CycleA", TEXTPARSER_PROD_REF, nullptr, 0, -1, 1},
-        {1, "CycleB", TEXTPARSER_PROD_REF, nullptr, 0, -1, 0},
+        make_test_production(0, "CycleA", TEXTPARSER_PROD_REF, nullptr, 0, -1, 1),
+        make_test_production(1, "CycleB", TEXTPARSER_PROD_REF, nullptr, 0, -1, 0),
     };
     textparser_match_result result{};
     ASSERT_EQ(parser.execute_production(productions, std::size(productions), 0, &result), 0);
@@ -226,12 +227,12 @@ TEST_F(GrammarFixture, lookahead_and_not_are_zero_width) {
     const int not_c[] = {2};
     const int root[] = {3, 0, 4, 1};
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
-        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
-        {2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
-        {3, "AheadA", TEXTPARSER_PROD_LOOKAHEAD, look_a, 1, -1, -1, nullptr, nullptr, 0},
-        {4, "NotC", TEXTPARSER_PROD_NOT, not_c, 1, -1, -1, nullptr, nullptr, 0},
-        {5, "Root", TEXTPARSER_PROD_SEQUENCE, root, 4, -1, -1, nullptr, nullptr, 0},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0),
+        make_test_production(1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0),
+        make_test_production(2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0),
+        make_test_production(3, "AheadA", TEXTPARSER_PROD_LOOKAHEAD, look_a, 1, -1, -1, nullptr, nullptr, 0),
+        make_test_production(4, "NotC", TEXTPARSER_PROD_NOT, not_c, 1, -1, -1, nullptr, nullptr, 0),
+        make_test_production(5, "Root", TEXTPARSER_PROD_SEQUENCE, root, 4, -1, -1, nullptr, nullptr, 0),
     };
     textparser_match_result result{};
     ASSERT_EQ(parser.execute_production(productions, std::size(productions), 5, &result), 0);
@@ -250,12 +251,12 @@ TEST_F(GrammarFixture, parser_predicate_observes_tokens_trivia_and_scoped_contex
     const int context_child[] = {3};
     const int root[] = {0, 4};
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
-        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
-        {2, "BeforeB", TEXTPARSER_PROD_PREDICATE, nullptr, 0, -1, -1, "test.beforeB", nullptr, 0},
-        {3, "GuardedB", TEXTPARSER_PROD_SEQUENCE, scoped_sequence, 2, -1, -1, nullptr, nullptr, 0},
-        {4, "Context", TEXTPARSER_PROD_CONTEXT, context_child, 1, -1, -1, nullptr, "Enabled", 7},
-        {5, "Root", TEXTPARSER_PROD_SEQUENCE, root, 2, -1, -1, nullptr, nullptr, 0},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0),
+        make_test_production(1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0),
+        make_test_production(2, "BeforeB", TEXTPARSER_PROD_PREDICATE, nullptr, 0, -1, -1, "test.beforeB", nullptr, 0),
+        make_test_production(3, "GuardedB", TEXTPARSER_PROD_SEQUENCE, scoped_sequence, 2, -1, -1, nullptr, nullptr, 0),
+        make_test_production(4, "Context", TEXTPARSER_PROD_CONTEXT, context_child, 1, -1, -1, nullptr, "Enabled", 7),
+        make_test_production(5, "Root", TEXTPARSER_PROD_SEQUENCE, root, 2, -1, -1, nullptr, nullptr, 0),
     };
     textparser_match_result result{};
     ASSERT_EQ(parser.execute_production(productions, std::size(productions), 5, &result), 0);
@@ -275,13 +276,13 @@ TEST_F(GrammarFixture, commit_stops_choice_rollback_after_prefix) {
     const int fallback_alt[] = {0, 2};
     const int choices[] = {4, 5};
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
-        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
-        {2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
-        {3, "Commit", TEXTPARSER_PROD_COMMIT, nullptr, 0, -1, -1, nullptr, nullptr, 0},
-        {4, "AB", TEXTPARSER_PROD_SEQUENCE, committed_alt, 3, -1, -1, nullptr, nullptr, 0},
-        {5, "AC", TEXTPARSER_PROD_SEQUENCE, fallback_alt, 2, -1, -1, nullptr, nullptr, 0},
-        {6, "Choice", TEXTPARSER_PROD_CHOICE, choices, 2, -1, -1, nullptr, nullptr, 0},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0),
+        make_test_production(1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0),
+        make_test_production(2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0),
+        make_test_production(3, "Commit", TEXTPARSER_PROD_COMMIT, nullptr, 0, -1, -1, nullptr, nullptr, 0),
+        make_test_production(4, "AB", TEXTPARSER_PROD_SEQUENCE, committed_alt, 3, -1, -1, nullptr, nullptr, 0),
+        make_test_production(5, "AC", TEXTPARSER_PROD_SEQUENCE, fallback_alt, 2, -1, -1, nullptr, nullptr, 0),
+        make_test_production(6, "Choice", TEXTPARSER_PROD_CHOICE, choices, 2, -1, -1, nullptr, nullptr, 0),
     };
     textparser_match_result result{};
     ASSERT_EQ(parser.execute_production(productions, std::size(productions), 6, &result), 0);
@@ -298,8 +299,8 @@ TEST_F(GrammarFixture, memoization_reuses_cached_production_and_respects_context
     ASSERT_GE(a, 0);
 
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
-        {1, "Statement", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0),
+        make_test_production(1, "Statement", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0),
     };
 
     textparser_match_result res1{};
@@ -334,14 +335,14 @@ TEST_F(GrammarFixture, memoization_invalidates_on_edit_and_shifts_subsequent) {
     const int root2_children[] = {3, 4, 4, 5};
 
     const textparser_production productions[] = {
-        {0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
-        {1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
-        {2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
-        {3, "StatementA", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0},
-        {4, "StatementB", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0},
-        {5, "StatementC", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0},
-        {6, "Root1", TEXTPARSER_PROD_SEQUENCE, root1_children, 3, -1, -1, nullptr, nullptr, 0},
-        {7, "Root2", TEXTPARSER_PROD_SEQUENCE, root2_children, 4, -1, -1, nullptr, nullptr, 0},
+        make_test_production(0, "A", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0),
+        make_test_production(1, "B", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0),
+        make_test_production(2, "C", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0),
+        make_test_production(3, "StatementA", TEXTPARSER_PROD_TOKEN, nullptr, 0, a, -1, nullptr, nullptr, 0),
+        make_test_production(4, "StatementB", TEXTPARSER_PROD_TOKEN, nullptr, 0, b, -1, nullptr, nullptr, 0),
+        make_test_production(5, "StatementC", TEXTPARSER_PROD_TOKEN, nullptr, 0, c, -1, nullptr, nullptr, 0),
+        make_test_production(6, "Root1", TEXTPARSER_PROD_SEQUENCE, root1_children, 3, -1, -1, nullptr, nullptr, 0),
+        make_test_production(7, "Root2", TEXTPARSER_PROD_SEQUENCE, root2_children, 4, -1, -1, nullptr, nullptr, 0),
     };
 
     // Parse Root1 = (StatementA @ 0, StatementB @ 1, StatementC @ 2)
