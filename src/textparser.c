@@ -47,6 +47,12 @@
 static size_t calculate_chunk_size(size_t text_size);
 static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos);
 
+/**
+ * Check whether a given token ID corresponds to trivia (unprocessed text, whitespace, or delimiters).
+ *
+ * @param token_id Integer ID of the token to evaluate.
+ * @return true if token_id is UNPROCESSED, WHITESPACE, START_DELIMITER, or END_DELIMITER; false otherwise.
+ */
 static inline bool is_trivia_token_id(int token_id)
 {
     return token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED ||
@@ -213,6 +219,11 @@ static void textparser_memo_shift_and_invalidate(
     size_t dirty_end_token,
     ssize_t delta_tokens);
 
+/**
+ * Release allocated lexer token streams, trivia streams, and cached lexer lookup entries stored in the handle.
+ *
+ * @param handle Pointer to the textparser handle whose lexer streams will be cleared.
+ */
 static void textparser_clear_lexer_streams(struct textparser_handle *handle)
 {
     if (handle == nullptr) return;
@@ -233,6 +244,13 @@ static void textparser_clear_lexer_streams(struct textparser_handle *handle)
     handle->lexer_cache = nullptr;
 }
 
+/**
+ * Convert a character code unit offset into an absolute byte offset based on document text encoding.
+ *
+ * @param handle Pointer to the textparser handle holding encoding configuration.
+ * @param pos Character unit offset within the input text.
+ * @return Absolute byte offset corresponding to pos.
+ */
 static size_t textparser_get_byte_offset(const struct textparser_handle *handle, size_t pos)
 {
     switch (handle->text_format)
@@ -247,11 +265,24 @@ static size_t textparser_get_byte_offset(const struct textparser_handle *handle,
     }
 }
 
+/**
+ * Convert a character code unit length into a byte length based on document text encoding.
+ *
+ * @param handle Pointer to the textparser handle holding encoding configuration.
+ * @param len Length in character code units.
+ * @return Length expressed in bytes.
+ */
 static size_t textparser_get_byte_len(const struct textparser_handle *handle, size_t len)
 {
     return textparser_get_byte_offset(handle, len);
 }
 
+/**
+ * Calculate the total number of character code units in the active document text buffer.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @return Total character code units in text_addr.
+ */
 static size_t textparser_get_total_units(const struct textparser_handle *handle)
 {
     switch (handle->text_format)
@@ -266,6 +297,13 @@ static size_t textparser_get_total_units(const struct textparser_handle *handle)
     }
 }
 
+/**
+ * Retrieve the character code unit at a specific unit offset in the text buffer.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param pos 0-based character unit offset to read.
+ * @return Character code unit value cast to uint32_t.
+ */
 static uint32_t textparser_get_unit_at(const struct textparser_handle *handle, size_t pos)
 {
     switch (handle->text_format)
@@ -280,6 +318,13 @@ static uint32_t textparser_get_unit_at(const struct textparser_handle *handle, s
     }
 }
 
+/**
+ * Determine the code unit length of a single character starting at pos (e.g. multi-byte UTF-8 sequence).
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param pos Character unit offset where the character begins.
+ * @return Length of the character in code units (1 to 4 units).
+ */
 static size_t textparser_char_len(const struct textparser_handle *handle, size_t pos)
 {
     if (handle->text_format == TEXTPARSER_ENCODING_UTF_8)
@@ -294,6 +339,13 @@ static size_t textparser_char_len(const struct textparser_handle *handle, size_t
     return 1;
 }
 
+/**
+ * Scan forward from pos to locate the character unit offset of the line ending.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param pos Starting character unit offset.
+ * @return Unit offset immediately preceding the newline sequence, or end-of-text if on the last line.
+ */
 static size_t textparser_get_end_of_line_units(const struct textparser_handle *handle, size_t pos)
 {
     size_t total = textparser_get_total_units(handle);
@@ -307,6 +359,14 @@ static size_t textparser_get_end_of_line_units(const struct textparser_handle *h
     return cur - pos;
 }
 
+/**
+ * Determine the maximum searchable unit length from pos depending on the token multi_line configuration.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param pos Starting unit offset for search.
+ * @param token_def Token definition determining whether searching is bounded by the current line.
+ * @return Maximum number of character code units available for matching.
+ */
 static size_t textparser_get_search_len(const struct textparser_handle *handle, size_t pos, const textparser_token *token_def)
 {
     size_t len = textparser_get_total_units(handle) - pos;
@@ -318,6 +378,13 @@ static size_t textparser_get_search_len(const struct textparser_handle *handle, 
     return len;
 }
 
+/**
+ * Validate whether a raw byte buffer conforms to well-formed UTF-8 encoding rules.
+ *
+ * @param text Pointer to raw byte buffer.
+ * @param len Buffer length in bytes.
+ * @return true if all byte sequences form valid UTF-8 code points; false otherwise.
+ */
 static bool textparser_validate_utf8(const char *text, size_t len)
 {
     size_t i = 0;
@@ -345,6 +412,12 @@ static bool textparser_validate_utf8(const char *text, size_t len)
     return true;
 }
 
+/**
+ * Validate whether a raw byte buffer conforms to well-formed UTF-16 encoding with valid surrogate pairs.
+ *
+ * @param handle Pointer to the active textparser handle.
+ * @return true if buffer length is 16-bit aligned and surrogates are paired properly; false otherwise.
+ */
 static bool textparser_validate_utf16(const struct textparser_handle *handle)
 {
     size_t units = textparser_get_total_units(handle);
@@ -363,6 +436,12 @@ static bool textparser_validate_utf16(const struct textparser_handle *handle)
     return true;
 }
 
+/**
+ * Validate whether a raw byte buffer conforms to well-formed UTF-32 code points in valid Unicode ranges.
+ *
+ * @param handle Pointer to the active textparser handle.
+ * @return true if buffer length is 32-bit aligned and all values represent valid Unicode scalars; false otherwise.
+ */
 static bool textparser_validate_utf32(const struct textparser_handle *handle)
 {
     size_t units = textparser_get_total_units(handle);
@@ -374,6 +453,12 @@ static bool textparser_validate_utf32(const struct textparser_handle *handle)
     return true;
 }
 
+/**
+ * Validate the entire active text buffer according to the handle configured text_format encoding.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @return true if the buffer content is valid for handle->text_format; false otherwise.
+ */
 static bool textparser_validate_text_encoding(const struct textparser_handle *handle)
 {
     switch (handle->text_format) {
@@ -392,6 +477,12 @@ static bool textparser_validate_text_encoding(const struct textparser_handle *ha
 
 
 
+/**
+ * Compute an optimal memory chunk size for the arena allocator based on document text size.
+ *
+ * @param filesize Size of input file in bytes.
+ * @return Calculated arena allocation chunk size in bytes.
+ */
 static size_t calculate_chunk_size(size_t filesize)
 {
     size_t min_chunk = 4096;      // 4KB minimum
@@ -410,6 +501,13 @@ static size_t calculate_chunk_size(size_t filesize)
     return chunk_size;
 }
 
+/**
+ * Convert a UTF-16 Big-Endian text buffer into native host endianness in place.
+ *
+ * @param src Pointer to UTF-16 Big-Endian byte buffer.
+ * @param size Size of the buffer in bytes.
+ * @return Pointer to converted native buffer, or NULL on error.
+ */
 static void *textparser_convert_utf16be_to_native(const char *src, size_t size)
 {
     size_t unit_count = size / sizeof(uint16_t);
@@ -427,6 +525,11 @@ static void *textparser_convert_utf16be_to_native(const char *src, size_t size)
     return buf;
 }
 
+/**
+ * Release all memory chunks managed by the handle arena allocator and reset allocation cursors.
+ *
+ * @param handle Pointer to the textparser handle.
+ */
 static void free_arena(struct textparser_handle *handle)
 {
     if (handle->chunks) {
@@ -451,6 +554,12 @@ typedef struct {
     uint64_t next_node_id;
 } textparser_arena_checkpoint;
 
+/**
+ * Capture the current arena chunk index and used bytes watermark for speculative rollback.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @return Watermark checkpoint snapshot of current arena state.
+ */
 static inline textparser_arena_checkpoint textparser_arena_checkpoint_save(const struct textparser_handle *handle)
 {
     textparser_arena_checkpoint cp;
@@ -462,6 +571,12 @@ static inline textparser_arena_checkpoint textparser_arena_checkpoint_save(const
     return cp;
 }
 
+/**
+ * Roll back arena memory allocations to a previously saved checkpoint watermark.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param cp Pointer to the checkpoint watermark to restore.
+ */
 static inline void textparser_arena_checkpoint_restore(struct textparser_handle *handle, const textparser_arena_checkpoint *cp)
 {
     handle->current_chunk_index = cp->chunk_index;
@@ -475,6 +590,18 @@ static inline void textparser_arena_checkpoint_restore(struct textparser_handle 
     handle->next_node_id = cp->next_node_id;
 }
 
+/**
+ * Attempt to match the start delimiter or initial pattern of a token using fast matchers or regex.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Integer token ID to match.
+ * @param text Pointer to current position in text buffer.
+ * @param len Length in character code units.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param match_len Output pointer receiving matched span length.
+ * @param only_at_start true if match must be anchored at the current position.
+ * @return true if start token matched successfully; false otherwise.
+ */
 static inline bool textparser_match_start_token(
     const struct textparser_handle *handle,
     int token_id,
@@ -513,6 +640,18 @@ static inline bool textparser_match_start_token(
     return ret;
 }
 
+/**
+ * Attempt to match the end delimiter or closing pattern of a container token.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Integer token ID of the container.
+ * @param text Pointer to current position in text buffer.
+ * @param len Length in character code units.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param match_len Output pointer receiving matched span length.
+ * @param only_at_start true if match must be anchored at the current position.
+ * @return true if end token matched successfully; false otherwise.
+ */
 static inline bool textparser_match_end_token(
     const struct textparser_handle *handle,
     int token_id,
@@ -551,6 +690,14 @@ static inline bool textparser_match_end_token(
     return ret;
 }
 
+/**
+ * Allocate a new zero-initialized textparser_token_item node from the handle arena allocator.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID assigned to the node.
+ * @param len Length in character code units spanned by the token.
+ * @return Pointer to the allocated token item node, or NULL on allocation failure.
+ */
 static textparser_token_item *textparser_alloc_token(struct textparser_handle *handle, int token_id, size_t len)
 {
     size_t token_size = sizeof(textparser_token_item);
@@ -600,6 +747,14 @@ static textparser_token_item *textparser_alloc_token(struct textparser_handle *h
     return ret;
 }
 
+/**
+ * Check whether any newline character sequence exists in the slice [pos, pos + len).
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param pos Starting unit offset in text buffer.
+ * @param len Span length in units to inspect.
+ * @return true if a CR, LF, or Unicode line break character is detected; false otherwise.
+ */
 static bool textparser_has_newline(const struct textparser_handle *handle, size_t pos, size_t len)
 {
     if (handle == nullptr || len == 0) return false;
@@ -616,6 +771,13 @@ static bool textparser_has_newline(const struct textparser_handle *handle, size_
     return false;
 }
 
+/**
+ * Advance past any contiguous whitespace characters starting at the given position.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param pos Starting character unit offset.
+ * @return Character unit offset of the first non-whitespace character, or end of text.
+ */
 static size_t textparser_skip_whitespace(const struct textparser_handle *handle, size_t pos)
 {
     if (handle == nullptr) return pos;
@@ -636,6 +798,14 @@ static size_t textparser_skip_whitespace(const struct textparser_handle *handle,
 
     return pos;
 }
+/**
+ * Resolve the allowed nested token array for a container, applying parent-context rules if defined.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of the active container.
+ * @param parent_item Parent token node in the CST hierarchy.
+ * @return Pointer to a TextParser_END-terminated array of allowed nested token IDs.
+ */
 static const int *get_effective_nested_tokens(const struct textparser_handle *handle, int token_id, const textparser_token_item *parent_item)
 {
     const textparser_language_definition *definition = handle->language;
@@ -661,6 +831,13 @@ static const int *get_effective_nested_tokens(const struct textparser_handle *ha
 }
 
 
+/**
+ * Check whether a specific token ID is present in a TextParser_END-terminated array.
+ *
+ * @param list TextParser_END-terminated array of token IDs.
+ * @param token_id Token ID to search for.
+ * @return true if token_id is found in list; false otherwise.
+ */
 static bool textparser_token_in_id_list(const int *list, int token_id)
 {
     if (list == nullptr) return false;
@@ -670,6 +847,12 @@ static bool textparser_token_in_id_list(const int *list, int token_id)
     return false;
 }
 
+/**
+ * Locate the last sibling in a linked list of child token items.
+ *
+ * @param item Current token item node.
+ * @return Pointer to the last child token item, or NULL if token has no children.
+ */
 static textparser_token_item *textparser_get_last_child_item(textparser_token_item *item)
 {
     if (item == nullptr) return nullptr;
@@ -683,6 +866,12 @@ static textparser_token_item *textparser_get_last_child_item(textparser_token_it
     return item;
 }
 
+/**
+ * Count the number of non-whitespace, non-trivia children under a given token node.
+ *
+ * @param token Parent token item node.
+ * @return Number of semantic child nodes.
+ */
 static size_t textparser_get_semantic_children_count(const textparser_token_item *token)
 {
     if (token == nullptr) return 0;
@@ -697,6 +886,12 @@ static size_t textparser_get_semantic_children_count(const textparser_token_item
     return ret;
 }
 
+/**
+ * Absorb adjacent unary plus/minus signs into numeric literals according to language sign merge rules.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param n Token item node whose children will be inspected and merged.
+ */
 static void maybe_merge_sign(struct textparser_handle *handle, textparser_token_item *n)
 {
     if (handle == nullptr || handle->language == nullptr || n == nullptr) return;
@@ -783,6 +978,15 @@ static void maybe_merge_sign(struct textparser_handle *handle, textparser_token_
     }
 }
 
+/**
+ * Evaluate contextual disambiguation rules to decide if a slash token begins a regex or is division.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node in CST.
+ * @param pos Position where token appears.
+ * @return true if the token is valid in this context; false otherwise.
+ */
 static bool is_regex_valid_in_context(
     const struct textparser_handle *handle,
     const textparser_token_item *parent_item,
@@ -873,6 +1077,17 @@ static bool is_regex_valid_in_context(
     return true;
 }
 
+/**
+ * Search for a token match starting at pos, taking context and disambiguation rules into account.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID to search for.
+ * @param pos Starting unit offset in text buffer.
+ * @param other_text_inside Whether non-token text is permitted before match.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node in CST.
+ * @return Relative offset from pos where token begins, or TOKEN_NOT_FOUND (-1).
+ */
 static ssize_t textparser_find_token(const struct textparser_handle *handle, int token_id, size_t pos, bool other_text_inside, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     if (handle == nullptr || handle->recursion_depth >= MAX_RECURSION_DEPTH) {
@@ -988,6 +1203,15 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
 
 static textparser_token_item *textparser_parse_token(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling);
 
+/**
+ * Check whether parsing at pos has reached the boundary or closing delimiter of an ancestor token.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param parent_token_id Token ID of the enclosing parent container.
+ * @param parent_start_stop Flag indicating delimiter search direction relative to parent container.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @return true if pos reaches parent boundary or closing delimiter; false otherwise.
+ */
 static bool check_parent_token_boundary(
     struct textparser_handle *handle,
     int parent_token_id,
@@ -1028,6 +1252,14 @@ static bool check_parent_token_boundary(
     return false;
 }
 
+/**
+ * Append a newly parsed child node to the end of a parent container children linked list.
+ *
+ * @param parent Parent container token node.
+ * @param head In/out pointer to head of node or token list.
+ * @param tail In/out pointer to tail of node or token list.
+ * @param new_child New child node to link.
+ */
 static void append_child_to_ast(
     textparser_token_item *parent,
     textparser_token_item **head,
@@ -1049,6 +1281,18 @@ static void append_child_to_ast(
     }
 }
 
+/**
+ * Synthesize and append a start delimiter leaf node to the parent container AST.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param parent Parent container token node.
+ * @param head In/out pointer to head of node or token list.
+ * @param tail In/out pointer to tail of node or token list.
+ * @param len Length of the start delimiter in units.
+ * @param text_color ARGB foreground text color code.
+ * @param text_background ARGB background text color code.
+ * @param text_flags Text styling bitflags.
+ */
 static void append_start_delimiter(
     struct textparser_handle *handle,
     textparser_token_item *parent,
@@ -1068,6 +1312,18 @@ static void append_start_delimiter(
     append_child_to_ast(parent, head, tail, item);
 }
 
+/**
+ * Synthesize and append an end delimiter leaf node to the parent container AST.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param parent Parent container token node.
+ * @param head In/out pointer to head of node or token list.
+ * @param tail In/out pointer to tail of node or token list.
+ * @param len Length of the end delimiter in units.
+ * @param text_color ARGB foreground text color code.
+ * @param text_background ARGB background text color code.
+ * @param text_flags Text styling bitflags.
+ */
 static void append_end_delimiter(
     struct textparser_handle *handle,
     textparser_token_item *parent,
@@ -1087,6 +1343,15 @@ static void append_end_delimiter(
     append_child_to_ast(parent, head, tail, item);
 }
 
+/**
+ * Create and append a whitespace trivia node if ws_skipped length is greater than zero.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param parent Parent container token node (or NULL if top level).
+ * @param head In/out pointer to the head of the token list.
+ * @param tail In/out pointer to tail of node or token list.
+ * @param len Length in character code units.
+ */
 static void append_whitespace_if_needed(
     struct textparser_handle *handle,
     textparser_token_item *parent,
@@ -1105,6 +1370,15 @@ static void append_whitespace_if_needed(
     append_child_to_ast(parent, head, tail, item);
 }
 
+/**
+ * Create and append an unprocessed leaf node for source spans not matched by grammar tokens.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param parent Parent container token node (or NULL if top level).
+ * @param head In/out pointer to the head of the token list.
+ * @param tail In/out pointer to tail of node or token list.
+ * @param len Length of unprocessed span in units.
+ */
 static void append_unprocessed_if_needed(
     struct textparser_handle *handle,
     textparser_token_item *parent,
@@ -1123,6 +1397,18 @@ static void append_unprocessed_if_needed(
     append_child_to_ast(parent, head, tail, item);
 }
 
+/**
+ * Parse a group container token whose grammar requires exactly one matching child.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of the group container.
+ * @param parent_token_id Token ID of the enclosing parent container.
+ * @param parent_start_stop Flag indicating delimiter search direction relative to parent container.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node.
+ * @return Allocated container token item node on success, or NULL on mismatch.
+ */
 static textparser_token_item *parse_token_group_one_child_only(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
@@ -1223,6 +1509,18 @@ exit:
     return ret;
 }
 
+/**
+ * Parse a general group container token matching multiple nested tokens.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of the group container.
+ * @param parent_token_id Token ID of the enclosing parent container.
+ * @param parent_start_stop Flag indicating delimiter search direction relative to parent container.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node.
+ * @return Allocated container token item node on success, or NULL on mismatch.
+ */
 static textparser_token_item *parse_token_group(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     textparser_token_item *ret = nullptr;
@@ -1364,6 +1662,18 @@ exit:
     return ret;
 }
 
+/**
+ * Parse a group container token requiring all child tokens to appear in fixed sequential order.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of the group container.
+ * @param parent_token_id Token ID of the enclosing parent container.
+ * @param parent_start_stop Flag indicating delimiter search direction relative to parent container.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node.
+ * @return Allocated container token item node on success, or NULL on mismatch.
+ */
 static textparser_token_item *parse_token_group_all_children_in_same_order(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     textparser_token_item *ret = nullptr;
@@ -1490,6 +1800,18 @@ exit:
     return ret;
 }
 
+/**
+ * Parse a sequence container token matching children sequentially with backtracking on failure.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of the sequence container.
+ * @param parent_token_id Token ID of the enclosing parent container.
+ * @param parent_start_stop Flag indicating delimiter search direction relative to parent container.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node.
+ * @return Allocated sequence token item node on success, or NULL on mismatch.
+ */
 static textparser_token_item *parse_token_sequence(
     struct textparser_handle *handle,
     int token_id,
@@ -1567,6 +1889,18 @@ static textparser_token_item *parse_token_sequence(
     return ret;
 }
 
+/**
+ * Parse a simple leaf token matching a single regex or literal pattern.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of the simple token.
+ * @param parent_token_id Token ID of the enclosing parent container.
+ * @param parent_start_stop Flag indicating delimiter search direction relative to parent container.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param parent_item Parent container CST node in the hierarchy.
+ * @param prev_sibling Preceding sibling CST node in the linked list.
+ * @return Allocated leaf token item node on success, or NULL on mismatch.
+ */
 static textparser_token_item *parse_token_simple_token(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)parent_item;
@@ -1610,6 +1944,19 @@ exit:
     return ret;
 }
 
+/**
+ * Parse a paired start/stop container token matching nested content until its closing delimiter.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of the start/stop container.
+ * @param parent_token_id Token ID of the enclosing parent container.
+ * @param parent_start_stop Flag indicating search direction relative to parent delimiters.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param stop_required Whether closing delimiter must be matched.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node.
+ * @return Allocated container token item node on success, or NULL on mismatch.
+ */
 static textparser_token_item *parse_token_start_stop(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, bool stop_required, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     (void)prev_sibling;
@@ -1876,6 +2223,14 @@ exit:
     return ret;
 }
 
+/**
+ * Record a fatal parsing syntax error and set handle error state.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param msg Error message string.
+ * @param offset Character unit offset where error occurred.
+ * @return Always returns NULL.
+ */
 static textparser_token_item *parse_token_error_error(struct textparser_handle *handle, const char *msg, size_t offset)
 {
     exit_with_error(handle, msg, offset);
@@ -1883,6 +2238,18 @@ exit:
     return nullptr;
 }
 
+/**
+ * Main token parsing dispatcher routing to specific handlers based on token definition type.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID to parse.
+ * @param parent_token_id Token ID of enclosing parent container.
+ * @param parent_start_stop Delimiter search mode flag.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param parent_item Enclosing parent container node.
+ * @param prev_sibling Preceding sibling node.
+ * @return Constructed token item node on success, or NULL on mismatch/error.
+ */
 static textparser_token_item *textparser_parse_token(struct textparser_handle *handle, int token_id, int parent_token_id, int parent_start_stop, size_t offset, const textparser_token_item *parent_item, const textparser_token_item *prev_sibling)
 {
     if (handle == nullptr) {
@@ -1946,6 +2313,12 @@ exit:
     return ret;
 }
 
+/**
+ * Compile and initialize all regular expressions defined in the active language definition.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @return 0 on success, or non-zero error code if regex compilation failed.
+ */
 static int textparser_init_regex(struct textparser_handle *handle)
 {
     if (handle == nullptr)
@@ -1986,6 +2359,11 @@ static int textparser_init_regex(struct textparser_handle *handle)
     return 0;
 }
 
+/**
+ * Release all compiled regular expression handles stored in the language definition.
+ *
+ * @param handle Pointer to the textparser handle.
+ */
 static void textparser_free_regex(struct textparser_handle *handle)
 {
     if (handle == nullptr)
@@ -2549,6 +2927,11 @@ EXPORT_TEXTPARSER int textparser_set_text(textparser_t handle, const char *text,
     return 0;
 }
 
+/**
+ * Recursively free token items removed during AST post-processing unwrapping.
+ *
+ * @param node Pointer to CST node being evaluated or manipulated.
+ */
 static void free_post_processed_tokens(textparser_token_item *node)
 {
     if (node == nullptr) return;
@@ -2737,6 +3120,14 @@ const char *textparser_get_filename(const textparser_t handle)
     return handle->filename;
 }
 
+/**
+ * Find the innermost AST node enclosing a specific character unit offset.
+ *
+ * @param token Pointer to token item node or lexer token snapshot.
+ * @param position Character unit offset in text buffer.
+ * @param depth Current recursion or speculation nesting depth.
+ * @return Pointer to the enclosing token item node, or NULL if not found.
+ */
 static const textparser_token_item *find_token_at_position_internal(const textparser_token_item *token, size_t position, int depth)
 {
     if (depth >= MAX_RECURSION_DEPTH || token == nullptr) {
@@ -2762,6 +3153,14 @@ static const textparser_token_item *find_token_at_position_internal(const textpa
 }
 
 
+/**
+ * Find the nearest open container enclosing an edit offset for incremental parsing.
+ *
+ * @param token Pointer to token item node or lexer token snapshot.
+ * @param position Character unit offset in text buffer.
+ * @param definition Active language definition rules.
+ * @return Pointer to the enclosing open container node, or NULL if none.
+ */
 static const textparser_token_item *find_open_container(const textparser_token_item *token, size_t position, const textparser_language_definition *definition)
 {
     const textparser_token_item *curr = token;
@@ -2801,6 +3200,12 @@ typedef struct {
     size_t pending_trivia_start;
 } textparser_lexer_stream_builder;
 
+/**
+ * Ensure dynamic array capacity in the lexer snapshot token stream builder.
+ *
+ * @param builder Pointer to lexer stream builder structure.
+ * @return true if capacity is available or reallocated successfully; false on OOM.
+ */
 static bool textparser_lexer_builder_reserve_tokens(textparser_lexer_stream_builder *builder)
 {
     if (builder->token_count < builder->token_capacity) return true;
@@ -2812,6 +3217,12 @@ static bool textparser_lexer_builder_reserve_tokens(textparser_lexer_stream_buil
     return true;
 }
 
+/**
+ * Ensure dynamic array capacity in the lexer snapshot trivia stream builder.
+ *
+ * @param builder Pointer to lexer stream builder structure.
+ * @return true if capacity is available or reallocated successfully; false on OOM.
+ */
 static bool textparser_lexer_builder_reserve_trivia(textparser_lexer_stream_builder *builder)
 {
     if (builder->trivia_count < builder->trivia_capacity) return true;
@@ -2823,6 +3234,14 @@ static bool textparser_lexer_builder_reserve_trivia(textparser_lexer_stream_buil
     return true;
 }
 
+/**
+ * Inspect a character unit span to detect line terminators and compute lexer trivia flags.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param start Starting unit offset.
+ * @param end Ending unit offset (half-open).
+ * @return Bitmask of flags such as TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR.
+ */
 static uint32_t textparser_lexer_span_flags(
     const struct textparser_handle *handle,
     size_t start,
@@ -2837,6 +3256,15 @@ static uint32_t textparser_lexer_span_flags(
     return 0;
 }
 
+/**
+ * Traverse parsed CST nodes to populate contiguous token and trivia snapshot arrays.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param node Current token item node being traversed.
+ * @param node_start Character unit start offset of node.
+ * @param builder Pointer to lexer stream builder accumulating entries.
+ * @return true on success, or false on memory allocation failure.
+ */
 static bool textparser_collect_lexer_streams(
     const struct textparser_handle *handle,
     const textparser_token_item *node,
@@ -2880,6 +3308,12 @@ static bool textparser_collect_lexer_streams(
     return true;
 }
 
+/**
+ * Rebuild immutable syntax token and trivia snapshots from CST following a parse pass.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @return TEXTPARSER_OK (0) on success, or error code on failure.
+ */
 static int textparser_rebuild_lexer_streams(struct textparser_handle *handle)
 {
     textparser_lexer_stream_builder builder = {0};
@@ -3318,6 +3752,16 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     return rebuild_status;
 }
 
+/**
+ * Look up operator precedence, associativity, and prefix role for a token ID in language rules.
+ *
+ * @param language Active language definition.
+ * @param token_id Token ID to look up.
+ * @param out_precedence Output pointer receiving numeric precedence rank.
+ * @param out_assoc Output pointer receiving operator associativity.
+ * @param out_is_prefix Output pointer receiving true if operator acts as prefix.
+ * @return true if operator rule was found for token_id; false otherwise.
+ */
 static bool get_operator_info(
     const textparser_language_definition *language,
     int token_id,
@@ -3349,6 +3793,13 @@ static bool get_operator_info(
     return false;
 }
 
+/**
+ * Wrap an operand node with a unary operator node during expression post-processing.
+ *
+ * @param op_token Operator token item node.
+ * @param operand Operand token item node.
+ * @return Pointer to the constructed unary operator node, or NULL on failure.
+ */
 static textparser_token_item *make_unary_node(
     textparser_token_item *op_token,
     textparser_token_item *operand
@@ -3382,6 +3833,14 @@ static textparser_token_item *make_unary_node(
     return parent_node;
 }
 
+/**
+ * Link left and right operand nodes under a binary operator parent during expression post-processing.
+ *
+ * @param left Left-hand operand node.
+ * @param op_token Operator token item node.
+ * @param right Right-hand operand node.
+ * @return Pointer to the binary operator node linking left and right children.
+ */
 static textparser_token_item *make_binary_node(
     textparser_token_item *left,
     textparser_token_item *op_token,
@@ -3426,6 +3885,16 @@ static textparser_token_item *make_binary_node(
     return parent_node;
 }
 
+/**
+ * Parse an expression subtree from a linear sequence of nodes using top-down operator precedence.
+ *
+ * @param language Pointer to the active language definition structure.
+ * @param items Array of token item nodes.
+ * @param count Total count of items in array.
+ * @param idx In/out index in items array.
+ * @param min_precedence Minimum binding power required to consume next operator.
+ * @return Root node of the constructed expression subtree.
+ */
 static textparser_token_item *pratt_parse_expression_stream(
     const textparser_language_definition *language,
     textparser_token_item **items,
@@ -3520,6 +3989,12 @@ static textparser_token_item *pratt_parse_expression_stream(
     return left;
 }
 
+/**
+ * Recursively traverse CST containers to reorganize linear operator sequences into expression trees.
+ *
+ * @param head In/out pointer to head of node or token list.
+ * @param language Pointer to the active language definition structure.
+ */
 static void textparser_post_process_expressions(textparser_token_item **head, const textparser_language_definition *language)
 {
     if (head == nullptr || *head == nullptr || language == nullptr || language->operator_precedence == nullptr) return;
@@ -3576,6 +4051,13 @@ static void textparser_post_process_expressions(textparser_token_item **head, co
     free(items);
 }
 
+/**
+ * Check whether a container token node represents an expression or operator group.
+ *
+ * @param node Token item node to evaluate.
+ * @param language Pointer to the active language definition structure.
+ * @return true if node represents an operator group container; false otherwise.
+ */
 static bool is_operator_group(const textparser_token_item *node, const textparser_language_definition *language)
 {
     if (node == nullptr || node->token_id < 0 || language == nullptr || language->tokens == nullptr) return false;
@@ -3599,6 +4081,13 @@ static bool is_operator_group(const textparser_token_item *node, const textparse
     return true;
 }
 
+/**
+ * Unwrap and collapse single-child container nodes marked deleteIfOnlyOneChild.
+ *
+ * @param root Root CST node of the document or subtree.
+ * @param curr Current CST node in traversal.
+ * @return Replacement child node if unwrapped, or original node if unchanged.
+ */
 static void unwrap_node(textparser_token_item **root, textparser_token_item *curr)
 {
     if (curr == nullptr || curr->child == nullptr) return;
@@ -3625,6 +4114,12 @@ static void unwrap_node(textparser_token_item **root, textparser_token_item *cur
     }
 }
 
+/**
+ * Disambiguate C-style type cast expressions from parenthesized expressions in CST.
+ *
+ * @param root Root CST node of the document or subtree.
+ * @param language Pointer to the active language definition structure.
+ */
 static void textparser_disambiguate_casts(textparser_token_item **root, const textparser_language_definition *language)
 {
     if (root == nullptr || *root == nullptr || language == nullptr || language->cast_disambiguation == nullptr) return;
@@ -3684,6 +4179,12 @@ static void textparser_disambiguate_casts(textparser_token_item **root, const te
     }
 }
 
+/**
+ * Locate the closest preceding sibling token node that is not whitespace or comment trivia.
+ *
+ * @param token Current token item node.
+ * @return Pointer to previous significant sibling token, or NULL if none.
+ */
 static textparser_token_item *previous_significant_token(textparser_token_item *token)
 {
     if (token != nullptr) token = token->prev;
@@ -3691,6 +4192,12 @@ static textparser_token_item *previous_significant_token(textparser_token_item *
     return token;
 }
 
+/**
+ * Locate the closest following sibling token node that is not whitespace or comment trivia.
+ *
+ * @param token Current token item node.
+ * @return Pointer to next significant sibling token, or NULL if none.
+ */
 static textparser_token_item *next_significant_token(textparser_token_item *token)
 {
     if (token != nullptr) token = token->next;
@@ -3698,6 +4205,12 @@ static textparser_token_item *next_significant_token(textparser_token_item *toke
     return token;
 }
 
+/**
+ * Disambiguate variable or function declarations from expressions based on declarator tokens.
+ *
+ * @param root Root CST node of the document or subtree.
+ * @param language Pointer to the active language definition structure.
+ */
 static void textparser_disambiguate_declarations(textparser_token_item **root, const textparser_language_definition *language)
 {
     if (root == nullptr || *root == nullptr || language == nullptr || language->declaration_disambiguation == nullptr) return;
@@ -3729,6 +4242,12 @@ static void textparser_disambiguate_declarations(textparser_token_item **root, c
     }
 }
 
+/**
+ * Disambiguate template/generic bracket pairs (<...>) from comparison operators in CST.
+ *
+ * @param root Root CST node of the document or subtree.
+ * @param language Pointer to the active language definition structure.
+ */
 static void textparser_disambiguate_templates(textparser_token_item **root, const textparser_language_definition *language)
 {
     if (root == nullptr || *root == nullptr || language == nullptr || language->template_disambiguation == nullptr) return;
@@ -3995,6 +4514,13 @@ textparser_token_item *textparser_get_first_token(const textparser_t handle)
     return handle->first_item;
 }
 
+/**
+ * Encode a 32-bit Unicode code point into a UTF-8 byte array.
+ *
+ * @param cp Arena checkpoint watermark pointer.
+ * @param out Output pointer receiving parsed result.
+ * @return Number of bytes written (1 to 4), or 0 on invalid code point.
+ */
 static inline size_t encode_utf8_codepoint(uint32_t cp, char *out)
 {
     if (cp <= 0x7F) {
@@ -4322,6 +4848,13 @@ EXPORT_TEXTPARSER int textparser_get_cst_node_view(
     return kind == nullptr ? -1 : 0;
 }
 
+/**
+ * Check whether a string ends with a specific suffix substring.
+ *
+ * @param name Name string of token, production, or context.
+ * @param suffix Expected suffix substring.
+ * @return true if str ends with suffix; false otherwise.
+ */
 static bool textparser_name_ends_with(const char *name, const char *suffix)
 {
     if (name == nullptr || suffix == nullptr) return false;
@@ -4399,6 +4932,14 @@ const char *textparser_get_token_error(const textparser_token_item *token)
     return token->error;
 }
 
+/**
+ * Recursively record the active node hierarchy enclosing a position into a parser state snapshot.
+ *
+ * @param token Pointer to token item node or lexer token snapshot.
+ * @param state Parser state snapshot structure being populated.
+ * @param max_units Maximum allowable unit count.
+ * @param depth Current recursion or speculation nesting depth.
+ */
 static void textparser_parse_state_recursively_fill_internal(const textparser_token_item *token, const textparser_token_item **state, size_t max_units, int depth)
 {
     if (depth >= MAX_RECURSION_DEPTH) {
@@ -4424,6 +4965,13 @@ static void textparser_parse_state_recursively_fill_internal(const textparser_to
     }
 }
 
+/**
+ * Populate a parser state snapshot with the chain of open nodes at the given unit position.
+ *
+ * @param token Pointer to token item node or lexer token snapshot.
+ * @param state Parser state snapshot structure being populated.
+ * @param max_units Maximum allowable unit count.
+ */
 static void textparser_parse_state_recursively_fill(const textparser_token_item *token, const textparser_token_item **state, size_t max_units)
 {
     textparser_parse_state_recursively_fill_internal(token, state, max_units, 0);
@@ -4619,6 +5167,13 @@ typedef struct {
     size_t sequence_capacity;
 } query_selector_t;
 
+/**
+ * Resolve a token name string to its integer token ID for query selector evaluation.
+ *
+ * @param language Active language definition.
+ * @param name Token name string.
+ * @return Token ID integer if found, or -1 if unknown.
+ */
 static int query_get_token_id_by_name(const textparser_language_definition *language, const char *name)
 {
     if (!language || !language->tokens || !name)
@@ -4638,6 +5193,11 @@ static int query_get_token_id_by_name(const textparser_language_definition *lang
     return -1;
 }
 
+/**
+ * Release memory allocated for a parsed AST query selector expression.
+ *
+ * @param sel Pointer to query selector structure to free.
+ */
 static void query_free_selector(query_selector_t *sel)
 {
     if (!sel) return;
@@ -4659,6 +5219,15 @@ typedef struct {
     query_combinator_t comb_after;
 } temp_element_t;
 
+/**
+ * Parse a single selector sequence step (token name, predicates, or combinator) from query string.
+ *
+ * @param language Active language definition.
+ * @param seq_str Query sequence string slice.
+ * @param seq_len Length of query sequence string.
+ * @param out_seq Output pointer receiving parsed query sequence.
+ * @return Pointer to parsed query sequence step, or NULL on syntax error.
+ */
 static bool query_parse_sequence(const textparser_language_definition *language, const char *seq_str, size_t seq_len, query_sequence_t *out_seq)
 {
     temp_element_t elements[128];
@@ -4720,6 +5289,14 @@ static bool query_parse_sequence(const textparser_language_definition *language,
     return true;
 }
 
+/**
+ * Parse an entire AST query selector string into a structured query selector graph.
+ *
+ * @param language Active language definition.
+ * @param selector Query selector expression string.
+ * @param out_sel Output pointer receiving parsed query selector.
+ * @return Pointer to parsed selector structure, or NULL on parse failure.
+ */
 static bool query_parse_selector(const textparser_language_definition *language, const char *selector, query_selector_t *out_sel)
 {
     out_sel->sequences = nullptr;
@@ -4757,6 +5334,14 @@ static bool query_parse_selector(const textparser_language_definition *language,
     return out_sel->sequence_count > 0;
 }
 
+/**
+ * Evaluate whether a candidate AST node matches a query sequence step.
+ *
+ * @param candidate Candidate token item or CST node to test.
+ * @param seq Query sequence step.
+ * @param scope_root Root CST node of the candidate scope.
+ * @return true if node matches selector sequence; false otherwise.
+ */
 static bool query_match_sequence(const textparser_token_item *candidate, const query_sequence_t *seq, const textparser_token_item *scope_root)
 {
     if (seq->step_count == 0) return false;
@@ -4794,6 +5379,14 @@ static bool query_match_sequence(const textparser_token_item *candidate, const q
     return true;
 }
 
+/**
+ * Evaluate whether an AST node candidate satisfies all steps of a query selector expression.
+ *
+ * @param candidate Candidate token item or CST node to test.
+ * @param sel Parsed query selector.
+ * @param scope_root Root CST node of the candidate scope.
+ * @return true if node satisfies the query; false otherwise.
+ */
 static bool query_match_candidate(const textparser_token_item *candidate, const query_selector_t *sel, const textparser_token_item *scope_root)
 {
     for (size_t s = 0; s < sel->sequence_count; s++) {
@@ -4901,6 +5494,15 @@ EXPORT_TEXTPARSER void textparser_free_query_result(const textparser_token_item 
     }
 }
 
+/**
+ * Sequentially compute 1-based line and column coordinates for a byte offset in text buffer.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param pos Starting character unit offset in text buffer.
+ * @param inout_line_idx In/out pointer tracking 0-based line index in line map.
+ * @param out_line Output pointer receiving 1-based line number.
+ * @param out_col Output pointer receiving 1-based column number.
+ */
 static inline void textparser_calculate_line_col_sequential(const textparser_t handle, size_t pos, size_t *inout_line_idx, uint32_t *out_line, uint32_t *out_col)
 {
     if (handle == nullptr || handle->lines == nullptr || handle->no_lines == 0) {
@@ -4933,6 +5535,19 @@ static inline void textparser_calculate_line_col_sequential(const textparser_t h
     *out_col = (pos >= line_start) ? (uint32_t)(pos - line_start) : 0;
 }
 
+/**
+ * Recursively traverse CST to export flat token range descriptors intersecting filter criteria.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param node Current token item node being traversed.
+ * @param node_start_pos Accumulated unit start offset of node.
+ * @param filter_start_pos Inclusive start offset filter.
+ * @param filter_end_pos Exclusive end offset filter.
+ * @param buffer Output array of textparser_token_range entries.
+ * @param max_tokens Maximum capacity of buffer.
+ * @param inout_count In/out pointer tracking count of accumulated matches.
+ * @param inout_line_idx In/out pointer tracking 0-based line index in line map.
+ */
 static void textparser_export_tokens_internal(const textparser_t handle, const textparser_token_item *node, size_t node_start_pos, size_t filter_start_pos, size_t filter_end_pos, textparser_token_range *buffer, size_t max_tokens, size_t *inout_count, size_t *inout_line_idx)
 {
     if (node == nullptr || handle == nullptr || handle->language == nullptr)
@@ -5173,6 +5788,14 @@ EXPORT_TEXTPARSER textparser_action textparser_dispatch_event(
     return TEXTPARSER_ACTION_ACCEPT;
 }
 
+/**
+ * Enqueue a semantic lifecycle event for deferred dispatch upon speculative branch commit.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param handler_name Name of registered semantic handler callback.
+ * @param event Pointer to event descriptor payload.
+ * @return 0 on success, or non-zero error code on failure.
+ */
 static int textparser_queue_event(
     textparser_t handle,
     const char *handler_name,
@@ -5195,6 +5818,13 @@ static int textparser_queue_event(
     return 0;
 }
 
+/**
+ * Dispatch queued semantic lifecycle events starting from a watermark after branch commit.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param first In/out pointer to head of sibling node list.
+ * @return TEXTPARSER_ACTION_ACCEPT, TEXTPARSER_ACTION_REJECT, or TEXTPARSER_ACTION_ABORT.
+ */
 static textparser_action textparser_publish_pending_events(
     textparser_t handle,
     size_t first)
@@ -5449,6 +6079,13 @@ EXPORT_TEXTPARSER const char *textparser_get_lexical_goal(textparser_t handle)
     return handle ? handle->lexical_goal : nullptr;
 }
 
+/**
+ * Look up a named lexer mode definition in the active language definition.
+ *
+ * @param language Active language definition.
+ * @param name Name string of token, production, or context.
+ * @return Pointer to textparser_lexer_mode if found, or NULL if not defined.
+ */
 static const textparser_lexer_mode *textparser_find_lexer_mode(
     const textparser_language_definition *language,
     const char *name)
@@ -5460,6 +6097,15 @@ static const textparser_lexer_mode *textparser_find_lexer_mode(
     return nullptr;
 }
 
+/**
+ * Remap a source token ID according to the active contextual lexical goal mappings.
+ *
+ * @param language Active language definition.
+ * @param goal Active lexical goal name string.
+ * @param token_id Integer ID of the token.
+ * @param goal_id Integer ID of the active lexical goal.
+ * @return Remapped token ID if a mapping matches, or original source_token.
+ */
 static int textparser_goal_token(
     const textparser_language_definition *language,
     const char *goal,
@@ -5480,6 +6126,13 @@ static int textparser_goal_token(
     return token_id;
 }
 
+/**
+ * Check whether an integer ID is present in a null-terminated or TextParser_END-terminated array.
+ *
+ * @param ids Array of integer IDs.
+ * @param id Identifier integer.
+ * @return true if found in list; false otherwise.
+ */
 static bool textparser_id_in_list(const int *ids, int id)
 {
     if (ids == nullptr) return false;
@@ -5487,6 +6140,14 @@ static bool textparser_id_in_list(const int *ids, int id)
     return false;
 }
 
+/**
+ * Validate Unicode escape sequences (\uXXXX or \u{X...}) in ECMAScript/TypeScript identifiers.
+ *
+ * @param handle Pointer to the active textparser handle.
+ * @param text Pointer to raw identifier text slice.
+ * @param length Length of slice in bytes.
+ * @return true if all escape sequences represent legal identifier code points; false otherwise.
+ */
 static bool textparser_typescript_identifier_escapes_valid(
     struct textparser_handle *handle, const char *text, size_t length)
 {
@@ -5557,6 +6218,15 @@ static bool textparser_typescript_identifier_escapes_valid(
     return valid;
 }
 
+/**
+ * Match a single candidate contextual lexer rule against the input stream at source_offset.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Token ID of candidate lexer rule.
+ * @param offset Output pointer receiving matched offset relative to pos.
+ * @param length Length in character code units or bytes.
+ * @return true if candidate rule matched; false otherwise.
+ */
 static bool textparser_contextual_match(
     struct textparser_handle *handle,
     int token_id,
@@ -5587,6 +6257,17 @@ static bool textparser_contextual_match(
     return true;
 }
 
+/**
+ * Scan the next syntax token from source_offset using active mode, goal, and priority rules.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param source_offset Unit offset in input stream.
+ * @param mode_name Active lexer mode name.
+ * @param goal_name Active contextual lexical goal name.
+ * @param out_token Output pointer receiving populated lexer token snapshot.
+ * @param out_source_rule Output pointer receiving matched rule index.
+ * @return 0 on success, 1 on EOF, or negative error code on scanning failure.
+ */
 static int textparser_contextual_scan_one(
     struct textparser_handle *handle,
     size_t source_offset,
@@ -5927,6 +6608,12 @@ EXPORT_TEXTPARSER bool textparser_context_is(
     return false;
 }
 
+/**
+ * Count the number of active scoped context entries stored in the handle.
+ *
+ * @param context Context frame or state structure.
+ * @return Number of scoped context variables currently defined.
+ */
 static size_t textparser_context_count(const textparser_context_entry *context)
 {
     size_t count = 0;
@@ -5975,6 +6662,11 @@ typedef struct {
     uint64_t memo_seq;
 } textparser_parser_checkpoint;
 
+/**
+ * Free all nodes in a linked list of scoped context entries.
+ *
+ * @param context Context frame or state structure.
+ */
 static void textparser_free_context_list(textparser_context_entry *context)
 {
     while (context != nullptr) {
@@ -5985,6 +6677,12 @@ static void textparser_free_context_list(textparser_context_entry *context)
     }
 }
 
+/**
+ * Create a deep copy of a linked list of scoped context entries.
+ *
+ * @param source Source text slice in text buffer.
+ * @return Pointer to head of newly allocated context list copy, or NULL if empty.
+ */
 static textparser_context_entry *textparser_clone_context_list(
     const textparser_context_entry *source)
 {
@@ -6010,6 +6708,12 @@ fail:
     return nullptr;
 }
 
+/**
+ * Release heap-allocated diagnostic entries in a diagnostic snapshot array.
+ *
+ * @param diagnostics Diagnostics vector or snapshot array.
+ * @param count Number of items in array.
+ */
 static void textparser_free_diagnostic_snapshot(
     textparser_diagnostic *diagnostics,
     size_t count)
@@ -6022,6 +6726,13 @@ static void textparser_free_diagnostic_snapshot(
     free(diagnostics);
 }
 
+/**
+ * Create a deep snapshot copy of the current handle diagnostics vector.
+ *
+ * @param source Source text slice in text buffer.
+ * @param count Total count of items in array.
+ * @return 0 on success, or non-zero on allocation failure.
+ */
 static textparser_diagnostic *textparser_clone_diagnostics(
     const textparser_diagnostic *source,
     size_t count)
@@ -6041,6 +6752,11 @@ static textparser_diagnostic *textparser_clone_diagnostics(
     return copy;
 }
 
+/**
+ * Release heap allocations (contexts, diagnostics) associated with a speculation checkpoint.
+ *
+ * @param checkpoint Pointer to speculation checkpoint structure to free.
+ */
 static void textparser_checkpoint_free(textparser_parser_checkpoint *checkpoint)
 {
     if (checkpoint == nullptr) return;
@@ -6063,6 +6779,12 @@ typedef struct textparser_memo_entry {
     struct textparser_memo_entry *next;
 } textparser_memo_entry;
 
+/**
+ * Compute a 64-bit hash over active scoped contexts for packrat memoization table keying.
+ *
+ * @param head In/out pointer to head of node or token list.
+ * @return 64-bit hash value summarizing names and values of all active contexts.
+ */
 static uint32_t textparser_hash_contexts(const textparser_context_entry *head)
 {
     uint32_t h = 2166136261u;
@@ -6082,6 +6804,11 @@ static uint32_t textparser_hash_contexts(const textparser_context_entry *head)
     return h;
 }
 
+/**
+ * Clear all cached production results in the packrat grammar memoization table.
+ *
+ * @param handle Pointer to the textparser handle.
+ */
 static void textparser_memo_clear(textparser_t handle)
 {
     if (handle == nullptr) return;
@@ -6095,6 +6822,14 @@ static void textparser_memo_clear(textparser_t handle)
     handle->grammar_memo = nullptr;
 }
 
+/**
+ * Shift token indexes and invalidate dirty regions in grammar memoization table after edits.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param dirty_start_token Starting token index affected by edit.
+ * @param dirty_end_token Ending token index affected by edit.
+ * @param delta_tokens Net difference in token count after edit.
+ */
 static void textparser_memo_shift_and_invalidate(
     textparser_t handle,
     size_t dirty_start_token,
@@ -6123,6 +6858,12 @@ static void textparser_memo_shift_and_invalidate(
     }
 }
 
+/**
+ * Invalidate memoization entries added after a checkpoint sequence counter.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param seq Query sequence structure.
+ */
 static void textparser_memo_rollback(textparser_t handle, uint64_t seq)
 {
     if (handle == nullptr) return;
@@ -6139,6 +6880,16 @@ static void textparser_memo_rollback(textparser_t handle, uint64_t seq)
     }
 }
 
+/**
+ * Look up a cached production parse result in the packrat memoization table.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param production_id Production ID.
+ * @param token_index Token index where production began.
+ * @param context_hash Active scoped context hash value.
+ * @param lexical_goal Active lexical goal name string.
+ * @return true if a valid cached result was retrieved; false on memo miss.
+ */
 static const textparser_memo_entry *textparser_memo_lookup(
     textparser_t handle,
     int production_id,
@@ -6161,6 +6912,17 @@ static const textparser_memo_entry *textparser_memo_lookup(
     return nullptr;
 }
 
+/**
+ * Store a production parse result into the packrat memoization table.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param production_id Production ID.
+ * @param token_index Token index where production began.
+ * @param context_hash Active scoped context hash value.
+ * @param lexical_goal Active lexical goal name string.
+ * @param result Pointer to match result to cache.
+ * @param source_length Length of source span in units.
+ */
 static void textparser_memo_store(
     textparser_t handle,
     int production_id,
@@ -6184,6 +6946,12 @@ static void textparser_memo_store(
     handle->grammar_memo = entry;
 }
 
+/**
+ * Determine whether a grammar production kind is eligible for packrat memoization.
+ *
+ * @param production Pointer to the declarative production structure.
+ * @return true if production kind should be memoized; false otherwise.
+ */
 static bool textparser_is_memoizable_production(const textparser_production *production)
 {
     if (production == nullptr || production->name == nullptr) return false;
@@ -6317,6 +7085,14 @@ typedef struct {
     textparser_capture_entry *captures;
 } textparser_grammar_executor;
 
+/**
+ * Helper function to construct a textparser_match_result structure.
+ *
+ * @param status Match status enum (MATCH_OK, MATCH_NO, MATCH_ERROR, MATCH_ABORT).
+ * @param node Constructed syntax node pointer (or NULL).
+ * @param consumed Output pointer receiving number of consumed tokens.
+ * @return Populated textparser_match_result structure.
+ */
 static textparser_match_result textparser_match_result_make(
     textparser_match_status status,
     textparser_node *node,
@@ -6330,6 +7106,15 @@ static textparser_match_result textparser_match_result_make(
     return result;
 }
 
+/**
+ * Helper function to construct a committed textparser_match_result structure.
+ *
+ * @param status Match status enum.
+ * @param node Constructed syntax node pointer (or NULL).
+ * @param consumed Output pointer receiving number of consumed tokens.
+ * @param committed Output pointer receiving true if branch committed.
+ * @return Populated textparser_match_result with committed flag set to true.
+ */
 static textparser_match_result textparser_match_result_committed(
     textparser_match_status status,
     textparser_node *node,
@@ -6341,6 +7126,13 @@ static textparser_match_result textparser_match_result_committed(
     return result;
 }
 
+/**
+ * Look up a production definition by its integer production ID in the executor table.
+ *
+ * @param executor Pointer to grammar executor containing production table.
+ * @param production_id Unique integer ID of production.
+ * @return Pointer to textparser_production if found, or NULL if ID is out of bounds.
+ */
 static const textparser_production *textparser_find_production(
     const textparser_grammar_executor *executor,
     int production_id)
@@ -6355,6 +7147,13 @@ static const textparser_production *textparser_find_production(
     return found;
 }
 
+/**
+ * Create an AST terminal node for a matched grammar token.
+ *
+ * @param handle Pointer to the active textparser handle.
+ * @param token Pointer to lexer token snapshot.
+ * @return Allocated CST token node, or NULL on allocation error.
+ */
 static textparser_node *textparser_grammar_token_node(
     textparser_t handle,
     const textparser_lex_token *token)
@@ -6371,6 +7170,16 @@ static textparser_node *textparser_grammar_token_node(
     return node;
 }
 
+/**
+ * Create an AST container node grouping child productions under a CST kind name.
+ *
+ * @param handle Pointer to the active textparser handle.
+ * @param production Pointer to the declarative production structure.
+ * @param first_child Pointer to first child node in children linked list.
+ * @param source_start Starting unit offset in input buffer.
+ * @param source_length Length of source span in units.
+ * @return Allocated container CST node.
+ */
 static textparser_node *textparser_grammar_group_node(
     textparser_t handle,
     const textparser_production *production,
@@ -6401,6 +7210,13 @@ static textparser_node *textparser_grammar_group_node(
     return node;
 }
 
+/**
+ * Append a newly matched production node to an accumulating sibling linked list.
+ *
+ * @param first In/out pointer to head of sibling node list.
+ * @param last In/out pointer to tail of sibling node list.
+ * @param node New node to append.
+ */
 static void textparser_grammar_append_node(
     textparser_node **first,
     textparser_node **last,
@@ -6418,6 +7234,13 @@ static textparser_match_result textparser_parse_production(
     textparser_grammar_executor *executor,
     int production_id);
 
+/**
+ * Peek at the next token in the lexer stream without consuming it.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param out Output pointer receiving parsed result.
+ * @return 0 on success, 1 on EOF, or negative error code.
+ */
 static int textparser_grammar_peek_token(
     textparser_grammar_executor *executor,
     const textparser_lex_token **out)
@@ -6433,6 +7256,13 @@ static int textparser_grammar_peek_token(
     return 0;
 }
 
+/**
+ * Consume the next token in the lexer stream and advance the parser cursor.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param expected_kind Expected CST kind name string.
+ * @return 0 on success, 1 on EOF, or negative error code.
+ */
 static textparser_match_result textparser_grammar_consume_token(
     textparser_grammar_executor *executor,
     int expected_kind)
@@ -6456,6 +7286,12 @@ static textparser_match_result textparser_grammar_consume_token(
     return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 1);
 }
 
+/**
+ * Record failure location and expected token info for furthest-failure diagnostic reporting.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production Production that failed to match.
+ */
 static void textparser_grammar_note_failure(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -6487,6 +7323,12 @@ static void textparser_grammar_note_failure(
     }
 }
 
+/**
+ * Check whether the active language definition represents TypeScript or TSX.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @return true if language name is 'typescript' or 'tsx'; false otherwise.
+ */
 static bool textparser_is_typescript_language(const textparser_t handle)
 {
     return handle != nullptr && handle->language != nullptr &&
@@ -6494,6 +7336,12 @@ static bool textparser_is_typescript_language(const textparser_t handle)
         strcmp(handle->language->name, "typescript") == 0;
 }
 
+/**
+ * Get human-readable spelling or symbol text for a TypeScript token ID for diagnostics.
+ *
+ * @param name Name string of token, production, or context.
+ * @return String representation of token spelling (e.g. ';' or 'identifier').
+ */
 static const char *textparser_typescript_token_spelling(const char *name)
 {
     if (name == nullptr) return nullptr;
@@ -6512,6 +7360,15 @@ static const char *textparser_typescript_token_spelling(const char *name)
     return nullptr;
 }
 
+/**
+ * Emit a syntax diagnostic describing expected tokens at the furthest failure offset.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production Production where failure occurred.
+ * @param start Starting character unit offset.
+ * @param length Token span length.
+ * @param recovered Output pointer receiving true if recovery was triggered.
+ */
 static int textparser_grammar_report_expected(
     textparser_grammar_executor *executor,
     const textparser_production *production,
@@ -6569,6 +7426,14 @@ static int textparser_grammar_report_expected(
         recovered ? "TEXTPARSER_RECOVERED" : "TEXTPARSER_EXPECTED", message, start, length);
 }
 
+/**
+ * Check whether a token ID belongs to the synchronization token set of a production.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production Production defining synchronization tokens.
+ * @param token_kind Expected integer token kind ID.
+ * @return true if token_id is in production or global synchronization sets; false otherwise.
+ */
 static bool textparser_grammar_is_sync(
     const textparser_grammar_executor *executor,
     const textparser_production *production,
@@ -6585,6 +7450,15 @@ static bool textparser_grammar_is_sync(
     return false;
 }
 
+/**
+ * Synthesize and insert a zero-width missing token node for error recovery.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production Production requiring the missing token.
+ * @param token_kind Expected integer token kind ID.
+ * @param report_error true to report syntax error diagnostic on failure.
+ * @return Constructed missing CST node with TEXTPARSER_NODE_MISSING flag set.
+ */
 static textparser_match_result textparser_grammar_missing_token(
     textparser_grammar_executor *executor,
     const textparser_production *production,
@@ -6606,6 +7480,13 @@ static textparser_match_result textparser_grammar_missing_token(
     return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, 0);
 }
 
+/**
+ * Evaluate JavaScript/TypeScript Automatic Semicolon Insertion (ASI) legality rules.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production Pointer to the declarative production structure.
+ * @return true if semicolon can be automatically inserted; false otherwise.
+ */
 static bool textparser_grammar_can_insert_semicolon(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -6618,6 +7499,13 @@ static bool textparser_grammar_can_insert_semicolon(
         textparser_grammar_is_sync(executor, production, current->kind);
 }
 
+/**
+ * Perform panic-mode error recovery by skipping unexpected tokens to a synchronization barrier.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production Production encountering syntax mismatch.
+ * @return TEXTPARSER_MATCH_OK on successful resync, or TEXTPARSER_MATCH_ERROR if recovery failed.
+ */
 static textparser_match_result textparser_grammar_synchronize(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -6688,6 +7576,16 @@ static textparser_match_result textparser_grammar_synchronize(
     return textparser_match_result_make(TEXTPARSER_MATCH_OK, node, consumed);
 }
 
+/**
+ * Construct an AST operator node linking operands during Pratt expression parsing.
+ *
+ * @param op Operator definition specifying role, precedence, and symbol.
+ * @param first In/out pointer to head of sibling node list.
+ * @param second Second operand CST node.
+ * @param third Third operand CST node.
+ * @param source_length Length of source span in units.
+ * @return Constructed operator expression CST node.
+ */
 static textparser_node *textparser_pratt_operator_node(
     textparser_node *op,
     textparser_node *first,
@@ -6725,6 +7623,13 @@ typedef enum {
     TEXTPARSER_TS_TARGET_OPTIONAL_CHAIN = 2,
 } textparser_ts_target_state;
 
+/**
+ * Extract the production or CST kind name string from an AST node.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Token item node to inspect.
+ * @return Production name string, or NULL if unavailable.
+ */
 static const char *textparser_grammar_node_production_name(
     const textparser_grammar_executor *executor,
     const textparser_node *node)
@@ -6734,6 +7639,13 @@ static const char *textparser_grammar_node_production_name(
     return production == nullptr ? nullptr : production->name;
 }
 
+/**
+ * Extract the terminal token name string from an AST leaf node.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Token item node to inspect.
+ * @return Token name string, or NULL if node is not a terminal.
+ */
 static const char *textparser_grammar_node_token_name(
     const textparser_grammar_executor *executor,
     const textparser_node *node)
@@ -6746,6 +7658,12 @@ static const char *textparser_grammar_node_token_name(
     return nullptr;
 }
 
+/**
+ * Find the first terminal leaf token node within a CST subtree.
+ *
+ * @param node Root of subtree to search.
+ * @return Pointer to first terminal leaf node, or node itself if already a terminal.
+ */
 static const textparser_node *textparser_node_first_terminal(const textparser_node *node)
 {
     for (const textparser_node *item = node; item != nullptr; item = item->next) {
@@ -6775,6 +7693,13 @@ typedef struct textparser_typescript_legality_context {
     const textparser_typescript_label_frame *labels;
 } textparser_typescript_legality_context;
 
+/**
+ * Inspect token identity of a TypeScript CST node.
+ *
+ * @param node CST node to inspect.
+ * @param token_name Name string of token.
+ * @return Pointer to terminal token node, or NULL if node does not represent a token.
+ */
 static const textparser_node *textparser_typescript_node_token(
     const textparser_node *node,
     const char *token_name)
@@ -6790,6 +7715,13 @@ static const textparser_node *textparser_typescript_node_token(
     return nullptr;
 }
 
+/**
+ * Extract the leading keyword or modifier token from a TypeScript declaration node.
+ *
+ * @param node Declaration CST node.
+ * @param token_name Header token name to match (e.g. 'function', 'class', 'interface').
+ * @return Pointer to matching header token node, or NULL if absent.
+ */
 static const textparser_node *textparser_typescript_header_token(
     const textparser_node *node,
     const char *token_name)
@@ -6816,6 +7748,13 @@ static const textparser_node *textparser_typescript_header_token(
     return nullptr;
 }
 
+/**
+ * Check whether a TypeScript declaration subtree contains a specific header keyword token.
+ *
+ * @param node Declaration CST node.
+ * @param token_name Header token name to check.
+ * @return true if subtree contains header keyword; false otherwise.
+ */
 static bool textparser_typescript_subtree_has_header_token(
     const textparser_node *node,
     const char *token_name)
@@ -6823,6 +7762,14 @@ static bool textparser_typescript_subtree_has_header_token(
     return textparser_typescript_header_token(node, token_name) != nullptr;
 }
 
+/**
+ * Compare the source text of two identifier nodes for string equality.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param left First identifier node.
+ * @param right Second identifier node.
+ * @return true if both identifier text spans match exactly; false otherwise.
+ */
 static bool textparser_typescript_same_identifier(
     textparser_t handle,
     const textparser_node *left,
@@ -6839,6 +7786,12 @@ static bool textparser_typescript_same_identifier(
             handle->text_addr + right->source_start, left_length) == 0;
 }
 
+/**
+ * Determine whether a labeled statement target encloses an iteration loop statement.
+ *
+ * @param node Labeled statement CST node.
+ * @return true if target statement is for, for-in, for-of, while, or do-while; false otherwise.
+ */
 static bool textparser_typescript_label_targets_iteration(const textparser_node *node)
 {
     if (node == nullptr) return false;
@@ -6859,6 +7812,14 @@ static bool textparser_typescript_label_targets_iteration(const textparser_node 
     return false;
 }
 
+/**
+ * Look up a statement label name in active TypeScript label stack frames.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param labels Active label stack frame linked list.
+ * @param name Identifier node specifying the label name.
+ * @return Pointer to matching label frame, or NULL if undefined.
+ */
 static const textparser_typescript_label_frame *textparser_typescript_find_label(
     textparser_t handle,
     const textparser_typescript_label_frame *labels,
@@ -6870,6 +7831,15 @@ static const textparser_typescript_label_frame *textparser_typescript_find_label
     return nullptr;
 }
 
+/**
+ * Look up a statement label within the current function scope boundary.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param labels Active label stack frame linked list.
+ * @param name Identifier node specifying the label name.
+ * @param function_depth Current function nesting depth.
+ * @return Pointer to matching label frame in current function, or NULL if none.
+ */
 static const textparser_typescript_label_frame *textparser_typescript_find_local_label(
     textparser_t handle,
     const textparser_typescript_label_frame *labels,
@@ -6881,6 +7851,14 @@ static const textparser_typescript_label_frame *textparser_typescript_find_local
     return label != nullptr && label->function_depth == function_depth ? label : nullptr;
 }
 
+/**
+ * Report a TypeScript syntax diagnostic anchored at the exact source span of a CST node.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param node CST node whose source span will anchor the diagnostic.
+ * @param code TypeScript diagnostic error code (e.g. 'TS1109').
+ * @param message Descriptive diagnostic error message.
+ */
 static void textparser_typescript_report_node_diagnostic(
     textparser_t handle,
     const textparser_node *node,
@@ -6897,6 +7875,12 @@ static void textparser_typescript_report_node_diagnostic(
         start, end >= start ? end - start : 0);
 }
 
+/**
+ * Check whether a CST kind name establishes a declaration boundary for modifier attachment.
+ *
+ * @param kind CST kind name string.
+ * @return true if kind represents a declaration boundary; false otherwise.
+ */
 static bool textparser_typescript_is_header_boundary(const char *kind)
 {
     return kind != nullptr &&
@@ -6909,6 +7893,13 @@ static bool textparser_typescript_is_header_boundary(const char *kind)
          strcmp(kind, "ObjectPropertyName") == 0);
 }
 
+/**
+ * Map a TypeScript modifier keyword into its corresponding bitflag representation.
+ *
+ * @param kind Modifier keyword name (public, private, protected, static, readonly, etc.).
+ * @param accessibility Output pointer receiving true if modifier specifies accessibility.
+ * @return Integer bitmask flag representing the modifier.
+ */
 static unsigned textparser_typescript_modifier_bit(const char *kind, bool *accessibility)
 {
     *accessibility = false;
@@ -6926,6 +7917,14 @@ static unsigned textparser_typescript_modifier_bit(const char *kind, bool *acces
     return 0;
 }
 
+/**
+ * Report a diagnostic for illegal, duplicate, or conflicting TypeScript modifier keywords.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param modifier Modifier CST node where diagnostic is reported.
+ * @param code Diagnostic error code.
+ * @param suffix Additional context message suffix.
+ */
 static void textparser_typescript_report_modifier_diagnostic(
     textparser_t handle,
     const textparser_node *modifier,
@@ -6942,6 +7941,14 @@ static void textparser_typescript_report_modifier_diagnostic(
     textparser_typescript_report_node_diagnostic(handle, modifier, code, message);
 }
 
+/**
+ * Validate legality, duplicates, and ordering of TypeScript modifier sequences.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param node Parent declaration node holding modifiers.
+ * @param seen In/out bitmask of seen modifier flags.
+ * @param seen_accessibility In/out boolean indicating if accessibility modifier was seen.
+ */
 static void textparser_typescript_check_modifier_nodes(
     textparser_t handle,
     const textparser_node *node,
@@ -6969,6 +7976,13 @@ static void textparser_typescript_check_modifier_nodes(
     }
 }
 
+/**
+ * Count the number of parameter definitions enclosed within a parameter list span.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param parameter_list ParameterList CST node.
+ * @return Total number of declared parameters.
+ */
 static size_t textparser_typescript_count_parameters_from_span(
     textparser_t handle,
     const textparser_node *parameter_list)
@@ -6994,6 +8008,13 @@ static size_t textparser_typescript_count_parameters_from_span(
     return count;
 }
 
+/**
+ * Check whether a TypeScript statement or member is preceded by an ambient declare modifier.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param node CST node to inspect.
+ * @return true if preceded by declare keyword; false otherwise.
+ */
 static bool textparser_typescript_preceded_by_declare(
     textparser_t handle,
     const textparser_node *node)
@@ -7009,6 +8030,15 @@ static bool textparser_typescript_preceded_by_declare(
     return false;
 }
 
+/**
+ * Check whether a TypeScript method declaration header begins with 'get' or 'set' accessor words.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param node Member declaration CST node.
+ * @param end Maximum unit offset bound for header inspection.
+ * @param word Accessor word ('get' or 'set').
+ * @return true if header contains the specified accessor word; false otherwise.
+ */
 static bool textparser_typescript_header_has_accessor_word(
     textparser_t handle,
     const textparser_node *node,
@@ -7040,6 +8070,13 @@ static bool textparser_typescript_header_has_accessor_word(
     return false;
 }
 
+/**
+ * Find the first direct child node matching a specific CST kind name.
+ *
+ * @param node Parent CST node to search within.
+ * @param kind CST kind name string.
+ * @return Pointer to first matching child node, or NULL if not found.
+ */
 static const textparser_node *textparser_typescript_find_kind(
     const textparser_node *node,
     const char *kind)
@@ -7052,6 +8089,14 @@ static const textparser_node *textparser_typescript_find_kind(
     return nullptr;
 }
 
+/**
+ * Find the first child node matching a CST kind name located after a given source position.
+ *
+ * @param node Parent CST node to search within.
+ * @param kind CST kind name string.
+ * @param position Source unit position threshold.
+ * @return Pointer to first matching child node after position, or NULL if not found.
+ */
 static const textparser_node *textparser_typescript_find_kind_after(
     const textparser_node *node,
     const char *kind,
@@ -7067,6 +8112,12 @@ static const textparser_node *textparser_typescript_find_kind_after(
     return nullptr;
 }
 
+/**
+ * Determine whether a CST kind represents an ambient statement (e.g. ambient declaration).
+ *
+ * @param kind CST kind name string.
+ * @return true if kind is ambient declaration; false otherwise.
+ */
 static bool textparser_typescript_is_ambient_statement(const char *kind)
 {
     if (kind == nullptr) return false;
@@ -7081,6 +8132,12 @@ static bool textparser_typescript_is_ambient_statement(const char *kind)
     return false;
 }
 
+/**
+ * Check whether the current file being parsed is a TypeScript declaration (.d.ts) file.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @return true if filename ends with '.d.ts'; false otherwise.
+ */
 static bool textparser_typescript_declaration_file(const textparser_t handle)
 {
     const char *filename = handle == nullptr ? nullptr : handle->filename;
@@ -7099,6 +8156,12 @@ static bool textparser_typescript_declaration_file(const textparser_t handle)
     return result;
 }
 
+/**
+ * Check whether a TypeScript CST node resides within an ambient declaration context.
+ *
+ * @param node CST node to inspect.
+ * @return true if any ancestor has ambient declaration status; false otherwise.
+ */
 static bool textparser_typescript_has_declared_ancestor(const textparser_node *node)
 {
     for (const textparser_node *parent = node == nullptr ? nullptr : node->parent;
@@ -7113,6 +8176,12 @@ static bool textparser_typescript_has_declared_ancestor(const textparser_node *n
     return false;
 }
 
+/**
+ * Check whether a TypeScript CST node represents a function expression or arrow function.
+ *
+ * @param node CST node to test.
+ * @return true if node is FunctionExpression or ArrowFunction; false otherwise.
+ */
 static bool textparser_typescript_is_function_expression_node(const textparser_node *node)
 {
     /* The grammar parses `function`/`async function` expressions under the
@@ -7131,6 +8200,13 @@ static bool textparser_typescript_is_function_expression_node(const textparser_n
     return false;
 }
 
+/**
+ * Recursively validate TypeScript early error semantics (returns, breaks, yields, awaits, modifiers).
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param node Current CST node being validated.
+ * @param context Active legality validation context frame.
+ */
 static void textparser_typescript_check_legality_nodes(
     textparser_t handle,
     const textparser_node *node,
@@ -7381,6 +8457,12 @@ static void textparser_typescript_check_legality_nodes(
     }
 }
 
+/**
+ * Perform comprehensive post-parse TypeScript semantic and early-error legality validation.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param root Root CST node of the parsed document.
+ */
 static void textparser_typescript_check_legality(
     textparser_t handle,
     const textparser_node *root)
@@ -7391,6 +8473,12 @@ static void textparser_typescript_check_legality(
     textparser_typescript_check_legality_nodes(handle, root, context);
 }
 
+/**
+ * Retrieve the last direct child node under a parent CST node.
+ *
+ * @param node Parent CST node.
+ * @return Pointer to last child node, or NULL if node has no children.
+ */
 static const textparser_node *textparser_node_last_child(const textparser_node *node)
 {
     const textparser_node *last = node == nullptr ? nullptr : node->child;
@@ -7399,6 +8487,14 @@ static const textparser_node *textparser_node_last_child(const textparser_node *
     return last;
 }
 
+/**
+ * Find a single child production node whose name matches one in a candidate name set.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Parent CST node.
+ * @param name Output pointer receiving matched candidate name string.
+ * @return Pointer to matching child production node, or NULL if not found.
+ */
 static const textparser_node *textparser_find_named_single_child(
     const textparser_grammar_executor *executor,
     const textparser_node *node,
@@ -7423,6 +8519,13 @@ static textparser_ts_target_state textparser_typescript_assignment_target(
     const textparser_node *node,
     bool allow_pattern);
 
+/**
+ * Validate whether an expression node is legal in a destructuring pattern value position.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Expression CST node to test.
+ * @return true if node is legal pattern value; false otherwise.
+ */
 static bool textparser_typescript_pattern_value(
     const textparser_grammar_executor *executor,
     const textparser_node *node)
@@ -7436,6 +8539,14 @@ static bool textparser_typescript_pattern_value(
         TEXTPARSER_TS_TARGET_ASSIGNABLE;
 }
 
+/**
+ * Validate elements and rest operator legality inside an array destructuring pattern.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Array pattern CST node.
+ * @param seen_rest In/out boolean tracking if a rest element (...rest) has been seen.
+ * @return true if all array pattern elements are legal; false otherwise.
+ */
 static bool textparser_typescript_array_pattern_nodes_internal(
     const textparser_grammar_executor *executor,
     const textparser_node *node,
@@ -7464,6 +8575,13 @@ static bool textparser_typescript_array_pattern_nodes_internal(
     return true;
 }
 
+/**
+ * Validate an array binding or assignment destructuring pattern.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Array pattern CST node.
+ * @return true if array pattern is valid; false otherwise.
+ */
 static bool textparser_typescript_array_pattern_nodes(
     const textparser_grammar_executor *executor,
     const textparser_node *node)
@@ -7472,6 +8590,14 @@ static bool textparser_typescript_array_pattern_nodes(
     return textparser_typescript_array_pattern_nodes_internal(executor, node, &seen_rest);
 }
 
+/**
+ * Validate an individual property or rest binding element inside an object destructuring pattern.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Object pattern element CST node.
+ * @param is_rest Output pointer receiving true if element is rest property (...rest).
+ * @return true if element is valid object pattern property; false otherwise.
+ */
 static bool textparser_typescript_object_pattern_element(
     const textparser_grammar_executor *executor,
     const textparser_node *node,
@@ -7492,6 +8618,14 @@ static bool textparser_typescript_object_pattern_element(
     return false;
 }
 
+/**
+ * Validate properties and rest positioning inside an object destructuring pattern.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Object pattern CST node.
+ * @param seen_rest In/out boolean tracking if rest property has been encountered.
+ * @return true if object pattern is valid; false otherwise.
+ */
 static bool textparser_typescript_object_pattern_nodes_internal(
     const textparser_grammar_executor *executor,
     const textparser_node *node,
@@ -7518,6 +8652,13 @@ static bool textparser_typescript_object_pattern_nodes_internal(
     return true;
 }
 
+/**
+ * Validate an object binding or assignment destructuring pattern.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Object pattern CST node.
+ * @return true if object pattern is valid; false otherwise.
+ */
 static bool textparser_typescript_object_pattern_nodes(
     const textparser_grammar_executor *executor,
     const textparser_node *node)
@@ -7526,6 +8667,14 @@ static bool textparser_typescript_object_pattern_nodes(
     return textparser_typescript_object_pattern_nodes_internal(executor, node, &seen_rest);
 }
 
+/**
+ * Validate whether an expression represents a legal target for simple or compound assignment.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param node Expression node being assigned to.
+ * @param allow_pattern true if destructuring patterns (arrays, objects) are permitted.
+ * @return textparser_ts_target_state indicating valid simple, valid pattern, or invalid target.
+ */
 static textparser_ts_target_state textparser_typescript_assignment_target(
     const textparser_grammar_executor *executor,
     const textparser_node *node,
@@ -7591,6 +8740,15 @@ static textparser_ts_target_state textparser_typescript_assignment_target(
     return TEXTPARSER_TS_TARGET_INVALID;
 }
 
+/**
+ * Invoke registered validator callback on completed left or prefix Pratt operand.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param validator Registered validator callback name string.
+ * @param node Completed operand CST node.
+ * @param allow_pattern true if destructuring patterns are permitted as valid targets.
+ * @return true if operand passes validator; false otherwise.
+ */
 static bool textparser_pratt_validate_operand(
     textparser_grammar_executor *executor,
     const char *validator,
@@ -7622,6 +8780,16 @@ static bool textparser_pratt_validate_operand(
     return false;
 }
 
+/**
+ * Recursive Pratt expression parsing loop handling prefix, infix, postfix, and ternary binding powers.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param primary_production Primary production ID parsing atomic expressions.
+ * @param postfix_production Optional postfix production ID, or -1.
+ * @param minimum_precedence Minimum binding power required to consume next operator.
+ * @param depth Current expression recursion nesting depth.
+ * @return textparser_match_result containing the parsed expression subtree root.
+ */
 static textparser_match_result textparser_parse_pratt_internal(
     textparser_grammar_executor *executor,
     int primary_production,
@@ -7775,6 +8943,13 @@ static textparser_match_result textparser_parse_pratt_internal(
     return left;
 }
 
+/**
+ * Execute a PRATT declarative production construct using the registered operator table.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production PRATT production definition.
+ * @return textparser_match_result containing expression parse status and root node.
+ */
 static textparser_match_result textparser_parse_pratt(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -7816,6 +8991,13 @@ static textparser_match_result textparser_parse_pratt(
     return result;
 }
 
+/**
+ * Execute a SEQUENCE declarative production construct matching all children in order.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production SEQUENCE production definition.
+ * @return textparser_match_result on success, or mismatch with rollback on failure.
+ */
 static textparser_match_result textparser_parse_sequence(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -7858,6 +9040,13 @@ static textparser_match_result textparser_parse_sequence(
     return textparser_match_result_committed(TEXTPARSER_MATCH_OK, node, consumed, committed);
 }
 
+/**
+ * Execute a CHOICE declarative production construct trying alternatives with speculative rollback.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production CHOICE production definition.
+ * @return textparser_match_result of first matching alternative, or failure result.
+ */
 static textparser_match_result textparser_parse_choice(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -7892,6 +9081,13 @@ static textparser_match_result textparser_parse_choice(
     return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
 }
 
+/**
+ * Execute an OPTIONAL declarative production construct matching zero or one time.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production OPTIONAL production definition.
+ * @return textparser_match_result with matched node if present, or success with empty node.
+ */
 static textparser_match_result textparser_parse_optional(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -7920,6 +9116,13 @@ static textparser_match_result textparser_parse_optional(
     return textparser_match_result_make(status, nullptr, 0);
 }
 
+/**
+ * Execute a REPEAT declarative production construct matching zero or more times with forward progress.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production REPEAT production definition.
+ * @return textparser_match_result containing grouped repeated child nodes.
+ */
 static textparser_match_result textparser_parse_repeat(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -7984,6 +9187,14 @@ static textparser_match_result textparser_parse_repeat(
     return textparser_match_result_committed(TEXTPARSER_MATCH_OK, node, consumed, committed);
 }
 
+/**
+ * Execute a positive or negative LOOKAHEAD construct speculatively without consuming input.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production LOOKAHEAD production definition.
+ * @param negative true for negative lookahead (!P); false for positive lookahead (&P).
+ * @return textparser_match_result indicating lookahead assertion success or failure.
+ */
 static textparser_match_result textparser_parse_lookahead(
     textparser_grammar_executor *executor,
     const textparser_production *production,
@@ -8006,6 +9217,13 @@ static textparser_match_result textparser_parse_lookahead(
     return textparser_match_result_make(child.status, nullptr, 0);
 }
 
+/**
+ * Execute a PREDICATE declarative production construct evaluating a native registered callback.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production PREDICATE production definition.
+ * @return textparser_match_result indicating predicate success or mismatch.
+ */
 static textparser_match_result textparser_parse_predicate(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -8120,6 +9338,13 @@ static textparser_match_result textparser_parse_predicate(
     return textparser_match_result_make(accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
 }
 
+/**
+ * Execute a CONTEXT declarative production construct pushing scoped context values during child execution.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production CONTEXT production definition.
+ * @return textparser_match_result of child production execution.
+ */
 static textparser_match_result textparser_parse_context(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -8142,6 +9367,13 @@ static textparser_match_result textparser_parse_context(
     return result;
 }
 
+/**
+ * Execute a LEXICAL_GOAL construct activating a transient lexical goal during child parsing.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production LEXICAL_GOAL production definition.
+ * @return textparser_match_result of child production execution.
+ */
 static textparser_match_result textparser_parse_lexical_goal(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -8160,6 +9392,13 @@ static textparser_match_result textparser_parse_lexical_goal(
     return result;
 }
 
+/**
+ * Execute a CAPTURE declarative production construct binding named sub-matches.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production CAPTURE production definition.
+ * @return textparser_match_result of captured production execution.
+ */
 static textparser_match_result textparser_parse_capture(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -8227,6 +9466,13 @@ static textparser_match_result textparser_parse_capture(
         TEXTPARSER_MATCH_OK, node, consumed, captured.committed || remainder.committed);
 }
 
+/**
+ * Execute a MATCH_CAPTURE construct asserting that current input matches previously captured span.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production MATCH_CAPTURE production definition.
+ * @return textparser_match_result indicating matched capture assertion success or failure.
+ */
 static textparser_match_result textparser_parse_match_capture(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -8280,6 +9526,13 @@ static textparser_match_result textparser_parse_match_capture(
     return result;
 }
 
+/**
+ * Central grammar execution dispatcher executing a production by ID with packrat memoization.
+ *
+ * @param executor Pointer to grammar executor.
+ * @param production_id Integer production ID to execute.
+ * @return textparser_match_result containing match status, syntax node, and consumed token count.
+ */
 static textparser_match_result textparser_parse_production(
     textparser_grammar_executor *executor,
     int production_id)

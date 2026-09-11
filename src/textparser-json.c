@@ -14,6 +14,11 @@
 
 #define json_object_defer(var) struct json_object * var __attribute__((cleanup(json_object_cleanup))) = nullptr
 
+/**
+ * Auto-cleanup callback to release reference on a json_object pointer.
+ *
+ * @param handle Pointer to json_object pointer to decrement reference count.
+ */
 static void json_object_cleanup(struct json_object **handle)
 {
     if (handle && *handle)
@@ -25,6 +30,13 @@ static void json_object_cleanup(struct json_object **handle)
 
 #include "string_pool.h"
 
+/**
+ * Parse a color or bitflag integer/hex string from a JSON object.
+ *
+ * @param obj JSON object containing an integer or hex string.
+ * @param default_val Fallback value if obj is null or invalid.
+ * @return Parsed 32-bit unsigned integer value.
+ */
 static uint32_t get_color_or_flag_value(struct json_object *obj, uint32_t default_val)
 {
     if (obj == nullptr) {
@@ -39,6 +51,14 @@ static uint32_t get_color_or_flag_value(struct json_object *obj, uint32_t defaul
     return (uint32_t)json_object_get_int64(obj);
 }
 
+/**
+ * Find a token index by its textual name in a token definition array.
+ *
+ * @param name Token name string to search for.
+ * @param tokens Array of token definitions.
+ * @param tokens_cnt Number of elements in tokens array.
+ * @return 0-based token ID if found, or -1 if not found.
+ */
 static int json_get_token_id_by_name(const char *name, const textparser_token *tokens, size_t tokens_cnt)
 {
     if (!name || !tokens) return -1;
@@ -50,6 +70,13 @@ static int json_get_token_id_by_name(const char *name, const textparser_token *t
     return -1;
 }
 
+/**
+ * Parse a JSON array of strings into a NULL-terminated array of pooled strings.
+ *
+ * @param arr_obj JSON array object containing string elements.
+ * @param pool String pool used to allocate duplicated strings.
+ * @return NULL-terminated array of strings, or NULL if empty or invalid.
+ */
 static const char **json_parse_string_array(struct json_object *arr_obj, textparser_string_pool *pool)
 {
     if (!arr_obj || !json_object_is_type(arr_obj, json_type_array)) return nullptr;
@@ -69,6 +96,14 @@ static const char **json_parse_string_array(struct json_object *arr_obj, textpar
     return res;
 }
 
+/**
+ * Parse a JSON array of token names into a TextParser_END-terminated array of token IDs.
+ *
+ * @param arr JSON array object containing token name strings.
+ * @param tokens Array of token definitions to resolve names against.
+ * @param tokens_cnt Number of elements in tokens array.
+ * @return TextParser_END-terminated array of integer token IDs, or NULL on failure.
+ */
 static int *json_parse_token_id_array(struct json_object *arr, const textparser_token *tokens, size_t tokens_cnt)
 {
     if (!arr || !json_object_is_type(arr, json_type_array)) return nullptr;
@@ -107,6 +142,11 @@ typedef struct {
     size_t global_sync_token_count;
 } json_grammar_builder;
 
+/**
+ * Release all heap-allocated production items and child arrays held by a grammar builder.
+ *
+ * @param builder Grammar builder structure to reset.
+ */
 static void json_grammar_builder_free(json_grammar_builder *builder)
 {
     if (builder == nullptr || builder->items == nullptr) return;
@@ -120,6 +160,13 @@ static void json_grammar_builder_free(json_grammar_builder *builder)
     builder->capacity = 0;
 }
 
+/**
+ * Ensure capacity in the grammar builder production array.
+ *
+ * @param builder Grammar builder handle.
+ * @param required Minimum capacity required.
+ * @return 0 on success, or TEXTPARSER_JSON_OUT_OF_MEMORY.
+ */
 static int json_grammar_reserve(json_grammar_builder *builder, size_t required)
 {
     if (required <= builder->capacity) return 0;
@@ -133,6 +180,13 @@ static int json_grammar_reserve(json_grammar_builder *builder, size_t required)
     return 0;
 }
 
+/**
+ * Allocate a new anonymous production slot in the grammar builder.
+ *
+ * @param builder Grammar builder handle.
+ * @param out_id Pointer to receive the allocated production ID.
+ * @return 0 on success, or error code on failure.
+ */
 static int json_grammar_append_anonymous(json_grammar_builder *builder, int *out_id)
 {
     int ret = json_grammar_reserve(builder, builder->count + 1);
@@ -147,6 +201,13 @@ static int json_grammar_append_anonymous(json_grammar_builder *builder, int *out
     return 0;
 }
 
+/**
+ * Look up the integer ID of a named production in the grammar builder.
+ *
+ * @param builder Grammar builder handle.
+ * @param name Named production string to search for.
+ * @return Production ID if found, or -1 if not defined.
+ */
 static int json_grammar_named_id(const json_grammar_builder *builder, const char *name)
 {
     if (name == nullptr) return -1;
@@ -156,11 +217,27 @@ static int json_grammar_named_id(const json_grammar_builder *builder, const char
     return -1;
 }
 
+/**
+ * Parse a grammar construct including its recovery attributes and lifecycle event bindings.
+ *
+ * @param builder Grammar builder handle.
+ * @param construct JSON construct object.
+ * @param out_id Pointer to receive allocated production ID.
+ * @return 0 on success, or error code.
+ */
 static int json_parse_grammar_construct(
     json_grammar_builder *builder,
     json_object *construct,
     int production_id);
 
+/**
+ * Recursively parse a JSON grammar construct definition into a production graph.
+ *
+ * @param builder Grammar builder accumulating productions.
+ * @param construct JSON object describing a token, ref, sequence, choice, optional, repeat, etc.
+ * @param out_id Pointer to receive the root production ID of the parsed construct.
+ * @return 0 on success, or a TEXTPARSER_JSON_* error code.
+ */
 static int json_parse_grammar_construct_core(
     json_grammar_builder *builder,
     json_object *construct,
@@ -433,6 +510,16 @@ static int json_parse_grammar_construct_core(
     return ret;
 }
 
+/**
+ * Parse a JSON array or single token name string into a TextParser_END-terminated array of sync token IDs.
+ *
+ * @param obj JSON object (array or string) specifying synchronization tokens.
+ * @param tokens Table of token definitions.
+ * @param token_count Number of token definitions.
+ * @param out_tokens Pointer to receive allocated token ID array.
+ * @param out_count Pointer to receive count of sync tokens.
+ * @return 0 on success, or TEXTPARSER_JSON_* error code.
+ */
 static int json_parse_recovery_tokens(
     json_grammar_builder *builder,
     json_object *array,
@@ -462,6 +549,15 @@ static int json_parse_recovery_tokens(
     return 0;
 }
 
+/**
+ * Parse declarative event binding configuration for validate, commit, or recovery handlers.
+ *
+ * @param obj JSON object specifying handler name and optional configuration payload.
+ * @param pool String pool for allocating handler name strings.
+ * @param out_handler Pointer to receive resolved handler name string.
+ * @param out_configuration Pointer to receive serialized configuration JSON string.
+ * @return 0 on success, or error code.
+ */
 static int json_parse_event_binding(
     json_grammar_builder *builder,
     json_object *binding,
@@ -502,6 +598,14 @@ static int json_parse_event_binding(
     return 0;
 }
 
+/**
+ * Parse production-level lifecycle event bindings (validate, commit, recovery) from JSON.
+ *
+ * @param prod Target production structure.
+ * @param prod_obj JSON production object.
+ * @param pool String pool for string allocations.
+ * @return 0 on success, or error code.
+ */
 static int json_parse_production_events(
     json_grammar_builder *builder,
     json_object *events,
@@ -536,6 +640,14 @@ static int json_parse_production_events(
     return 0;
 }
 
+/**
+ * Parse a grammar construct including its recovery attributes and lifecycle event bindings.
+ *
+ * @param builder Grammar builder handle.
+ * @param construct JSON construct object.
+ * @param production_id Target production ID to populate.
+ * @return 0 on success, or error code.
+ */
 static int json_parse_grammar_construct(
     json_grammar_builder *builder,
     json_object *construct,
@@ -621,6 +733,12 @@ static int json_parse_grammar_construct(
     return 0;
 }
 
+/**
+ * Compute the nullable property (can match zero tokens) for each production via fixed-point iteration.
+ *
+ * @param builder Grammar builder containing all productions.
+ * @param nullable Boolean array indexed by production ID to store computed nullable flags.
+ */
 static void json_grammar_compute_nullable(const json_grammar_builder *builder, bool *nullable)
 {
     for (size_t pass = 0; pass < builder->count; pass++) {
@@ -673,12 +791,30 @@ static void json_grammar_compute_nullable(const json_grammar_builder *builder, b
     }
 }
 
+/**
+ * Depth-first search to detect un-guarded left-recursive cycles among grammar productions.
+ *
+ * @param builder Grammar builder.
+ * @param id Current production ID being visited.
+ * @param nullable Precomputed array of nullable productions.
+ * @param visited In-progress cycle detection marker array.
+ * @return True if left recursion was detected, false otherwise.
+ */
 static bool json_grammar_left_recursive_visit(
     const json_grammar_builder *builder,
     int production_id,
     const bool *nullable,
     uint8_t *colors);
 
+/**
+ * Helper to traverse leading children of a production during left-recursion detection.
+ *
+ * @param builder Grammar builder.
+ * @param child_id Child production ID to visit.
+ * @param nullable Precomputed array of nullable productions.
+ * @param visited In-progress recursion cycle detection marker array.
+ * @return True if a left-recursion cycle was detected, false otherwise.
+ */
 static bool json_grammar_visit_leading_child(
     const json_grammar_builder *builder,
     int child,
@@ -688,6 +824,15 @@ static bool json_grammar_visit_leading_child(
     return json_grammar_left_recursive_visit(builder, child, nullable, colors);
 }
 
+/**
+ * Depth-first search to detect un-guarded left-recursive cycles among grammar productions.
+ *
+ * @param builder Grammar builder.
+ * @param production_id Current production ID being visited.
+ * @param nullable Precomputed array of nullable productions.
+ * @param colors 3-color cycle detection marker array (0 = unvisited, 1 = visiting, 2 = done).
+ * @return True if left recursion was detected, false otherwise.
+ */
 static bool json_grammar_left_recursive_visit(
     const json_grammar_builder *builder,
     int production_id,
@@ -738,6 +883,12 @@ static bool json_grammar_left_recursive_visit(
     return cycle;
 }
 
+/**
+ * Validate grammar graph integrity: verify references, check left-recursion, and reject nullable repeats.
+ *
+ * @param builder Grammar builder containing parsed productions.
+ * @return 0 if valid, or a TEXTPARSER_JSON_* error code if validation fails.
+ */
 static int json_validate_grammar(json_grammar_builder *builder)
 {
     bool *nullable = calloc(builder->count, sizeof(*nullable));
@@ -774,6 +925,14 @@ static int json_validate_grammar(json_grammar_builder *builder)
     return 0;
 }
 
+/**
+ * Parse the top-level grammar object from a language definition JSON into a compiled grammar definition.
+ *
+ * @param root Root JSON object.
+ * @param def Language definition structure being populated.
+ * @param pool String pool for string allocations.
+ * @return 0 on success, or a TEXTPARSER_JSON_* error code.
+ */
 static int json_parse_grammar(
     json_object *root,
     textparser_language_definition *definition,
@@ -914,6 +1073,14 @@ fail:
     return ret;
 }
 
+/**
+ * Parse contextual lexer specifications including modes, goals, and token rules from JSON.
+ *
+ * @param root Root JSON object.
+ * @param def Language definition structure being populated.
+ * @param pool String pool for string allocations.
+ * @return 0 on success, or a TEXTPARSER_JSON_* error code.
+ */
 static int json_parse_contextual_lexer(
     json_object *root,
     textparser_language_definition *definition,
@@ -1041,6 +1208,13 @@ static int json_parse_contextual_lexer(
     return 0;
 }
 
+/**
+ * Map an operator role name string (prefix, postfix, infix, ternary) to textparser_operator_role enum.
+ *
+ * @param name Role name string.
+ * @param out Pointer to receive mapped operator role enum.
+ * @return 0 if name was recognized, or -1 otherwise.
+ */
 static int json_operator_role(const char *name, textparser_operator_role *out)
 {
     if (strcmp(name, "prefix") == 0) *out = TEXTPARSER_OP_PREFIX;
@@ -1051,6 +1225,14 @@ static int json_operator_role(const char *name, textparser_operator_role *out)
     return 0;
 }
 
+/**
+ * Parse operator precedence tables from JSON into runtime textparser_operator_def structures.
+ *
+ * @param root Root JSON object containing operators array.
+ * @param def Language definition structure being populated.
+ * @param pool String pool for string allocations.
+ * @return 0 on success, or error code on failure.
+ */
 static int json_parse_pratt_operators(
     json_object *root,
     textparser_language_definition *definition,
@@ -1139,6 +1321,13 @@ static int json_parse_pratt_operators(
     return 0;
 }
 
+/**
+ * Internal parsing routine converting a parsed json_object into a textparser_language_definition.
+ *
+ * @param root Root json_object of language definition.
+ * @param definition Pointer where allocated language definition pointer will be stored.
+ * @return TEXTPARSER_JSON_NO_ERROR on success, or error code on failure.
+ */
 static int textparser_json_load_language_definition_internal(struct json_object *root_obj, textparser_language_definition **definition)
 {
     size_t array_length = 0;

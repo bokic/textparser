@@ -59,6 +59,13 @@ struct adv_regex_context {
     bool utf8_valid;
 };
 
+/**
+ * Dynamically load the PCRE2 shared library and resolve entrypoints for the requested code unit width.
+ *
+ * @param ctx Advanced regex context.
+ * @param width_idx Code unit width index (8, 16, or 32-bit).
+ * @return True if library symbols were successfully loaded or already present, false otherwise.
+ */
 static bool load_pcre2_dyn(adv_regex_context *ctx, pcre2_width_t width_idx)
 {
     if (!ctx) return false;
@@ -164,6 +171,12 @@ void adv_regex_context_free(adv_regex_context *ctx)
 
 /* --- UTF-8 decoder -------------------------------------------------------- */
 
+/**
+ * Decode a single Unicode code point from a UTF-8 character stream.
+ *
+ * @param p In/out pointer to current position in UTF-8 byte stream.
+ * @return Decoded Unicode codepoint value, or 0 at end of stream.
+ */
 static uint32_t decode_one_utf8_codepoint(const unsigned char **p)
 {
     const unsigned char *s = *p;
@@ -195,6 +208,13 @@ static uint32_t decode_one_utf8_codepoint(const unsigned char **p)
     return cp;
 }
 
+/**
+ * Convert a null-terminated UTF-8 string to a dynamically allocated UTF-16 buffer.
+ *
+ * @param utf8 Source UTF-8 string.
+ * @param out_len Optional pointer to store length in UTF-16 code units.
+ * @return Allocated UTF-16 buffer (caller must free), or NULL on failure.
+ */
 static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
 {
     if (!utf8) return NULL;
@@ -226,6 +246,13 @@ static uint16_t *utf8_to_utf16(const char *utf8, size_t *out_len)
     return utf16;
 }
 
+/**
+ * Convert a null-terminated UTF-8 string to a dynamically allocated UTF-32 buffer.
+ *
+ * @param utf8 Source UTF-8 string.
+ * @param out_len Optional pointer to store length in UTF-32 code units.
+ * @return Allocated UTF-32 buffer (caller must free), or NULL on failure.
+ */
 static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
 {
     if (!utf8) return NULL;
@@ -247,6 +274,23 @@ static uint32_t *utf8_to_utf32(const char *utf8, size_t *out_len)
 
 /* --- Single generic implementation --------------------------------------- */
 
+/**
+ * Core parameterized implementation for regex compilation and matching across code unit widths.
+ *
+ * @param ctx Advanced regex context.
+ * @param width_idx Width table index (8, 16, or 32-bit).
+ * @param width_bits Number of bits per code unit (8, 16, or 32).
+ * @param regex_str Pattern string.
+ * @param regex In/out compiled pattern handle cache slot.
+ * @param is_utf Whether to enable UTF mode in PCRE2.
+ * @param is_caseless Whether to enable case-insensitive matching.
+ * @param start Subject text starting pointer.
+ * @param max_len Maximum length of subject in units.
+ * @param offset Output match start offset.
+ * @param length Output match length.
+ * @param only_at_start True if anchored to start of subject.
+ * @return True if a match was found, false otherwise.
+ */
 static bool adv_regex_find_pattern_impl(
     adv_regex_context       *ctx,
     pcre2_width_t            width_idx,

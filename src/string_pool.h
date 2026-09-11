@@ -15,11 +15,23 @@ typedef struct {
     textparser_string_pool_chunk *head;
 } textparser_string_pool;
 
+/**
+ * Allocate and initialize a new string pool.
+ *
+ * @return Pointer to allocated textparser_string_pool or NULL on allocation failure.
+ */
 static inline textparser_string_pool *textparser_string_pool_create(void)
 {
     return (textparser_string_pool *)calloc(1, sizeof(textparser_string_pool));
 }
 
+/**
+ * Duplicate a string into chunked pool memory with bump allocation.
+ *
+ * @param pool String pool handle.
+ * @param str Source string to duplicate.
+ * @return Pointer to pooled string copy or NULL on error.
+ */
 static inline char *textparser_string_pool_strdup(textparser_string_pool *pool, const char *str)
 {
     if (!pool || !str) return nullptr;
@@ -44,6 +56,11 @@ static inline char *textparser_string_pool_strdup(textparser_string_pool *pool, 
     return dest;
 }
 
+/**
+ * Free all memory chunks and the string pool container itself.
+ *
+ * @param pool String pool handle to destroy.
+ */
 static inline void textparser_string_pool_free(textparser_string_pool *pool)
 {
     if (!pool) return;
@@ -55,3 +72,4 @@ static inline void textparser_string_pool_free(textparser_string_pool *pool)
     }
     free(pool);
 }
+
