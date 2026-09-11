@@ -1,6 +1,5 @@
 package com.textparser.cli;
 
-import com.textparser.JsonUtils;
 import com.textparser.TextParser;
 import com.textparser.TokenItem;
 
@@ -124,7 +123,7 @@ public class ValidateAll {
                 return;
             }
 
-            Object cJsonObj = JsonUtils.parseJson(cOutput);
+            Object cJsonObj = new com.google.gson.Gson().fromJson(cOutput, Object.class);
             @SuppressWarnings("unchecked")
             List<Object> list = (List<Object>) cJsonObj;
             cTree = list;

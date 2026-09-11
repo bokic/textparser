@@ -58,17 +58,6 @@ public class Parse {
     }
 
     public static String toJsonArray(List<TokenItem> tokens, int indentLevel) {
-        StringBuilder sb = new StringBuilder();
-        String indent = "  ".repeat(indentLevel);
-        sb.append("[\n");
-        for (int i = 0; i < tokens.size(); i++) {
-            sb.append(tokens.get(i).toJson(indentLevel + 1));
-            if (i < tokens.size() - 1) {
-                sb.append(",");
-            }
-            sb.append("\n");
-        }
-        sb.append(indent).append("]");
-        return sb.toString();
+        return TokenItem.toJson(tokens);
     }
 }

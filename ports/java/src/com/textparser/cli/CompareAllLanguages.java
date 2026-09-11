@@ -1,6 +1,5 @@
 package com.textparser.cli;
 
-import com.textparser.JsonUtils;
 import com.textparser.TextParser;
 import com.textparser.TokenItem;
 
@@ -64,7 +63,7 @@ public class CompareAllLanguages {
                     continue;
                 }
 
-                Object cJsonObj = JsonUtils.parseJson(cJsonSb.toString().trim());
+                Object cJsonObj = new com.google.gson.Gson().fromJson(cJsonSb.toString().trim(), Object.class);
                 @SuppressWarnings("unchecked")
                 List<Object> cTree = (List<Object>) cJsonObj;
 

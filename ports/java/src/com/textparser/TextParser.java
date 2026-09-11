@@ -1,14 +1,18 @@
 package com.textparser;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 public class TextParser {
+    private static final Gson GSON = new GsonBuilder().create();
+
     public Definition definition;
     private final Map<String, Pattern> patternCache = new HashMap<>();
 
@@ -18,9 +22,10 @@ public class TextParser {
     }
 
     public TextParser(String definitionJson) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) JsonUtils.parseJson(definitionJson);
-        this.definition = Definition.fromJson(map);
+        if (definitionJson == null || definitionJson.trim().isEmpty()) {
+            throw new IllegalArgumentException("Definition JSON cannot be empty");
+        }
+        this.definition = GSON.fromJson(definitionJson, Definition.class);
         initializeDefaults();
     }
 
@@ -30,7 +35,7 @@ public class TextParser {
     }
 
     private void initializeDefaults() {
-        if (definition.tokens != null) {
+        if (definition != null && definition.tokens != null) {
             for (Map.Entry<String, Definition.TokenDef> entry : definition.tokens.entrySet()) {
                 Definition.TokenDef token = entry.getValue();
                 if (token.id == null) {
@@ -45,35 +50,16 @@ public class TextParser {
         return patternCache.computeIfAbsent(regexStr, r -> {
             try {
                 return Pattern.compile(r, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-            } catch (PatternSyntaxException e) {
-                String fixed = fixRegexPattern(r);
-                try {
-                    return Pattern.compile(fixed, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-                } catch (Exception e2) {
-                    throw new RuntimeException("Failed to compile regex pattern: " + r, e);
-                }
             } catch (Exception e) {
-                throw new RuntimeException("Failed to compile regex pattern: " + r, e);
+                return Pattern.compile(Pattern.quote(r), Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
             }
         });
     }
 
-    private String fixRegexPattern(String r) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < r.length(); i++) {
-            char c = r.charAt(i);
-            if ((c == '{' || c == '}') && (i == 0 || r.charAt(i - 1) != '\\')) {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        return sb.toString();
-    }
-
     private int skipWhitespace(String text, int pos) {
         while (pos < text.length()) {
-            char c = text.charAt(pos);
-            if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            char ch = text.charAt(pos);
+            if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n') {
                 pos++;
             } else {
                 break;
@@ -335,16 +321,20 @@ public class TextParser {
             int endGroup = endM.groupCount();
             int endTokenPos = endM.start(endGroup);
             int endTokenLength = endM.end(endGroup) - endTokenPos;
+
             ret.length = pos + endTokenPos + endTokenLength - ret.position;
             return ret;
         }
 
-        while (pos <= text.length()) {
+        while (pos < text.length()) {
             int endTokenPos = Integer.MAX_VALUE;
             int endTokenLength = 0;
             pos = skipWhitespace(text, pos);
 
-            String checkRegex = (token.searchParentEndTokenLast && parentRegex != null) ? parentRegex : myEndRegex;
+            String checkRegex = myEndRegex;
+            if (token.searchParentEndTokenLast && parentRegex != null) {
+                checkRegex = parentRegex;
+            }
 
             if (!token.searchParentEndTokenLast && checkRegex != null) {
                 Pattern endP = getCompiledPattern(checkRegex);
@@ -487,51 +477,50 @@ public class TextParser {
 
         int i = 0;
         while (i < tokenItem.children.size()) {
-            TokenItem curr = tokenItem.children.get(i);
-            if (numberTokens.contains(curr.id) && i > 0) {
+            boolean isNum = numberTokens.contains(tokenItem.children.get(i).id);
+            if (isNum && i > 0) {
+                int[] signOpt = null;
                 TokenItem prev = tokenItem.children.get(i - 1);
-                TokenItem sign = null;
-                TokenItem context = null;
-                int signKind = 0;
-
                 if (signTokens.contains(prev.id)) {
-                    sign = prev;
-                    context = (i >= 2) ? tokenItem.children.get(i - 2) : null;
-                    signKind = 1;
-                } else if (prev.children != null && !prev.children.isEmpty() &&
-                           signTokens.contains(prev.children.get(prev.children.size() - 1).id)) {
-                    sign = prev.children.get(prev.children.size() - 1);
-                    if (prev.children.size() >= 2) {
-                        context = prev.children.get(prev.children.size() - 2);
-                    } else if (i >= 2) {
-                        context = tokenItem.children.get(i - 2);
-                    } else {
-                        context = null;
+                    TokenItem context = (i >= 2) ? tokenItem.children.get(i - 2) : null;
+                    boolean isOperandCtx = context != null && operandTokens.contains(context.id);
+                    if (!isOperandCtx) {
+                        signOpt = new int[]{prev.position, prev.length, 1};
                     }
-                    signKind = 2;
+                } else if (prev.children != null && !prev.children.isEmpty() && signTokens.contains(prev.children.get(prev.children.size() - 1).id)) {
+                    TokenItem lastSign = prev.children.get(prev.children.size() - 1);
+                    TokenItem context = (prev.children.size() >= 2) ? prev.children.get(prev.children.size() - 2) : ((i >= 2) ? tokenItem.children.get(i - 2) : null);
+                    boolean isOperandCtx = context != null && operandTokens.contains(context.id);
+                    if (!isOperandCtx) {
+                        signOpt = new int[]{lastSign.position, lastSign.length, 2};
+                    }
                 }
 
-                if (sign != null && (sign.position + sign.length == curr.position) && sign.length == 1) {
-                    if (context == null || !operandTokens.contains(context.id)) {
-                        curr.length += (curr.position - sign.position);
-                        curr.position = sign.position;
+                if (signOpt != null) {
+                    int signPos = signOpt[0];
+                    int signLen = signOpt[1];
+                    int mode = signOpt[2];
 
-                        if (signKind == 1) {
+                    int numPos = tokenItem.children.get(i).position;
+                    int numLen = tokenItem.children.get(i).length;
+
+                    boolean adjacent = (signPos + signLen) == numPos;
+                    if (adjacent) {
+                        if (mode == 1) {
                             tokenItem.children.remove(i - 1);
                             i--;
-                        } else {
-                            prev.children.remove(prev.children.size() - 1);
-                            if (prev.children.isEmpty()) {
-                                tokenItem.children.remove(i - 1);
-                                i--;
-                            }
+                        } else if (mode == 2) {
+                            tokenItem.children.get(i - 1).children.remove(tokenItem.children.get(i - 1).children.size() - 1);
                         }
+
+                        tokenItem.children.get(i).position = signPos;
+                        tokenItem.children.get(i).length = numLen + signLen;
                     }
                 }
             }
 
-            if (curr.children != null && !curr.children.isEmpty()) {
-                maybeMergeSign(curr);
+            if (tokenItem.children.get(i).children != null && !tokenItem.children.get(i).children.isEmpty()) {
+                maybeMergeSign(tokenItem.children.get(i));
             }
             i++;
         }
@@ -655,14 +644,14 @@ public class TextParser {
     }
 
     public byte[] parseFormat(String text) {
-        byte[] ret = new byte[text.length()];
         List<TokenItem> tokens = parse(text);
+        byte[] array = new byte[text.length()];
         List<String> tokenKeys = new ArrayList<>(definition.tokens.keySet());
 
-        for (TokenItem token : tokens) {
-            recursiveFormat(ret, token, tokenKeys);
+        for (TokenItem item : tokens) {
+            recursiveFormat(array, item, tokenKeys);
         }
 
-        return ret;
+        return array;
     }
 }

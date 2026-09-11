@@ -1,10 +1,16 @@
 package com.textparser;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class TokenItem {
+    private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson COMPACT_GSON = new GsonBuilder().create();
+
     public String id;
     public int position;
     public int length;
@@ -21,38 +27,24 @@ public class TokenItem {
         this.children = new ArrayList<>();
     }
 
-    public String toJson(int indentLevel) {
-        StringBuilder sb = new StringBuilder();
-        String indent = "  ".repeat(indentLevel);
-        String childIndent = "  ".repeat(indentLevel + 1);
-
-        sb.append(indent).append("{\n");
-        sb.append(childIndent).append("\"id\": \"").append(escapeJson(id)).append("\",\n");
-        sb.append(childIndent).append("\"position\": ").append(position).append(",\n");
-        sb.append(childIndent).append("\"length\": ").append(length);
-
-        if (children != null && !children.isEmpty()) {
-            sb.append(",\n").append(childIndent).append("\"children\": [\n");
-            for (int i = 0; i < children.size(); i++) {
-                sb.append(children.get(i).toJson(indentLevel + 2));
-                if (i < children.size() - 1) {
-                    sb.append(",");
-                }
-                sb.append("\n");
-            }
-            sb.append(childIndent).append("]");
-        }
-        sb.append("\n").append(indent).append("}");
-        return sb.toString();
+    public String toJson() {
+        return toJson(true);
     }
 
-    private static String escapeJson(String input) {
-        if (input == null) return "";
-        return input.replace("\\", "\\\\")
-                    .replace("\"", "\\\"")
-                    .replace("\n", "\\n")
-                    .replace("\r", "\\r")
-                    .replace("\t", "\\t");
+    public String toJson(boolean pretty) {
+        return pretty ? PRETTY_GSON.toJson(this) : COMPACT_GSON.toJson(this);
+    }
+
+    public String toJson(int indentLevel) {
+        return toJson(true);
+    }
+
+    public static String toJson(List<TokenItem> tokens) {
+        return toJson(tokens, true);
+    }
+
+    public static String toJson(List<TokenItem> tokens, boolean pretty) {
+        return pretty ? PRETTY_GSON.toJson(tokens) : COMPACT_GSON.toJson(tokens);
     }
 
     @Override
@@ -73,6 +65,6 @@ public class TokenItem {
 
     @Override
     public String toString() {
-        return toJson(0);
+        return toJson();
     }
 }

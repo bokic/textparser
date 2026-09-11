@@ -211,6 +211,16 @@ public class TextParserTest {
             t.printStackTrace();
         }
 
+        try {
+            testToJson();
+            passed++;
+            System.out.println("[PASS] testToJson");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testToJson: " + t.getMessage());
+            t.printStackTrace();
+        }
+
         System.out.println("\nTest Summary: " + passed + " PASSED, " + failed + " FAILED.");
         if (failed > 0) {
             System.exit(1);
@@ -367,5 +377,27 @@ public class TextParserTest {
             threw = true;
         }
         assertTrue(threw, "Unknown token type string must throw IllegalArgumentException");
+    }
+
+    public static void testToJson() {
+        TokenItem parent = new TokenItem("Parent", 0, 10);
+        TokenItem child1 = new TokenItem("Child1", 0, 4);
+        TokenItem child2 = new TokenItem("Child2", 5, 5);
+        parent.children.add(child1);
+        parent.children.add(child2);
+
+        String json = parent.toJson();
+        assertTrue(json.contains("\"id\": \"Parent\""), "JSON should contain parent id");
+        assertTrue(json.contains("\"position\": 0"), "JSON should contain parent position");
+        assertTrue(json.contains("\"length\": 10"), "JSON should contain parent length");
+        assertTrue(json.contains("\"children\": ["), "JSON should contain children array");
+        assertTrue(json.contains("\"id\": \"Child1\""), "JSON should contain child1 id");
+        assertTrue(json.contains("\"id\": \"Child2\""), "JSON should contain child2 id");
+
+        String compactJson = parent.toJson(false);
+        assertTrue(!compactJson.contains("\n"), "Compact JSON should not contain newlines");
+
+        String arrayJson = TokenItem.toJson(List.of(parent));
+        assertTrue(arrayJson.trim().startsWith("[") && arrayJson.trim().endsWith("]"), "List toJson should produce JSON array");
     }
 }
