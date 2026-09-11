@@ -30,6 +30,7 @@ else
     javac -cp "$LIB_JAR" -d "$OUT_DIR" \
         "$SCRIPT_DIR/src/com/textparser/TokenItem.java" \
         "$SCRIPT_DIR/src/com/textparser/Definition.java" \
+        "$SCRIPT_DIR/src/com/textparser/ParseError.java" \
         "$SCRIPT_DIR/src/com/textparser/TextParser.java" \
         "$SCRIPT_DIR/src/com/textparser/cli/Parse.java" \
         "$SCRIPT_DIR/src/com/textparser/cli/ParseDir.java" \

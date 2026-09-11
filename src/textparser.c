@@ -22,10 +22,11 @@
 
 #define TOKEN_NOT_FOUND -1
 
-#define exit_with_error(handle, error_text, offset)   \
-    LOGE("Error: %s at %zu", error_text, offset);     \
-    if(handle) (handle)->error = error_text;          \
-    if(handle) (handle)->error_offset = offset;       \
+#define exit_with_error(handle, error_text, offset, error_len)   \
+    LOGE("Error: %s at %zu", error_text, offset);                \
+    if(handle) (handle)->error = error_text;                     \
+    if(handle) (handle)->error_offset = offset;                  \
+    if(handle) (handle)->error_length = error_len;               \
     goto exit;                                        \
 
 #define check_and_exit_on_fatal_parsing_error(handle, child, offset)                          \
@@ -35,7 +36,7 @@
     }                                                                                         \
     if ((child)->len == 0) {                                                                  \
         LOGW("child->len == 0 detected(%s) at offset %zu. exiting..", (handle)->error ? (handle)->error : "none", offset); \
-        exit_with_error(handle, "infinite loop due to 0-length token", offset);               \
+        exit_with_error(handle, "infinite loop due to 0-length token", offset, 0);               \
     }
 
 #define check_and_exit_on_fatal_parsing_error_start_stop(handle, child, offset)                \
@@ -149,6 +150,7 @@ struct textparser_handle {
     enum textparser_encoding text_format;
     textparser_token_item *first_item;
     size_t error_offset;
+    size_t error_length;
     const char *error;
     size_t token_count;
     const char *text_addr;
@@ -1427,7 +1429,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
     LOGV("enter TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY");
     const int *effective_nested = get_effective_nested_tokens(handle, token_id, parent_item);
     if (!effective_nested) {
-        exit_with_error(handle, "group_one_child token type nested_tokens list is empty!", offset);
+        exit_with_error(handle, "group_one_child token type nested_tokens list is empty!", offset, 0);
     }
 
     size_t start_offset = offset;
@@ -1481,7 +1483,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
 
         if (current_token_id == TextParser_END)
         {
-            exit_with_error(handle, "Search for group_one_child token type failed. Can't find one child.", offset);
+            exit_with_error(handle, "Search for group_one_child token type failed. Can't find one child.", offset, 0);
         }
 
         if (closest > 0) {
@@ -1491,7 +1493,7 @@ static textparser_token_item *parse_token_group_one_child_only(struct textparser
 
         child = textparser_parse_token(handle, current_token_id, parent_token_id, parent_start_stop, offset, ret, last_child);
         if (child == nullptr) {
-            exit_with_error(handle, "Search for group_one_child token type failed. Child token parsing failed.", offset);
+            exit_with_error(handle, "Search for group_one_child token type failed. Child token parsing failed.", offset, 0);
         }
     }
 
@@ -1538,7 +1540,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
     LOGV("enter TEXTPARSER_TOKEN_TYPE_GROUP");
     const int *effective_nested = get_effective_nested_tokens(handle, token_id, parent_item);
     if (!effective_nested) {
-        exit_with_error(handle, "nested_tokens list is empty!", offset);
+        exit_with_error(handle, "nested_tokens list is empty!", offset, 0);
     }
 
     size_t start_offset = offset;
@@ -1566,7 +1568,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                 ret->len = offset - start_offset;
                 goto exit;
             }
-            exit_with_error(handle, "Search for group token type failed. Can't find any child.", offset);
+            exit_with_error(handle, "Search for group token type failed. Can't find any child.", offset, 0);
         }
 
         const textparser_token_item *current_prev = child;
@@ -1625,6 +1627,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                 if (token_def->other_text_inside && offset < textparser_get_total_units(handle)) {
                     handle->error = nullptr;
                     handle->error_offset = 0;
+                    handle->error_length = 0;
                     size_t char_l = textparser_char_len(handle, offset);
                     append_unprocessed_if_needed(handle, ret, &ret->child, &child, char_l);
                     offset += char_l;
@@ -1638,7 +1641,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
             maybe_merge_sign(handle, child);
 
             if (child->len == 0) {
-                exit_with_error(handle, "0-length child token match caused infinite loop", offset);
+                exit_with_error(handle, "0-length child token match caused infinite loop", offset, 0);
             }
 
             offset += child_advance;
@@ -1659,7 +1662,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                     ret->len = offset - start_offset;
                     goto exit;
                 }
-                exit_with_error(handle, "Unrecognized token inside group", offset);
+                exit_with_error(handle, "Unrecognized token inside group", offset, 1);
             }
         }
     }
@@ -1701,14 +1704,14 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER");
     if (!token_def->nested_tokens) {
-        exit_with_error(handle, "nested_tokens list is empty!", offset);
+        exit_with_error(handle, "nested_tokens list is empty!", offset, 0);
     }
 
     int nested_count = 0;
     while(token_def->nested_tokens[nested_count] != TextParser_END) nested_count++;
 
     if (nested_count != 3) {
-         exit_with_error(handle, "GroupAllChildrenInSameOrder should have exactly 3 nested tokens", offset);
+         exit_with_error(handle, "GroupAllChildrenInSameOrder should have exactly 3 nested tokens", offset, 0);
     }
 
     int start_token_id = token_def->nested_tokens[0];
@@ -1727,12 +1730,12 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
 
     ssize_t start_pos = textparser_find_token(handle, start_token_id, offset, definition->other_text_inside, ret, prev_sibling);
     if (start_pos != 0) {
-        exit_with_error(handle, "Expected start token!", offset);
+        exit_with_error(handle, "Expected start token!", offset, 1);
     }
 
     child = textparser_parse_token(handle, start_token_id, parent_token_id, parent_start_stop, offset, ret, prev_sibling);
     if (child == nullptr) {
-        exit_with_error(handle, "Parsing start token failed", offset);
+        exit_with_error(handle, "Parsing start token failed", offset, 0);
     }
     append_child_to_ast(ret, &ret->child, &last_child, child);
     maybe_merge_sign(handle, child);
@@ -1749,7 +1752,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
         }
 
         if (offset >= textparser_get_total_units(handle)) {
-            exit_with_error(handle, "Expected end token, reached end of text!", offset);
+            exit_with_error(handle, "Expected end token, reached end of text!", offset, 0);
         }
 
         ssize_t end_pos   = textparser_find_token(handle, end_token_id,   offset, definition->other_text_inside, ret, last_child);
@@ -1761,7 +1764,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
         if (inner_pos == 0) {
             child = textparser_parse_token(handle, inner_token_id, end_token_id, TEXTPARSER_SEARCH_START_TOKEN, offset, ret, last_child);
             if (child == nullptr) {
-                exit_with_error(handle, "Parsing inner token failed", offset);
+                exit_with_error(handle, "Parsing inner token failed", offset, 0);
             }
             size_t child_advance = child->len;
             append_child_to_ast(ret, &ret->child, &last_child, child);
@@ -1769,7 +1772,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
             check_and_exit_on_fatal_parsing_error(handle, child, offset);
 
             if (child->len == 0) {
-                exit_with_error(handle, "0-length child token match caused infinite loop", offset);
+                exit_with_error(handle, "0-length child token match caused infinite loop", offset, 0);
             }
 
             offset += child_advance;
@@ -1781,7 +1784,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
             append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, char_l);
             offset += char_l;
         } else {
-            exit_with_error(handle, "Expected inner or end token!", offset);
+            exit_with_error(handle, "Expected inner or end token!", offset, 1);
         }
     }
 
@@ -1793,7 +1796,7 @@ static textparser_token_item *parse_token_group_all_children_in_same_order(struc
 
     child = textparser_parse_token(handle, end_token_id, parent_token_id, parent_start_stop, offset, ret, last_child);
     if (child == nullptr) {
-        exit_with_error(handle, "Parsing end token failed", offset);
+        exit_with_error(handle, "Parsing end token failed", offset, 0);
     }
     append_child_to_ast(ret, &ret->child, &last_child, child);
     maybe_merge_sign(handle, child);
@@ -1928,17 +1931,17 @@ static textparser_token_item *parse_token_simple_token(struct textparser_handle 
     LOGV("enter TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN");
 
     if (offset >= textparser_get_total_units(handle)) {
-        exit_with_error(handle, "offset >= total units count!", offset);
+        exit_with_error(handle, "offset >= total units count!", offset, 0);
     }
 
     ret = textparser_alloc_token(handle, token_id, 0);
     if (ret == nullptr) {
-        exit_with_error(handle, "Can't allocate memory!", offset);
+        exit_with_error(handle, "Can't allocate memory!", offset, 0);
     }
 
     size_t len = 0;
     if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true)) {
-        exit_with_error(handle, "Can't find start of the token!", offset);
+        exit_with_error(handle, "Can't find start of the token!", offset, 1);
     }
 
     LOGV("TEXTPARSER_TOKEN_TYPE_SIMPLE_TOKEN - Found [%s]", handle->language->tokens[ret->token_id].name);
@@ -1979,7 +1982,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     size_t token_end = 0;
 
     if (handle == nullptr) {
-        exit_with_error(handle, "handle == nullptr!", offset);
+        exit_with_error(handle, "handle == nullptr!", offset, 0);
     }
 
     const textparser_language_definition *definition = handle->language;
@@ -1992,14 +1995,14 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     }
 
     if (offset >= textparser_get_total_units(handle)) {
-        exit_with_error(handle, "offset >= total units count!", offset);
+        exit_with_error(handle, "offset >= total units count!", offset, 0);
     }
 
     size_t start_offset = offset;
 
     ret = textparser_alloc_token(handle, token_id, 0);
     if (ret == nullptr) {
-        exit_with_error(handle, "Can't allocate memory!", offset);
+        exit_with_error(handle, "Can't allocate memory!", offset, 0);
     }
 
     ret->parent = (textparser_token_item *)parent_item;
@@ -2007,7 +2010,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
 
     // Search for start token
     if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true)) {
-        exit_with_error(handle, "Can't find start of the token!", offset);
+        exit_with_error(handle, "Can't find start of the token!", offset, 1);
     }
 
     uint32_t delim_color = (token_def->delimiter_text_color != TEXTPARSER_NOCOLOR) ? token_def->delimiter_text_color : token_def->text_color;
@@ -2023,12 +2026,12 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     }
 
     if (offset > textparser_get_total_units(handle)) {
-        exit_with_error(handle, "offset >= total units count!", offset);
+        exit_with_error(handle, "offset >= total units count!", offset, 0);
     }
 
     if (offset == textparser_get_total_units(handle)) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
-            exit_with_error(handle, "reached end of text!", offset);
+            exit_with_error(handle, "reached end of text!", offset, 0);
         } else {
             ret->len = offset - start_offset;
             goto exit;
@@ -2069,7 +2072,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                     }
                 }
                 if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
-                    exit_with_error(handle, "Reached end of text before finding end token!", offset);
+                    exit_with_error(handle, "Reached end of text before finding end token!", start_offset, offset - start_offset);
                 } else {
                     break;
                 }
@@ -2125,6 +2128,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                     if (token_def->other_text_inside && offset < textparser_get_total_units(handle)) {
                         handle->error = nullptr;
                         handle->error_offset = 0;
+                        handle->error_length = 0;
                         size_t char_l = textparser_char_len(handle, offset);
                         append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, char_l);
                         offset += char_l;
@@ -2139,7 +2143,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                 maybe_merge_sign(handle, child);
 
                 if (child->len == 0) {
-                    exit_with_error(handle, "0-length child token match caused infinite loop", offset);
+                    exit_with_error(handle, "0-length child token match caused infinite loop", offset, 0);
                 }
 
                 offset += child_advance;
@@ -2162,7 +2166,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                 append_unprocessed_if_needed(handle, ret, &ret->child, &last_child, char_l);
                 offset += char_l;
             } else {
-                exit_with_error(handle, "Unexpected token inside start-stop block!", offset);
+                exit_with_error(handle, "Unexpected token inside start-stop block!", offset, 1);
             }
         }
     }
@@ -2200,7 +2204,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     if (!found_end) {
         if (token_def->type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
             LOGE("Can't find [%s] at %zu. Text: [%s]", token_def->end_regex, offset, handle->text_addr + textparser_get_byte_offset(handle, offset));
-            exit_with_error(handle, "Can't find end of the token!", offset);
+            exit_with_error(handle, "Can't find end of the token!", offset, textparser_get_total_units(handle) - offset);
         } else {
             ret->len = offset - start_offset;
             goto exit;
@@ -2254,7 +2258,7 @@ exit:
  */
 static textparser_token_item *parse_token_error_error(struct textparser_handle *handle, const char *msg, size_t offset)
 {
-    exit_with_error(handle, msg, offset);
+    exit_with_error(handle, msg, offset, 0);
 exit:
     return nullptr;
 }
@@ -2281,7 +2285,7 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
     textparser_token_item *ret = nullptr;
 
     if (handle->recursion_depth >= MAX_RECURSION_DEPTH) {
-        exit_with_error(handle, "Maximum recursion depth exceeded!", offset);
+        exit_with_error(handle, "Maximum recursion depth exceeded!", offset, 0);
     }
     handle->recursion_depth++;
 
@@ -2309,11 +2313,11 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
         ret->text_flags = token_def->text_flags;
 
         if (!token_def->multi_line && textparser_has_newline(handle, offset, ret->len)) {
-            exit_with_error(handle, "Token spans multiple lines but multi_line flag is not set!", offset);
+            exit_with_error(handle, "Token spans multiple lines but multi_line flag is not set!", offset, ret->len);
         }
 
         if (token_def->must_have_one_child && textparser_get_semantic_children_count(ret) != 1) {
-            exit_with_error(handle, "Token must have exactly one child token!", offset);
+            exit_with_error(handle, "Token must have exactly one child token!", offset, ret->len);
         }
 
         if ((token_def->type == TEXTPARSER_TOKEN_TYPE_GROUP || token_def->type == TEXTPARSER_TOKEN_TYPE_GROUP_ONE_CHILD_ONLY) &&
@@ -3377,6 +3381,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     // Reset error state
     handle->error = nullptr;
     handle->error_offset = 0;
+    handle->error_length = 0;
 
     size_t unit_size = 1;
     switch (handle->text_format) {
@@ -4469,20 +4474,54 @@ void textparser_post_process(textparser_token_item **root, const textparser_lang
     }
 }
 
+/**
+ * Return the first error-severity diagnostic recorded by the grammar engine,
+ * or NULL when none exists. Legacy parse errors are stored directly on the
+ * handle; V2 (grammar) errors live in the diagnostic list, so the public error
+ * accessors fall back to it.
+ *
+ * @param handle Parser handle.
+ * @return Pointer to the first error diagnostic, or NULL.
+ */
+static const textparser_diagnostic *textparser_first_error_diagnostic(const struct textparser_handle *handle)
+{
+    if (handle == nullptr || handle->diagnostics == nullptr)
+        return nullptr;
+    for (size_t i = 0; i < handle->diagnostic_count; i++) {
+        if (handle->diagnostics[i].severity == TEXTPARSER_SEVERITY_ERROR)
+            return &handle->diagnostics[i];
+    }
+    return nullptr;
+}
+
 EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle)
 {
     if (handle == nullptr)
         return nullptr;
-
-    return handle->error;
+    if (handle->error != nullptr)
+        return handle->error;
+    const textparser_diagnostic *diag = textparser_first_error_diagnostic(handle);
+    return diag ? diag->message : nullptr;
 }
 
 EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle)
 {
     if (handle == nullptr)
         return 0;
+    if (handle->error != nullptr)
+        return handle->error_offset;
+    const textparser_diagnostic *diag = textparser_first_error_diagnostic(handle);
+    return diag ? diag->start_pos : 0;
+}
 
-    return handle->error_offset;
+EXPORT_TEXTPARSER size_t textparser_parse_error_length(textparser_t handle)
+{
+    if (handle == nullptr)
+        return 0;
+    if (handle->error != nullptr)
+        return handle->error_length;
+    const textparser_diagnostic *diag = textparser_first_error_diagnostic(handle);
+    return diag ? diag->length : 0;
 }
 
 const char *textparser_strerror(int error_code)

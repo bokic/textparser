@@ -261,7 +261,7 @@ public class TextParser {
 
                 return matchStart - pos;
             }
-            default -> throw new RuntimeException("Unknown token type: " + token.type);
+            default -> throw new ParseError("Unknown token type: " + token.type, pos, 0);
         }
     }
 
@@ -291,7 +291,7 @@ public class TextParser {
         Pattern p = getCompiledPattern(token.startRegex);
         Matcher m = matcherFrom(text, p, pos);
         if (!m.lookingAt()) {
-            throw new RuntimeException("Expected " + token.startRegex + " at position: " + pos);
+            throw new ParseError("Expected " + token.startRegex + " at position: " + pos, pos, 1);
         }
         int group = m.groupCount();
         int matchStart = m.start(group);
@@ -304,7 +304,7 @@ public class TextParser {
     private TokenItem parseGroup(String text, String tokenName, Definition.TokenDef token, String parentRegex, int pos) {
         pos = skipWhitespace(text, pos);
         if (token.nestedTokens == null || token.nestedTokens.isEmpty()) {
-            throw new RuntimeException("nested_tokens list is empty!");
+            throw new ParseError("nested_tokens list is empty!", pos, 0);
         }
 
         int startOffset = pos;
@@ -318,7 +318,7 @@ public class TextParser {
                     ret.length = pos - startOffset;
                     return ret;
                 }
-                throw new RuntimeException("Search for group token type failed. Can't find any child.");
+                throw new ParseError("Search for group token type failed. Can't find any child.", pos, 0);
             }
 
             if (matchesAt(text, pos, parentRegex)) {
@@ -361,7 +361,7 @@ public class TextParser {
                 if (firstError != null) {
                     throw firstError;
                 }
-                throw new RuntimeException("Unrecognized token inside group");
+                throw new ParseError("Unrecognized token inside group", pos, 1);
             }
         }
 
@@ -371,7 +371,7 @@ public class TextParser {
     private TokenItem parseGroupOneChildOnly(String text, String tokenName, Definition.TokenDef token, String parentRegex, int pos) {
         pos = skipWhitespace(text, pos);
         if (token.nestedTokens == null || token.nestedTokens.isEmpty()) {
-            throw new RuntimeException("group_one_child token type nested_tokens list is empty!");
+            throw new ParseError("group_one_child token type nested_tokens list is empty!", pos, 0);
         }
 
         int startOffset = pos;
@@ -407,14 +407,14 @@ public class TextParser {
             }
 
             if (closestName == null) {
-                throw new RuntimeException("Search for group_one_child token type failed. Can't find one child.");
+                throw new ParseError("Search for group_one_child token type failed. Can't find one child.", pos, 0);
             }
 
             appendUnprocessedSpan(ret.children, pos, closest);
             pos += closest;
             child = parseToken(text, closestName, definition.tokens.get(closestName), parentRegex, pos);
             if (child == null) {
-                throw new RuntimeException("Search for group_one_child token type failed. Child token parsing failed.");
+                throw new ParseError("Search for group_one_child token type failed. Child token parsing failed.", pos, 0);
             }
         }
 
@@ -428,8 +428,8 @@ public class TextParser {
     private TokenItem parseGroupAllChildrenInSameOrder(String text, String tokenName, Definition.TokenDef token, String parentRegex, int pos) {
         pos = skipWhitespace(text, pos);
         if (token.nestedTokens == null || token.nestedTokens.size() != 3) {
-            throw new RuntimeException("GroupAllChildrenInSameOrder should have exactly 3 nested tokens, but " +
-                (token.nestedTokens == null ? 0 : token.nestedTokens.size()) + " were found");
+            throw new ParseError("GroupAllChildrenInSameOrder should have exactly 3 nested tokens, but " +
+                (token.nestedTokens == null ? 0 : token.nestedTokens.size()) + " were found", pos, 0);
         }
 
         String startToken = token.nestedTokens.get(0);
@@ -441,12 +441,12 @@ public class TextParser {
 
         Integer startFound = findToken(text, pos, definition.tokens.get(startToken), definition.otherTextInside);
         if (startFound == null || startFound != 0) {
-            throw new RuntimeException("Expected start token!");
+            throw new ParseError("Expected start token!", pos, 1);
         }
 
         TokenItem child = parseToken(text, startToken, definition.tokens.get(startToken), parentRegex, pos);
         if (child == null) {
-            throw new RuntimeException("Parsing start token failed");
+            throw new ParseError("Parsing start token failed", pos, 0);
         }
         ret.children.add(child);
         pos = child.position + child.length;
@@ -456,7 +456,7 @@ public class TextParser {
         while (true) {
             pos = skipWhitespace(text, pos);
             if (pos >= text.length()) {
-                throw new RuntimeException("Expected end token, reached end of text!");
+                throw new ParseError("Expected end token, reached end of text!", pos, 0);
             }
 
             Integer endFound = findToken(text, pos, definition.tokens.get(endToken), definition.otherTextInside);
@@ -468,7 +468,7 @@ public class TextParser {
             if (innerFound != null && innerFound == 0) {
                 TokenItem inner = parseToken(text, innerToken, definition.tokens.get(innerToken), innerParentRegex, pos);
                 if (inner == null) {
-                    throw new RuntimeException("Parsing inner token failed");
+                    throw new ParseError("Parsing inner token failed", pos, 0);
                 }
                 ret.children.add(inner);
                 pos = inner.position + inner.length;
@@ -479,14 +479,14 @@ public class TextParser {
                 appendUnprocessedSpan(ret.children, pos, 1);
                 pos += 1;
             } else {
-                throw new RuntimeException("Expected inner or end token!");
+                throw new ParseError("Expected inner or end token!", pos, 1);
             }
         }
 
         pos = skipWhitespace(text, pos);
         TokenItem endItem = parseToken(text, endToken, definition.tokens.get(endToken), parentRegex, pos);
         if (endItem == null) {
-            throw new RuntimeException("Parsing end token failed");
+            throw new ParseError("Parsing end token failed", pos, 0);
         }
         ret.children.add(endItem);
         pos = endItem.position + endItem.length;
@@ -503,7 +503,7 @@ public class TextParser {
         Pattern startP = getCompiledPattern(token.startRegex);
         Matcher startM = matcherFrom(text, startP, pos);
         if (!startM.lookingAt()) {
-            throw new RuntimeException("Expected " + token.startRegex + " at position: " + pos);
+            throw new ParseError("Expected " + token.startRegex + " at position: " + pos, pos, 1);
         }
         int startGroup = startM.groupCount();
         int startMatchStart = startM.start(startGroup);
@@ -520,11 +520,11 @@ public class TextParser {
         pos += startDelimiterLength;
 
         if (pos > text.length()) {
-            throw new RuntimeException("offset >= total units count!");
+            throw new ParseError("offset >= total units count!", pos, 0);
         }
         if (pos == text.length()) {
             if (endRequired) {
-                throw new RuntimeException("reached end of text!");
+                throw new ParseError("reached end of text!", pos, 0);
             }
             ret.length = pos - startOffset;
             return ret;
@@ -548,7 +548,7 @@ public class TextParser {
                         break;
                     }
                     if (endRequired) {
-                        throw new RuntimeException("Reached end of text before finding end token!");
+                        throw new ParseError("Reached end of text before finding end token!", startOffset, pos - startOffset);
                     }
                     break;
                 }
@@ -577,7 +577,7 @@ public class TextParser {
                     ret.length = newChild.position + newChild.length - ret.position;
                     ret.children.add(newChild);
                     if (newChild.length == 0) {
-                        throw new RuntimeException("0-length child token match caused infinite loop");
+                        throw new ParseError("0-length child token match caused infinite loop", pos, 0);
                     }
                     pos = newChild.position + newChild.length;
                     continue;
@@ -596,7 +596,7 @@ public class TextParser {
                     if (firstError != null) {
                         throw firstError;
                     }
-                    throw new RuntimeException("Unexpected token inside start-stop block!");
+                    throw new ParseError("Unexpected token inside start-stop block!", pos, 1);
                 }
             }
         }
@@ -622,7 +622,7 @@ public class TextParser {
         }
         if (endMatch == null) {
             if (endRequired) {
-                throw new RuntimeException("Can't find end of the token!");
+                throw new ParseError("Can't find end of the token!", pos, text.length() - pos);
             }
             ret.length = pos - startOffset;
             return ret;
@@ -707,10 +707,10 @@ public class TextParser {
             case SimpleToken -> parseSimpleToken(text, tokenName, token, pos);
             case StartStop -> parseStartStop(text, tokenName, token, parentRegex, pos, true);
             case StartOptStop -> parseStartStop(text, tokenName, token, parentRegex, pos, false);
-            default -> throw new RuntimeException("Unknown token type: " + token.type);
+            default -> throw new ParseError("Unknown token type: " + token.type, startPos, 0);
         };
         if (result != null && !token.multiLine && hasNewline(text, startPos, result.length)) {
-            throw new RuntimeException("Token spans multiple lines but multi_line flag is not set!");
+            throw new ParseError("Token spans multiple lines but multi_line flag is not set!", startPos, result.length);
         }
         return result;
     }

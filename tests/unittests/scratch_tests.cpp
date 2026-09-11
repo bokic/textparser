@@ -437,6 +437,36 @@ TEST(parse_SameLine, unclosed_spanning_newline_errors_cant_find_end) {
     textparser_close(handle);
 }
 
+TEST(parse_ErrorSpans, reports_position_and_length) {
+    // Unterminated single-line token: the anchor is the content start and the
+    // span runs to the end of the text.
+    {
+        textparser_t handle = nullptr;
+        const char *text = "'abc";
+        ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+        EXPECT_NE(textparser_parse(handle, &single_line_lang), 0);
+        EXPECT_STREQ(textparser_parse_error(handle), "Can't find end of the token!");
+        EXPECT_EQ(textparser_parse_error_position(handle), 1u);
+        EXPECT_EQ(textparser_parse_error_length(handle), 3u);
+        textparser_close(handle);
+    }
+
+    // Multi-line validation: the span covers the whole offending token.
+    {
+        textparser_t handle = nullptr;
+        const char *text = "'abc\n'";
+        ASSERT_EQ(textparser_openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+        EXPECT_NE(textparser_parse(handle, &single_line_lang), 0);
+        EXPECT_STREQ(textparser_parse_error(handle), "Token spans multiple lines but multi_line flag is not set!");
+        EXPECT_EQ(textparser_parse_error_position(handle), 0u);
+        EXPECT_EQ(textparser_parse_error_length(handle), 6u);
+        textparser_close(handle);
+    }
+
+    // Null handle accessors are safe.
+    EXPECT_EQ(textparser_parse_error_length(nullptr), 0u);
+}
+
 TEST(parse_SameLine, valid_utf8_multibyte_content) {
     // UTF-8 multibyte content inside a single-line string must parse correctly
     // on the fast (PCRE2_NO_UTF_CHECK) path: "caf\xC3\xA9" = c,a,f,é(2B) = 5 bytes.

@@ -645,6 +645,19 @@ TEST_F(TypeScriptExpressionFixture, reports_furthest_source_error_instead_of_aba
     EXPECT_EQ(diagnostic.column, 0u);
 }
 
+TEST_F(TypeScriptExpressionFixture, unified_error_accessors_expose_first_diagnostic) {
+    EXPECT_EQ(parse_source("const value = ;", TEXTPARSER_MATCH_NO), nullptr);
+    ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 1u);
+    textparser_diagnostic diagnostic{};
+    ASSERT_EQ(textparser_get_diagnostic(parser.get(), 0, &diagnostic), 0);
+
+    // The legacy parse-error accessors fall back to the first error diagnostic,
+    // so callers get a uniform message + span regardless of the engine.
+    EXPECT_STREQ(textparser_parse_error(parser.get()), diagnostic.message);
+    EXPECT_EQ(textparser_parse_error_position(parser.get()), diagnostic.start_pos);
+    EXPECT_EQ(textparser_parse_error_length(parser.get()), diagnostic.length);
+}
+
 TEST_F(TypeScriptExpressionFixture, synchronizes_statements_and_continues_after_multiple_errors) {
     const char *source =
         ") broken ; const middle = 1; ] damaged ; let tail = 2;";

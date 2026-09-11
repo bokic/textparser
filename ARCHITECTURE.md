@@ -395,3 +395,20 @@ contract is defined by the following rules:
    * Java's matcher is recursive, so long matches of loop patterns such as the
      TypeScript string/template literals can exhaust the thread stack where
      PCRE2 does not. A large-stack retry (or equivalent) is required.
+10. **Error spans**:
+    * The legacy parser stores `handle->error`, `handle->error_offset` and
+      `handle->error_length`; `textparser_parse_error()` /
+      `_position()` / `_length()` expose message + span. The span anchors at the
+      token start for token-level errors (`Token spans multiple lines…`,
+      `Token must have exactly one child…`), at the content start for
+      `Can't find end of the token!`, and at the offending character (length 1)
+      for unexpected/expected-token errors. Internal errors use length 0.
+    * Full and incremental parsing share the same parser path, so the span is
+      identical in both modes.
+    * The grammar engine reports spans through `textparser_diagnostic`
+      (`start_pos` + `length`). For a unified surface, the legacy error
+      accessors fall back to the **first error-severity diagnostic** when
+      `handle->error` is null, so callers get a message + span for both engines.
+    * The Java port mirrors this with `ParseError` (`getPosition()` /
+      `getLength()`), thrown by `TextParser.parse()`; the CLI prints
+      `at offset N (length M)`.

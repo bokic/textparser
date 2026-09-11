@@ -42,6 +42,10 @@ public class Parse {
             } else {
                 printUsage();
             }
+        } catch (com.textparser.ParseError e) {
+            System.err.println("Error: " + e.getMessage()
+                + " at offset " + e.getPosition() + " (length " + e.getLength() + ")");
+            System.exit(1);
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();

@@ -208,8 +208,9 @@ int main(int argc, const char *argv[])
     if (res) {
         const char *detail = textparser_parse_error(handle);
         size_t error_pos = textparser_parse_error_position(handle);
+        size_t error_len = textparser_parse_error_length(handle);
         if (detail) {
-            fprintf(stderr, "Error parsing file '%s' at offset %zu: %s (code %d)\n", filename, error_pos, detail, res);
+            fprintf(stderr, "Error parsing file '%s' at offset %zu (length %zu): %s (code %d)\n", filename, error_pos, error_len, detail, res);
         } else {
             fprintf(stderr, "Error parsing file '%s': %s (code %d)\n", filename, textparser_strerror(res), res);
         }

@@ -309,11 +309,12 @@ int main(int argc, const char *argv[])
     {
         const char *detail = textparser_parse_error(handle);
         size_t error_pos = textparser_parse_error_position(handle);
+        size_t error_len = textparser_parse_error_length(handle);
         if (delete_language_def) {
             textparser_free_language_definition(language_def);
         }
         if (detail) {
-            fprintf(stderr, "Error parsing file '%s' at offset %zu: %s (code %d)\n", filename, error_pos, detail, err);
+            fprintf(stderr, "Error parsing file '%s' at offset %zu (length %zu): %s (code %d)\n", filename, error_pos, error_len, detail, err);
         } else {
             fprintf(stderr, "Error parsing file '%s': %s (code %d)\n", filename, textparser_strerror(err), err);
         }

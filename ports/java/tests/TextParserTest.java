@@ -205,6 +205,21 @@ public class TextParserTest {
     }
     """;
 
+    private static final String ERR_DEF = """
+    {
+      "name": "err_test",
+      "version": 1.0,
+      "caseSensitivity": true,
+      "defaultFileExtensions": ["e"],
+      "defaultTextEncoding": "utf-8",
+      "otherTextInside": true,
+      "startTokens": ["Str"],
+      "tokens": {
+        "Str": {"type": "StartStop", "startRegex": "\\"", "endRegex": "\\"", "otherTextInside": true}
+      }
+    }
+    """;
+
     public static void main(String[] args) {
         int passed = 0;
         int failed = 0;
@@ -476,6 +491,26 @@ public class TextParserTest {
         } catch (Throwable t) {
             failed++;
             System.err.println("[FAIL] testFormatVersion2UnicodePropertyNormalization: " + t.getMessage());
+            t.printStackTrace();
+        }
+
+        try {
+            testParseErrorCarriesSpan();
+            passed++;
+            System.out.println("[PASS] testParseErrorCarriesSpan");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testParseErrorCarriesSpan: " + t.getMessage());
+            t.printStackTrace();
+        }
+
+        try {
+            testParseErrorMultiLineSpan();
+            passed++;
+            System.out.println("[PASS] testParseErrorMultiLineSpan");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testParseErrorMultiLineSpan: " + t.getMessage());
             t.printStackTrace();
         }
 
@@ -875,5 +910,33 @@ public class TextParserTest {
         assertEquals(1, tokens.size(), "Unicode identifier is one token");
         assertEquals("Identifier", tokens.get(0).id, "Token id");
         assertEquals(3, tokens.get(0).length, "Length");
+    }
+
+    public static void testParseErrorCarriesSpan() {
+        TextParser parser = new TextParser(ERR_DEF);
+        ParseError err = null;
+        try {
+            parser.parse("\"abc");
+        } catch (ParseError e) {
+            err = e;
+        }
+        assertTrue(err != null, "Unterminated token must throw ParseError");
+        assertEquals("Can't find end of the token!", err.getMessage(), "Message");
+        assertEquals(1, err.getPosition(), "Position is the content start");
+        assertEquals(3, err.getLength(), "Span runs to end of text");
+    }
+
+    public static void testParseErrorMultiLineSpan() {
+        TextParser parser = new TextParser(ERR_DEF);
+        ParseError err = null;
+        try {
+            parser.parse("\"abc\n\"");
+        } catch (ParseError e) {
+            err = e;
+        }
+        assertTrue(err != null, "Multi-line token must throw ParseError");
+        assertEquals("Token spans multiple lines but multi_line flag is not set!", err.getMessage(), "Message");
+        assertEquals(0, err.getPosition(), "Position is the token start");
+        assertEquals(6, err.getLength(), "Span covers the whole token");
     }
 }

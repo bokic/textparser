@@ -187,6 +187,10 @@ public:
         return textparser_parse_error_position(m_handle);
     }
 
+    size_t get_parse_error_length() const {
+        return textparser_parse_error_length(m_handle);
+    }
+
 private:
     textparser_t m_handle = nullptr;
 };

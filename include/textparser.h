@@ -652,6 +652,18 @@ EXPORT_TEXTPARSER const char *textparser_parse_error(textparser_t handle);
 EXPORT_TEXTPARSER size_t textparser_parse_error_position(textparser_t handle);
 
 /**
+ * Retrieve the byte length of the latest parse error span.
+ *
+ * For the legacy regex parser this is the span of the offending token or
+ * region (0 for internal errors). For the grammar engine it is the length of
+ * the first error diagnostic.
+ *
+ * @param handle The parser handle.
+ * @return Byte length of the parse error span, or 0 if no error.
+ */
+EXPORT_TEXTPARSER size_t textparser_parse_error_length(textparser_t handle);
+
+/**
  * Return a human-readable description for a textparser_error code.
  *
  * @param error_code The error code.
