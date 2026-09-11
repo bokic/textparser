@@ -180,6 +180,23 @@ public class TextParser {
         return hadWhitespace;
     }
 
+    /**
+     * Append a hidden {@code Whitespace} leaf, merging with a preceding one.
+     * Mirrors C's {@code append_whitespace_if_needed}; the JSON serializer hides
+     * these leaves, but they are part of the in-memory CST.
+     */
+    private void appendWhitespace(List<TokenItem> list, int start, int len) {
+        if (len <= 0) return;
+        if (!list.isEmpty()) {
+            TokenItem last = list.get(list.size() - 1);
+            if (TokenItem.WHITESPACE.equals(last.id)) {
+                last.length += len;
+                return;
+            }
+        }
+        list.add(new TokenItem(TokenItem.WHITESPACE, start, len));
+    }
+
     private void appendUnprocessedSpan(List<TokenItem> list, int start, int len) {
         if (len <= 0) return;
         if (!list.isEmpty()) {
@@ -192,9 +209,8 @@ public class TextParser {
         list.add(new TokenItem(TokenItem.UNPROCESSED, start, len));
     }
 
-    private void pruneDelimiters(TokenItem ret, Definition.TokenDef token, boolean hasWhitespace) {
+    private void pruneDelimiters(TokenItem ret, Definition.TokenDef token) {
         if (token.hasCustomDelimiterStyling()) return;
-        if (hasWhitespace) return;
         List<TokenItem> ch = ret.children;
         if (ch.size() == 3 &&
             TokenItem.START_DELIMITER.equals(ch.get(0).id) &&
@@ -311,7 +327,11 @@ public class TextParser {
         TokenItem ret = new TokenItem(tokenName, pos, 0);
 
         while (true) {
+            int wsStart = pos;
             pos = skipWhitespace(text, pos);
+            if (pos > wsStart) {
+                appendWhitespace(ret.children, wsStart, pos - wsStart);
+            }
 
             if (pos >= text.length()) {
                 if (!ret.children.isEmpty()) {
@@ -454,7 +474,11 @@ public class TextParser {
         String innerParentRegex = definition.tokens.get(endToken).startRegex;
 
         while (true) {
+            int wsStart = pos;
             pos = skipWhitespace(text, pos);
+            if (pos > wsStart) {
+                appendWhitespace(ret.children, wsStart, pos - wsStart);
+            }
             if (pos >= text.length()) {
                 throw new ParseError("Expected end token, reached end of text!", pos, 0);
             }
@@ -483,7 +507,11 @@ public class TextParser {
             }
         }
 
+        int wsEnd = pos;
         pos = skipWhitespace(text, pos);
+        if (pos > wsEnd) {
+            appendWhitespace(ret.children, wsEnd, pos - wsEnd);
+        }
         TokenItem endItem = parseToken(text, endToken, definition.tokens.get(endToken), parentRegex, pos);
         if (endItem == null) {
             throw new ParseError("Parsing end token failed", pos, 0);
@@ -513,7 +541,6 @@ public class TextParser {
         int startDelimiterLength = startMatchEnd - startMatchStart;
 
         TokenItem ret = new TokenItem(tokenName, pos, 0);
-        boolean hasWhitespace = false;
         if (startDelimiterLength > 0) {
             ret.children.add(new TokenItem(TokenItem.START_DELIMITER, ret.position, startDelimiterLength));
         }
@@ -536,7 +563,7 @@ public class TextParser {
                 int wsStart = pos;
                 pos = skipWhitespace(text, pos);
                 if (pos > wsStart) {
-                    hasWhitespace = true;
+                    appendWhitespace(ret.children, wsStart, pos - wsStart);
                 }
 
                 if (!token.searchParentEndTokenLast && matchesAt(text, pos, myEndRegex)) {
@@ -604,7 +631,7 @@ public class TextParser {
         int wsStart = pos;
         pos = skipWhitespace(text, pos);
         if (pos > wsStart) {
-            hasWhitespace = true;
+            appendWhitespace(ret.children, wsStart, pos - wsStart);
         }
 
         boolean endOnlyAtStart = false;
@@ -639,7 +666,7 @@ public class TextParser {
         pos += tokenEnd + endLen;
         ret.length = pos - startOffset;
 
-        pruneDelimiters(ret, token, hasWhitespace);
+        pruneDelimiters(ret, token);
         return ret;
     }
 
@@ -652,7 +679,11 @@ public class TextParser {
         TokenItem ret = new TokenItem(tokenName, pos, 0);
 
         for (String elemName : token.nestedTokens) {
+            int wsStart = pos;
             pos = skipWhitespace(text, pos);
+            if (pos > wsStart) {
+                appendWhitespace(ret.children, wsStart, pos - wsStart);
+            }
             if (pos >= text.length()) {
                 return null;
             }
@@ -804,6 +835,25 @@ public class TextParser {
         }
     }
 
+    private int semanticChildCount(TokenItem token) {
+        int count = 0;
+        for (TokenItem child : token.children) {
+            if (!isTriviaToken(child.id)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private TokenItem firstSemanticChild(List<TokenItem> children) {
+        for (TokenItem child : children) {
+            if (!isTriviaToken(child.id)) {
+                return child;
+            }
+        }
+        return null;
+    }
+
     public void postProcess(List<TokenItem> tokens) {
         if (tokens == null) return;
         int i = 0;
@@ -814,10 +864,14 @@ public class TextParser {
             }
 
             Definition.TokenDef tokenDef = definition.tokens.get(curr.id);
-            if (tokenDef != null && tokenDef.deleteIfOnlyOneChild && curr.children != null && curr.children.size() == 1) {
-                TokenItem onlyChild = curr.children.get(0);
-                tokens.set(i, onlyChild);
-                curr = onlyChild;
+            if (tokenDef != null && tokenDef.deleteIfOnlyOneChild && curr.children != null
+                    && semanticChildCount(curr) == 1) {
+                // C unwraps to the single semantic child, dropping trivia siblings.
+                TokenItem semanticChild = firstSemanticChild(curr.children);
+                if (semanticChild != null) {
+                    tokens.set(i, semanticChild);
+                    curr = semanticChild;
+                }
             }
             i++;
         }
@@ -859,7 +913,11 @@ public class TextParser {
         int pos = 0;
 
         while (pos < text.length()) {
+            int wsStart = pos;
             pos = skipWhitespace(text, pos);
+            if (pos > wsStart) {
+                appendWhitespace(tokens, wsStart, pos - wsStart);
+            }
             if (pos >= text.length()) {
                 break;
             }

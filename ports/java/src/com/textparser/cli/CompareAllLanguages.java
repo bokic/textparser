@@ -105,8 +105,25 @@ public class CompareAllLanguages {
         };
     }
 
+    /**
+     * Drop hidden whitespace leaves so the Java in-memory CST (which now
+     * materializes them, like C) lines up with the C JSON output.
+     */
+    private static List<TokenItem> visible(List<TokenItem> tree) {
+        List<TokenItem> out = new ArrayList<>();
+        if (tree == null) return out;
+        for (TokenItem item : tree) {
+            if (TokenItem.WHITESPACE.equals(item.id) && (item.children == null || item.children.isEmpty())) {
+                continue;
+            }
+            out.add(item);
+        }
+        return out;
+    }
+
     @SuppressWarnings("unchecked")
-    private static boolean compareTreesDetailed(List<TokenItem> javaTree, List<Object> cTree, String path, List<String> diffs) {
+    private static boolean compareTreesDetailed(List<TokenItem> javaTreeRaw, List<Object> cTree, String path, List<String> diffs) {
+        List<TokenItem> javaTree = visible(javaTreeRaw);
         if (javaTree.size() != cTree.size()) {
             diffs.add(path + " Child count mismatch -> Java: " + javaTree.size() + ", C: " + cTree.size());
             return false;

@@ -1,5 +1,6 @@
 package com.textparser;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TextParserTest {
@@ -514,6 +515,16 @@ public class TextParserTest {
             t.printStackTrace();
         }
 
+        try {
+            testWhitespaceNodesMaterialized();
+            passed++;
+            System.out.println("[PASS] testWhitespaceNodesMaterialized");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testWhitespaceNodesMaterialized: " + t.getMessage());
+            t.printStackTrace();
+        }
+
         System.out.println("\nTest Summary: " + passed + " PASSED, " + failed + " FAILED.");
         if (failed > 0) {
             System.exit(1);
@@ -570,7 +581,7 @@ public class TextParserTest {
 
     public static void testEmptyAndWhitespaceInput() {
         TextParser parser = new TextParser(JSON_DEF);
-        List<TokenItem> tokens = parser.parse("   \n\t  ");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("   \n\t  "));
         assertTrue(tokens.isEmpty(), "Whitespace input should yield empty token list");
     }
 
@@ -644,7 +655,7 @@ public class TextParserTest {
         """;
         TextParser parser = new TextParser(seqDef);
         String text = "struct Point";
-        List<TokenItem> tokens = parser.parse(text);
+        List<TokenItem> tokens = stripWhitespace(parser.parse(text));
 
         assertEquals(1, tokens.size(), "Should parse 1 sequence token");
         TokenItem item = tokens.get(0);
@@ -656,7 +667,7 @@ public class TextParserTest {
         assertEquals("TypeName", item.children.get(1).id, "Second child should be TypeName");
 
         // Failure case: incomplete sequence is left as one Unprocessed span
-        List<TokenItem> incomplete = parser.parse("struct 123");
+        List<TokenItem> incomplete = stripWhitespace(parser.parse("struct 123"));
         assertEquals(1, incomplete.size(), "Incomplete sequence should yield one Unprocessed span");
         assertEquals(TokenItem.UNPROCESSED, incomplete.get(0).id, "Token id");
         assertEquals(0, incomplete.get(0).position, "Position");
@@ -713,6 +724,25 @@ public class TextParserTest {
         assertEquals(length, child.length, "Child " + index + " length");
     }
 
+    /**
+     * Deep-copy a tree without hidden whitespace leaves, so structural
+     * assertions can ignore trivia (which is now part of the in-memory CST).
+     */
+    private static List<TokenItem> stripWhitespace(List<TokenItem> tokens) {
+        List<TokenItem> out = new ArrayList<>();
+        for (TokenItem t : tokens) {
+            if (TokenItem.WHITESPACE.equals(t.id) && (t.children == null || t.children.isEmpty())) {
+                continue;
+            }
+            TokenItem copy = new TokenItem(t.id, t.position, t.length);
+            if (t.children != null) {
+                copy.children = stripWhitespace(t.children);
+            }
+            out.add(copy);
+        }
+        return out;
+    }
+
     public static void testDelimiterStylingNoNestedSingleSpan() {
         TextParser parser = new TextParser(DELIM_DEF);
         List<TokenItem> tokens = parser.parse("[a b]");
@@ -730,7 +760,7 @@ public class TextParserTest {
 
     public static void testDelimiterStylingSkipsLeadingWhitespace() {
         TextParser parser = new TextParser(DELIM_DEF);
-        List<TokenItem> tokens = parser.parse("[ a]");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("[ a]"));
 
         TokenItem styled = tokens.get(0);
         assertEquals(3, styled.children.size(), "Children count");
@@ -741,7 +771,7 @@ public class TextParserTest {
 
     public static void testDelimiterStylingWhitespaceOnly() {
         TextParser parser = new TextParser(DELIM_DEF);
-        List<TokenItem> tokens = parser.parse("[ ]");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("[ ]"));
 
         TokenItem styled = tokens.get(0);
         assertEquals(2, styled.children.size(), "Whitespace only content yields only delimiters");
@@ -771,7 +801,7 @@ public class TextParserTest {
 
     public static void testNoDelimiterStylingKeepsLeadingWhitespace() {
         TextParser parser = new TextParser(DELIM_DEF);
-        List<TokenItem> tokens = parser.parse("< a b>");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("< a b>"));
 
         TokenItem plain = tokens.get(0);
         assertEquals(3, plain.children.size(), "Leading whitespace must prevent pruning");
@@ -782,7 +812,7 @@ public class TextParserTest {
 
     public static void testStyledNestedSplitsUnprocessedOnWhitespace() {
         TextParser parser = new TextParser(DELIM_DEF);
-        List<TokenItem> tokens = parser.parse("{1 2}");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("{1 2}"));
 
         TokenItem styled = tokens.get(0);
         assertEquals(4, styled.children.size(), "Nested styled token splits content on whitespace");
@@ -807,7 +837,7 @@ public class TextParserTest {
 
     public static void testTopLevelUnprocessedSplitsOnWhitespace() {
         TextParser parser = new TextParser(DELIM_DEF);
-        List<TokenItem> tokens = parser.parse("  a  b   ");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("  a  b   "));
 
         assertEquals(2, tokens.size(), "Top level unprocessed text is split on whitespace");
         assertEquals(TokenItem.UNPROCESSED, tokens.get(0).id, "First token id");
@@ -845,7 +875,7 @@ public class TextParserTest {
 
     public static void testMultiLineValidationRecovers() {
         TextParser parser = new TextParser(MULTILINE_DEF);
-        List<TokenItem> tokens = parser.parse("{[\n1\n]}");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("{[\n1\n]}"));
 
         TokenItem outer = tokens.get(0);
         assertEquals("Outer", outer.id, "Token id");
@@ -856,6 +886,27 @@ public class TextParserTest {
         assertChild(outer, 2, TokenItem.UNPROCESSED, 3, 1);
         assertChild(outer, 3, TokenItem.UNPROCESSED, 5, 1);
         assertChild(outer, 4, TokenItem.END_DELIMITER, 6, 1);
+    }
+
+    public static void testWhitespaceNodesMaterialized() {
+        TextParser parser = new TextParser(DELIM_DEF);
+
+        // Raw in-memory CST keeps hidden whitespace leaves, matching C.
+        List<TokenItem> tokens = parser.parse("[ a]");
+        TokenItem styled = tokens.get(0);
+        assertEquals(4, styled.children.size(), "Raw children include the whitespace leaf");
+        assertChild(styled, 1, TokenItem.WHITESPACE, 1, 1);
+
+        // JSON hides leaf whitespace, matching C's serializer.
+        String json = styled.toJson();
+        assertTrue(!json.contains("\"Whitespace\""), "Whitespace must be hidden in JSON");
+
+        // All-whitespace input materializes a top-level whitespace node.
+        List<TokenItem> ws = parser.parse("   ");
+        assertEquals(1, ws.size(), "All-whitespace input yields one whitespace node");
+        assertEquals(TokenItem.WHITESPACE, ws.get(0).id, "Whitespace node");
+        assertEquals(0, ws.get(0).position, "Position");
+        assertEquals(3, ws.get(0).length, "Length");
     }
 
     public static void testSignMergeOnlyPlusMinus() {
@@ -886,8 +937,8 @@ public class TextParserTest {
         assertTrue(parser.definition.tokens.containsKey("WhitespaceTrivia"), "Trivia normalized");
         assertTrue(parser.definition.startTokens.contains("Assign"), "startTokens generated");
 
-        List<TokenItem> tokens = parser.parse("x = 1;");
-        assertEquals(4, tokens.size(), "Whitespace is skipped, four tokens remain");
+        List<TokenItem> tokens = stripWhitespace(parser.parse("x = 1;"));
+        assertEquals(4, tokens.size(), "Whitespace is skipped, four visible tokens remain");
         assertEquals("Identifier", tokens.get(0).id, "Token 0");
         assertEquals("Assign", tokens.get(1).id, "Token 1");
         assertEquals("Number", tokens.get(2).id, "Token 2");

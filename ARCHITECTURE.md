@@ -295,9 +295,10 @@ When creating or maintaining a port of `textparser`:
 
 ### 9.1 Delimiter, trivia and unprocessed-token contract
 
-The C engine synthesizes additional AST leaves that ports must reproduce. The
-JSON serializers in `cli/main.c` hide leaf `Whitespace` nodes, so the visible
-contract is defined by the following rules:
+The C engine synthesizes additional AST leaves that ports must reproduce. Both
+the C JSON serializer (`cli/main.c`) and the Java `TokenItem` serializer hide
+leaf `Whitespace` nodes, so the visible contract is defined by the following
+rules (the in-memory CST still contains them):
 
 1. **Start/end delimiters**:
    * Every `StartStop`/`StartOptStop` match begins with a `StartDelimiter` leaf
@@ -326,9 +327,10 @@ contract is defined by the following rules:
      `[StartDelimiter, EndDelimiter]`, or a single `Unprocessed` span covering
      the whole token.
    * Because hidden `Whitespace` leaves count as direct children, any whitespace
-     between the delimiters prevents pruning. Ports without explicit whitespace
-     nodes must therefore track whether whitespace was skipped and suppress
-     pruning in that case.
+     between the delimiters prevents pruning. Ports must therefore materialize
+     whitespace nodes (or otherwise track whether whitespace was skipped) before
+     applying the prune rule. The Java port materializes them, so it uses the
+     same exact-children checks as C.
    * Custom delimiter styling disables pruning entirely.
 4. **Multi-line validation**:
    * After a token is parsed, if its definition does **not** set `multiLine` but

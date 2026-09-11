@@ -2,6 +2,9 @@ package com.textparser;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +17,37 @@ public class TokenItem {
     public static final String START_DELIMITER = "StartDelimiter";
     public static final String END_DELIMITER = "EndDelimiter";
 
-    private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Gson COMPACT_GSON = new GsonBuilder().create();
+    /**
+     * Serialize a node, omitting hidden whitespace leaves the way the C JSON
+     * writer does (they are part of the in-memory CST but not the output).
+     */
+    private static final JsonSerializer<TokenItem> SERIALIZER = (src, type, ctx) -> {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("id", src.id);
+        obj.addProperty("position", src.position);
+        obj.addProperty("length", src.length);
+        if (src.children != null && !src.children.isEmpty()) {
+            JsonArray arr = new JsonArray();
+            for (TokenItem child : src.children) {
+                if (isHiddenWhitespace(child)) {
+                    continue;
+                }
+                arr.add(ctx.serialize(child));
+            }
+            obj.add("children", arr);
+        }
+        return obj;
+    };
+
+    private static final Gson PRETTY_GSON = new GsonBuilder()
+            .registerTypeAdapter(TokenItem.class, SERIALIZER)
+            .setPrettyPrinting().create();
+    private static final Gson COMPACT_GSON = new GsonBuilder()
+            .registerTypeAdapter(TokenItem.class, SERIALIZER).create();
+
+    private static boolean isHiddenWhitespace(TokenItem item) {
+        return WHITESPACE.equals(item.id) && (item.children == null || item.children.isEmpty());
+    }
 
     public String id;
     public int position;
@@ -50,7 +82,16 @@ public class TokenItem {
     }
 
     public static String toJson(List<TokenItem> tokens, boolean pretty) {
-        return pretty ? PRETTY_GSON.toJson(tokens) : COMPACT_GSON.toJson(tokens);
+        List<TokenItem> visible = new ArrayList<>();
+        if (tokens != null) {
+            for (TokenItem token : tokens) {
+                if (isHiddenWhitespace(token)) {
+                    continue;
+                }
+                visible.add(token);
+            }
+        }
+        return pretty ? PRETTY_GSON.toJson(visible) : COMPACT_GSON.toJson(visible);
     }
 
     @Override
