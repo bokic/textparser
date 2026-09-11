@@ -30,7 +30,9 @@ public class Validate {
             File targetPath = new File(targetPathStr);
 
             List<String> defaultExts = new ArrayList<>();
-            if (parser.definition != null && parser.definition.tokens != null) {
+            if (parser.definition != null && parser.definition.defaultFileExtensions != null && !parser.definition.defaultFileExtensions.isEmpty()) {
+                defaultExts.addAll(parser.definition.defaultFileExtensions);
+            } else {
                 defaultExts.add("cfm");
                 defaultExts.add("cfc");
             }

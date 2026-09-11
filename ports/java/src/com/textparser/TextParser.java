@@ -100,7 +100,7 @@ public class TextParser {
                 }
                 return closestChildPos == Integer.MAX_VALUE ? null : closestChildPos;
             }
-            case "GroupAllChildrenInSameOrder" -> {
+            case "GroupAllChildrenInSameOrder", "Sequence" -> {
                 if (token.nestedTokens == null || token.nestedTokens.isEmpty()) return null;
                 Definition.TokenDef childDef = definition.tokens.get(token.nestedTokens.get(0));
                 return findToken(text, pos, childDef, otherTextInside);
@@ -429,12 +429,50 @@ public class TextParser {
         return ret;
     }
 
+    private TokenItem parseSequence(String text, String tokenName, Definition.TokenDef token, String parentRegex, int pos) {
+        int startOffset = pos;
+        if (token.nestedTokens == null || token.nestedTokens.isEmpty()) {
+            return null;
+        }
+
+        TokenItem ret = new TokenItem(tokenName, pos, 0);
+
+        for (String elemName : token.nestedTokens) {
+            pos = skipWhitespace(text, pos);
+            if (pos >= text.length()) {
+                return null;
+            }
+
+            Definition.TokenDef elemDef = definition.tokens.get(elemName);
+            if (elemDef == null) {
+                return null;
+            }
+
+            Integer found = findToken(text, pos, elemDef, token.otherTextInside);
+            if (found == null || found != 0) {
+                return null;
+            }
+
+            TokenItem elemItem = parseToken(text, elemName, elemDef, parentRegex, pos);
+            if (elemItem == null || elemItem.length == 0) {
+                return null;
+            }
+
+            ret.children.add(elemItem);
+            pos = elemItem.position + elemItem.length;
+        }
+
+        ret.length = pos - startOffset;
+        return ret;
+    }
+
     private TokenItem parseToken(String text, String tokenName, Definition.TokenDef token, String parentRegex, int pos) {
         pos = skipWhitespace(text, pos);
         return switch (token.type) {
             case "Group" -> parseGroup(text, tokenName, token, parentRegex, pos);
             case "GroupOneChildOnly" -> parseGroupOneChildOnly(text, tokenName, token, parentRegex, pos);
             case "GroupAllChildrenInSameOrder" -> parseGroupAllChildrenInSameOrder(text, tokenName, token, parentRegex, pos);
+            case "Sequence" -> parseSequence(text, tokenName, token, parentRegex, pos);
             case "SimpleToken" -> parseSimpleToken(text, tokenName, token, pos);
             case "StartStop" -> parseStartStop(text, tokenName, token, parentRegex, pos, true);
             case "StartOptStop" -> parseStartStop(text, tokenName, token, parentRegex, pos, false);
@@ -528,18 +566,20 @@ public class TextParser {
         while (pos < text.length()) {
             pos = skipWhitespace(text, pos);
             int closestTokenPos = Integer.MAX_VALUE;
-            String closestTokenName = null;
-
+            List<String> candidates = new ArrayList<>();
             for (String tokenName : definition.startTokens) {
                 Definition.TokenDef tokenDef = definition.tokens.get(tokenName);
                 Integer offset = findToken(text, pos, tokenDef, definition.otherTextInside);
                 if (offset != null && offset < closestTokenPos) {
                     closestTokenPos = offset;
-                    closestTokenName = tokenName;
+                    candidates.clear();
+                    candidates.add(tokenName);
+                } else if (offset != null && offset == closestTokenPos) {
+                    candidates.add(tokenName);
                 }
             }
 
-            if (closestTokenName == null) {
+            if (candidates.isEmpty()) {
                 if (definition.otherTextInside && pos < text.length()) {
                     tokens.add(new TokenItem("", pos, text.length() - pos));
                 }
@@ -557,11 +597,29 @@ public class TextParser {
             }
 
             pos += closestTokenPos;
-            Definition.TokenDef tokenDef = definition.tokens.get(closestTokenName);
-            TokenItem child = parseToken(text, closestTokenName, tokenDef, null, pos);
 
-            if (child.length == 0) {
-                throw new RuntimeException("Child token " + closestTokenName + " has no length!");
+            TokenItem child = null;
+            for (String candName : candidates) {
+                Definition.TokenDef tokenDef = definition.tokens.get(candName);
+                try {
+                    TokenItem attempt = parseToken(text, candName, tokenDef, null, pos);
+                    if (attempt != null && attempt.length > 0) {
+                        child = attempt;
+                        break;
+                    }
+                } catch (Exception ignored) {
+                    // Try next candidate
+                }
+            }
+
+            if (child == null) {
+                if (definition.otherTextInside && pos < text.length()) {
+                    tokens.add(new TokenItem("", pos, 1));
+                    pos += 1;
+                    continue;
+                } else {
+                    break;
+                }
             }
 
             tokens.add(child);

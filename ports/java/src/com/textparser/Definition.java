@@ -6,6 +6,7 @@ public class Definition {
     public String name;
     public String version = "0.0";
     public boolean otherTextInside = false;
+    public List<String> defaultFileExtensions = new ArrayList<>();
     public List<String> startTokens = new ArrayList<>();
     public Map<String, TokenDef> tokens = new LinkedHashMap<>();
     public MergeSignConfig mergeSignIntoNumber = null;
@@ -18,7 +19,7 @@ public class Definition {
 
     public static class TokenDef {
         public String id;
-        public String type; // SimpleToken, StartStop, StartOptStop, Group, GroupOneChildOnly, GroupAllChildrenInSameOrder
+        public String type; // SimpleToken, StartStop, StartOptStop, Group, GroupOneChildOnly, GroupAllChildrenInSameOrder, Sequence
         public String startRegex;
         public String endRegex;
         public List<String> nestedTokens;
@@ -42,6 +43,12 @@ public class Definition {
         }
         if (map.containsKey("otherTextInside") && map.get("otherTextInside") instanceof Boolean b) {
             def.otherTextInside = b;
+        }
+
+        if (map.get("defaultFileExtensions") instanceof List<?> list) {
+            for (Object item : list) {
+                if (item != null) def.defaultFileExtensions.add(item.toString());
+            }
         }
 
         if (map.get("startTokens") instanceof List<?> list) {

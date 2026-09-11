@@ -171,6 +171,36 @@ public class TextParserTest {
             t.printStackTrace();
         }
 
+        try {
+            testMissingStartRegexDoesNotMatchInput();
+            passed++;
+            System.out.println("[PASS] testMissingStartRegexDoesNotMatchInput");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testMissingStartRegexDoesNotMatchInput: " + t.getMessage());
+            t.printStackTrace();
+        }
+
+        try {
+            testUnmatchedRequiredDelimiterKeepsExistingTokenLengthBehavior();
+            passed++;
+            System.out.println("[PASS] testUnmatchedRequiredDelimiterKeepsExistingTokenLengthBehavior");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testUnmatchedRequiredDelimiterKeepsExistingTokenLengthBehavior: " + t.getMessage());
+            t.printStackTrace();
+        }
+
+        try {
+            testSequenceTokenType();
+            passed++;
+            System.out.println("[PASS] testSequenceTokenType");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testSequenceTokenType: " + t.getMessage());
+            t.printStackTrace();
+        }
+
         System.out.println("\nTest Summary: " + passed + " PASSED, " + failed + " FAILED.");
         if (failed > 0) {
             System.exit(1);
@@ -249,5 +279,64 @@ public class TextParserTest {
         assertEquals("Number", tokens.get(0).id, "Token should be Number");
         assertEquals(0, tokens.get(0).position, "Position should be 0");
         assertEquals(4, tokens.get(0).length, "Length should be 4 (-123)");
+    }
+
+    public static void testMissingStartRegexDoesNotMatchInput() {
+        String def = """
+        {
+          "startTokens": ["Number"],
+          "tokens": {"Number": {"type": "SimpleToken"}}
+        }
+        """;
+        TextParser parser = new TextParser(def);
+        List<TokenItem> tokens = parser.parse("1");
+        assertTrue(tokens.isEmpty(), "Missing startRegex should not match input");
+    }
+
+    public static void testUnmatchedRequiredDelimiterKeepsExistingTokenLengthBehavior() {
+        TextParser parser = new TextParser(JSON_DEF);
+        String text = "{\"key\": 1";
+        List<TokenItem> tokens = parser.parse(text);
+        assertEquals("Object", tokens.get(0).id, "Token should be Object");
+        assertEquals(text.length(), tokens.get(0).length, "Unmatched delimiter should match to end of text");
+    }
+
+    public static void testSequenceTokenType() {
+        String seqDef = """
+        {
+          "name": "sequence_test",
+          "startTokens": ["TaggedType"],
+          "tokens": {
+            "TaggedType": {
+              "type": "Sequence",
+              "nestedTokens": ["TagSpecifier", "TypeName"]
+            },
+            "TagSpecifier": {
+              "type": "SimpleToken",
+              "startRegex": "struct\\\\b|union\\\\b|enum\\\\b"
+            },
+            "TypeName": {
+              "type": "SimpleToken",
+              "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*"
+            }
+          }
+        }
+        """;
+        TextParser parser = new TextParser(seqDef);
+        String text = "struct Point";
+        List<TokenItem> tokens = parser.parse(text);
+
+        assertEquals(1, tokens.size(), "Should parse 1 sequence token");
+        TokenItem item = tokens.get(0);
+        assertEquals("TaggedType", item.id, "Top level token should be TaggedType");
+        assertEquals(0, item.position, "Position should be 0");
+        assertEquals(text.length(), item.length, "Length should match text");
+        assertEquals(2, item.children.size(), "Sequence should have 2 children");
+        assertEquals("TagSpecifier", item.children.get(0).id, "First child should be TagSpecifier");
+        assertEquals("TypeName", item.children.get(1).id, "Second child should be TypeName");
+
+        // Failure case: incomplete sequence should not match
+        List<TokenItem> incomplete = parser.parse("struct 123");
+        assertTrue(incomplete.isEmpty(), "Incomplete sequence should not match");
     }
 }
