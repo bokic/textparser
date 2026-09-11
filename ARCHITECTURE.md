@@ -292,3 +292,98 @@ When creating or maintaining a port of `textparser`:
    * Speculative choice branches must discard all created nodes, errors, and mode mutations if the branch fails.
 5. **Differential Verification**:
    * Validate port implementations against test suites in `tests/` and fixture suites under `tests/docker/fixtures/`.
+
+### 9.1 Delimiter, trivia and unprocessed-token contract
+
+The C engine synthesizes additional AST leaves that ports must reproduce. The
+JSON serializers in `cli/main.c` hide leaf `Whitespace` nodes, so the visible
+contract is defined by the following rules:
+
+1. **Start/end delimiters**:
+   * Every `StartStop`/`StartOptStop` match begins with a `StartDelimiter` leaf
+     (the matched start regex span) and, when an end token is found, ends with an
+     `EndDelimiter` leaf (the matched end regex span).
+   * The end delimiter takes priority over a nested child that starts at the same
+     offset. This is why `**Bold**` parses as a single styled span rather than as
+     a `Bold` container containing an `Italic` child.
+2. **Unprocessed text**:
+   * Text between delimiters that is not consumed by a nested token becomes
+     `Unprocessed` leaves.
+   * When the token has nested tokens, content is split on whitespace (one
+     `Unprocessed` leaf per whitespace-separated run); the whitespace itself is
+     represented internally as hidden `Whitespace` leaves.
+   * When the token has no nested tokens, the content is emitted as a *single*
+     `Unprocessed` span that includes internal and trailing whitespace. Leading
+     whitespace is skipped (hidden `Whitespace` leaf), so the span starts after
+     it.
+   * At the top level, unmatched text is likewise split into whitespace-separated
+     `Unprocessed` leaves.
+3. **Delimiter pruning**:
+   * When a start/stop token has **no** custom delimiter styling
+     (`delimiterTextColor`, `delimiterTextBackground`, `delimiterTextFlags` all
+     unset), the synthesized leaves are pruned only if the direct children are
+     exactly `[StartDelimiter, Unprocessed, EndDelimiter]` or
+     `[StartDelimiter, EndDelimiter]`, or a single `Unprocessed` span covering
+     the whole token.
+   * Because hidden `Whitespace` leaves count as direct children, any whitespace
+     between the delimiters prevents pruning. Ports without explicit whitespace
+     nodes must therefore track whether whitespace was skipped and suppress
+     pruning in that case.
+   * Custom delimiter styling disables pruning entirely.
+4. **Multi-line validation**:
+   * After a token is parsed, if its definition does **not** set `multiLine` but
+     its span contains `\n` or `\r`, the parse must fail with
+     *"Token spans multiple lines but multi_line flag is not set!"*.
+   * This validation runs on every token, including `GroupOneChildOnly` wrappers
+     around a multi-line child.
+5. **Speculative error recovery**:
+   * Nested-token attempts are speculative. If a nested attempt fails (throws /
+     sets an error), the partial result is discarded. When the enclosing token
+     allows arbitrary text (`otherTextInside`) and the failure did not occur at
+     end-of-text, the offending character is emitted as an `Unprocessed` leaf and
+     parsing continues from the next character.
+   * At the top level, if every candidate start token fails, the first failure is
+     reported as fatal (the parse is aborted) rather than being silently replaced
+     by `Unprocessed`.
+   * When `otherTextInside` is false and the top-level loop stops before consuming
+     the whole input, the remaining input is emitted as a single `Unprocessed`
+     span.
+6. **Anchored matching and single-character advance**:
+   * `textparser_find_token` compiles start patterns with `PCRE2_ANCHORED` and
+     returns the first capture group's offset relative to the current position
+     (normally `0`). It never scans ahead. A port must therefore check whether a
+     token matches *at the current offset* only.
+   * Container loops (`parse_token_group`, `parse_token_start_stop`,
+     `parse_token_group_all_children_in_same_order`) attempt a nested token only
+     when `find_token(...) == 0`; otherwise, when `otherTextInside` is set, they
+     emit one character as `Unprocessed` and advance by one. This is what makes
+     the engine linear in the input size. Scanning ahead for the nearest match
+     (as an earlier Java implementation did) is both slower (O(n²)) and
+     behaviourally different.
+   * `GroupOneChildOnly` first tries candidates at offset `0`; only if none
+     succeed does it look for the smallest positive capture-group offset, emit
+     that prefix as `Unprocessed`, and parse the child there.
+7. **Sign merging**:
+   * `maybe_merge_sign` only absorbs a sign into a following number when the sign
+     is a single character whose text is `+` or `-`. Other operators that happen
+     to be listed in `signTokens` (for example `>&` in the Bash definition) are
+     never absorbed.
+   * The operand-context check walks backwards over trivia (`Whitespace`,
+     `Unprocessed`, start/end delimiters) before testing `operandTokens`.
+8. **`formatVersion: 2` (lexer-shaped) definitions**:
+   * The C CLI does **not** run the declarative grammar for these definitions.
+     Its JSON loader (`textparser-json.c`) normalizes `lexer.tokens` followed by
+     `lexer.trivia` into the legacy `tokens` map, each as a `SimpleToken` whose
+     `startRegex` is the lexer token's `regex`, and generates `startTokens` from
+     all of them in JSON order. `multiLine` is carried over; `priority`,
+     `pushMode`/`popMode`, modes and goals are ignored on this path.
+   * Ports that only target CLI parity must reproduce this normalization, not the
+     grammar engine. The grammar engine is reachable only through
+     `textparser_execute_language_grammar`.
+9. **Regex engine differences**:
+   * `java.util.regex` does not know the PCRE2 derived properties `\p{ID_Start}`
+     / `\p{ID_Continue}`; ports should rewrite them to the equivalent Unicode
+     category sets (`\p{L}\p{Nl}` and `\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}`).
+   * Java's matcher is recursive, so long matches of loop patterns such as the
+     TypeScript string/template literals can exhaust the thread stack where
+     PCRE2 does not. A large-stack retry (or equivalent) is required.

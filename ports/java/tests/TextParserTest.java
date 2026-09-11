@@ -162,6 +162,49 @@ public class TextParserTest {
     }
     """;
 
+    private static final String SIGN_DEF = """
+    {
+      "name": "sign_test",
+      "version": 1.0,
+      "caseSensitivity": false,
+      "defaultFileExtensions": ["st"],
+      "defaultTextEncoding": "utf-8",
+      "otherTextInside": true,
+      "startTokens": ["Expr"],
+      "mergeSignIntoNumber": {"signTokens": ["Op"], "numberTokens": ["Number"], "operandTokens": ["Number", "Var"]},
+      "tokens": {
+        "Expr": {"type": "Group", "otherTextInside": true, "deleteIfOnlyOneChild": true, "nestedTokens": ["Op", "Number", "Var"]},
+        "Op": {"type": "SimpleToken", "startRegex": "[!+-]"},
+        "Number": {"type": "SimpleToken", "startRegex": "[0-9]+"},
+        "Var": {"type": "SimpleToken", "startRegex": "[a-z]+"}
+      }
+    }
+    """;
+
+    private static final String V2_DEF = """
+    {
+      "formatVersion": 2,
+      "name": "v2_test",
+      "version": 1.0,
+      "caseSensitivity": true,
+      "defaultFileExtensions": ["v2"],
+      "otherTextInside": true,
+      "lexer": {
+        "initialMode": "default",
+        "tokens": {
+          "Identifier": {"regex": "[$\\\\p{ID_Start}][$\\\\p{ID_Continue}]*", "priority": 10},
+          "Assign": {"regex": "="},
+          "Number": {"regex": "[0-9]+"},
+          "Semicolon": {"regex": ";"},
+          "MultiString": {"regex": "'''[^']*'''", "multiLine": true}
+        },
+        "trivia": {
+          "WhitespaceTrivia": {"regex": "[ \\\\t\\\\r\\\\n]+"}
+        }
+      }
+    }
+    """;
+
     public static void main(String[] args) {
         int passed = 0;
         int failed = 0;
@@ -396,6 +439,46 @@ public class TextParserTest {
             t.printStackTrace();
         }
 
+        try {
+            testSignMergeOnlyPlusMinus();
+            passed++;
+            System.out.println("[PASS] testSignMergeOnlyPlusMinus");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testSignMergeOnlyPlusMinus: " + t.getMessage());
+            t.printStackTrace();
+        }
+
+        try {
+            testFormatVersion2LexerNormalization();
+            passed++;
+            System.out.println("[PASS] testFormatVersion2LexerNormalization");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testFormatVersion2LexerNormalization: " + t.getMessage());
+            t.printStackTrace();
+        }
+
+        try {
+            testFormatVersion2MultiLineToken();
+            passed++;
+            System.out.println("[PASS] testFormatVersion2MultiLineToken");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testFormatVersion2MultiLineToken: " + t.getMessage());
+            t.printStackTrace();
+        }
+
+        try {
+            testFormatVersion2UnicodePropertyNormalization();
+            passed++;
+            System.out.println("[PASS] testFormatVersion2UnicodePropertyNormalization");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testFormatVersion2UnicodePropertyNormalization: " + t.getMessage());
+            t.printStackTrace();
+        }
+
         System.out.println("\nTest Summary: " + passed + " PASSED, " + failed + " FAILED.");
         if (failed > 0) {
             System.exit(1);
@@ -494,9 +577,13 @@ public class TextParserTest {
     public static void testUnmatchedRequiredDelimiterKeepsExistingTokenLengthBehavior() {
         TextParser parser = new TextParser(JSON_DEF);
         String text = "{\"key\": 1";
-        List<TokenItem> tokens = parser.parse(text);
-        assertEquals("Object", tokens.get(0).id, "Token should be Object");
-        assertEquals(text.length(), tokens.get(0).length, "Unmatched delimiter should match to end of text");
+        boolean threw = false;
+        try {
+            parser.parse(text);
+        } catch (RuntimeException e) {
+            threw = true;
+        }
+        assertTrue(threw, "A required start-stop delimiter reaching EOF must be a fatal error (matches C)");
     }
 
     public static void testSequenceTokenType() {
@@ -734,5 +821,59 @@ public class TextParserTest {
         assertChild(outer, 2, TokenItem.UNPROCESSED, 3, 1);
         assertChild(outer, 3, TokenItem.UNPROCESSED, 5, 1);
         assertChild(outer, 4, TokenItem.END_DELIMITER, 6, 1);
+    }
+
+    public static void testSignMergeOnlyPlusMinus() {
+        TextParser parser = new TextParser(SIGN_DEF);
+
+        // '!' is in the sign-token list but is not a literal +/-: no merge.
+        List<TokenItem> bang = parser.parse("!3");
+        assertEquals("Expr", bang.get(0).id, "Non +/- operator must not merge");
+        assertEquals(2, bang.get(0).children.size(), "Children count");
+
+        // '-' is a literal sign: merge into the number.
+        List<TokenItem> minus = parser.parse("-3");
+        assertEquals("Number", minus.get(0).id, "-3 must merge into Number");
+        assertEquals(2, minus.get(0).length, "Merged length");
+
+        // Preceded by an operand: '-' is binary subtraction, no merge.
+        List<TokenItem> ctx = parser.parse("a-3");
+        assertEquals("Expr", ctx.get(0).id, "Operand context prevents merge");
+        assertEquals(3, ctx.get(0).children.size(), "Children count");
+    }
+
+    public static void testFormatVersion2LexerNormalization() {
+        TextParser parser = new TextParser(V2_DEF);
+
+        // Lexer tokens + trivia are normalized into the legacy token map and
+        // startTokens are generated from them.
+        assertTrue(parser.definition.tokens.containsKey("Identifier"), "Identifier normalized");
+        assertTrue(parser.definition.tokens.containsKey("WhitespaceTrivia"), "Trivia normalized");
+        assertTrue(parser.definition.startTokens.contains("Assign"), "startTokens generated");
+
+        List<TokenItem> tokens = parser.parse("x = 1;");
+        assertEquals(4, tokens.size(), "Whitespace is skipped, four tokens remain");
+        assertEquals("Identifier", tokens.get(0).id, "Token 0");
+        assertEquals("Assign", tokens.get(1).id, "Token 1");
+        assertEquals("Number", tokens.get(2).id, "Token 2");
+        assertEquals("Semicolon", tokens.get(3).id, "Token 3");
+    }
+
+    public static void testFormatVersion2MultiLineToken() {
+        TextParser parser = new TextParser(V2_DEF);
+        List<TokenItem> tokens = parser.parse("'''a\nb'''");
+        assertEquals(1, tokens.size(), "Multi-line token parses as one token");
+        assertEquals("MultiString", tokens.get(0).id, "Token id");
+        assertEquals(9, tokens.get(0).length, "Length spans the newline");
+    }
+
+    public static void testFormatVersion2UnicodePropertyNormalization() {
+        TextParser parser = new TextParser(V2_DEF);
+        // \p{ID_Start}/\p{ID_Continue} are rewritten to Unicode categories that
+        // java.util.regex understands, so a non-ASCII identifier still matches.
+        List<TokenItem> tokens = parser.parse("\u00e9t\u00e9");
+        assertEquals(1, tokens.size(), "Unicode identifier is one token");
+        assertEquals("Identifier", tokens.get(0).id, "Token id");
+        assertEquals(3, tokens.get(0).length, "Length");
     }
 }

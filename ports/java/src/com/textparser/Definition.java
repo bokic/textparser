@@ -5,11 +5,28 @@ import java.util.*;
 public class Definition {
     public String name;
     public String version = "0.0";
+    public boolean caseSensitivity = false;
     public boolean otherTextInside = false;
     public List<String> defaultFileExtensions = new ArrayList<>();
     public List<String> startTokens = new ArrayList<>();
     public Map<String, TokenDef> tokens = new LinkedHashMap<>();
     public MergeSignConfig mergeSignIntoNumber = null;
+    public Lexer lexer = null;
+
+    public static class Lexer {
+        public String initialMode;
+        public Map<String, LexerToken> tokens = new LinkedHashMap<>();
+        public Map<String, LexerToken> trivia = new LinkedHashMap<>();
+    }
+
+    public static class LexerToken {
+        public String regex;
+        public Integer priority;
+        public String textColor;
+        public Boolean multiLine;
+        public String pushMode;
+        public Boolean popMode;
+    }
 
     public static class MergeSignConfig {
         public List<String> signTokens = new ArrayList<>();
