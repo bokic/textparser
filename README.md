@@ -17,7 +17,7 @@ It serves as a robust foundation for building linters, static analysis tools, co
 
 - **🌐 Massive Language Support:** Built-in regex-based grammars for modern and classic languages.
 - **⚡ High Performance:** Core tokenization and AST construction written in highly optimized C.
-- **🧬 Multi-Language Ecosystem:** Native language ports (Rust, Python, Java) manage underlying C memory safely.
+- **🧬 Multi-Language Ecosystem:** Native language ports (Rust, Python, Java) manage underlying C memory safely. Detailed inner logic and porting contracts are specified in [ARCHITECTURE.md](ARCHITECTURE.md).
 - **🌐 WebAssembly Ready:** Compile to WASM for client-side code analysis directly in the browser.
 - **🎨 Built-in `ccat` Utility:** A colorized alternative to the standard `cat` command for terminal code viewing.
 
