@@ -348,6 +348,14 @@ contract is defined by the following rules:
    * When `otherTextInside` is false and the top-level loop stops before consuming
      the whole input, the remaining input is emitted as a single `Unprocessed`
      span.
+   * Candidate fallback: when a candidate start token (or nested child) fails
+     *with an error*, the first such failure and its diagnostic are remembered,
+     but the error state is cleared before the next candidate so the remaining
+     candidates are still tried. The remembered failure is only re-applied when
+     no candidate succeeds. The arena checkpoint for the failing candidate is
+     intentionally **not** restored, so the remembered node stays valid.
+     (This was a bug in C: the error leaked into later candidates, so the first
+     failing candidate poisoned all others.)
 6. **Anchored matching and single-character advance**:
    * `textparser_find_token` compiles start patterns with `PCRE2_ANCHORED` and
      returns the first capture group's offset relative to the current position

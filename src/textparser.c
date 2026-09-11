@@ -1579,6 +1579,8 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
         const int *loop_effective_nested = get_effective_nested_tokens(handle, token_id, ret);
         textparser_token_item *new_child = nullptr;
         textparser_token_item *error_child = nullptr;
+        const char *error_child_msg = nullptr;
+        size_t error_child_off = 0;
         if (loop_effective_nested) {
             for (int c = 0; loop_effective_nested[c] != TextParser_END; c++) {
                 int cand_id = loop_effective_nested[c];
@@ -1595,7 +1597,13 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
                     }
 
                     if (attempt != nullptr && handle->error != nullptr && error_child == nullptr) {
+                        // Keep the first failing child and its diagnostic, but
+                        // clear the error so later candidates can still be tried.
                         error_child = attempt;
+                        error_child_msg = handle->error;
+                        error_child_off = handle->error_offset;
+                        handle->error = saved_err;
+                        handle->error_offset = saved_err_off;
                     } else {
                         textparser_arena_checkpoint_restore(handle, &cp);
                         handle->error = saved_err;
@@ -1607,6 +1615,8 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
 
         if (new_child == nullptr && error_child != nullptr) {
             new_child = error_child;
+            handle->error = error_child_msg;
+            handle->error_offset = error_child_off;
         }
 
         if (new_child != nullptr)
@@ -2068,6 +2078,8 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             const textparser_token_item *current_prev = last_child;
             textparser_token_item *new_child = nullptr;
             textparser_token_item *error_child = nullptr;
+            const char *error_child_msg = nullptr;
+            size_t error_child_off = 0;
             if (nested_tokens) {
                 for (int c = 0; nested_tokens[c] != TextParser_END; c++) {
                     int cand_id = nested_tokens[c];
@@ -2084,7 +2096,14 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
                         }
 
                         if (attempt != nullptr && handle->error != nullptr && error_child == nullptr) {
+                            // Keep the first failing child and its diagnostic,
+                            // but clear the error so later candidates can still
+                            // be tried.
                             error_child = attempt;
+                            error_child_msg = handle->error;
+                            error_child_off = handle->error_offset;
+                            handle->error = saved_err;
+                            handle->error_offset = saved_err_off;
                         } else {
                             textparser_arena_checkpoint_restore(handle, &cp);
                             handle->error = saved_err;
@@ -2096,6 +2115,8 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
 
             if (new_child == nullptr && error_child != nullptr) {
                 new_child = error_child;
+                handle->error = error_child_msg;
+                handle->error_offset = error_child_off;
             }
 
             if (new_child != nullptr)
@@ -3596,6 +3617,8 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
 
         textparser_token_item *token_item = nullptr;
         textparser_token_item *error_token_item = nullptr;
+        const char *error_token_msg = nullptr;
+        size_t error_token_off = 0;
         for (int c = 0; effective_starts_with && effective_starts_with[c] != TextParser_END; c++) {
             int token_id = effective_starts_with[c];
             ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside, parent_container, prev_item);
@@ -3613,7 +3636,15 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                 }
 
                 if (attempt != nullptr && handle->error != nullptr && error_token_item == nullptr) {
+                    // Remember the first failing candidate and its diagnostic,
+                    // but clear the error so the remaining candidates are still
+                    // given a chance (the checkpoint is intentionally not
+                    // restored so the remembered node stays valid).
                     error_token_item = attempt;
+                    error_token_msg = handle->error;
+                    error_token_off = handle->error_offset;
+                    handle->error = saved_err;
+                    handle->error_offset = saved_err_off;
                 } else {
                     textparser_arena_checkpoint_restore(handle, &cp);
                     handle->error = saved_err;
@@ -3624,6 +3655,8 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
 
         if (token_item == nullptr && error_token_item != nullptr) {
             token_item = error_token_item;
+            handle->error = error_token_msg;
+            handle->error_offset = error_token_off;
         }
 
         if (token_item != nullptr) {

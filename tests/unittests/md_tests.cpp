@@ -160,6 +160,22 @@ _italic with underscore_
     EXPECT_TRUE(found.contains("Italic"));
 }
 
+TEST(parse_MD, ambiguous_bold_italic_candidate_fallback) {
+    // Regression: a failing start-token candidate must not poison the
+    // remaining candidates. Bold fails here (its nested Italic consumes one
+    // '*' of the closing '**'), so the top-level loop must fall back to Italic
+    // rather than aborting the whole parse.
+    auto tokens = TextParser("**a_b**\n**c** d", &md_definition);
+
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_GT(tokens.count, 0);
+    EXPECT_TRUE(found.contains("Italic"));
+}
+
 TEST(parse_MD, html_tags_and_attributes) {
     auto tokens = TextParser(R"(
 <span id="test" class='example'>Text</span>
