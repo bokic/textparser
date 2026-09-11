@@ -49,7 +49,17 @@ public class Definition {
         public boolean multiLine = false;
         public boolean searchParentEndTokenLast = false;
         public String textColor;
-        public String bgColor;
+        public String textBackground;
+        public Long textFlags;
+        public String delimiterTextColor;
+        public String delimiterTextBackground;
+        public Long delimiterTextFlags;
+
+        public boolean hasCustomDelimiterStyling() {
+            return (delimiterTextColor != null && !delimiterTextColor.isEmpty()) ||
+                   (delimiterTextBackground != null && !delimiterTextBackground.isEmpty()) ||
+                   (delimiterTextFlags != null && delimiterTextFlags != 0);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -108,7 +118,11 @@ public class Definition {
                     if (tData.get("searchParentEndTokenLast") instanceof Boolean b) tDef.searchParentEndTokenLast = b;
 
                     if (tData.get("textColor") != null) tDef.textColor = tData.get("textColor").toString();
-                    if (tData.get("bgColor") != null) tDef.bgColor = tData.get("bgColor").toString();
+                    if (tData.get("textBackground") != null) tDef.textBackground = tData.get("textBackground").toString();
+                    if (tData.get("textFlags") instanceof Number num) tDef.textFlags = num.longValue();
+                    if (tData.get("delimiterTextColor") != null) tDef.delimiterTextColor = tData.get("delimiterTextColor").toString();
+                    if (tData.get("delimiterTextBackground") != null) tDef.delimiterTextBackground = tData.get("delimiterTextBackground").toString();
+                    if (tData.get("delimiterTextFlags") instanceof Number num) tDef.delimiterTextFlags = num.longValue();
 
                     if (tData.get("nestedTokens") instanceof List<?> nList) {
                         tDef.nestedTokens = new ArrayList<>();

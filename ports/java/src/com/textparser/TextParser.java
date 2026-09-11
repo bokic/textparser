@@ -68,6 +68,67 @@ public class TextParser {
         return pos;
     }
 
+    private boolean appendUnprocessed(List<TokenItem> list, String text, int start, int len) {
+        if (len <= 0) return false;
+        boolean hadWhitespace = false;
+        int curr = start;
+        int end = start + len;
+        while (curr < end) {
+            while (curr < end && Character.isWhitespace(text.charAt(curr))) {
+                curr++;
+                hadWhitespace = true;
+            }
+            int wordStart = curr;
+            while (curr < end && !Character.isWhitespace(text.charAt(curr))) {
+                curr++;
+            }
+            if (curr > wordStart) {
+                int wordLen = curr - wordStart;
+                if (!list.isEmpty()) {
+                    TokenItem last = list.get(list.size() - 1);
+                    if (TokenItem.UNPROCESSED.equals(last.id) && last.position + last.length == wordStart) {
+                        last.length += wordLen;
+                        continue;
+                    }
+                }
+                list.add(new TokenItem(TokenItem.UNPROCESSED, wordStart, wordLen));
+            }
+        }
+        return hadWhitespace;
+    }
+
+    private void appendUnprocessedSpan(List<TokenItem> list, int start, int len) {
+        if (len <= 0) return;
+        if (!list.isEmpty()) {
+            TokenItem last = list.get(list.size() - 1);
+            if (TokenItem.UNPROCESSED.equals(last.id) && last.position + last.length == start) {
+                last.length += len;
+                return;
+            }
+        }
+        list.add(new TokenItem(TokenItem.UNPROCESSED, start, len));
+    }
+
+    private void pruneDelimiters(TokenItem ret, Definition.TokenDef token, boolean hasWhitespace) {
+        if (token.hasCustomDelimiterStyling()) return;
+        if (hasWhitespace) return;
+        List<TokenItem> ch = ret.children;
+        if (ch.size() == 3 &&
+            TokenItem.START_DELIMITER.equals(ch.get(0).id) &&
+            TokenItem.UNPROCESSED.equals(ch.get(1).id) &&
+            TokenItem.END_DELIMITER.equals(ch.get(2).id)) {
+            ret.children.clear();
+        } else if (ch.size() == 2 &&
+                   TokenItem.START_DELIMITER.equals(ch.get(0).id) &&
+                   TokenItem.END_DELIMITER.equals(ch.get(1).id)) {
+            ret.children.clear();
+        } else if (ch.size() == 1 &&
+                   TokenItem.UNPROCESSED.equals(ch.get(0).id) &&
+                   ch.get(0).length == ret.length) {
+            ret.children.clear();
+        }
+    }
+
     private Integer findToken(String text, int pos, Definition.TokenDef token, boolean otherTextInside) {
         if (token == null || token.type == null) return null;
         switch (token.type) {
@@ -308,11 +369,16 @@ public class TextParser {
         int startMatchEnd = startM.end(startGroup);
 
         pos += startMatchStart;
+        int startDelimiterLength = startMatchEnd - startMatchStart;
 
         TokenItem ret = new TokenItem(tokenName, pos, 0);
-        pos += (startMatchEnd - startMatchStart);
+        pos += startDelimiterLength;
 
         if (token.nestedTokens == null) {
+            int wsStart = pos;
+            pos = skipWhitespace(text, pos);
+            boolean hasWhitespace = pos > wsStart;
+
             Pattern endP = getCompiledPattern(myEndRegex);
             Matcher endM = endP.matcher(text.substring(pos));
             if (!endM.find()) {
@@ -323,13 +389,33 @@ public class TextParser {
             int endTokenLength = endM.end(endGroup) - endTokenPos;
 
             ret.length = pos + endTokenPos + endTokenLength - ret.position;
+
+            if (startDelimiterLength > 0) {
+                ret.children.add(new TokenItem(TokenItem.START_DELIMITER, ret.position, startDelimiterLength));
+            }
+            appendUnprocessedSpan(ret.children, pos, endTokenPos);
+            if (endTokenLength > 0) {
+                ret.children.add(new TokenItem(TokenItem.END_DELIMITER, pos + endTokenPos, endTokenLength));
+            }
+
+            pruneDelimiters(ret, token, hasWhitespace);
             return ret;
         }
+
+        if (startDelimiterLength > 0) {
+            ret.children.add(new TokenItem(TokenItem.START_DELIMITER, ret.position, startDelimiterLength));
+        }
+
+        boolean hasWhitespace = false;
 
         while (pos < text.length()) {
             int endTokenPos = Integer.MAX_VALUE;
             int endTokenLength = 0;
+            int wsStart = pos;
             pos = skipWhitespace(text, pos);
+            if (pos > wsStart) {
+                hasWhitespace = true;
+            }
 
             String checkRegex = myEndRegex;
             if (token.searchParentEndTokenLast && parentRegex != null) {
@@ -345,6 +431,7 @@ public class TextParser {
                     endTokenLength = endM.end(endGroup) - endTokenPos;
                     if (endTokenPos == 0) {
                         ret.length = pos - ret.position + endTokenLength;
+                        ret.children.add(new TokenItem(TokenItem.END_DELIMITER, pos, endTokenLength));
                         break;
                     }
                 }
@@ -371,13 +458,25 @@ public class TextParser {
                     endTokenPos = endM.start(endGroup);
                     endTokenLength = endM.end(endGroup) - endTokenPos;
                     if (endTokenPos < closestChildTokenPos) {
+                        if (endTokenPos > 0) {
+                            hasWhitespace |= appendUnprocessed(ret.children, text, pos, endTokenPos);
+                        }
+                        ret.children.add(new TokenItem(TokenItem.END_DELIMITER, pos + endTokenPos, endTokenLength));
                         ret.length = pos - ret.position + endTokenPos + endTokenLength;
                         break;
                     }
                 }
             }
 
-            if (endTokenPos < closestChildTokenPos) {
+            boolean endBeforeChild = token.searchParentEndTokenLast
+                ? endTokenPos < closestChildTokenPos
+                : endTokenPos != Integer.MAX_VALUE && endTokenPos <= closestChildTokenPos;
+
+            if (endBeforeChild) {
+                if (endTokenPos > 0) {
+                    hasWhitespace |= appendUnprocessed(ret.children, text, pos, endTokenPos);
+                }
+                ret.children.add(new TokenItem(TokenItem.END_DELIMITER, pos + endTokenPos, endTokenLength));
                 ret.length = pos - ret.position + endTokenPos + endTokenLength;
                 break;
             }
@@ -390,6 +489,10 @@ public class TextParser {
                         int endGroup = endM.groupCount();
                         endTokenPos = endM.start(endGroup);
                         endTokenLength = endM.end(endGroup) - endTokenPos;
+                        if (endTokenPos > 0) {
+                            hasWhitespace |= appendUnprocessed(ret.children, text, pos, endTokenPos);
+                        }
+                        ret.children.add(new TokenItem(TokenItem.END_DELIMITER, pos + endTokenPos, endTokenLength));
                         ret.length = pos - ret.position + endTokenPos + endTokenLength;
                     }
                 }
@@ -400,11 +503,30 @@ public class TextParser {
                 throw new RuntimeException("Child token " + closestChildTokenName + " has illegal position!");
             }
 
+            if (closestChildTokenPos > 0 && definition.tokens.get(tokenName).otherTextInside) {
+                hasWhitespace |= appendUnprocessed(ret.children, text, pos, closestChildTokenPos);
+            }
+
             pos += closestChildTokenPos;
             Definition.TokenDef childDef = definition.tokens.get(closestChildTokenName);
-            TokenItem child = parseToken(text, closestChildTokenName, childDef, myEndRegex, pos);
+            TokenItem child = null;
+            try {
+                child = parseToken(text, closestChildTokenName, childDef, myEndRegex, pos);
+            } catch (RuntimeException e) {
+                // C performs speculative parsing: a failed nested attempt is rolled
+                // back and, when arbitrary text is allowed, the offending character
+                // is emitted as Unprocessed so parsing can continue.
+                if (!definition.tokens.get(tokenName).otherTextInside) {
+                    throw e;
+                }
+            }
 
-            if (child.length == 0) {
+            if (child == null || child.length == 0) {
+                if (definition.tokens.get(tokenName).otherTextInside) {
+                    hasWhitespace |= appendUnprocessed(ret.children, text, pos, 1);
+                    pos += 1;
+                    continue;
+                }
                 throw new RuntimeException("Child token " + closestChildTokenName + " has no length!");
             }
 
@@ -412,6 +534,8 @@ public class TextParser {
             ret.children.add(child);
             pos = child.position + child.length;
         }
+
+        pruneDelimiters(ret, token, hasWhitespace);
 
         return ret;
     }
@@ -453,9 +577,21 @@ public class TextParser {
         return ret;
     }
 
+    private boolean hasNewline(String text, int start, int len) {
+        int end = Math.min(text.length(), start + len);
+        for (int i = Math.max(0, start); i < end; i++) {
+            char c = text.charAt(i);
+            if (c == '\n' || c == '\r') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private TokenItem parseToken(String text, String tokenName, Definition.TokenDef token, String parentRegex, int pos) {
+        int startPos = pos;
         pos = skipWhitespace(text, pos);
-        return switch (token.type) {
+        TokenItem result = switch (token.type) {
             case Group -> parseGroup(text, tokenName, token, parentRegex, pos);
             case GroupOneChildOnly -> parseGroupOneChildOnly(text, tokenName, token, parentRegex, pos);
             case GroupAllChildrenInSameOrder -> parseGroupAllChildrenInSameOrder(text, tokenName, token, parentRegex, pos);
@@ -465,6 +601,10 @@ public class TextParser {
             case StartOptStop -> parseStartStop(text, tokenName, token, parentRegex, pos, false);
             default -> throw new RuntimeException("Unknown token type: " + token.type);
         };
+        if (result != null && !token.multiLine && hasNewline(text, startPos, result.length)) {
+            throw new RuntimeException("Token spans multiple lines but multi_line flag is not set!");
+        }
+        return result;
     }
 
     private void maybeMergeSign(TokenItem tokenItem) {
@@ -567,24 +707,19 @@ public class TextParser {
 
             if (candidates.isEmpty()) {
                 if (definition.otherTextInside && pos < text.length()) {
-                    tokens.add(new TokenItem("", pos, text.length() - pos));
+                    appendUnprocessed(tokens, text, pos, text.length() - pos);
                 }
                 break;
             }
 
             if (closestTokenPos > 0 && definition.otherTextInside) {
-                int errEnd = pos + closestTokenPos;
-                while (errEnd > pos && Character.isWhitespace(text.charAt(errEnd - 1))) {
-                    errEnd--;
-                }
-                if (errEnd > pos) {
-                    tokens.add(new TokenItem("", pos, errEnd - pos));
-                }
+                appendUnprocessed(tokens, text, pos, closestTokenPos);
             }
 
             pos += closestTokenPos;
 
             TokenItem child = null;
+            RuntimeException firstError = null;
             for (String candName : candidates) {
                 Definition.TokenDef tokenDef = definition.tokens.get(candName);
                 try {
@@ -593,14 +728,21 @@ public class TextParser {
                         child = attempt;
                         break;
                     }
-                } catch (Exception ignored) {
-                    // Try next candidate
+                } catch (RuntimeException e) {
+                    if (firstError == null) {
+                        firstError = e;
+                    }
                 }
             }
 
             if (child == null) {
+                // C keeps the first failed candidate's error and reports it as
+                // fatal when no other candidate could parse the token.
+                if (firstError != null) {
+                    throw firstError;
+                }
                 if (definition.otherTextInside && pos < text.length()) {
-                    tokens.add(new TokenItem("", pos, 1));
+                    appendUnprocessedSpan(tokens, pos, 1);
                     pos += 1;
                     continue;
                 } else {
@@ -610,6 +752,10 @@ public class TextParser {
 
             tokens.add(child);
             pos = child.position + child.length;
+        }
+
+        if (pos < text.length() && !definition.otherTextInside) {
+            appendUnprocessedSpan(tokens, pos, text.length() - pos);
         }
 
         if (definition.mergeSignIntoNumber != null) {

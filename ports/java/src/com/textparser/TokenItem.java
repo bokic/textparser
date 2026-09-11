@@ -8,6 +8,12 @@ import java.util.List;
 import java.util.Objects;
 
 public class TokenItem {
+    public static final String ERROR = "Error";
+    public static final String UNPROCESSED = "Unprocessed";
+    public static final String WHITESPACE = "Whitespace";
+    public static final String START_DELIMITER = "StartDelimiter";
+    public static final String END_DELIMITER = "EndDelimiter";
+
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Gson COMPACT_GSON = new GsonBuilder().create();
 
