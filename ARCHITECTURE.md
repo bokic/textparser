@@ -2,7 +2,7 @@
 
 This document provides a comprehensive architectural specification of the `textparser` engine based on the reference **C codebase** (the "golden standard"). It explains the internal design, data structures, algorithms, lifecycle, and execution pipelines.
 
-Developers creating or updating ports (Python, Rust, Java, WebAssembly, Go, C#, etc.) must use this document and the C implementation in [`src/textparser.c`](src/textparser.c), [`src/textparser-json.c`](src/textparser-json.c), and [`include/textparser.h`](include/textparser.h) as the authoritative reference behavior and contract.
+Developers creating or updating ports (Python, Rust, Java, Go, C#, etc.) must use this document and the C implementation in [`src/textparser.c`](src/textparser.c), [`src/textparser-json.c`](src/textparser-json.c), and [`include/textparser.h`](include/textparser.h) as the authoritative reference behavior and contract.
 
 ---
 

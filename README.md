@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Arch Linux AUR](https://img.shields.io/badge/Arch_Linux-AUR-1793D1?logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/textparser)
 
-A lightning-fast, multi-language **Abstract Syntax Tree (AST) generator** and syntax highlighter. Architected with a high-performance **C core engine** powered by **PCRE2** and **JSON-C**, `textparser` provides native, zero-overhead bindings and ports for **Rust**, **Python**, **Java**, and **WebAssembly (WASM)**.
+A lightning-fast, multi-language **Abstract Syntax Tree (AST) generator** and syntax highlighter. Architected with a high-performance **C core engine** powered by **PCRE2** and **JSON-C**, `textparser` provides native, zero-overhead bindings and ports for **Rust**, **Python**, and **Java**.
 
 It serves as a robust foundation for building linters, static analysis tools, compilers, and terminal utilities like the built-in `ccat` clone.
 
@@ -18,7 +18,6 @@ It serves as a robust foundation for building linters, static analysis tools, co
 - **🌐 Massive Language Support:** Built-in regex-based grammars for modern and classic languages.
 - **⚡ High Performance:** Core tokenization and AST construction written in highly optimized C.
 - **🧬 Multi-Language Ecosystem:** Native language ports (Rust, Python, Java) manage underlying C memory safely. Detailed inner logic and porting contracts are specified in [ARCHITECTURE.md](ARCHITECTURE.md).
-- **🌐 WebAssembly Ready:** Compile to WASM for client-side code analysis directly in the browser.
 - **🎨 Built-in `ccat` Utility:** A colorized alternative to the standard `cat` command for terminal code viewing.
 
 ---
