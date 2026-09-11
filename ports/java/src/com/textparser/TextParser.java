@@ -36,9 +36,6 @@ public class TextParser {
                 if (token.id == null) {
                     token.id = entry.getKey();
                 }
-                if (token.otherTextInside == null) {
-                    token.otherTextInside = false;
-                }
             }
         }
     }

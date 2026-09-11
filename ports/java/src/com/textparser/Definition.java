@@ -43,7 +43,7 @@ public class Definition {
         public String startRegex;
         public String endRegex;
         public List<String> nestedTokens;
-        public Boolean otherTextInside = null;
+        public boolean otherTextInside = false;
         public boolean deleteIfOnlyOneChild = false;
         public boolean mustHaveOneChild = false;
         public boolean multiLine = false;
