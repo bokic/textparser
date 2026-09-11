@@ -88,7 +88,7 @@ public class TextParser {
     private Integer findToken(String text, int pos, Definition.TokenDef token, boolean otherTextInside) {
         if (token == null || token.type == null) return null;
         switch (token.type) {
-            case "Group", "GroupOneChildOnly" -> {
+            case Group, GroupOneChildOnly -> {
                 if (token.nestedTokens == null) return null;
                 int closestChildPos = Integer.MAX_VALUE;
                 for (String childTokenName : token.nestedTokens) {
@@ -100,12 +100,12 @@ public class TextParser {
                 }
                 return closestChildPos == Integer.MAX_VALUE ? null : closestChildPos;
             }
-            case "GroupAllChildrenInSameOrder", "Sequence" -> {
+            case GroupAllChildrenInSameOrder, Sequence -> {
                 if (token.nestedTokens == null || token.nestedTokens.isEmpty()) return null;
                 Definition.TokenDef childDef = definition.tokens.get(token.nestedTokens.get(0));
                 return findToken(text, pos, childDef, otherTextInside);
             }
-            case "SimpleToken", "StartStop", "StartOptStop" -> {
+            case SimpleToken, StartStop, StartOptStop -> {
                 if (token.startRegex == null) return null;
                 Pattern p = getCompiledPattern(token.startRegex);
                 Matcher m = p.matcher(text.substring(pos));
@@ -469,13 +469,13 @@ public class TextParser {
     private TokenItem parseToken(String text, String tokenName, Definition.TokenDef token, String parentRegex, int pos) {
         pos = skipWhitespace(text, pos);
         return switch (token.type) {
-            case "Group" -> parseGroup(text, tokenName, token, parentRegex, pos);
-            case "GroupOneChildOnly" -> parseGroupOneChildOnly(text, tokenName, token, parentRegex, pos);
-            case "GroupAllChildrenInSameOrder" -> parseGroupAllChildrenInSameOrder(text, tokenName, token, parentRegex, pos);
-            case "Sequence" -> parseSequence(text, tokenName, token, parentRegex, pos);
-            case "SimpleToken" -> parseSimpleToken(text, tokenName, token, pos);
-            case "StartStop" -> parseStartStop(text, tokenName, token, parentRegex, pos, true);
-            case "StartOptStop" -> parseStartStop(text, tokenName, token, parentRegex, pos, false);
+            case Group -> parseGroup(text, tokenName, token, parentRegex, pos);
+            case GroupOneChildOnly -> parseGroupOneChildOnly(text, tokenName, token, parentRegex, pos);
+            case GroupAllChildrenInSameOrder -> parseGroupAllChildrenInSameOrder(text, tokenName, token, parentRegex, pos);
+            case Sequence -> parseSequence(text, tokenName, token, parentRegex, pos);
+            case SimpleToken -> parseSimpleToken(text, tokenName, token, pos);
+            case StartStop -> parseStartStop(text, tokenName, token, parentRegex, pos, true);
+            case StartOptStop -> parseStartStop(text, tokenName, token, parentRegex, pos, false);
             default -> throw new RuntimeException("Unknown token type: " + token.type);
         };
     }

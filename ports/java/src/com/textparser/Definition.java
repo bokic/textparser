@@ -17,9 +17,29 @@ public class Definition {
         public List<String> operandTokens = new ArrayList<>();
     }
 
+    public enum TokenType {
+        Group,
+        GroupAllChildrenInSameOrder,
+        GroupOneChildOnly,
+        SimpleToken,
+        StartStop,
+        StartOptStop,
+        Sequence;
+
+        public static TokenType fromString(String val) {
+            if (val == null) return null;
+            for (TokenType t : values()) {
+                if (t.name().equalsIgnoreCase(val)) {
+                    return t;
+                }
+            }
+            throw new IllegalArgumentException("Unknown token type: " + val);
+        }
+    }
+
     public static class TokenDef {
         public String id;
-        public String type; // SimpleToken, StartStop, StartOptStop, Group, GroupOneChildOnly, GroupAllChildrenInSameOrder, Sequence
+        public TokenType type;
         public String startRegex;
         public String endRegex;
         public List<String> nestedTokens;
@@ -77,7 +97,7 @@ public class Definition {
                 if (entry.getValue() instanceof Map<?, ?> tData) {
                     TokenDef tDef = new TokenDef();
                     tDef.id = tokenId;
-                    if (tData.get("type") != null) tDef.type = tData.get("type").toString();
+                    if (tData.get("type") != null) tDef.type = TokenType.fromString(tData.get("type").toString());
                     if (tData.get("startRegex") != null) tDef.startRegex = tData.get("startRegex").toString();
                     if (tData.get("endRegex") != null) tDef.endRegex = tData.get("endRegex").toString();
 

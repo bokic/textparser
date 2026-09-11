@@ -201,6 +201,16 @@ public class TextParserTest {
             t.printStackTrace();
         }
 
+        try {
+            testTokenTypeEnum();
+            passed++;
+            System.out.println("[PASS] testTokenTypeEnum");
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] testTokenTypeEnum: " + t.getMessage());
+            t.printStackTrace();
+        }
+
         System.out.println("\nTest Summary: " + passed + " PASSED, " + failed + " FAILED.");
         if (failed > 0) {
             System.exit(1);
@@ -338,5 +348,24 @@ public class TextParserTest {
         // Failure case: incomplete sequence should not match
         List<TokenItem> incomplete = parser.parse("struct 123");
         assertTrue(incomplete.isEmpty(), "Incomplete sequence should not match");
+    }
+
+    public static void testTokenTypeEnum() {
+        assertEquals(Definition.TokenType.Group, Definition.TokenType.fromString("Group"), "Group token type");
+        assertEquals(Definition.TokenType.GroupAllChildrenInSameOrder, Definition.TokenType.fromString("GroupAllChildrenInSameOrder"), "GroupAllChildrenInSameOrder token type");
+        assertEquals(Definition.TokenType.GroupOneChildOnly, Definition.TokenType.fromString("GroupOneChildOnly"), "GroupOneChildOnly token type");
+        assertEquals(Definition.TokenType.SimpleToken, Definition.TokenType.fromString("SimpleToken"), "SimpleToken token type");
+        assertEquals(Definition.TokenType.StartStop, Definition.TokenType.fromString("StartStop"), "StartStop token type");
+        assertEquals(Definition.TokenType.StartOptStop, Definition.TokenType.fromString("StartOptStop"), "StartOptStop token type");
+        assertEquals(Definition.TokenType.Sequence, Definition.TokenType.fromString("Sequence"), "Sequence token type");
+        assertEquals(null, Definition.TokenType.fromString(null), "Null token type should return null");
+
+        boolean threw = false;
+        try {
+            Definition.TokenType.fromString("NonExistentTokenType");
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assertTrue(threw, "Unknown token type string must throw IllegalArgumentException");
     }
 }
