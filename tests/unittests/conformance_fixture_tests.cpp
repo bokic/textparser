@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 #include <textparser-json.h>
+#include <typescript.h>
 
 #include <algorithm>
 #include <cctype>
@@ -196,6 +197,7 @@ ParseOutcome parse_fixture(textparser_language_definition *definition,
     textparser::Parser parser;
     parser.openmem(source.c_str(), (int)source.size(), TEXTPARSER_ENCODING_UTF_8);
     if (!filename.empty()) textparser_set_filename(parser.get(), filename.c_str());
+    textparser_typescript_register_validators(parser.get());
     parser.parse(definition);
 
     textparser_match_result result{};

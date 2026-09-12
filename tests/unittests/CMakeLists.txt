@@ -117,6 +117,7 @@ target_link_libraries( unittests
   php
   html
   css
+  typescript
   GTest::gtest_main
 )
 

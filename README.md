@@ -110,12 +110,34 @@ emits a literal percent. Unsupported conversions, empty strings, embedded NULs,
 and overrides at unsupported scopes are rejected. Formatting treats substituted
 text literally and retains the existing 255-byte message limit.
 
-`textparser_grammar_report_expected()` is now language-independent. TypeScript
-spellings and its expected/recovery message overrides live in the definition.
-Diagnostic selection, spans, and recovery control outside that function retain
-the existing behavior. Both the JSON loader and `json2h.py` preserve token and
-language metadata; the generator still does not emit schema-v2 grammar tables.
+`textparser_grammar_report_expected()`, grammar synchronization recovery, and
+trailing unconsumed token diagnostic reporting are completely language-independent.
+There are no language-name checks or hardcoded language logic in `src/textparser.c`.
+Diagnostic templates, spellings, recovery synchronization tokens, and boundary
+detection are driven entirely by language definitions (`definitions/*.json`).
+Both the JSON loader and `json2h.py` preserve token and language metadata;
+the generator still does not emit schema-v2 grammar tables.
 Rebuild C consumers after the public token, production, and language struct changes.
+
+### Decoupled semantic validation & Pratt operand validators
+
+Pratt expression operand validation and AST early-error legality checks are decoupled
+from the core parser into pluggable validators and language validation modules:
+
+- **Pluggable Operand Validators:** Registered via `textparser_register_operand_validator(handle, name, fn, user_data)`.
+  Pratt productions specify `"validateOperand": "typescript.assignmentTarget"` or `"typescript.updateTarget"`
+  in JSON without embedding language-specific AST inspection in `src/textparser.c`.
+- **Pluggable Token Validators:** Tokens in language definitions can specify `"validator": "validator_name"`
+  (e.g., `"validator": "typescript.identifier"` on `Identifier` and `PrivateIdentifier`). The contextual
+  lexer automatically invokes `textparser_validate_token()` during candidate rule evaluation.
+- **Unicode Escape Validation:** Decoupled from `textparser.c` into `src/validation/typescript.c` and registered
+  via `textparser_typescript_register_validators(handle)` as the `"typescript.identifier"` validator.
+- **TypeScript Semantic Validation Module:** Implemented in `src/validation/typescript.c` and
+  exported via `libtextparser_typescript.so` (header `src/validation/typescript.h`). Provides:
+  - `textparser_typescript_register_validators(handle)`: registers token validators, Pratt operand validators, and the `"typescript.legality"` / `"source.complete"` event handlers.
+  - `textparser_validate_typescript(handle)`: extracts validation diagnostics matching the `src/validation/` convention (`cfml`, `php`, `html`, `css`).
+  - Standalone validation CLI: `typescript_validation_test`.
+- **Event Lifecycle Dispatch:** Post-parse legality checks are triggered dynamically via grammar definition events (`"events": { "onSourceComplete": "typescript.legality" }`).
 
 ---
 

@@ -1289,6 +1289,11 @@ static int json_parse_contextual_lexer(
             }
             if (json_object_object_get_ex(item.val, "popMode", &field))
                 definition->lexer_rules[id].pop_mode = json_object_get_boolean(field);
+            if (json_object_object_get_ex(item.val, "validator", &field)) {
+                if (!json_object_is_type(field, json_type_string)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+                definition->lexer_rules[id].validator = textparser_string_pool_strdup(pool, json_object_get_string(field));
+                if (definition->lexer_rules[id].validator == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 #include <textparser-json.h>
+#include <typescript.h>
 
 #include <cstring>
 
@@ -39,6 +40,7 @@ struct TypeScriptExpressionFixture : testing::Test {
         parser.reset();
         EXPECT_EQ(parser.openmem(source, (int)std::strlen(source), TEXTPARSER_ENCODING_UTF_8), 0);
         if (filename != nullptr) textparser_set_filename(parser.get(), filename);
+        textparser_typescript_register_validators(parser.get());
         EXPECT_EQ(parser.parse(definition), 0)
             << (textparser_parse_error(parser.get()) ? textparser_parse_error(parser.get()) : "")
             << " at " << textparser_parse_error_position(parser.get());
@@ -59,6 +61,7 @@ struct TypeScriptExpressionFixture : testing::Test {
         parser.reset();
         EXPECT_EQ(parser.openmem(source, (int)std::strlen(source), TEXTPARSER_ENCODING_UTF_8), 0);
         if (filename != nullptr) textparser_set_filename(parser.get(), filename);
+        textparser_typescript_register_validators(parser.get());
         EXPECT_EQ(parser.parse(definition), 0)
             << (textparser_parse_error(parser.get()) ? textparser_parse_error(parser.get()) : "")
             << " at " << textparser_parse_error_position(parser.get());

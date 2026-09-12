@@ -229,3 +229,57 @@ TEST(lexer_modes, speculative_mode_transition_is_rolled_back) {
     parser.reset();
     textparser_free_language_definition(definition);
 }
+
+TEST(lexer_modes, contextual_scanner_applies_token_validator) {
+    const char *validator_json = R"json({
+      "name":"token_validator_test", "version":2, "caseSensitivity":true,
+      "defaultFileExtensions":["txt"], "defaultTextEncoding":"utf-8",
+      "lexer":{
+        "initialMode":"default",
+        "tokens":{
+          "AlphaOnly":{"regex":"[a-zA-Z0-9]+","validator":"test.alpha_only","priority":2},
+          "Fallback":{"regex":"[a-zA-Z0-9]+","priority":1}
+        },
+        "modes":{
+          "default":{"tokens":["AlphaOnly","Fallback"]}
+        }
+      }
+    })json";
+
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(validator_json, &definition), 0);
+    ASSERT_NE(definition, nullptr);
+    ASSERT_NE(definition->lexer_rules, nullptr);
+    EXPECT_STREQ(definition->lexer_rules[0].validator, "test.alpha_only");
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("abc123 def", 10, TEXTPARSER_ENCODING_UTF_8), 0);
+
+    // Register validator: accept only letters (no digits)
+    auto alpha_validator = [](textparser_t, const char *raw_text, size_t length, const char **out_error, void *) -> bool {
+        for (size_t i = 0; i < length; i++) {
+            if (raw_text[i] >= '0' && raw_text[i] <= '9') {
+                if (out_error) *out_error = "Digits not allowed";
+                return false;
+            }
+        }
+        return true;
+    };
+    EXPECT_EQ(textparser_register_validator(parser.get(), "test.alpha_only", alpha_validator, nullptr), 0);
+
+    ASSERT_EQ(parser.parse(definition), 0);
+
+    // "abc123" has digits, so AlphaOnly's validator rejects it; Fallback (priority 1) matches instead.
+    const textparser_production productions[] = {
+        make_test_production(0, "Fallback", TEXTPARSER_PROD_TOKEN, nullptr, 0, contextual_token_id(definition, "Fallback"), -1),
+    };
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_production(productions, 1, 0, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(result.node, nullptr);
+    EXPECT_EQ(result.node->token_id, contextual_token_id(definition, "Fallback"));
+    EXPECT_EQ(result.node->len, 6u);
+
+    parser.reset();
+    textparser_free_language_definition(definition);
+}

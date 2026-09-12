@@ -436,6 +436,7 @@ typedef struct {
     bool is_trivia;
     const char *push_mode;
     bool pop_mode;
+    const char *validator;
 } textparser_contextual_lexer_rule;
 
 typedef struct {
@@ -1124,6 +1125,31 @@ EXPORT_TEXTPARSER const char *textparser_node_get_decoded_value(const textparser
  */
 EXPORT_TEXTPARSER void textparser_node_set_decoded_value(textparser_node *node, const char *value);
 
+/**
+ * Retrieve the first non-synthetic terminal token leaf under a CST node.
+ *
+ * @param node CST node to inspect.
+ * @return Pointer to first terminal leaf node, or NULL if none.
+ */
+EXPORT_TEXTPARSER const textparser_node *textparser_node_first_terminal(const textparser_node *node);
+
+/**
+ * Retrieve the last direct child node under a parent CST node.
+ *
+ * @param node Parent CST node.
+ * @return Pointer to last child node, or NULL if node has no children.
+ */
+EXPORT_TEXTPARSER const textparser_node *textparser_node_last_child(const textparser_node *node);
+
+/**
+ * Retrieve the token or production kind name of a CST node.
+ *
+ * @param handle The parser handle.
+ * @param node CST node to inspect.
+ * @return Const pointer to name string, or NULL if unavailable.
+ */
+EXPORT_TEXTPARSER const char *textparser_grammar_node_name(const textparser_t handle, const textparser_node *node);
+
 /* -------------------------------------------------------------------------
  * Phase 3: Lexer Modes, Goals, Decoders & Validators
  * ------------------------------------------------------------------------- */
@@ -1207,6 +1233,28 @@ EXPORT_TEXTPARSER bool textparser_validate_token(
     const char *raw_text,
     size_t length,
     const char **out_error
+);
+
+/**
+ * Match a regular expression pattern against a text buffer using the parser's regex engine.
+ *
+ * @param handle The parser handle.
+ * @param pattern Regular expression pattern in UTF-8.
+ * @param text Buffer containing text to match.
+ * @param length Length of text buffer in bytes.
+ * @param only_at_start True if pattern must match from the start of buffer.
+ * @param out_offset Optional pointer to receive match start offset.
+ * @param out_length Optional pointer to receive match length.
+ * @return True if pattern matched, false otherwise.
+ */
+EXPORT_TEXTPARSER bool textparser_regex_match_pattern(
+    textparser_t handle,
+    const char *pattern,
+    const char *text,
+    size_t length,
+    bool only_at_start,
+    size_t *out_offset,
+    size_t *out_length
 );
 
 /**
@@ -1474,6 +1522,34 @@ typedef struct textparser_operator_def {
     /* Optional native validator invoked on a completed prefix operand. */
     const char *operand_validator;
 } textparser_operator_def;
+
+typedef bool (*textparser_operand_validator_fn)(
+    textparser_t handle,
+    const char *validator_name,
+    const textparser_node *node,
+    bool allow_pattern,
+    const char **out_code,
+    const char **out_message,
+    size_t *out_start,
+    size_t *out_length,
+    void *user_data
+);
+
+/**
+ * Register a custom Pratt operand validator (e.g. "typescript.assignmentTarget", "typescript.updateTarget").
+ *
+ * @param handle The parser handle.
+ * @param name Unique name of operand validator.
+ * @param validator Function pointer evaluating operand CST node.
+ * @param user_data User data passed to validator.
+ * @return 0 on success, non-zero on failure.
+ */
+EXPORT_TEXTPARSER int textparser_register_operand_validator(
+    textparser_t handle,
+    const char *name,
+    textparser_operand_validator_fn validator,
+    void *user_data
+);
 
 /**
  * Register an operator definition with explicit role, precedence, and associativity.

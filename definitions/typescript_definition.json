@@ -167,8 +167,8 @@
       "LogicalNot": {"regex": "!"},
       "BitNot": {"regex": "~"},
       "At": {"regex": "@"},
-      "Identifier": {"diagnostics": {"expected": {"code": "TS1003", "message": "Identifier expected."}}, "regex": "(?:[$_\\p{ID_Start}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 2, "textColor": "0x9cdcfe"}
-      ,"PrivateIdentifier": {"regex": "#(?:[$_\\p{ID_Start}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 2, "textColor": "0x9cdcfe"},
+      "Identifier": {"diagnostics": {"expected": {"code": "TS1003", "message": "Identifier expected."}}, "regex": "(?:[$_\\p{ID_Start}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 2, "validator": "typescript.identifier", "textColor": "0x9cdcfe"}
+      ,"PrivateIdentifier": {"regex": "#(?:[$_\\p{ID_Start}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 2, "validator": "typescript.identifier", "textColor": "0x9cdcfe"},
       "InvalidIdentifier": {"regex": "(?:#)?\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\})(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 1, "textColor": "0xff0000"},
       "JSXOpen": {"regex": "<", "pushMode": "JSXTag"},
       "JSXCloseStart": {"regex": "</", "popMode": true, "pushMode": "JSXClosingTag"},
@@ -409,6 +409,9 @@
     {"token": "Decrement", "roles": ["prefix", "postfix"], "prefixPrecedence": 16, "postfixPrecedence": 17, "leftValidator": "typescript.updateTarget", "operandValidator": "typescript.updateTarget"}
   ],
   "grammar": {
+    "events": {
+      "onSourceComplete": "typescript.legality"
+    },
     "sourceFileKinds": {
       "jsx": [".tsx", ".jsx"],
       "javascript": [".js", ".jsx", ".mjs", ".cjs"]

@@ -155,3 +155,42 @@ target_link_libraries(css_test PRIVATE
 set_target_properties(css_test PROPERTIES
     OUTPUT_NAME "css_validation_test"
 )
+
+add_library(typescript SHARED
+    typescript.c
+)
+
+target_include_directories(typescript PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(typescript PRIVATE
+    libtextparser
+)
+
+set_target_properties(typescript PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_typescript"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(typescript_test
+    test_typescript.c
+    typescript.c
+)
+
+target_include_directories(typescript_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(typescript_test PRIVATE
+    libtextparser
+    typescript
+)
+
+set_target_properties(typescript_test PROPERTIES
+    OUTPUT_NAME "typescript_validation_test"
+)
