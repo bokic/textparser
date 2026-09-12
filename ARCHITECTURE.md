@@ -12,7 +12,7 @@ Developers creating or updating ports (Python, Rust, Java, Go, C#, etc.) must us
 
 The engine operates on two complementary levels:
 1. **Contextual Tokenization & Incremental CST Engine (Phase 1–3)**: Fast regex/state-machine-driven lexer that builds linked token trees, tracks source ranges, supports trivia (whitespace, comments), and performs sub-millisecond incremental re-parsing upon text edits.
-2. **Declarative EBNF Grammar & Pratt Expression Engine (Phase 4–6)**: A transactional packrat/recursive-descent grammar executor supporting structured productions (`sequence`, `choice`, `optional`, `repeat`, `lookahead`, `commit`), scoped contexts, native predicates, Pratt top-down operator precedence expression parsing, robust synchronization recovery, and semantic lifecycle events.
+2. **Declarative EBNF Grammar & Pratt Expression Engine (Phase 4–6)**: A transactional packrat/recursive-descent grammar executor supporting structured productions (`sequence`, `choice`, `optional`, `repeat`, `lookahead`, `commit`), scoped contexts, declarative guards and native predicates, Pratt top-down operator precedence expression parsing, robust synchronization recovery, and semantic lifecycle events.
 
 ```mermaid
 flowchart TD
@@ -177,11 +177,23 @@ The grammar executor executes declarative EBNF productions recursively or via di
 | `TEXTPARSER_PROD_REPEAT` | Repeatedly executes child production zero-or-more times until mismatch. Enforces forward progress to prevent infinite loops. |
 | `TEXTPARSER_PROD_LOOKAHEAD` | Executes child production speculatively without advancing the parser cursor. Always rolls back token consumption. |
 | `TEXTPARSER_PROD_NOT` | Negative lookahead. Succeeds only if child production fails; fails if child succeeds. |
-| `TEXTPARSER_PROD_PREDICATE` | Calls a registered native predicate function. If false, branch fails. |
+| `TEXTPARSER_PROD_PREDICATE` | Evaluates a generic guard or a registered native callback without consuming tokens. A false condition fails the branch. |
 | `TEXTPARSER_PROD_CONTEXT` | Pushes/sets a scoped context flag (e.g. `AllowAwait = 1`), executes child, and restores prior context value on exit. |
 | `TEXTPARSER_PROD_COMMIT` | Marks the current choice branch as committed. Once passed, subsequent syntax errors in this branch cannot backtrack to sibling choices. |
 | `TEXTPARSER_PROD_PRATT` | Invokes the Pratt expression parser with a given minimum binding power. |
 | `TEXTPARSER_PROD_LEXICAL_GOAL`| Sets transient lexical goal while parsing child production. |
+
+Generic `when` conditions compile to an optional `textparser_guard` on the
+production. The loader resolves next-token names to IDs and copies profile
+suffixes from `grammar.sourceFileKinds` into the guard; the executor needs no JSON
+library or TypeScript-specific predicate names. Conditions within a guard are
+conjunctive. Existing `not` and `choice` constructs provide negation and alternatives.
+Guards use the current lexical goal and support both contextual and legacy token
+streams. Token lookahead does not consume input, and lexer errors are propagated.
+The builder and dynamic definition cleanup free guard records and arrays; spelling
+and suffix strings belong to the definition string pool. Native callbacks continue
+to use the existing speculative callback path. See README.md for guard and EOF
+semantics.
 
 ---
 

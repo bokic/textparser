@@ -404,6 +404,10 @@
     {"token": "Decrement", "roles": ["prefix", "postfix"], "prefixPrecedence": 16, "postfixPrecedence": 17, "leftValidator": "typescript.updateTarget", "operandValidator": "typescript.updateTarget"}
   ],
   "grammar": {
+    "sourceFileKinds": {
+      "jsx": [".tsx", ".jsx"],
+      "javascript": [".js", ".jsx", ".mjs", ".cjs"]
+    },
     "start": "SourceFile",
     "productions": {
       "SourceFile": {"category": "source_file", "sequence": [
@@ -468,27 +472,27 @@
       "ContinueStatement": {"category": "statement", "sequence": [
         {"token": "ContinueKeyword"},
         {"optional": {"sequence": [
-          {"when": {"native": "typescript.noLineTerminatorBefore"}}, {"token": "Identifier"}
+          {"when": {"noLineTerminatorBefore": true}}, {"token": "Identifier"}
         ]}},
         {"ref": "AutomaticSemicolon"}
       ]},
       "BreakStatement": {"category": "statement", "sequence": [
         {"token": "BreakKeyword"},
         {"optional": {"sequence": [
-          {"when": {"native": "typescript.noLineTerminatorBefore"}}, {"token": "Identifier"}
+          {"when": {"noLineTerminatorBefore": true}}, {"token": "Identifier"}
         ]}},
         {"ref": "AutomaticSemicolon"}
       ]},
       "ReturnStatement": {"category": "statement", "sequence": [
         {"token": "ReturnKeyword"},
         {"optional": {"sequence": [
-          {"when": {"native": "typescript.noLineTerminatorBefore"}}, {"ref": "Expression"}
+          {"when": {"noLineTerminatorBefore": true}}, {"ref": "Expression"}
         ]}},
         {"ref": "AutomaticSemicolon"}
       ]},
       "ThrowStatement": {"category": "statement", "sequence": [
         {"token": "ThrowKeyword"}, {"commit": true},
-        {"when": {"native": "typescript.noLineTerminatorBefore"}}, {"ref": "Expression"},
+        {"when": {"noLineTerminatorBefore": true}}, {"ref": "Expression"},
         {"ref": "AutomaticSemicolon"}
       ]},
       "LabeledStatement": {"category": "statement", "sequence": [
@@ -767,7 +771,7 @@
       "UsingDeclaration": {"category": "declaration", "sequence": [
         {"optional": {"sequence": [
           {"token": "AwaitKeyword"},
-          {"when": {"native": "typescript.noLineTerminatorBefore"}}
+          {"when": {"noLineTerminatorBefore": true}}
         ]}},
         {"token": "UsingKeyword"}, {"ref": "UsingBinding"},
         {"repeat": {"sequence": [{"token": "Comma"}, {"ref": "UsingBinding"}]}},
@@ -861,7 +865,7 @@
         "postfix": {"ref": "PostfixExpressionSuffix"}, "minimumPrecedence": 2
       }, "expect": "expression"},
       "TypeContext": {"category": "other", "sequence": [
-        {"when": {"native": "typescript.allowsTypeScript"}},
+        {"not": {"when": {"sourceFileKind": "javascript"}}},
         {"withGoal": {"name": "Type", "production": {"ref": "Type"}}}
       ]},
       "TypeArgumentsContext": {"category": "other", "withGoal": {
@@ -879,7 +883,7 @@
         {"choice": [{"ref": "BlockStatement"}, {"ref": "AutomaticSemicolon"}]}
       ]},
       "TypeParametersContext": {"category": "type", "sequence": [
-        {"when": {"native": "typescript.allowsTypeScript"}},
+        {"not": {"when": {"sourceFileKind": "javascript"}}},
         {"withGoal": {"name": "Type", "production": {"ref": "TypeParameters"}}}
       ]},
       "BindingParameterList": {"category": "pattern", "sequence": [
@@ -1026,7 +1030,7 @@
         {"ref": "AngleBracketAssertion"},
         {"ref": "DynamicImportExpression"}, {"ref": "ImportMetaExpression"},
         {"sequence": [
-          {"when": {"native": "typescript.allowsJSX"}}, {"ref": "JSXElement"}
+          {"when": {"sourceFileKind": "jsx"}}, {"ref": "JSXElement"}
         ]},
         {"ref": "ArrayLiteralExpression"}, {"ref": "ObjectLiteralExpression"},
         {"ref": "TemplateLiteral"},
@@ -1038,7 +1042,7 @@
       "YieldExpression": {"category": "expression", "sequence": [
         {"token": "YieldKeyword"},
         {"optional": {"sequence": [
-          {"when": {"native": "typescript.noLineTerminatorBefore"}},
+          {"when": {"noLineTerminatorBefore": true}},
           {"optional": {"token": "Multiply"}}, {"ref": "AssignmentExpression"}
         ]}}
       ]},
@@ -1046,7 +1050,7 @@
         "name": "FunctionHead", "production": {"sequence": [
           {"optional": {"sequence": [
             {"token": "AsyncKeyword"},
-            {"when": {"native": "typescript.noLineTerminatorBefore"}}
+            {"when": {"noLineTerminatorBefore": true}}
           ]}},
           {"token": "FunctionKeyword"}, {"commit": true}, {"optional": {"token": "Multiply"}},
           {"optional": {"token": "Identifier"}},
@@ -1073,19 +1077,19 @@
       }},
       "AsyncArrowFunction": {"category": "other", "sequence": [
         {"token": "AsyncKeyword"},
-        {"when": {"native": "typescript.noLineTerminatorBefore"}},
+        {"when": {"noLineTerminatorBefore": true}},
         {"optional": {"ref": "TypeParametersContext"}},
         {"choice": [{"ref": "BindingParameterList"}, {"ref": "ArrowBindingIdentifier"}]},
         {"optional": {"ref": "TypeAnnotation"}}, {"ref": "ArrowBody"}
       ]},
       "GenericArrowFunction": {"category": "other", "choice": [
         {"sequence": [
-          {"when": {"native": "typescript.disallowsJSX"}},
+          {"not": {"when": {"sourceFileKind": "jsx"}}},
           {"ref": "TypeParametersContext"}, {"ref": "BindingParameterList"},
           {"optional": {"ref": "TypeAnnotation"}}, {"ref": "ArrowBody"}
         ]},
         {"sequence": [
-          {"when": {"native": "typescript.allowsJSX"}},
+          {"when": {"sourceFileKind": "jsx"}},
           {"ref": "TSXTypeParametersContext"}, {"ref": "BindingParameterList"},
           {"optional": {"ref": "TypeAnnotation"}}, {"ref": "ArrowBody"}
         ]}
@@ -1103,7 +1107,7 @@
         {"token": "OfKeyword"}, {"token": "FromKeyword"}
       ]},
       "ArrowBody": {"category": "other", "sequence": [
-        {"when": {"native": "typescript.noLineTerminatorBefore"}},
+        {"when": {"noLineTerminatorBefore": true}},
         {"token": "Arrow"}, {"commit": true},
         {"choice": [{"ref": "BlockStatement"}, {"ref": "AssignmentExpression"}]}
       ]},
@@ -1194,7 +1198,17 @@
         {"sequence": [{"ref": "TypeArgumentsContext"}, {"ref": "TemplateLiteral"}]},
         {"sequence": [
           {"ref": "TypeArgumentsContext"},
-          {"when": {"native": "typescript.canFollowTypeArgumentsInExpression"}}
+          {"when": {"nextTokenIn": [
+            "Dot", "OptionalChain", "LBracket", "NoSubstitutionTemplateLiteral", "TemplateHead", "LogicalNot",
+            "Increment", "Decrement", "Exponent", "Multiply", "Slash", "Remainder",
+            "Plus", "Minus", "LeftShift", "RightShift", "UnsignedRightShift", "LessThan",
+            "LessEqual", "GreaterThan", "GreaterEqual", "Equal", "NotEqual", "StrictEqual",
+            "StrictNotEqual", "BitAnd", "BitXor", "BitOr", "LogicalAnd", "LogicalOr",
+            "NullishCoalesce", "Question", "Colon", "Assign", "PlusAssign", "MinusAssign",
+            "MultiplyAssign", "DivideAssign", "RemainderAssign", "ExponentAssign", "LeftShiftAssign", "RightShiftAssign",
+            "UnsignedRightShiftAssign", "BitAndAssign", "BitOrAssign", "BitXorAssign", "NullishCoalesceAssign", "LogicalAndAssign",
+            "LogicalOrAssign", "Comma", "Semicolon", "RParen", "RBracket", "RBrace"
+          ], "allowEOF": true}}
         ]},
         {"ref": "TemplateLiteral"},
         {"ref": "TypeAssertionSuffix"},
@@ -1218,7 +1232,7 @@
           {"choice": [{"ref": "IdentifierName"}, {"token": "PrivateIdentifier"}]}
         ]},
         {"sequence": [
-          {"when": {"native": "typescript.allowsTypeScript"}}, {"token": "LogicalNot"}
+          {"not": {"when": {"sourceFileKind": "javascript"}}}, {"token": "LogicalNot"}
         ]}
       ]},
       "Arguments": {"category": "expression", "sequence": [
@@ -1242,7 +1256,7 @@
       ]},
       "ImportMetaExpression": {"category": "expression", "sequence": [
         {"token": "ImportKeyword"}, {"token": "Dot"},
-        {"when": {"native": "typescript.isMetaIdentifier"}}, {"token": "Identifier"}
+        {"when": {"nextTokenText": "meta"}}, {"token": "Identifier"}
       ]},
       "TemplateLiteral": {"category": "other", "choice": [
         {"token": "NoSubstitutionTemplateLiteral"},
@@ -1257,15 +1271,15 @@
       ]},
       "TypeAssertionSuffix": {"category": "other", "withGoal": {
         "name": "Assertion", "production": {"sequence": [
-          {"when": {"native": "typescript.allowsTypeScript"}},
+          {"not": {"when": {"sourceFileKind": "javascript"}}},
           {"choice": [{"token": "AsKeyword"}, {"token": "SatisfiesKeyword"}]},
           {"choice": [{"token": "ConstKeyword"}, {"ref": "TypeContext"}]}
         ]}
       }},
       "AngleBracketAssertion": {"category": "other", "withGoal": {
         "name": "Assertion", "production": {"sequence": [
-          {"when": {"native": "typescript.allowsTypeScript"}},
-          {"when": {"native": "typescript.disallowsJSX"}},
+          {"not": {"when": {"sourceFileKind": "javascript"}}},
+          {"not": {"when": {"sourceFileKind": "jsx"}}},
           {"token": "LessThan"}, {"ref": "TypeContext"}, {"token": "GreaterThan"},
           {"ref": "AssignmentExpression"}
         ]}
@@ -1412,7 +1426,7 @@
         {"optional": {"token": "Comma"}}, {"token": "GreaterThan"}
       ]},
       "TSXTypeParametersContext": {"category": "type", "sequence": [
-        {"when": {"native": "typescript.allowsTypeScript"}},
+        {"not": {"when": {"sourceFileKind": "javascript"}}},
         {"withGoal": {"name": "Type", "production": {"ref": "TSXTypeParameters"}}}
       ]},
       "TSXTypeParameters": {"category": "type", "choice": [

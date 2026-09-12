@@ -1228,3 +1228,24 @@ TEST_F(TypeScriptExpressionFixture, incomplete_expressions_roll_back) {
         EXPECT_EQ(state.token_index, 0u) << item.source;
     }
 }
+
+TEST_F(TypeScriptExpressionFixture, uses_declarative_guards_without_typescript_native_predicates) {
+    size_t guards = 0;
+    for (size_t i = 0; i < definition->grammar->production_count; i++) {
+        const auto &p = definition->grammar->productions[i];
+        if (p.kind == TEXTPARSER_PROD_PREDICATE) {
+            EXPECT_EQ(p.predicate_name, nullptr);
+            EXPECT_NE(p.guard, nullptr);
+            guards++;
+        }
+    }
+    EXPECT_GT(guards, 0u);
+    ASSERT_NE(parse_expression("import.meta", TEXTPARSER_MATCH_OK), nullptr);
+    for (const char *name : {"source.ts", "SOURCE.MTS", "unknown.ext", ""})
+        ASSERT_NE(parse_expression("<number>value", TEXTPARSER_MATCH_OK, name), nullptr);
+    for (const char *name : {"SOURCE.JS", "source.JSX", "source.MJS", "source.CJS"})
+        EXPECT_EQ(parse_expression("<number>value", TEXTPARSER_MATCH_NO, name), nullptr);
+    ASSERT_NE(parse_expression("<View />", TEXTPARSER_MATCH_OK, "VIEW.TSX"), nullptr);
+    ASSERT_NE(parse_expression("<View />", TEXTPARSER_MATCH_OK, "VIEW.JSX"), nullptr);
+    EXPECT_EQ(parse_expression("<View />", TEXTPARSER_MATCH_NO), nullptr);
+}

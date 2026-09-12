@@ -38,6 +38,47 @@ preserved. Rebuild consumers because the public production and node structs now
 include a category field. The JSON loader supports this schema-v2 metadata;
 `json2h.py` still emits legacy definitions without grammar tables.
 
+### Declarative grammar guards
+
+Use `when` for non-consuming conditions, without registering a native callback:
+
+```json
+{"when": {"noLineTerminatorBefore": true}}
+{"when": {"nextTokenIn": ["Dot", "Semicolon"], "allowEOF": true}}
+{"when": {"nextToken": "Identifier", "nextTokenText": "meta"}}
+```
+
+Fields within a guard combine with AND. `nextToken` and `nextTokenIn` match token
+kinds; `nextTokenText` matches exact, case-sensitive raw spelling, not a decoded
+identifier. Text comparison supports UTF-8 and UTF-16/32 source input. Token guards
+reject EOF unless `allowEOF` enables it for the token-kind condition; a text
+condition still rejects EOF. Newline guards inspect trivia before the next token;
+EOF is treated as having no preceding newline, preserving the previous C behavior.
+`lineTerminatorBefore` is also supported; false inverts either newline condition.
+
+Define file profiles under `grammar.sourceFileKinds`:
+
+```json
+"sourceFileKinds": {
+  "jsx": [".tsx", ".jsx"],
+  "javascript": [".js", ".jsx", ".mjs", ".cjs"]
+}
+```
+
+`{"when": {"sourceFileKind": "jsx"}}` matches any suffix in that profile,
+ignoring ASCII case. Unnamed sources match no profile. Negate a condition using
+`{"not": {"when": {"sourceFileKind": "javascript"}}}`; alternatives can use
+`choice`. Undefined profiles/tokens, empty lists, malformed fields, and conflicting
+conditions fail definition loading. `native` remains available as a standalone
+registered callback condition and cannot be mixed with generic fields.
+
+The TypeScript definition now uses these guards for all six former native
+predicates. TypeScript filename rules and type-argument follower tokens live in
+JSON. Assignment/update-target validators are separate and remain unchanged.
+C consumers must rebuild because `textparser_production` now includes a `guard`
+pointer. Other schema-advertised guard fields, such as `feature` and
+`languageVersionAtLeast`, are not implemented by this change.
+
 ---
 
 ## ✨ Features

@@ -140,6 +140,7 @@ typedef struct {
     size_t token_count;
     textparser_string_pool *pool;
     size_t global_sync_token_count;
+    json_object *source_file_kinds;
 } json_grammar_builder;
 
 /**
@@ -153,6 +154,12 @@ static void json_grammar_builder_free(json_grammar_builder *builder)
     for (size_t i = 0; i < builder->count; i++) {
         free((void *)builder->items[i].children);
         free((void *)builder->items[i].recovery_sync_tokens);
+        const textparser_guard *guard = builder->items[i].guard;
+        if (guard != nullptr) {
+            free((void *)guard->next_tokens);
+            free(guard->file_suffixes);
+            free((void *)guard);
+        }
     }
     free(builder->items);
     builder->items = nullptr;
@@ -229,6 +236,86 @@ static int json_parse_grammar_construct(
     json_grammar_builder *builder,
     json_object *construct,
     int production_id);
+
+/* Metadata names must be nonempty C strings, without embedded NULs. */
+static bool json_guard_string(json_object *value)
+{
+    return json_object_is_type(value, json_type_string) &&
+        json_object_get_string_len(value) > 0 &&
+        strlen(json_object_get_string(value)) == (size_t)json_object_get_string_len(value);
+}
+
+static int json_parse_guard(json_grammar_builder *builder, json_object *object,
+                            textparser_production *production)
+{
+    if (!json_object_is_type(object, json_type_object) || json_object_object_length(object) == 0)
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    production->kind = TEXTPARSER_PROD_PREDICATE;
+    json_object *native = nullptr;
+    if (json_object_object_get_ex(object, "native", &native)) {
+        if (json_object_object_length(object) != 1 || !json_guard_string(native))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        production->predicate_name = textparser_string_pool_strdup(builder->pool, json_object_get_string(native));
+        return production->predicate_name == nullptr ? TEXTPARSER_JSON_OUT_OF_MEMORY : 0;
+    }
+    textparser_guard *guard = calloc(1, sizeof(*guard));
+    if (guard == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    production->guard = guard; /* Builder owns partial allocations on failure. */
+    bool has_line = false, has_eof = false;
+    json_object_iter member;
+    json_object_object_foreachC(object, member) {
+        if (strcmp(member.key, "noLineTerminatorBefore") == 0 ||
+            strcmp(member.key, "lineTerminatorBefore") == 0) {
+            if (has_line || !json_object_is_type(member.val, json_type_boolean))
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            has_line = true;
+            bool required = json_object_get_boolean(member.val);
+            if (strcmp(member.key, "noLineTerminatorBefore") == 0) required = !required;
+            guard->line_terminator_before = required ? 1 : -1;
+        } else if (strcmp(member.key, "nextTokenIn") == 0 || strcmp(member.key, "nextToken") == 0) {
+            bool single = strcmp(member.key, "nextToken") == 0;
+            if (guard->next_tokens != nullptr ||
+                (!single && (!json_object_is_type(member.val, json_type_array) ||
+                             json_object_array_length(member.val) == 0)))
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            size_t count = single ? 1 : (size_t)json_object_array_length(member.val);
+            int *tokens = calloc(count, sizeof(*tokens));
+            if (tokens == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            guard->next_tokens = tokens;
+            guard->next_token_count = count;
+            for (size_t i = 0; i < count; i++) {
+                json_object *name = single ? member.val : json_object_array_get_idx(member.val, (int)i);
+                if (!json_guard_string(name)) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                tokens[i] = json_get_token_id_by_name(json_object_get_string(name), builder->tokens, builder->token_count);
+                if (tokens[i] < 0) return TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN;
+            }
+        } else if (strcmp(member.key, "allowEOF") == 0) {
+            if (!json_object_is_type(member.val, json_type_boolean))
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            has_eof = true;
+            guard->allow_eof = json_object_get_boolean(member.val);
+        } else if (strcmp(member.key, "nextTokenText") == 0) {
+            if (!json_guard_string(member.val)) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            guard->next_token_text = textparser_string_pool_strdup(builder->pool, json_object_get_string(member.val));
+            if (guard->next_token_text == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        } else if (strcmp(member.key, "sourceFileKind") == 0) {
+            json_object *suffixes = nullptr;
+            if (!json_guard_string(member.val) || builder->source_file_kinds == nullptr ||
+                !json_object_object_get_ex(builder->source_file_kinds, json_object_get_string(member.val), &suffixes))
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            size_t count = (size_t)json_object_array_length(suffixes);
+            guard->file_suffixes = calloc(count + 1, sizeof(char *));
+            if (guard->file_suffixes == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            for (size_t i = 0; i < count; i++) {
+                guard->file_suffixes[i] = textparser_string_pool_strdup(builder->pool,
+                    json_object_get_string(json_object_array_get_idx(suffixes, (int)i)));
+                if (guard->file_suffixes[i] == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+            }
+        } else return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    }
+    if (has_eof && guard->next_tokens == nullptr) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    return 0;
+}
 
 /**
  * Recursively parse a JSON grammar construct definition into a production graph.
@@ -336,22 +423,8 @@ static int json_parse_grammar_construct_core(
         return json_parse_grammar_construct(builder, values[selected], child_id);
     }
 
-    if (selected == 8) {
-        if (!json_object_is_type(values[selected], json_type_object) ||
-            json_object_object_length(values[selected]) != 1) {
-            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
-        }
-        json_object *native = nullptr;
-        if (!json_object_object_get_ex(values[selected], "native", &native) ||
-            !json_object_is_type(native, json_type_string) ||
-            json_object_get_string_len(native) == 0) {
-            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
-        }
-        production->kind = TEXTPARSER_PROD_PREDICATE;
-        production->predicate_name = textparser_string_pool_strdup(
-            builder->pool, json_object_get_string(native));
-        return production->predicate_name == nullptr ? TEXTPARSER_JSON_OUT_OF_MEMORY : 0;
-    }
+    if (selected == 8)
+        return json_parse_guard(builder, values[selected], production);
 
     if (selected == 10) {
         if (!json_object_is_type(values[selected], json_type_boolean) ||
@@ -1019,8 +1092,27 @@ static int json_parse_grammar(
         return TEXTPARSER_JSON_GRAMMAR_PRODUCTIONS_NOT_OBJECT;
     }
     json_object_object_get_ex(grammar_obj, "events", &grammar_events);
+    json_object *source_file_kinds = nullptr;
+    if (json_object_object_get_ex(grammar_obj, "sourceFileKinds", &source_file_kinds)) {
+        if (!json_object_is_type(source_file_kinds, json_type_object))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        json_object_iter profile;
+        json_object_object_foreachC(source_file_kinds, profile) {
+            if (profile.key[0] == '\0' || !json_object_is_type(profile.val, json_type_array) ||
+                json_object_array_length(profile.val) == 0)
+                return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            for (size_t i = 0; i < (size_t)json_object_array_length(profile.val); i++) {
+                json_object *suffix = json_object_array_get_idx(profile.val, (int)i);
+                if (!json_guard_string(suffix) || json_object_get_string(suffix)[0] != '.' ||
+                    json_object_get_string_len(suffix) < 2 ||
+                    strpbrk(json_object_get_string(suffix), "/\\") != nullptr)
+                    return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+            }
+        }
+    }
 
     json_grammar_builder builder = {0};
+    builder.source_file_kinds = source_file_kinds;
     builder.named_count = (size_t)json_object_object_length(productions_obj);
     builder.tokens = definition->tokens;
     builder.token_count = token_count;

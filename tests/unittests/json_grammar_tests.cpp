@@ -730,3 +730,175 @@ TEST(json_grammar, category_fallbacks_do_not_infer_from_kind_names) {
     node.category = TEXTPARSER_CST_PATTERN;
     EXPECT_EQ(textparser_node_get_category(&node), TEXTPARSER_CST_PATTERN);
 }
+
+namespace {
+std::string guarded_language(const std::string &guard,
+                             const std::string &profiles = R"({"jsx":[".tsx",".jsx"],"script":[".js",".mjs",".cjs"],"declaration":[".d.ts"]})") {
+    return R"({"formatVersion":2,"name":"generic_guards","version":2,
+      "caseSensitivity":true,"defaultFileExtensions":[],"defaultTextEncoding":"utf-8",
+      "otherTextInside":false,
+      "lexer":{"initialMode":"default",
+        "tokens":{"Word":{"regex":"[a-zA-Z]+"},"Mark":{"regex":";"}},
+        "trivia":{"Space":{"regex":"[ \\t\\r\\n]+","detectLineTerminators":true},
+                  "Comment":{"regex":"/\\*[^*]*\\*/","detectLineTerminators":true}},
+        "modes":{"default":{"tokens":["Word","Mark"],"trivia":["Space","Comment"]}}},
+      "grammar":{"start":"Root","sourceFileKinds":)" + profiles +
+      R"(,"productions":{"Root":{"when":)" + guard + "}}}}";
+}
+
+void check_guard(const std::string &guard, const char *source, bool matches,
+                 const char *filename = nullptr) {
+    SCOPED_TRACE(guard + " source=" + source + " filename=" + (filename ? filename : "<none>"));
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(
+        guarded_language(guard).c_str(), &definition), TEXTPARSER_JSON_NO_ERROR);
+    {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem(source, std::strlen(source), TEXTPARSER_ENCODING_UTF_8), 0);
+        textparser_set_filename(parser.get(), filename);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        EXPECT_EQ(result.status, matches ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO);
+        EXPECT_EQ(result.consumed_tokens, 0u);
+        EXPECT_EQ(result.node, nullptr);
+    }
+    textparser_free_language_definition(definition);
+}
+} // namespace
+
+TEST(json_grammar, generic_newline_guards) {
+    for (const char *source : {"word", " word", "/*comment*/word", "", " \n", "/*\n*/"}) {
+        check_guard(R"({"noLineTerminatorBefore":true})", source, true);
+        check_guard(R"({"lineTerminatorBefore":true})", source, false);
+    }
+    for (const char *source : {"\nword", "\rword", "\r\nword", "/*\n*/word"}) {
+        check_guard(R"({"noLineTerminatorBefore":true})", source, false);
+        check_guard(R"({"lineTerminatorBefore":true})", source, true);
+        check_guard(R"({"noLineTerminatorBefore":false})", source, true);
+        check_guard(R"({"lineTerminatorBefore":false})", source, false);
+    }
+}
+
+TEST(json_grammar, generic_next_token_guards_and_eof) {
+    check_guard(R"({"nextTokenIn":["Word","Mark"]})", "word", true);
+    check_guard(R"({"nextTokenIn":["Word","Mark"]})", ";", true);
+    check_guard(R"({"nextTokenIn":["Word"]})", ";", false);
+    check_guard(R"({"nextToken":"Word"})", "word", true);
+    check_guard(R"({"nextToken":"Word"})", "", false);
+    check_guard(R"({"nextTokenIn":["Word"],"allowEOF":true})", "", true);
+    check_guard(R"({"nextTokenIn":["Word"],"allowEOF":false})", "", false);
+    check_guard(R"({"nextTokenIn":["Word"],"allowEOF":true})", ";", false);
+    check_guard(R"({"nextTokenText":"meta"})", "meta", true);
+    check_guard(R"({"nextTokenText":"meta"})", "Meta", false);
+    check_guard(R"({"nextTokenText":"meta"})", "metadata", false);
+    check_guard(R"({"nextTokenText":"meta"})", "", false);
+    check_guard(R"({"nextToken":"Word","nextTokenText":"meta","noLineTerminatorBefore":true})", "meta", true);
+    check_guard(R"({"nextToken":"Mark","nextTokenText":"meta"})", "meta", false);
+    check_guard(R"({"nextToken":"Word","nextTokenText":"meta","noLineTerminatorBefore":true})", "\nmeta", false);
+    check_guard(R"({"nextToken":"Word","allowEOF":true,"nextTokenText":"meta"})", "", false);
+}
+
+TEST(json_grammar, generic_filename_profiles) {
+    for (const char *name : {"component.tsx", "COMPONENT.TSX", "component.jsx", "dir.with.dots/file.JSX"})
+        check_guard(R"({"sourceFileKind":"jsx"})", "", true, name);
+    for (const char *name : {"", "component.ts", "component.tsx.bak", "dir.tsx/file", "tsx"})
+        check_guard(R"({"sourceFileKind":"jsx"})", "", false, name);
+    check_guard(R"({"sourceFileKind":"jsx"})", "", false);
+    check_guard(R"({"sourceFileKind":"declaration"})", "", true, "API.D.TS");
+    check_guard(R"({"sourceFileKind":"declaration"})", "", false, "api.ts");
+    check_guard(R"({"sourceFileKind":"jsx","nextToken":"Word"})", "word", true, "view.tsx");
+    check_guard(R"({"sourceFileKind":"jsx","nextToken":"Mark"})", "word", false, "view.tsx");
+}
+
+TEST(json_grammar, generic_guards_reject_invalid_configuration) {
+    for (const char *guard : {"{}", "null", "[]", R"({"allowEOF":true})",
+         R"({"noLineTerminatorBefore":1})", R"({"lineTerminatorBefore":null})",
+         R"({"lineTerminatorBefore":true,"noLineTerminatorBefore":false})",
+         R"({"nextTokenIn":[]})", R"({"nextTokenIn":"Word"})", R"({"nextTokenIn":[null]})",
+         R"({"nextToken":"Word","nextTokenIn":["Mark"]})",
+         R"({"nextToken":"Word","allowEOF":1})", R"({"nextTokenText":""})",
+         R"({"nextTokenText":"meta\u0000suffix"})", R"({"sourceFileKind":"missing"})",
+         R"({"sourceFileKind":true})", R"({"unexpected":true})",
+         R"({"native":"callback","nextToken":"Word"})"}) {
+        SCOPED_TRACE(guard);
+        textparser_language_definition *definition = nullptr;
+        EXPECT_EQ(textparser_json_load_language_definition_from_string(
+            guarded_language(guard).c_str(), &definition), TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+        if (definition) textparser_free_language_definition(definition);
+    }
+    textparser_language_definition *definition = nullptr;
+    EXPECT_EQ(textparser_json_load_language_definition_from_string(
+        guarded_language(R"({"nextTokenIn":["Undefined"]})").c_str(), &definition),
+        TEXTPARSER_JSON_GRAMMAR_UNDEFINED_TOKEN);
+    if (definition) textparser_free_language_definition(definition);
+    for (const char *profiles : {"null", "[]", R"({"jsx":[]})", R"({"jsx":[null]})",
+                                R"({"jsx":["tsx"]})", R"({"jsx":["."]})",
+                                R"({"jsx":[".tsx/file"]})", R"({"":[".tsx"]})"}) {
+        SCOPED_TRACE(profiles);
+        definition = nullptr;
+        EXPECT_EQ(textparser_json_load_language_definition_from_string(
+            guarded_language(R"({"nextToken":"Word"})", profiles).c_str(), &definition),
+            TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+        if (definition) textparser_free_language_definition(definition);
+    }
+}
+
+TEST(json_grammar, generic_guards_support_legacy_token_streams) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(R"({"start":"Root","productions":{"Root":{"sequence":[
+        {"when":{"nextToken":"A","nextTokenText":"a"}},{"token":"A"},
+        {"not":{"when":{"nextToken":"A"}}},{"token":"B"}
+    ]}}})", &definition), TEXTPARSER_JSON_NO_ERROR);
+    {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem("ab", 2, TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(result.consumed_tokens, 2u);
+    }
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, generic_token_text_matches_wide_source_encodings) {
+    const char16_t source16[] = u" meta";
+    const char32_t source32[] = U" meta";
+    for (bool wide32 : {false, true}) {
+        SCOPED_TRACE(wide32);
+        textparser_language_definition *definition = nullptr;
+        ASSERT_EQ(textparser_json_load_language_definition_from_string(
+            guarded_language(R"({"nextTokenText":"meta"})").c_str(), &definition), TEXTPARSER_JSON_NO_ERROR);
+        {
+            textparser::Parser parser;
+            const char *bytes = wide32 ? reinterpret_cast<const char *>(source32) : reinterpret_cast<const char *>(source16);
+            size_t length = wide32 ? sizeof(source32) - sizeof(char32_t) : sizeof(source16) - sizeof(char16_t);
+            ASSERT_EQ(parser.openmem(bytes, length, wide32 ? TEXTPARSER_ENCODING_UTF_32 : TEXTPARSER_ENCODING_UTF_16), 0);
+            ASSERT_EQ(parser.parse(definition), 0);
+            textparser_match_result result{};
+            ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+            EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+            EXPECT_EQ(result.consumed_tokens, 0u);
+        }
+        textparser_free_language_definition(definition);
+    }
+}
+
+TEST(json_grammar, generic_guards_preserve_choice_rollback) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(R"({"start":"Root","productions":{"Root":{"choice":[
+        {"sequence":[{"token":"A"},{"when":{"nextToken":"C"}},{"token":"C"}]},
+        {"sequence":[{"when":{"nextTokenText":"a"}},{"token":"A"},{"token":"B"}]}
+    ]}}})", &definition), TEXTPARSER_JSON_NO_ERROR);
+    {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem("ab", 2, TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(result.consumed_tokens, 2u);
+    }
+    textparser_free_language_definition(definition);
+}

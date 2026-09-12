@@ -238,6 +238,17 @@ typedef enum textparser_cst_category {
     TEXTPARSER_CST_OTHER,
 } textparser_cst_category;
 
+/** Generic non-consuming guard. Multiple conditions are combined with AND. */
+typedef struct textparser_guard {
+    /* 0: unrestricted, 1: require newline, -1: forbid newline. EOF has no newline. */
+    int line_terminator_before;
+    const int *next_tokens;
+    size_t next_token_count;
+    bool allow_eof; /* Only used with next_tokens. */
+    const char *next_token_text; /* Exact raw UTF-8 spelling, not decoded token value. */
+    const char **file_suffixes; /* NULL-terminated, ASCII case-insensitive; NULL: unrestricted. */
+} textparser_guard;
+
 /**
  * A manually constructed grammar production. Child and reference values are
  * production IDs, not array indexes. REPEAT is zero-or-more. JSON loading for
@@ -273,6 +284,7 @@ typedef struct {
     const char *capture_name;
     /* Applied to containers emitted by this production; UNKNOWN uses fallback. */
     textparser_cst_category category;
+    const textparser_guard *guard;
 } textparser_production;
 
 typedef enum {

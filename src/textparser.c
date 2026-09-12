@@ -2485,6 +2485,12 @@ void textparser_free_language_definition(textparser_language_definition *definit
             for (size_t i = 0; i < definition->grammar->production_count; i++) {
                 free((void *)definition->grammar->productions[i].children);
                 free((void *)definition->grammar->productions[i].recovery_sync_tokens);
+                const textparser_guard *guard = definition->grammar->productions[i].guard;
+                if (guard != nullptr) {
+                    free((void *)guard->next_tokens);
+                    free(guard->file_suffixes);
+                    free((void *)guard);
+                }
             }
             free(definition->grammar->productions);
         }
@@ -9251,8 +9257,88 @@ static textparser_match_result textparser_parse_lookahead(
     return textparser_match_result_make(child.status, nullptr, 0);
 }
 
+/* Filename suffix matching deliberately ignores ASCII case, independent of locale. */
+static bool textparser_guard_suffix_matches(const char *filename, const char *suffix)
+{
+    if (filename == nullptr) return false;
+    size_t length = strlen(filename), suffix_length = strlen(suffix);
+    if (suffix_length > length) return false;
+    filename += length - suffix_length;
+    for (size_t i = 0; i < suffix_length; i++) {
+        unsigned char a = (unsigned char)filename[i], b = (unsigned char)suffix[i];
+        if (a >= 'A' && a <= 'Z') a += 'a' - 'A';
+        if (b >= 'A' && b <= 'Z') b += 'a' - 'A';
+        if (a != b) return false;
+    }
+    return true;
+}
+
+/* Compare exact raw source spelling in UTF-8, including UTF-16/32 input conversion. */
+static bool textparser_guard_text_matches(textparser_t handle,
+    const textparser_lex_token *token, const char *expected)
+{
+    if (token->end < token->start || token->end > textparser_get_total_units(handle)) return false;
+    if (handle->text_format != TEXTPARSER_ENCODING_UNICODE &&
+        handle->text_format != TEXTPARSER_ENCODING_UTF_16 && handle->text_format != TEXTPARSER_ENCODING_UTF_32) {
+        size_t length = token->end - token->start;
+        return length == strlen(expected) && memcmp(handle->text_addr + token->start, expected, length) == 0;
+    }
+    size_t remaining = strlen(expected);
+    for (size_t i = token->start; i < token->end; i++) {
+        uint32_t cp = textparser_get_unit_at(handle, i);
+        if (handle->text_format != TEXTPARSER_ENCODING_UTF_32 && cp >= 0xD800 && cp <= 0xDBFF &&
+            i + 1 < token->end) {
+            uint32_t low = textparser_get_unit_at(handle, i + 1);
+            if (low >= 0xDC00 && low <= 0xDFFF) {
+                cp = 0x10000 + ((cp - 0xD800) << 10) + low - 0xDC00;
+                i++;
+            }
+        }
+        if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return false;
+        char bytes[4];
+        size_t length = encode_utf8_codepoint(cp, bytes);
+        if (length > remaining || memcmp(expected, bytes, length) != 0) return false;
+        expected += length;
+        remaining -= length;
+    }
+    return remaining == 0;
+}
+
+static textparser_match_result textparser_parse_guard(
+    textparser_grammar_executor *executor, const textparser_guard *guard)
+{
+    if (guard->file_suffixes != nullptr) {
+        bool matches = false;
+        for (size_t i = 0; guard->file_suffixes[i] != nullptr; i++)
+            if (textparser_guard_suffix_matches(executor->handle->filename, guard->file_suffixes[i])) {
+                matches = true;
+                break;
+            }
+        if (!matches) return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+    if (guard->line_terminator_before || guard->next_tokens != nullptr || guard->next_token_text != nullptr) {
+        const textparser_lex_token *token = nullptr;
+        int scan = textparser_grammar_peek_token(executor, &token);
+        if (scan < 0) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+        bool eof = scan > 0 || token == nullptr;
+        bool newline = !eof && (token->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) != 0;
+        if (guard->line_terminator_before && newline != (guard->line_terminator_before > 0))
+            return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+        if (guard->next_tokens != nullptr) {
+            bool matches = eof && guard->allow_eof;
+            for (size_t i = 0; !eof && i < guard->next_token_count; i++)
+                if (token->kind == guard->next_tokens[i]) { matches = true; break; }
+            if (!matches) return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+        }
+        if (guard->next_token_text != nullptr &&
+            (eof || !textparser_guard_text_matches(executor->handle, token, guard->next_token_text)))
+            return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    }
+    return textparser_match_result_make(TEXTPARSER_MATCH_OK, nullptr, 0);
+}
+
 /**
- * Execute a PREDICATE declarative production construct evaluating a native registered callback.
+ * Execute a generic guard or a registered native predicate callback.
  *
  * @param executor Pointer to grammar executor.
  * @param production PREDICATE production definition.
@@ -9263,85 +9349,10 @@ static textparser_match_result textparser_parse_predicate(
     const textparser_production *production)
 {
     textparser_t handle = executor->handle;
+    if (production->guard != nullptr) return textparser_parse_guard(executor, production->guard);
     if (production->predicate_name == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
     textparser_predicate_entry *entry = handle->predicates;
     while (entry != nullptr && strcmp(entry->name, production->predicate_name) != 0) entry = entry->next;
-    if (entry == nullptr && strcmp(production->predicate_name,
-            "typescript.noLineTerminatorBefore") == 0) {
-        const textparser_lex_token *current = nullptr;
-        int scan = textparser_grammar_peek_token(executor, &current);
-        bool accepted = scan > 0 || current == nullptr ||
-            (current->flags & TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR) == 0;
-        return textparser_match_result_make(
-            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
-    }
-    if (entry == nullptr && strcmp(production->predicate_name,
-            "typescript.isMetaIdentifier") == 0) {
-        const textparser_lex_token *current = nullptr;
-        int scan = textparser_grammar_peek_token(executor, &current);
-        bool accepted = scan == 0 && current != nullptr &&
-            current->end - current->start == 4 &&
-            current->end <= handle->text_size &&
-            memcmp(handle->text_addr + current->start, "meta", 4) == 0;
-        return textparser_match_result_make(
-            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
-    }
-    if (entry == nullptr && strcmp(production->predicate_name,
-            "typescript.canFollowTypeArgumentsInExpression") == 0) {
-        const textparser_lex_token *current = nullptr;
-        int scan = textparser_grammar_peek_token(executor, &current);
-        bool accepted = scan > 0 || current == nullptr;
-        if (!accepted && current->kind >= 0 &&
-            current->kind < (int)handle->token_count) {
-            const char *name = handle->language->tokens[current->kind].name;
-            static const char *allowed[] = {
-                "Dot", "OptionalChain", "LBracket", "NoSubstitutionTemplateLiteral",
-                "TemplateHead", "LogicalNot", "Increment", "Decrement", "Exponent",
-                "Multiply", "Slash", "Remainder", "Plus", "Minus", "LeftShift",
-                "RightShift", "UnsignedRightShift", "LessThan", "LessEqual",
-                "GreaterThan", "GreaterEqual", "Equal", "NotEqual", "StrictEqual",
-                "StrictNotEqual", "BitAnd", "BitXor", "BitOr", "LogicalAnd",
-                "LogicalOr", "NullishCoalesce", "Question", "Colon", "Assign",
-                "PlusAssign", "MinusAssign", "MultiplyAssign", "DivideAssign",
-                "RemainderAssign", "ExponentAssign", "LeftShiftAssign",
-                "RightShiftAssign", "UnsignedRightShiftAssign", "BitAndAssign",
-                "BitOrAssign", "BitXorAssign", "NullishCoalesceAssign",
-                "LogicalAndAssign", "LogicalOrAssign",
-                "Comma", "Semicolon", "RParen", "RBracket", "RBrace", nullptr
-            };
-            for (size_t i = 0; name != nullptr && allowed[i] != nullptr; i++) {
-                if (strcmp(name, allowed[i]) == 0) { accepted = true; break; }
-            }
-        }
-        return textparser_match_result_make(
-            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
-    }
-    if (entry == nullptr &&
-        (strcmp(production->predicate_name, "typescript.allowsJSX") == 0 ||
-         strcmp(production->predicate_name, "typescript.disallowsJSX") == 0 ||
-         strcmp(production->predicate_name, "typescript.allowsTypeScript") == 0)) {
-        const char *filename = handle->filename;
-        size_t length = filename == nullptr ? 0 : strlen(filename);
-#ifdef _WIN32
-#define TEXTPARSER_SUFFIX_EQUAL(suffix) \
-        (length >= sizeof(suffix) - 1 && _stricmp(filename + length - (sizeof(suffix) - 1), suffix) == 0)
-#else
-#define TEXTPARSER_SUFFIX_EQUAL(suffix) \
-        (length >= sizeof(suffix) - 1 && strcasecmp(filename + length - (sizeof(suffix) - 1), suffix) == 0)
-#endif
-        bool jsx = filename != nullptr &&
-            (TEXTPARSER_SUFFIX_EQUAL(".tsx") || TEXTPARSER_SUFFIX_EQUAL(".jsx"));
-        bool javascript = filename != nullptr &&
-            (TEXTPARSER_SUFFIX_EQUAL(".js") || TEXTPARSER_SUFFIX_EQUAL(".jsx") ||
-             TEXTPARSER_SUFFIX_EQUAL(".mjs") || TEXTPARSER_SUFFIX_EQUAL(".cjs"));
-#undef TEXTPARSER_SUFFIX_EQUAL
-        bool accepted = strcmp(production->predicate_name,
-            "typescript.allowsJSX") == 0 ? jsx :
-            (strcmp(production->predicate_name, "typescript.disallowsJSX") == 0
-                ? !jsx : !javascript);
-        return textparser_match_result_make(
-            accepted ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
-    }
     if (entry == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
     void *checkpoint = nullptr;
     textparser_speculate_begin(handle, &checkpoint);
