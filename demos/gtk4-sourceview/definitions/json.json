@@ -1,0 +1,130 @@
+{
+  "name": "json",
+  "version": 1.0,
+  "caseSensitivity": true,
+  "defaultFileExtensions": [
+    "json"
+  ],
+  "otherTextInside": false,
+  "defaultTextEncoding": "utf-8",
+  "startTokens": [
+    "Object",
+    "Array",
+    "String",
+    "Number",
+    "Bool",
+    "Null"
+  ],
+  "tokens": {
+    "Object": {
+      "type": "StartStop",
+      "startRegex": "{",
+      "endRegex": "}",
+      "multiLine": true,
+      "otherTextInside": false,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "Key",
+        "String",
+        "KeyValueSeparator",
+        "Value",
+        "ValueSeparator"
+      ]
+    },
+    "Array": {
+      "type": "StartStop",
+      "startRegex": "\\[",
+      "endRegex": "\\]",
+      "multiLine": true,
+      "otherTextInside": false,
+      "textColor": "0xffd700",
+      "nestedTokens": [
+        "String",
+        "Number",
+        "Object",
+        "Array",
+        "Bool",
+        "Null",
+        "ValueSeparator"
+      ]
+    },
+    "Value": {
+      "type": "GroupOneChildOnly",
+      "nestedTokens": [
+        "String",
+        "Number",
+        "Object",
+        "Array",
+        "Bool",
+        "Null"
+      ],
+      "textColor": "0xce9178",
+      "otherTextInside": false
+    },
+    "Key": {
+      "type": "StartStop",
+      "otherTextInside": false,
+      "startRegex": "\"(?=(?:[^\"\\\\\\x00-\\x1f]|\\\\(?:[\"\\\\/bfnrt]|u[0-9a-fA-F]{4}))*\"[ \\t\\r\\n]*:)",
+      "endRegex": "\"",
+      "textColor": "0x9cdcfe",
+      "nestedTokens": [
+        "StringEscape",
+        "StringContent"
+      ],
+      "delimiterTextColor": "0x6a9ec0"
+    },
+    "String": {
+      "type": "StartStop",
+      "otherTextInside": false,
+      "startRegex": "\"",
+      "endRegex": "\"",
+      "textColor": "0xce9178",
+      "nestedTokens": [
+        "StringEscape",
+        "StringContent"
+      ],
+      "delimiterTextColor": "0x9e6a57"
+    },
+    "Number": {
+      "type": "SimpleToken",
+      "startRegex": "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?(?![a-zA-Z0-9_.+-])",
+      "textColor": "0xb5cea8",
+      "otherTextInside": false
+    },
+    "StringEscape": {
+      "type": "SimpleToken",
+      "startRegex": "\\\\(?:[\"\\\\/bfnrt]|u[0-9a-fA-F]{4})",
+      "textColor": "0xd7ba7d",
+      "otherTextInside": false
+    },
+    "Bool": {
+      "type": "SimpleToken",
+      "startRegex": "(?:true|false)(?![a-zA-Z0-9_])",
+      "textColor": "0x569cd6",
+      "otherTextInside": false
+    },
+    "Null": {
+      "type": "SimpleToken",
+      "startRegex": "null(?![a-zA-Z0-9_])",
+      "textColor": "0x569cd6",
+      "otherTextInside": false
+    },
+    "ValueSeparator": {
+      "type": "SimpleToken",
+      "startRegex": ",",
+      "textColor": "0xd4d4d4",
+      "otherTextInside": false
+    },
+    "KeyValueSeparator": {
+      "type": "SimpleToken",
+      "startRegex": ":",
+      "textColor": "0xd4d4d4",
+      "otherTextInside": false
+    },
+    "StringContent": {
+      "type": "SimpleToken",
+      "startRegex": "[^\"\\\\\\x00-\\x1f]+",
+      "otherTextInside": false
+    }
+  }
+}
