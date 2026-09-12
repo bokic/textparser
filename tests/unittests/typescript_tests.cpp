@@ -148,23 +148,23 @@ TEST_F(TypeScriptExpressionFixture, exposes_stable_typescript_cst_kinds_and_exac
     EXPECT_EQ(source_view.start, 0u);
     EXPECT_EQ(source_view.end, std::strlen(source));
     EXPECT_FALSE(source_view.terminal);
-    EXPECT_EQ(textparser_typescript_cst_category_of(parser.get(), root),
-              TEXTPARSER_TS_CST_SOURCE_FILE);
+    EXPECT_EQ(textparser_node_get_category(root),
+              TEXTPARSER_CST_SOURCE_FILE);
 
     const textparser_node *declaration =
         find_cst_kind(parser.get(), root, "VariableStatement");
     ASSERT_NE(declaration, nullptr);
-    EXPECT_EQ(textparser_typescript_cst_category_of(parser.get(), declaration),
-              TEXTPARSER_TS_CST_DECLARATION);
+    EXPECT_EQ(textparser_node_get_category(declaration),
+              TEXTPARSER_CST_DECLARATION);
 
     const textparser_node *type = find_cst_kind(parser.get(), root, "TypeAnnotation");
     ASSERT_NE(type, nullptr);
-    EXPECT_EQ(textparser_typescript_cst_category_of(parser.get(), type), TEXTPARSER_TS_CST_TYPE);
+    EXPECT_EQ(textparser_node_get_category(type), TEXTPARSER_CST_TYPE);
 
     const textparser_node *expression = find_cst_kind(parser.get(), root, "Plus");
     ASSERT_NE(expression, nullptr);
-    EXPECT_EQ(textparser_typescript_cst_category_of(parser.get(), expression),
-              TEXTPARSER_TS_CST_EXPRESSION);
+    EXPECT_EQ(textparser_node_get_category(expression),
+              TEXTPARSER_CST_EXPRESSION);
 
     const textparser_node *identifier = find_cst_kind(parser.get(), root, "Identifier");
     ASSERT_NE(identifier, nullptr);
@@ -173,8 +173,8 @@ TEST_F(TypeScriptExpressionFixture, exposes_stable_typescript_cst_kinds_and_exac
     EXPECT_EQ(identifier_view.start, 8u);
     EXPECT_EQ(identifier_view.end, 13u);
     EXPECT_TRUE(identifier_view.terminal);
-    EXPECT_EQ(textparser_typescript_cst_category_of(parser.get(), identifier),
-              TEXTPARSER_TS_CST_TOKEN);
+    EXPECT_EQ(textparser_node_get_category(identifier),
+              TEXTPARSER_CST_TOKEN);
 
     const textparser_node *missing = find_cst_kind(
         parser.get(), root, "Semicolon", TEXTPARSER_NODE_MISSING);

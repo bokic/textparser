@@ -211,6 +211,7 @@
     "production": {
       "type": "object",
       "properties": {
+        "category": { "type": "string", "enum": ["unknown", "token", "source_file", "declaration", "statement", "expression", "type", "jsx", "pattern", "other"] },
         "astKind": { "type": "string" },
         "token": { "type": "string" },
         "ref": { "type": "string" },
@@ -247,6 +248,7 @@
     "construct": {
       "type": "object",
       "properties": {
+        "category": { "type": "string", "enum": ["unknown", "token", "source_file", "declaration", "statement", "expression", "type", "jsx", "pattern", "other"] },
         "token": { "type": "string" },
         "ref": { "type": "string" },
         "sequence": {

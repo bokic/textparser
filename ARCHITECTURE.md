@@ -90,6 +90,7 @@ typedef struct textparser_token_item {
     const char *cst_kind;                  // Canonical production / AST kind name
     size_t source_start;                   // Start unit offset
     size_t source_end;                     // End unit offset [source_start, source_end)
+    textparser_cst_category category;       // Definition metadata; UNKNOWN uses structural fallback
 } textparser_token_item;
 ```
 
@@ -99,6 +100,16 @@ typedef struct textparser_token_item {
 * `TEXTPARSER_NODE_RECOVERED` (`1 << 2`): Node enclosing skipped malformed source text during synchronization.
 * `TEXTPARSER_NODE_TRIVIA` (`1 << 3`): Whitespace or comment node attached as trivia.
 * `TEXTPARSER_NODE_GRAMMAR_POSTFIX` (`1 << 4`): Intermediate expression tree markers.
+
+CST category metadata is stored as `textparser_cst_category` on both production
+records and emitted container nodes. The JSON loader validates `category`
+against the public families. Container creation copies the production category;
+when a named choice renames an anonymous sequence, it also replaces its category.
+Transparent productions preserve the returned child's identity and category.
+`textparser_node_get_category(node)` reads that metadata and uses only node
+structure for the token/expression/other fallback, with UNKNOWN for a null node.
+TypeScript family assignments live in `definitions/typescript_definition.json`;
+the category API contains no TypeScript name or suffix classification rules.
 
 ### 2.3 Lexer Stream Tokens & Trivia
 

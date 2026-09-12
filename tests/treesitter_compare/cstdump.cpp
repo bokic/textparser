@@ -42,7 +42,7 @@ static CstNode describe_cst(textparser_t handle, const textparser_node *node) {
         out.end = node->source_end;
         out.flags = node->node_flags;
     }
-    out.category = (uint32_t)textparser_typescript_cst_category_of(handle, node);
+    out.category = (uint32_t)textparser_node_get_category(node);
     for (const textparser_node *child = node->child; child != nullptr; child = child->next)
         out.children.push_back(describe_cst(handle, child));
     return out;

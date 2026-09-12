@@ -224,6 +224,20 @@ typedef enum {
     TEXTPARSER_PROD_MATCH_CAPTURE,
 } textparser_production_kind;
 
+/** Stable language-independent CST families. */
+typedef enum textparser_cst_category {
+    TEXTPARSER_CST_UNKNOWN = 0,
+    TEXTPARSER_CST_TOKEN,
+    TEXTPARSER_CST_SOURCE_FILE,
+    TEXTPARSER_CST_DECLARATION,
+    TEXTPARSER_CST_STATEMENT,
+    TEXTPARSER_CST_EXPRESSION,
+    TEXTPARSER_CST_TYPE,
+    TEXTPARSER_CST_JSX,
+    TEXTPARSER_CST_PATTERN,
+    TEXTPARSER_CST_OTHER,
+} textparser_cst_category;
+
 /**
  * A manually constructed grammar production. Child and reference values are
  * production IDs, not array indexes. REPEAT is zero-or-more. JSON loading for
@@ -257,6 +271,8 @@ typedef struct {
     const char *recovery_configuration;
     const char *lexical_goal;
     const char *capture_name;
+    /* Applied to containers emitted by this production; UNKNOWN uses fallback. */
+    textparser_cst_category category;
 } textparser_production;
 
 typedef enum {
@@ -304,22 +320,10 @@ typedef struct textparser_token_item {
     const char *cst_kind;
     size_t source_start;
     size_t source_end;
+    textparser_cst_category category;
 } textparser_token_item;
 
 #define TEXTPARSER_NODE_EXPLICIT_SPAN (1u << 7)
-
-typedef enum textparser_typescript_cst_category {
-    TEXTPARSER_TS_CST_UNKNOWN = 0,
-    TEXTPARSER_TS_CST_TOKEN,
-    TEXTPARSER_TS_CST_SOURCE_FILE,
-    TEXTPARSER_TS_CST_DECLARATION,
-    TEXTPARSER_TS_CST_STATEMENT,
-    TEXTPARSER_TS_CST_EXPRESSION,
-    TEXTPARSER_TS_CST_TYPE,
-    TEXTPARSER_TS_CST_JSX,
-    TEXTPARSER_TS_CST_PATTERN,
-    TEXTPARSER_TS_CST_OTHER,
-} textparser_typescript_cst_category;
 
 typedef struct textparser_cst_node_view {
     const char *kind;
@@ -336,9 +340,10 @@ EXPORT_TEXTPARSER int textparser_get_cst_node_view(
     textparser_cst_node_view *out_view
 );
 
-/** Classify a node from the TypeScript definition into a stable CST family. */
-EXPORT_TEXTPARSER textparser_typescript_cst_category textparser_typescript_cst_category_of(
-    const textparser_t handle,
+/** Return definition metadata, or the generic token/expression/other fallback.
+ * NULL returns UNKNOWN. No parser handle or language-name matching is required.
+ */
+EXPORT_TEXTPARSER textparser_cst_category textparser_node_get_category(
     const textparser_node *node
 );
 

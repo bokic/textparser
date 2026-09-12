@@ -649,3 +649,84 @@ TEST(json_grammar, validates_advanced_construct_shapes_and_nullable_repeat) {
         EXPECT_EQ(definition, nullptr);
     }
 }
+
+TEST(json_grammar, category_metadata_is_language_and_kind_independent) {
+    const char *names[] = {"unknown", "token", "source_file", "declaration", "statement",
+                           "expression", "type", "jsx", "pattern", "other"};
+    for (int i = 0; i < 10; ++i) {
+        SCOPED_TRACE(names[i]);
+        textparser_language_definition *definition = nullptr;
+        std::string grammar = R"({"start":"UnrelatedName","productions":{"UnrelatedName":{
+            "sequence":[{"token":"A"},{"token":"B"}],"category":")";
+        grammar += names[i];
+        grammar += R"("}}})";
+        ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+        EXPECT_EQ(definition->grammar->productions[0].category, i);
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem("ab", 2, TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        ASSERT_NE(result.node, nullptr);
+        EXPECT_EQ(textparser_node_get_category(result.node),
+                  i == 0 ? TEXTPARSER_CST_OTHER : i);
+        EXPECT_EQ(textparser_node_get_category(result.node->child), TEXTPARSER_CST_TOKEN);
+        parser.reset();
+        textparser_free_language_definition(definition);
+    }
+}
+
+TEST(json_grammar, categories_follow_emitted_nodes_and_choice_renaming) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(R"({"start":"Root","productions":{
+        "Root":{"ref":"Selected","category":"statement"},
+        "Selected":{"choice":[{"sequence":[{"token":"A"},
+            {"sequence":[{"token":"B"}],"category":"type"}],"category":"other"}],
+            "category":"declaration"}
+    }})", &definition), TEXTPARSER_JSON_NO_ERROR);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("ab", 2, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    ASSERT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(result.node, nullptr);
+    EXPECT_STREQ(result.node->cst_kind, "Selected");
+    EXPECT_EQ(textparser_node_get_category(result.node), TEXTPARSER_CST_DECLARATION);
+    ASSERT_NE(result.node->child, nullptr);
+    ASSERT_NE(result.node->child->next, nullptr);
+    EXPECT_EQ(textparser_node_get_category(result.node->child->next), TEXTPARSER_CST_TYPE);
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(json_grammar, rejects_invalid_category_metadata) {
+    for (const char *value : {"null", "false", "1", "[]", "{}", "\"\"",
+                              "\"Declaration\"", "\"custom\"", "\"type\\u0000suffix\""}) {
+        SCOPED_TRACE(value);
+        textparser_language_definition *definition = nullptr;
+        std::string grammar = R"({"start":"Root","productions":{"Root":{
+            "sequence":[{"token":"A"}],"category":)";
+        grammar += value;
+        grammar += "}}}";
+        EXPECT_EQ(load(grammar, &definition), TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+        if (definition) textparser_free_language_definition(definition);
+    }
+}
+
+TEST(json_grammar, category_fallbacks_do_not_infer_from_kind_names) {
+    EXPECT_EQ(textparser_node_get_category(nullptr), TEXTPARSER_CST_UNKNOWN);
+    textparser_node node{}, child{};
+    node.cst_kind = "SourceFile";
+    EXPECT_EQ(textparser_node_get_category(&node), TEXTPARSER_CST_TOKEN);
+    node.node_flags = TEXTPARSER_NODE_MISSING;
+    EXPECT_EQ(textparser_node_get_category(&node), TEXTPARSER_CST_OTHER);
+    node.child = &child;
+    node.node_flags = TEXTPARSER_NODE_SYNTHETIC;
+    EXPECT_EQ(textparser_node_get_category(&node), TEXTPARSER_CST_OTHER);
+    node.node_flags = 0;
+    EXPECT_EQ(textparser_node_get_category(&node), TEXTPARSER_CST_EXPRESSION);
+    node.category = TEXTPARSER_CST_PATTERN;
+    EXPECT_EQ(textparser_node_get_category(&node), TEXTPARSER_CST_PATTERN);
+}

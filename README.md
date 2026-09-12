@@ -11,6 +11,33 @@ A lightning-fast, multi-language **Abstract Syntax Tree (AST) generator** and sy
 
 It serves as a robust foundation for building linters, static analysis tools, compilers, and terminal utilities like the built-in `ccat` clone.
 
+### Definition-driven CST categories
+
+The C API `textparser_node_get_category(node)` returns a `textparser_cst_category`
+without requiring a parser handle. Schema-v2 productions and inline constructs
+accept an optional `category`: `unknown`, `token`, `source_file`, `declaration`,
+`statement`, `expression`, `type`, `jsx`, `pattern`, or `other`. For example:
+
+```json
+{"sequence": [{"token": "Identifier"}], "category": "declaration"}
+```
+
+Metadata applies to emitted containers, including anonymous containers and
+sequences renamed by a named choice. Transparent references and choices that
+return an existing child retain that child's category; token productions retain
+the token fallback. Omitted or `unknown` metadata uses generic structural defaults:
+leaves are `TOKEN`, non-synthetic nodes with children are `EXPRESSION`, and other
+containers or missing tokens are `OTHER`. A null node returns `UNKNOWN`.
+No category is inferred from the language name or CST kind spelling.
+
+This replaces `textparser_typescript_cst_category_of(handle, node)`,
+`textparser_typescript_cst_category`, and `TEXTPARSER_TS_CST_*` with
+`textparser_node_get_category(node)`, `textparser_cst_category`, and
+`TEXTPARSER_CST_*`. Numeric family values and TypeScript golden CST output are
+preserved. Rebuild consumers because the public production and node structs now
+include a category field. The JSON loader supports this schema-v2 metadata;
+`json2h.py` still emits legacy definitions without grammar tables.
+
 ---
 
 ## ✨ Features

@@ -658,7 +658,8 @@ static int json_parse_grammar_construct(
     json_object *plain = json_object_new_object();
     if (plain == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
     json_object *expect = nullptr, *recover = nullptr, *recover_until = nullptr;
-    json_object *asi = nullptr, *events = nullptr;
+    json_object *asi = nullptr, *events = nullptr, *category = nullptr;
+    bool has_category = false;
     json_object_iter member;
     json_object_object_foreachC(construct, member) {
         if (strcmp(member.key, "expect") == 0) expect = member.val;
@@ -666,12 +667,32 @@ static int json_parse_grammar_construct(
         else if (strcmp(member.key, "recoverUntil") == 0) recover_until = member.val;
         else if (strcmp(member.key, "allowASI") == 0) asi = member.val;
         else if (strcmp(member.key, "events") == 0) events = member.val;
+        else if (strcmp(member.key, "category") == 0) {
+            category = member.val;
+            has_category = true;
+        }
         else json_object_object_add(plain, member.key, json_object_get(member.val));
     }
     int ret = json_parse_grammar_construct_core(builder, plain, production_id);
     json_object_put(plain);
     if (ret != 0) return ret;
     textparser_production *production = &builder->items[production_id];
+    if (has_category) {
+        static const char *categories[] = {
+            "unknown", "token", "source_file", "declaration", "statement",
+            "expression", "type", "jsx", "pattern", "other"
+        };
+        if (!json_object_is_type(category, json_type_string))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        size_t i;
+        for (i = 0; i < sizeof(categories) / sizeof(categories[0]); i++) {
+            if ((size_t)json_object_get_string_len(category) == strlen(categories[i]) &&
+                strcmp(json_object_get_string(category), categories[i]) == 0) break;
+        }
+        if (i == sizeof(categories) / sizeof(categories[0]))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        production->category = (textparser_cst_category)i;
+    }
     if (events != nullptr) {
         ret = json_parse_production_events(builder, events, production);
         if (ret != 0) return ret;

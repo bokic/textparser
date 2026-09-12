@@ -4920,56 +4920,16 @@ EXPORT_TEXTPARSER int textparser_get_cst_node_view(
     return kind == nullptr ? -1 : 0;
 }
 
-/**
- * Check whether a string ends with a specific suffix substring.
- *
- * @param name Name string of token, production, or context.
- * @param suffix Expected suffix substring.
- * @return true if str ends with suffix; false otherwise.
- */
-static bool textparser_name_ends_with(const char *name, const char *suffix)
-{
-    if (name == nullptr || suffix == nullptr) return false;
-    size_t name_length = strlen(name), suffix_length = strlen(suffix);
-    return name_length >= suffix_length &&
-        strcmp(name + name_length - suffix_length, suffix) == 0;
-}
-
-EXPORT_TEXTPARSER textparser_typescript_cst_category textparser_typescript_cst_category_of(
-    const textparser_t handle,
+EXPORT_TEXTPARSER textparser_cst_category textparser_node_get_category(
     const textparser_node *node)
 {
-    if (handle == nullptr || node == nullptr || handle->language == nullptr ||
-        handle->language->name == nullptr || strcmp(handle->language->name, "typescript") != 0)
-        return TEXTPARSER_TS_CST_UNKNOWN;
-    textparser_cst_node_view view = {0};
-    if (textparser_get_cst_node_view(handle, node, &view) != 0 || view.kind == nullptr)
-        return TEXTPARSER_TS_CST_UNKNOWN;
-    if (view.terminal) return TEXTPARSER_TS_CST_TOKEN;
-    const char *name = view.kind;
-    if (strcmp(name, "SourceFile") == 0) return TEXTPARSER_TS_CST_SOURCE_FILE;
-    if (strncmp(name, "JSX", 3) == 0) return TEXTPARSER_TS_CST_JSX;
-    if (textparser_name_ends_with(name, "Declaration") ||
-        strcmp(name, "VariableStatement") == 0 ||
-        strcmp(name, "VariableDeclarationList") == 0 ||
-        strcmp(name, "ClassElement") == 0 || strcmp(name, "EnumMember") == 0)
-        return TEXTPARSER_TS_CST_DECLARATION;
-    if (textparser_name_ends_with(name, "Statement") ||
-        strcmp(name, "Statement") == 0 || strcmp(name, "StatementList") == 0 ||
-        textparser_name_ends_with(name, "Clause"))
-        return TEXTPARSER_TS_CST_STATEMENT;
-    if (strstr(name, "Binding") != nullptr || strstr(name, "AssignmentTarget") != nullptr)
-        return TEXTPARSER_TS_CST_PATTERN;
-    if (textparser_name_ends_with(name, "Type") || strstr(name, "TypeParameter") != nullptr ||
-        strcmp(name, "Type") == 0 || strcmp(name, "TypeAnnotation") == 0 ||
-        strcmp(name, "TypeArguments") == 0 || strcmp(name, "TypeMember") == 0)
-        return TEXTPARSER_TS_CST_TYPE;
-    if (textparser_name_ends_with(name, "Expression") ||
-        strcmp(name, "Expression") == 0 || strcmp(name, "PrimaryExpression") == 0 ||
-        strcmp(name, "Arguments") == 0 || (node->child != nullptr &&
-            (node->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0))
-        return TEXTPARSER_TS_CST_EXPRESSION;
-    return TEXTPARSER_TS_CST_OTHER;
+    if (node == nullptr) return TEXTPARSER_CST_UNKNOWN;
+    if (node->category != TEXTPARSER_CST_UNKNOWN) return node->category;
+    if (node->child == nullptr && (node->node_flags & TEXTPARSER_NODE_MISSING) == 0)
+        return TEXTPARSER_CST_TOKEN;
+    if (node->child != nullptr && (node->node_flags & TEXTPARSER_NODE_SYNTHETIC) == 0)
+        return TEXTPARSER_CST_EXPRESSION;
+    return TEXTPARSER_CST_OTHER;
 }
 
 uint32_t textparser_get_token_text_color(const textparser_token_item *token)
@@ -7273,6 +7233,7 @@ static textparser_node *textparser_grammar_group_node(
         (production->kind >= TEXTPARSER_PROD_TOKEN &&
          production->kind <= TEXTPARSER_PROD_MATCH_CAPTURE
             ? production_kinds[production->kind] : "Production");
+    node->category = production->category;
     node->source_start = source_start;
     node->source_end = source_start + source_length;
     node->child = first_child;
@@ -9136,6 +9097,7 @@ static textparser_match_result textparser_parse_choice(
                 strcmp(result.node->cst_kind, "Sequence") == 0 &&
                 result.node->child != nullptr) {
                 result.node->cst_kind = production->name;
+                result.node->category = production->category;
             }
             return result;
         }
