@@ -63,6 +63,48 @@ def bom_mask_to_c_string(root):
     return " | ".join(constants)
 
 
+def diagnostic_string(value):
+    if not isinstance(value, str) or not value or "\0" in value:
+        raise ValueError("Diagnostic strings must be nonempty and contain no NUL")
+    return value
+
+
+def c_diagnostic_string(value):
+    # Emit UTF-8 bytes with fixed-width octal escapes for control/non-ASCII bytes.
+    return '"' + ''.join(chr(b) if 32 <= b <= 126 and b not in (34, 63, 92)
+                         else "\\%03o" % b for b in value.encode("utf-8")) + '"'
+
+
+def diagnostic_initializer(owner, allowed):
+    templates = {}
+    if "diagnostics" in owner:
+        templates = owner["diagnostics"]
+        if not isinstance(templates, dict) or not templates or set(templates) - set(allowed):
+            raise ValueError("Invalid diagnostics object")
+        for template in templates.values():
+            if not isinstance(template, dict) or set(template) != {"code", "message"}:
+                raise ValueError("Diagnostic templates require code and message")
+            diagnostic_string(template["code"])
+            message = diagnostic_string(template["message"])
+            i, substitutions = 0, 0
+            while i < len(message):
+                if message[i] == "%":
+                    i += 1
+                    if i == len(message) or message[i] not in ("%", "s"):
+                        raise ValueError("Diagnostic templates support only %s and %%")
+                    substitutions += message[i] == "s"
+                i += 1
+            if substitutions > 1:
+                raise ValueError("Diagnostic templates support at most one %s")
+    fields = []
+    for key, field in (("expected", "expected"), ("tokenExpected", "token_expected"), ("recovered", "recovered")):
+        value = templates.get(key)
+        code = c_diagnostic_string(value["code"]) if value else "NULL"
+        message = c_diagnostic_string(value["message"]) if value else "NULL"
+        fields.append("." + field + " = { .code = " + code + ", .message = " + message + " }")
+    return "{ " + ", ".join(fields) + " }"
+
+
 def main(args):
     skip_native_regex = False
     in_file = None
@@ -526,10 +568,13 @@ def main(args):
                 text += "                    }" + os.linesep
                 text += "                }," + os.linesep
             text += "                { .when_parent_in = NULL, .nested_tokens = NULL }" + os.linesep
-            text += "            }" + os.linesep
+            text += "            }," + os.linesep
         else:
-            text += "            .context_nested_tokens = NULL" + os.linesep
+            text += "            .context_nested_tokens = NULL," + os.linesep
 
+        spelling = c_diagnostic_string(diagnostic_string(current_token["spelling"])) if "spelling" in current_token else "NULL"
+        text += "            .spelling = " + spelling + "," + os.linesep
+        text += "            .diagnostics = " + diagnostic_initializer(current_token, ("expected",)) + "," + os.linesep
         text += "        }," + os.linesep
 
     text += "        {" + os.linesep
@@ -552,11 +597,14 @@ def main(args):
     text += "            .delimiter_text_flags = 0," + os.linesep
     text += "            .nested_tokens = NULL," + os.linesep
     text += "            .context_nested_tokens = NULL," + os.linesep
+    text += "            .spelling = NULL," + os.linesep
+    text += "            .diagnostics = " + diagnostic_initializer({}, ()) + "," + os.linesep
     text += "        }," + os.linesep
 
     text += "    }," + os.linesep
     text += "    .error_string = NULL," + os.linesep
     text += "    .string_pool = NULL," + os.linesep
+    text += "    .diagnostics = " + diagnostic_initializer(root, ("expected", "tokenExpected", "recovered")) + "," + os.linesep
     text += "};" + os.linesep
 
     open(out_file, "w").write(text)

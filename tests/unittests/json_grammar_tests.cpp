@@ -902,3 +902,137 @@ TEST(json_grammar, generic_guards_preserve_choice_rollback) {
     }
     textparser_free_language_definition(definition);
 }
+
+namespace {
+std::string diagnostic_language(const std::string &production,
+                                const std::string &root_metadata = "",
+                                const std::string &token_metadata = "") {
+    return R"({"name":"ordinary","version":2,"caseSensitivity":true,
+      "defaultFileExtensions":[],"defaultTextEncoding":"utf-8","otherTextInside":true,
+      "startTokens":["A","B","C"],"tokens":{
+        "A":{"type":"SimpleToken","startRegex":"a"},
+        "B":{"type":"SimpleToken","startRegex":"b")" + token_metadata + R"(},
+        "C":{"type":"SimpleToken","startRegex":"c"}},
+      "grammar":{"start":"ClassElement","productions":{"ClassElement":)" + production + "}}" + root_metadata + "}";
+}
+
+void check_expected_diagnostic(const std::string &production, const std::string &root_metadata,
+                              const std::string &token_metadata, const char *source,
+                              const std::string &code, const std::string &message,
+                              size_t start = 0, size_t length = 0) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(
+        diagnostic_language(production, root_metadata, token_metadata).c_str(), &definition), TEXTPARSER_JSON_NO_ERROR);
+    {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem(source, std::strlen(source), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        ASSERT_EQ(textparser_get_diagnostic_count(parser.get()), 1u);
+        textparser_diagnostic diagnostic{};
+        ASSERT_EQ(textparser_get_diagnostic(parser.get(), 0, &diagnostic), 0);
+        EXPECT_STREQ(diagnostic.code, code.c_str());
+        EXPECT_STREQ(diagnostic.message, message.c_str());
+        EXPECT_EQ(diagnostic.start_pos, start);
+        EXPECT_EQ(diagnostic.length, length);
+        EXPECT_EQ(diagnostic.severity, TEXTPARSER_SEVERITY_ERROR);
+    }
+    textparser_free_language_definition(definition);
+}
+} // namespace
+
+TEST(json_grammar, diagnostic_templates_use_metadata_instead_of_language_or_production_names) {
+    check_expected_diagnostic(R"({"token":"B","expect":"expression"})", "", "", "a",
+                              "TEXTPARSER_EXPECTED", "Expected expression.");
+    check_expected_diagnostic(R"({"token":"B"})", "", "", "a",
+                              "TEXTPARSER_EXPECTED", "Expected ClassElement.");
+    check_expected_diagnostic(R"({"token":"B"})", "", R"(,"spelling":";")", "",
+                              "TEXTPARSER_EXPECTED", "';' expected.");
+    const std::string defaults = R"(,"diagnostics":{
+      "expected":{"code":"LANG_EXPECTED","message":"Need %s."},
+      "tokenExpected":{"code":"LANG_TOKEN","message":"Missing [%s]."}
+    })";
+    check_expected_diagnostic(R"({"token":"B","expect":"item"})", defaults, "", "a",
+                              "LANG_EXPECTED", "Need item.");
+    check_expected_diagnostic(R"({"token":"B"})", defaults, R"(,"spelling":";")", "a",
+                              "LANG_TOKEN", "Missing [;].");
+    const std::string token = R"(,"spelling":";","diagnostics":{
+      "expected":{"code":"TOKEN_ERROR","message":"Token %s missing."}})";
+    check_expected_diagnostic(R"({"token":"B"})", defaults, token, "a",
+                              "TOKEN_ERROR", "Token ; missing.");
+    check_expected_diagnostic(R"({"token":"B","diagnostics":{
+      "expected":{"code":"PRODUCTION_ERROR","message":"Production %s missing."}}})",
+                              defaults, token, "a", "PRODUCTION_ERROR", "Production ; missing.");
+}
+
+TEST(json_grammar, diagnostic_templates_support_safe_percent_substitution_and_truncation) {
+    check_expected_diagnostic(R"({"token":"B"})",
+        R"(,"diagnostics":{"tokenExpected":{"code":"PERCENT","message":"100%% [%s] %%"}})",
+        R"(,"spelling":"%n%s%%")", "a", "PERCENT", "100% [%n%s%%] %");
+    check_expected_diagnostic(R"({"token":"B"})",
+        R"(,"diagnostics":{"expected":{"code":"FIXED","message":"Always fixed."}})",
+        "", "a", "FIXED", "Always fixed.");
+    check_expected_diagnostic(R"({"token":"B"})", "",
+        ",\"spelling\":\"" + std::string(400, 'x') + "\"", "a",
+        "TEXTPARSER_EXPECTED", "'" + std::string(254, 'x'));
+}
+
+TEST(json_grammar, diagnostic_templates_apply_to_recovery_and_insertions) {
+    const std::string recover = R"({"sequence":[{"token":"A"},{"token":"B"}],
+      "recover":{"skip":true,"synchronize":["C"]}})";
+    check_expected_diagnostic(recover, "", "", "aac", "TEXTPARSER_RECOVERED",
+                              "Recovered while parsing ClassElement.", 0, 2);
+    const std::string defaults = R"(,"diagnostics":{
+      "expected":{"code":"INSERT","message":"Insert %s."},
+      "recovered":{"code":"RECOVER","message":"Recovered %s."}})";
+    check_expected_diagnostic(recover, defaults, "", "aac", "RECOVER", "Recovered ClassElement.", 0, 2);
+    check_expected_diagnostic(R"({"sequence":[{"token":"A"},{"token":"B"}],
+      "recover":{"skip":true,"synchronize":["C"]},
+      "diagnostics":{"recovered":{"code":"LOCAL","message":"Local recovery."}}})",
+      defaults, "", "aac", "LOCAL", "Local recovery.", 0, 2);
+    check_expected_diagnostic(R"({"sequence":[{"token":"A"},
+      {"token":"B","recover":{"insert":"B"},"diagnostics":{
+        "expected":{"code":"LOCAL_INSERT","message":"Expected %s."}}}]})",
+      defaults, R"(,"spelling":";")", "a", "LOCAL_INSERT", "Expected ;.", 1, 0);
+    check_expected_diagnostic(R"({"sequence":[{"token":"A"},
+      {"token":"B","recover":{"insert":"B"}},
+      {"token":"B","recover":{"insert":"B"}}]})",
+      defaults + R"(,"recovery":{"maximumDiagnostics":1})", "", "a", "INSERT", "Insert syntax element.", 1, 0);
+}
+
+TEST(json_grammar, rejects_malformed_diagnostic_metadata_at_every_scope) {
+    for (const char *metadata : {"null", "[]", "{}", R"({"unknown":{}})",
+         R"({"expected":null})", R"({"expected":{"code":"X"}})",
+         R"({"expected":{"code":"X","message":"ok","extra":true}})",
+         R"({"expected":{"code":1,"message":"ok"}})",
+         R"({"expected":{"code":"","message":"ok"}})",
+         R"({"expected":{"code":"X","message":false}})",
+         R"({"expected":{"code":"X","message":""}})",
+         R"({"expected":{"code":"X","message":"%n"}})",
+         R"({"expected":{"code":"X","message":"%d"}})",
+         R"({"expected":{"code":"X","message":"%1$s"}})",
+         R"({"expected":{"code":"X","message":"%s %s"}})",
+         R"({"expected":{"code":"X","message":"trailing %"}})",
+         R"({"expected":{"code":"X\u0000hidden","message":"ok"}})",
+         R"({"expected":{"code":"X","message":"ok\u0000hidden"}})"}) {
+        for (int scope = 0; scope < 3; scope++) {
+            SCOPED_TRACE(std::to_string(scope) + ": " + metadata);
+            const std::string attribute = ",\"diagnostics\":" + std::string(metadata);
+            const std::string production = "{\"token\":\"B\"" + (scope == 1 ? attribute : "") + "}";
+            textparser_language_definition *definition = nullptr;
+            EXPECT_EQ(textparser_json_load_language_definition_from_string(
+                diagnostic_language(production, scope == 0 ? attribute : "", scope == 2 ? attribute : "").c_str(),
+                &definition), TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+            if (definition) textparser_free_language_definition(definition);
+        }
+    }
+    for (const char *spelling : {"null", "false", "1", "[]", "{}", "\"\"", "\"x\\u0000hidden\""}) {
+        SCOPED_TRACE(spelling);
+        textparser_language_definition *definition = nullptr;
+        EXPECT_EQ(textparser_json_load_language_definition_from_string(
+            diagnostic_language(R"({"token":"B"})", "", ",\"spelling\":" + std::string(spelling)).c_str(),
+            &definition), TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+        if (definition) textparser_free_language_definition(definition);
+    }
+}

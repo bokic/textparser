@@ -238,6 +238,18 @@ typedef enum textparser_cst_category {
     TEXTPARSER_CST_OTHER,
 } textparser_cst_category;
 
+/** Diagnostic templates accept one optional %s substitution and literal %%. */
+typedef struct textparser_diagnostic_template {
+    const char *code;
+    const char *message;
+} textparser_diagnostic_template;
+
+typedef struct textparser_diagnostic_templates {
+    textparser_diagnostic_template expected;
+    textparser_diagnostic_template token_expected;
+    textparser_diagnostic_template recovered;
+} textparser_diagnostic_templates;
+
 /** Generic non-consuming guard. Multiple conditions are combined with AND. */
 typedef struct textparser_guard {
     /* 0: unrestricted, 1: require newline, -1: forbid newline. EOF has no newline. */
@@ -285,6 +297,7 @@ typedef struct {
     /* Applied to containers emitted by this production; UNKNOWN uses fallback. */
     textparser_cst_category category;
     const textparser_guard *guard;
+    textparser_diagnostic_templates diagnostics;
 } textparser_production;
 
 typedef enum {
@@ -414,6 +427,8 @@ typedef struct {
     uint32_t delimiter_text_flags;
     int *nested_tokens;
     textparser_context_nested_tokens *context_nested_tokens;
+    const char *spelling;
+    textparser_diagnostic_templates diagnostics;
 } textparser_token;
 
 typedef struct {
@@ -534,6 +549,7 @@ typedef struct {
     textparser_token *tokens;
     const char *error_string;
     void *string_pool;
+    textparser_diagnostic_templates diagnostics;
 } textparser_language_definition;
 
 

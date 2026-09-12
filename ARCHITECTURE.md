@@ -288,6 +288,20 @@ The engine avoids stopping at the first error or generating cascading diagnostic
 
 ---
 
+`textparser_grammar_report_expected()` uses definition-owned diagnostic metadata:
+`textparser_token.spelling` and `textparser_diagnostic_templates` on language,
+production, and token records. The JSON loader validates scope and template
+syntax and stores strings in the definition pool. The header generator emits
+matching token/language metadata, verified against the C JSON loader.
+Production overrides take precedence over token and language templates. Recovery
+has separate production/language templates. A bounded formatter expands one
+optional `%s` and literal `%%` without using definition strings as printf formats.
+Messages retain the existing 255-byte limit, severity, diagnostic cap, and supplied
+source spans. TypeScript spelling/name/code branches have been removed from this
+reporting function. Failure ranking, synchronization policy, trailing-input errors,
+and semantic diagnostics remain separate from this metadata selection.
+
+
 ## 8. Semantic Lifecycle Events & AST Building
 
 To allow downstream compilers (e.g. `tsc23`) to transform the generic CST into semantic ASTs without embedding compiler-specific code in the parser core, `textparser` emits four lifecycle events:

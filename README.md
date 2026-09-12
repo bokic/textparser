@@ -79,6 +79,44 @@ C consumers must rebuild because `textparser_production` now includes a `guard`
 pointer. Other schema-advertised guard fields, such as `feature` and
 `languageVersionAtLeast`, are not implemented by this change.
 
+### Declarative diagnostic messages
+
+Tokens can supply a display `spelling`, and a language can define diagnostic
+codes and message templates:
+
+```json
+"diagnostics": {
+  "expected": {"code": "E_EXPECTED", "message": "Expected %s."},
+  "tokenExpected": {"code": "E_TOKEN", "message": "'%s' expected."},
+  "recovered": {"code": "E_RECOVERED", "message": "Recovered while parsing %s."}
+}
+```
+
+For example, a lexer token can contain `"spelling": ";"`. Tokens may override
+`diagnostics.expected`; productions and inline constructs may override
+`diagnostics.expected` and `diagnostics.recovered`. Each template requires a
+nonempty `code` and `message`.
+
+Expected-error precedence is production override, token override, language
+`tokenExpected` (when a spelling exists), then language `expected`. Recovery uses
+the production's `recovered` override or the language default. With no configured
+template, the existing `TEXTPARSER_EXPECTED`/`TEXTPARSER_RECOVERED` defaults apply;
+a token spelling supplies the default `'<spelling>' expected.` message.
+
+Templates accept at most one `%s` and any number of `%%` escapes. `%s` receives
+the token spelling for expected-token errors, otherwise `expect`, the production
+name, or `syntax element`. Recovery always uses the latter description. `%%`
+emits a literal percent. Unsupported conversions, empty strings, embedded NULs,
+and overrides at unsupported scopes are rejected. Formatting treats substituted
+text literally and retains the existing 255-byte message limit.
+
+`textparser_grammar_report_expected()` is now language-independent. TypeScript
+spellings and its expected/recovery message overrides live in the definition.
+Diagnostic selection, spans, and recovery control outside that function retain
+the existing behavior. Both the JSON loader and `json2h.py` preserve token and
+language metadata; the generator still does not emit schema-v2 grammar tables.
+Rebuild C consumers after the public token, production, and language struct changes.
+
 ---
 
 ## ✨ Features

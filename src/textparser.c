@@ -7375,28 +7375,22 @@ static bool textparser_is_typescript_language(const textparser_t handle)
         strcmp(handle->language->name, "typescript") == 0;
 }
 
-/**
- * Get human-readable spelling or symbol text for a TypeScript token ID for diagnostics.
- *
- * @param name Name string of token, production, or context.
- * @return String representation of token spelling (e.g. ';' or 'identifier').
- */
-static const char *textparser_typescript_token_spelling(const char *name)
+/* Expand only %s and %%; never pass definition text as a printf format string. */
+static void textparser_format_diagnostic(char *buffer, size_t capacity,
+    const char *format, const char *value)
 {
-    if (name == nullptr) return nullptr;
-    if (strcmp(name, "LParen") == 0) return "(";
-    if (strcmp(name, "RParen") == 0) return ")";
-    if (strcmp(name, "LBracket") == 0) return "[";
-    if (strcmp(name, "RBracket") == 0) return "]";
-    if (strcmp(name, "LBrace") == 0) return "{";
-    if (strcmp(name, "RBrace") == 0) return "}";
-    if (strcmp(name, "Semicolon") == 0) return ";";
-    if (strcmp(name, "Colon") == 0) return ":";
-    if (strcmp(name, "Comma") == 0) return ",";
-    if (strcmp(name, "GreaterThan") == 0) return ">";
-    if (strcmp(name, "Assign") == 0) return "=";
-    if (strcmp(name, "Arrow") == 0) return "=>";
-    return nullptr;
+    size_t used = 0;
+    if (capacity == 0) return;
+    for (size_t i = 0; format[i] != '\0' && used + 1 < capacity; i++) {
+        if (format[i] == '%' && format[i + 1] == 's') {
+            for (size_t j = 0; value[j] != '\0' && used + 1 < capacity; j++) buffer[used++] = value[j];
+            i++;
+        } else {
+            buffer[used++] = format[i];
+            if (format[i] == '%' && format[i + 1] == '%') i++;
+        }
+    }
+    buffer[used] = '\0';
 }
 
 /**
@@ -7422,47 +7416,41 @@ static int textparser_grammar_report_expected(
     const char *name = production && production->expected_description
         ? production->expected_description
         : (production && production->name ? production->name : "syntax element");
-    if (textparser_is_typescript_language(executor->handle)) {
-        if (recovered) {
-            const char *code = "TS1128";
-            const char *recovery_message = "Declaration or statement expected.";
-            if (production != nullptr && production->name != nullptr) {
-                if (strcmp(production->name, "ClassElement") == 0) {
-                    code = "TS1068";
-                    recovery_message = "Unexpected token. A constructor, method, accessor, or property was expected.";
-                } else if (strcmp(production->name, "TypeMember") == 0) {
-                    code = "TS1131";
-                    recovery_message = "Property or signature expected.";
-                } else if (strcmp(production->name, "CaseClause") == 0) {
-                    code = "TS1130";
-                    recovery_message = "'case' or 'default' expected.";
-                }
-            }
-            return textparser_report_diagnostic(executor->handle, TEXTPARSER_SEVERITY_ERROR,
-                code, recovery_message, start, length);
-        }
-        const char *token_name = nullptr;
-        if (production != nullptr && production->kind == TEXTPARSER_PROD_TOKEN &&
-            executor->handle->language->tokens != nullptr)
-            token_name = executor->handle->language->tokens[production->token_id].name;
-        const char *spelling = textparser_typescript_token_spelling(token_name);
-        bool expression_expected = production != nullptr &&
-            production->expected_description != nullptr &&
-            strcmp(production->expected_description, "expression") == 0;
-        const char *code = expression_expected ? "TS1109" :
-            token_name != nullptr && strcmp(token_name, "Identifier") == 0
-                ? "TS1003" : "TS1005";
-        if (spelling != nullptr) snprintf(message, sizeof(message), "'%s' expected.", spelling);
-        else if (expression_expected) snprintf(message, sizeof(message), "Expression expected.");
-        else if (token_name != nullptr && strcmp(token_name, "Identifier") == 0)
-            snprintf(message, sizeof(message), "Identifier expected.");
-        else snprintf(message, sizeof(message), "Expected %s.", name);
-        return textparser_report_diagnostic(executor->handle, TEXTPARSER_SEVERITY_ERROR,
-            code, message, start, length);
+    const textparser_language_definition *language = executor->handle->language;
+    const textparser_token *token = nullptr;
+    if (production != nullptr && production->kind == TEXTPARSER_PROD_TOKEN && language != nullptr &&
+        language->tokens != nullptr && production->token_id >= 0 &&
+        (size_t)production->token_id < executor->handle->token_count)
+        token = &language->tokens[production->token_id];
+    const textparser_diagnostic_template *selected = nullptr;
+    if (recovered) {
+        if (production != nullptr && production->diagnostics.recovered.message != nullptr)
+            selected = &production->diagnostics.recovered;
+        else if (language != nullptr && language->diagnostics.recovered.message != nullptr)
+            selected = &language->diagnostics.recovered;
+    } else {
+        if (production != nullptr && production->diagnostics.expected.message != nullptr)
+            selected = &production->diagnostics.expected;
+        else if (token != nullptr && token->diagnostics.expected.message != nullptr)
+            selected = &token->diagnostics.expected;
+        else if (token != nullptr && token->spelling != nullptr && language != nullptr &&
+                 language->diagnostics.token_expected.message != nullptr)
+            selected = &language->diagnostics.token_expected;
+        else if (language != nullptr && language->diagnostics.expected.message != nullptr)
+            selected = &language->diagnostics.expected;
     }
-    snprintf(message, sizeof(message), recovered ? "Recovered while parsing %s." : "Expected %s.", name);
+    const char *code = recovered ? "TEXTPARSER_RECOVERED" : "TEXTPARSER_EXPECTED";
+    const char *format = recovered ? "Recovered while parsing %s." : "Expected %s.";
+    const char *value = !recovered && token != nullptr && token->spelling != nullptr ? token->spelling : name;
+    if (selected != nullptr) {
+        if (selected->code != nullptr) code = selected->code;
+        format = selected->message;
+    } else if (!recovered && token != nullptr && token->spelling != nullptr) {
+        format = "'%s' expected.";
+    }
+    textparser_format_diagnostic(message, sizeof(message), format, value);
     return textparser_report_diagnostic(executor->handle, TEXTPARSER_SEVERITY_ERROR,
-        recovered ? "TEXTPARSER_RECOVERED" : "TEXTPARSER_EXPECTED", message, start, length);
+        code, message, start, length);
 }
 
 /**

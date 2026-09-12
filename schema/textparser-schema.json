@@ -83,6 +83,7 @@
       },
       "additionalProperties": false
     },
+    "diagnostics": { "$ref": "#/$defs/languageDiagnostics" },
     "grammar": {
       "type": "object",
       "description": "Declarative grammar productions and context declarations.",
@@ -160,6 +161,8 @@
     "lexerToken": {
       "type": "object",
       "properties": {
+        "diagnostics": { "$ref": "#/$defs/tokenDiagnostics" },
+        "spelling": { "type": "string", "minLength": 1 },
         "regex": { "type": "string" },
         "literal": { "type": "string" },
         "keyword": { "type": "boolean", "default": false },
@@ -177,6 +180,8 @@
     "triviaToken": {
       "type": "object",
       "properties": {
+        "diagnostics": { "$ref": "#/$defs/tokenDiagnostics" },
+        "spelling": { "type": "string", "minLength": 1 },
         "regex": { "type": "string" },
         "literal": { "type": "string" },
         "start": { "type": "string" },
@@ -220,6 +225,7 @@
     "production": {
       "type": "object",
       "properties": {
+        "diagnostics": { "$ref": "#/$defs/productionDiagnostics" },
         "category": { "type": "string", "enum": ["unknown", "token", "source_file", "declaration", "statement", "expression", "type", "jsx", "pattern", "other"] },
         "astKind": { "type": "string" },
         "token": { "type": "string" },
@@ -257,6 +263,7 @@
     "construct": {
       "type": "object",
       "properties": {
+        "diagnostics": { "$ref": "#/$defs/productionDiagnostics" },
         "category": { "type": "string", "enum": ["unknown", "token", "source_file", "declaration", "statement", "expression", "type", "jsx", "pattern", "other"] },
         "token": { "type": "string" },
         "ref": { "type": "string" },
@@ -345,6 +352,10 @@
       "required": ["sequence"],
       "additionalProperties": false
     },
+    "diagnosticTemplate": {"type": "object", "required": ["code", "message"], "properties": {"code": {"type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$"}, "message": {"type": "string", "minLength": 1, "description": "At most one %s placeholder; %% produces a literal percent. Other percent conversions are rejected.", "pattern": "^(?:[^%\\u0000]|%%)*(?:%s(?:[^%\\u0000]|%%)*)?$"}}, "additionalProperties": false},
+    "languageDiagnostics": {"type": "object", "minProperties": 1, "properties": {"expected": {"$ref": "#/$defs/diagnosticTemplate"}, "tokenExpected": {"$ref": "#/$defs/diagnosticTemplate"}, "recovered": {"$ref": "#/$defs/diagnosticTemplate"}}, "additionalProperties": false},
+    "productionDiagnostics": {"type": "object", "minProperties": 1, "properties": {"expected": {"$ref": "#/$defs/diagnosticTemplate"}, "recovered": {"$ref": "#/$defs/diagnosticTemplate"}}, "additionalProperties": false},
+    "tokenDiagnostics": {"type": "object", "minProperties": 1, "properties": {"expected": {"$ref": "#/$defs/diagnosticTemplate"}}, "additionalProperties": false},
     "guardCondition": {
       "type": "object",
       "minProperties": 1,

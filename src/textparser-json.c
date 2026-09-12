@@ -245,6 +245,47 @@ static bool json_guard_string(json_object *value)
         strlen(json_object_get_string(value)) == (size_t)json_object_get_string_len(value);
 }
 
+/* Reject arbitrary printf conversions: templates are data, never format strings. */
+static bool json_diagnostic_message_valid(const char *message)
+{
+    unsigned substitutions = 0;
+    for (size_t i = 0; message[i] != '\0'; i++) {
+        if (message[i] != '%') continue;
+        i++;
+        if (message[i] == '%') continue;
+        if (message[i] != 's' || ++substitutions > 1) return false;
+    }
+    return true;
+}
+
+/* allowed: expected=1, tokenExpected=2, recovered=4. Strings belong to the pool. */
+static int json_parse_diagnostic_templates(json_object *object, textparser_string_pool *pool,
+    textparser_diagnostic_templates *out, unsigned allowed)
+{
+    if (!json_object_is_type(object, json_type_object) || json_object_object_length(object) == 0)
+        return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+    json_object_iter member;
+    json_object_object_foreachC(object, member) {
+        unsigned kind = strcmp(member.key, "expected") == 0 ? 1 :
+            strcmp(member.key, "tokenExpected") == 0 ? 2 :
+            strcmp(member.key, "recovered") == 0 ? 4 : 0;
+        if ((kind & allowed) == 0 || !json_object_is_type(member.val, json_type_object) ||
+            json_object_object_length(member.val) != 2)
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        json_object *code = nullptr, *message = nullptr;
+        if (!json_object_object_get_ex(member.val, "code", &code) || !json_guard_string(code) ||
+            !json_object_object_get_ex(member.val, "message", &message) || !json_guard_string(message) ||
+            !json_diagnostic_message_valid(json_object_get_string(message)))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        textparser_diagnostic_template *target = kind == 1 ? &out->expected :
+            kind == 2 ? &out->token_expected : &out->recovered;
+        target->code = textparser_string_pool_strdup(pool, json_object_get_string(code));
+        target->message = textparser_string_pool_strdup(pool, json_object_get_string(message));
+        if (target->code == nullptr || target->message == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+    }
+    return 0;
+}
+
 static int json_parse_guard(json_grammar_builder *builder, json_object *object,
                             textparser_production *production)
 {
@@ -732,7 +773,8 @@ static int json_parse_grammar_construct(
     if (plain == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
     json_object *expect = nullptr, *recover = nullptr, *recover_until = nullptr;
     json_object *asi = nullptr, *events = nullptr, *category = nullptr;
-    bool has_category = false;
+    bool has_category = false, has_diagnostics = false;
+    json_object *diagnostics = nullptr;
     json_object_iter member;
     json_object_object_foreachC(construct, member) {
         if (strcmp(member.key, "expect") == 0) expect = member.val;
@@ -740,6 +782,10 @@ static int json_parse_grammar_construct(
         else if (strcmp(member.key, "recoverUntil") == 0) recover_until = member.val;
         else if (strcmp(member.key, "allowASI") == 0) asi = member.val;
         else if (strcmp(member.key, "events") == 0) events = member.val;
+        else if (strcmp(member.key, "diagnostics") == 0) {
+            diagnostics = member.val;
+            has_diagnostics = true;
+        }
         else if (strcmp(member.key, "category") == 0) {
             category = member.val;
             has_category = true;
@@ -750,6 +796,10 @@ static int json_parse_grammar_construct(
     json_object_put(plain);
     if (ret != 0) return ret;
     textparser_production *production = &builder->items[production_id];
+    if (has_diagnostics) {
+        ret = json_parse_diagnostic_templates(diagnostics, builder->pool, &production->diagnostics, 1 | 4);
+        if (ret != 0) return ret;
+    }
     if (has_category) {
         static const char *categories[] = {
             "unknown", "token", "source_file", "declaration", "statement",
@@ -1477,6 +1527,12 @@ static int textparser_json_load_language_definition_internal(struct json_object 
         return TEXTPARSER_JSON_OUT_OF_MEMORY;
     }
     (*definition)->string_pool = pool;
+    json_object *diagnostics = nullptr;
+    if (json_object_object_get_ex(root_obj, "diagnostics", &diagnostics)) {
+        ret_code = json_parse_diagnostic_templates(diagnostics, pool, &(*definition)->diagnostics, 1 | 2 | 4);
+        if (ret_code != 0) goto err;
+    }
+
 
     found = json_object_object_get_ex(root_obj, "name", &value);
     if (!found){
@@ -1739,6 +1795,24 @@ static int textparser_json_load_language_definition_internal(struct json_object 
                     ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
                     goto err;
                 }
+            }
+
+            json_object *spelling = nullptr, *token_diagnostics = nullptr;
+            if (json_object_object_get_ex(token_item, "spelling", &spelling)) {
+                if (!json_guard_string(spelling)) {
+                    ret_code = TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                    goto err;
+                }
+                (*definition)->tokens[token_idx].spelling = textparser_string_pool_strdup(pool, json_object_get_string(spelling));
+                if ((*definition)->tokens[token_idx].spelling == nullptr) {
+                    ret_code = TEXTPARSER_JSON_OUT_OF_MEMORY;
+                    goto err;
+                }
+            }
+            if (json_object_object_get_ex(token_item, "diagnostics", &token_diagnostics)) {
+                ret_code = json_parse_diagnostic_templates(token_diagnostics, pool,
+                    &(*definition)->tokens[token_idx].diagnostics, 1);
+                if (ret_code != 0) goto err;
             }
 
             key_value = nullptr;

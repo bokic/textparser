@@ -1,6 +1,11 @@
 {
   "formatVersion": 2,
   "name": "typescript",
+  "diagnostics": {
+    "expected": {"code": "TS1005", "message": "Expected %s."},
+    "tokenExpected": {"code": "TS1005", "message": "'%s' expected."},
+    "recovered": {"code": "TS1128", "message": "Declaration or statement expected."}
+  },
   "version": 3.1,
   "caseSensitivity": true,
   "defaultFileExtensions": ["ts", "tsx", "mts", "cts", "d.ts", "d.mts", "d.cts", "js", "jsx", "mjs", "cjs"],
@@ -135,34 +140,34 @@
       "NullishCoalesceAssign": {"regex": "\\?\\?="},
       "LogicalAndAssign": {"regex": "&&="},
       "LogicalOrAssign": {"regex": "\\|\\|="},
-      "Arrow": {"regex": "=>"},
+      "Arrow": {"spelling": "=>", "regex": "=>"},
       "Ellipsis": {"regex": "\\.\\.\\."},
-      "LParen": {"regex": "\\("},
-      "RParen": {"regex": "\\)"},
-      "LBracket": {"regex": "\\["},
-      "RBracket": {"regex": "\\]"},
-      "LBrace": {"regex": "\\{"},
-      "RBrace": {"regex": "\\}"},
+      "LParen": {"spelling": "(", "regex": "\\("},
+      "RParen": {"spelling": ")", "regex": "\\)"},
+      "LBracket": {"spelling": "[", "regex": "\\["},
+      "RBracket": {"spelling": "]", "regex": "\\]"},
+      "LBrace": {"spelling": "{", "regex": "\\{"},
+      "RBrace": {"spelling": "}", "regex": "\\}"},
       "Dot": {"regex": "\\."},
-      "Semicolon": {"regex": ";"},
+      "Semicolon": {"spelling": ";", "regex": ";"},
       "Question": {"regex": "\\?"},
-      "Colon": {"regex": ":"},
-      "Comma": {"regex": ","},
-      "Assign": {"regex": "="},
+      "Colon": {"spelling": ":", "regex": ":"},
+      "Comma": {"spelling": ",", "regex": ","},
+      "Assign": {"spelling": "=", "regex": "="},
       "Plus": {"regex": "\\+"},
       "Minus": {"regex": "-"},
       "Multiply": {"regex": "\\*"},
       "Slash": {"regex": "/"},
       "Remainder": {"regex": "%"},
       "LessThan": {"regex": "<"},
-      "GreaterThan": {"regex": ">"},
+      "GreaterThan": {"spelling": ">", "regex": ">"},
       "BitAnd": {"regex": "&"},
       "BitOr": {"regex": "\\|"},
       "BitXor": {"regex": "\\^"},
       "LogicalNot": {"regex": "!"},
       "BitNot": {"regex": "~"},
       "At": {"regex": "@"},
-      "Identifier": {"regex": "(?:[$_\\p{ID_Start}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 2, "textColor": "0x9cdcfe"}
+      "Identifier": {"diagnostics": {"expected": {"code": "TS1003", "message": "Identifier expected."}}, "regex": "(?:[$_\\p{ID_Start}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 2, "textColor": "0x9cdcfe"}
       ,"PrivateIdentifier": {"regex": "#(?:[$_\\p{ID_Start}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 2, "textColor": "0x9cdcfe"},
       "InvalidIdentifier": {"regex": "(?:#)?\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\})(?:[$\\x{200C}\\x{200D}\\p{ID_Continue}]|\\\\u(?:[0-9a-fA-F]{4}|\\{[0-9a-fA-F]{1,6}\\}))*", "priority": 1, "textColor": "0xff0000"},
       "JSXOpen": {"regex": "<", "pushMode": "JSXTag"},
@@ -502,7 +507,7 @@
         {"token": "SwitchKeyword"}, {"token": "LParen"}, {"ref": "Expression"}, {"token": "RParen"},
         {"token": "LBrace"}, {"repeat": {"ref": "CaseClause"}}, {"token": "RBrace"}
       ]},
-      "CaseClause": {"category": "statement", "choice": [
+      "CaseClause": {"diagnostics": {"recovered": {"code": "TS1130", "message": "'case' or 'default' expected."}}, "category": "statement", "choice": [
         {"sequence": [{"token": "CaseKeyword"}, {"ref": "Expression"}, {"token": "Colon"}, {"ref": "StatementList"}]},
         {"sequence": [{"token": "DefaultKeyword"}, {"token": "Colon"}, {"ref": "StatementList"}]}
       ], "recover": {"skip": true, "synchronize": ["CaseKeyword", "DefaultKeyword", "RBrace"]}},
@@ -863,7 +868,7 @@
       "AssignmentExpression": {"category": "expression", "pratt": {
         "primary": {"ref": "PrimaryExpression"},
         "postfix": {"ref": "PostfixExpressionSuffix"}, "minimumPrecedence": 2
-      }, "expect": "expression"},
+      }, "expect": "expression", "diagnostics": {"expected": {"code": "TS1109", "message": "Expression expected."}}},
       "TypeContext": {"category": "other", "sequence": [
         {"not": {"when": {"sourceFileKind": "javascript"}}},
         {"withGoal": {"name": "Type", "production": {"ref": "Type"}}}
@@ -938,7 +943,7 @@
       "ClassBody": {"category": "other", "sequence": [
         {"token": "LBrace"}, {"repeat": {"ref": "ClassElement"}}, {"token": "RBrace"}
       ]},
-      "ClassElement": {"category": "declaration", "choice": [
+      "ClassElement": {"diagnostics": {"recovered": {"code": "TS1068", "message": "Unexpected token. A constructor, method, accessor, or property was expected."}}, "category": "declaration", "choice": [
         {"ref": "ClassStaticBlock"}, {"ref": "ConstructorDeclaration"},
         {"sequence": [
           {"repeat": {"ref": "Decorator"}},
@@ -1019,7 +1024,7 @@
       ]},
       "Expression": {"category": "expression", "pratt": {
         "primary": {"ref": "PrimaryExpression"}, "postfix": {"ref": "PostfixExpressionSuffix"}
-      }, "expect": "expression"},
+      }, "expect": "expression", "diagnostics": {"expected": {"code": "TS1109", "message": "Expression expected."}}},
       "PrimaryExpression": {"category": "expression", "choice": [
         {"ref": "NewExpression"}, {"ref": "BasePrimaryExpression"}
       ]},
@@ -1500,7 +1505,7 @@
       "ObjectType": {"category": "type", "sequence": [
         {"token": "LBrace"}, {"repeat": {"ref": "TypeMember"}}, {"token": "RBrace"}
       ]},
-      "TypeMember": {"category": "type", "choice": [
+      "TypeMember": {"diagnostics": {"recovered": {"code": "TS1131", "message": "Property or signature expected."}}, "category": "type", "choice": [
         {"ref": "CallSignature"}, {"ref": "ConstructSignature"}, {"ref": "IndexSignature"},
         {"ref": "MethodSignature"}, {"ref": "PropertySignature"},
         {"token": "Semicolon"}, {"token": "Comma"}
