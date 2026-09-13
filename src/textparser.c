@@ -22,6 +22,15 @@
 
 #define TOKEN_NOT_FOUND -1
 
+/*
+ * Internal node_flags marker recording that a node's subtree has been through
+ * textparser_post_process. Cast/declaration disambiguation mutate token IDs in
+ * place without synthesizing a tagged node, so this marker is the only reliable
+ * way for the incremental engine to know that a tree is in AST mode and must be
+ * re-derived after an edit. Bit 5 is unused by the public TEXTPARSER_NODE_* set.
+ */
+#define TEXTPARSER_NODE_POST_PROCESSED (1u << 5)
+
 #define exit_with_error(handle, error_text, offset, error_len)   \
     LOGE("Error: %s at %zu", error_text, offset);                \
     if(handle) (handle)->error = error_text;                     \
@@ -176,12 +185,19 @@ struct textparser_handle {
     size_t text_size;
     size_t no_lines;
     size_t *lines;
+    /* Cached end-of-line offset for the single-line search bound. Valid for any
+     * position in [line_cache_anchor, line_cache_end); reset per parse. */
+    size_t line_cache_anchor;
+    size_t line_cache_end;
     // Arena allocator fields
     textparser_arena arena;   // live token tree
     textparser_arena scratch; // per-call temporaries
     void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data);
     void *user_data;
     int recursion_depth;
+    size_t parse_steps;
+    size_t parse_step_limit;
+    bool parse_budget_exceeded;
     char *filename;
 
     /* Semantic action handlers & node ID generation */
@@ -214,16 +230,27 @@ struct textparser_handle {
     size_t diagnostic_count;
     size_t diagnostic_capacity;
 
-    /* Immutable lexer snapshot for the latest successful parse. */
+    /* Immutable lexer snapshot for the latest successful parse. The buffers are
+     * retained across incremental edits so a rebuild reuses capacity instead of
+     * freeing and reallocating on every edit. */
     textparser_lex_token *lexer_tokens;
     size_t lexer_token_count;
+    size_t lexer_token_capacity;
     textparser_lex_trivia *lexer_trivia;
     size_t lexer_trivia_count;
+    size_t lexer_trivia_capacity;
     textparser_lexer_cache_entry *lexer_cache;
 
     /* Packrat memoization table for grammar productions. */
     struct textparser_memo_entry *grammar_memo;
     uint64_t next_memo_seq;
+
+    /* Packrat memoization of legacy parser failures, keyed by
+     * (token_id, offset, parent_token_id, prev_token_id). Bounds the
+     * exponential candidate retry loop on nested ambiguous input. */
+    struct textparser_parse_memo **parse_memo;
+    size_t parse_memo_buckets;
+    size_t parse_memo_count;
 
     /* Shared transactional state used by all grammar operations. */
     textparser_parser_runtime parser;
@@ -237,6 +264,29 @@ static void textparser_memo_shift_and_invalidate(
     ssize_t delta_tokens);
 
 /**
+ * Release cached contextual lexer lookup entries.
+ *
+ * The cache is keyed by absolute source offset, so any text edit or stream
+ * rebuild invalidates every entry. The token/trivia snapshot buffers are
+ * deliberately left intact so they can be reused by the next rebuild.
+ *
+ * @param handle Pointer to the textparser handle whose lexer cache will be cleared.
+ */
+static void textparser_clear_lexer_cache(struct textparser_handle *handle)
+{
+    if (handle == nullptr) return;
+    textparser_lexer_cache_entry *entry = handle->lexer_cache;
+    while (entry != nullptr) {
+        textparser_lexer_cache_entry *next = entry->next;
+        free(entry->mode);
+        free(entry->goal);
+        free(entry);
+        entry = next;
+    }
+    handle->lexer_cache = nullptr;
+}
+
+/**
  * Release allocated lexer token streams, trivia streams, and cached lexer lookup entries stored in the handle.
  *
  * @param handle Pointer to the textparser handle whose lexer streams will be cleared.
@@ -248,17 +298,11 @@ static void textparser_clear_lexer_streams(struct textparser_handle *handle)
     free(handle->lexer_trivia);
     handle->lexer_tokens = nullptr;
     handle->lexer_token_count = 0;
+    handle->lexer_token_capacity = 0;
     handle->lexer_trivia = nullptr;
     handle->lexer_trivia_count = 0;
-    textparser_lexer_cache_entry *entry = handle->lexer_cache;
-    while (entry != nullptr) {
-        textparser_lexer_cache_entry *next = entry->next;
-        free(entry->mode);
-        free(entry->goal);
-        free(entry);
-        entry = next;
-    }
-    handle->lexer_cache = nullptr;
+    handle->lexer_trivia_capacity = 0;
+    textparser_clear_lexer_cache(handle);
 }
 
 /**
@@ -365,6 +409,15 @@ static size_t textparser_char_len(const struct textparser_handle *handle, size_t
  */
 static size_t textparser_get_end_of_line_units(const struct textparser_handle *handle, size_t pos)
 {
+    // The parser queries the line end for every single-line candidate at every
+    // position. Scanning to the newline each time is O(line length) per call,
+    // which is O(n^2) for long lines. Cache the line end: any position in
+    // [anchor, end) shares the same newline.
+    struct textparser_handle *mutable_handle = (struct textparser_handle *)handle;
+    if (mutable_handle->line_cache_end > pos && pos >= mutable_handle->line_cache_anchor) {
+        return mutable_handle->line_cache_end - pos;
+    }
+
     size_t total = textparser_get_total_units(handle);
     size_t cur = pos;
     while (cur < total) {
@@ -373,6 +426,8 @@ static size_t textparser_get_end_of_line_units(const struct textparser_handle *h
             break;
         cur++;
     }
+    mutable_handle->line_cache_anchor = pos;
+    mutable_handle->line_cache_end = cur;
     return cur - pos;
 }
 
@@ -559,12 +614,20 @@ static void arena_free(textparser_arena *arena)
 }
 
 /**
- * Reset an arena so its existing chunks are reused from the start.
+ * Reset an arena so its existing chunks are reused from the start,
+ * releasing any high-water chunks beyond the base chunk.
  *
  * @param arena Pointer to the arena to reset.
  */
 static void arena_reset(textparser_arena *arena)
 {
+    if (arena->chunk_count > 1) {
+        for (size_t i = 1; i < arena->chunk_count; i++) {
+            free(arena->chunks[i]);
+            arena->chunks[i] = nullptr;
+        }
+        arena->chunk_count = 1;
+    }
     arena->current_chunk_index = 0;
     arena->current_chunk_used = 0;
     arena->current_chunk = (arena->chunk_count > 0) ? arena->chunks[0] : nullptr;
@@ -1680,7 +1743,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
         if (new_child != nullptr)
         {
             if (handle->error) {
-                if (token_def->other_text_inside && offset < textparser_get_total_units(handle)) {
+                if (token_def->other_text_inside && !handle->parse_budget_exceeded && offset < textparser_get_total_units(handle)) {
                     handle->error = nullptr;
                     handle->error_offset = 0;
                     handle->error_length = 0;
@@ -1705,7 +1768,7 @@ static textparser_token_item *parse_token_group(struct textparser_handle *handle
         }
         else
         {
-            if (token_def->other_text_inside && offset < textparser_get_total_units(handle))
+            if (token_def->other_text_inside && !handle->parse_budget_exceeded && offset < textparser_get_total_units(handle))
             {
                 size_t char_l = textparser_char_len(handle, offset);
                 append_unprocessed_if_needed(handle, ret, &ret->child, &child, char_l);
@@ -2181,7 +2244,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
             if (new_child != nullptr)
             {
                 if (handle->error) {
-                    if (token_def->other_text_inside && offset < textparser_get_total_units(handle)) {
+                    if (token_def->other_text_inside && !handle->parse_budget_exceeded && offset < textparser_get_total_units(handle)) {
                         handle->error = nullptr;
                         handle->error_offset = 0;
                         handle->error_length = 0;
@@ -2319,6 +2382,111 @@ exit:
     return nullptr;
 }
 
+/*
+ * Packrat memoization of legacy parser failures.
+ *
+ * The parser retries candidate tokens speculatively. On deeply nested ambiguous
+ * input a failed sub-parse can be re-run an exponential number of times. A
+ * failure of `token_id` at `offset` under `parent_token_id` is a property of the
+ * text and the parent's nested rules, so it can be cached and skipped on repeat.
+ *
+ * Only failures are cached: a success carries arena node pointers that a
+ * checkpoint rollback would invalidate. The cached `error` string is a static
+ * literal (all `exit_with_error` messages are).
+ */
+typedef struct textparser_parse_memo {
+    int token_id;
+    size_t offset;
+    int parent_token_id;
+    const char *error;
+    size_t error_offset;
+    size_t error_length;
+    struct textparser_parse_memo *next;
+} textparser_parse_memo;
+
+#define TEXTPARSER_PARSE_MEMO_BUCKETS 8192u
+#define TEXTPARSER_PARSE_MEMO_MAX_ENTRIES 4000000u
+
+static size_t textparser_parse_memo_hash(int token_id, size_t offset, int parent_token_id)
+{
+    uint64_t h = (uint64_t)(uint32_t)token_id * 0x9E3779B185EBCA87ull;
+    h ^= (uint64_t)offset * 0xC2B2AE3D27D4EB4Full;
+    h ^= (uint64_t)(uint32_t)parent_token_id * 0x165667B19E3779F9ull;
+    h ^= h >> 29;
+    return (size_t)(h & (TEXTPARSER_PARSE_MEMO_BUCKETS - 1));
+}
+
+static const textparser_parse_memo *textparser_parse_memo_lookup(
+    const struct textparser_handle *handle, int token_id, size_t offset, int parent_token_id)
+{
+    if (handle == nullptr || handle->parse_memo == nullptr) return nullptr;
+    size_t b = textparser_parse_memo_hash(token_id, offset, parent_token_id);
+    for (const textparser_parse_memo *e = handle->parse_memo[b]; e != nullptr; e = e->next) {
+        if (e->token_id == token_id && e->offset == offset && e->parent_token_id == parent_token_id) {
+            return e;
+        }
+    }
+    return nullptr;
+}
+
+static void textparser_parse_memo_store(
+    struct textparser_handle *handle, int token_id, size_t offset, int parent_token_id,
+    const char *error, size_t error_offset, size_t error_length)
+{
+    if (handle == nullptr || error == nullptr) return;
+    if (handle->parse_memo == nullptr) {
+        handle->parse_memo = calloc(TEXTPARSER_PARSE_MEMO_BUCKETS, sizeof(*handle->parse_memo));
+        if (handle->parse_memo == nullptr) return;
+        handle->parse_memo_buckets = TEXTPARSER_PARSE_MEMO_BUCKETS;
+    }
+    if (handle->parse_memo_count >= TEXTPARSER_PARSE_MEMO_MAX_ENTRIES) return;
+    size_t b = textparser_parse_memo_hash(token_id, offset, parent_token_id);
+    textparser_parse_memo *e = malloc(sizeof(*e));
+    if (e == nullptr) return;
+    e->token_id = token_id;
+    e->offset = offset;
+    e->parent_token_id = parent_token_id;
+    e->error = error;
+    e->error_offset = error_offset;
+    e->error_length = error_length;
+    e->next = handle->parse_memo[b];
+    handle->parse_memo[b] = e;
+    handle->parse_memo_count++;
+}
+
+/* A token whose match is decided by the previous sibling (regex-vs-division)
+ * depends on more context than the memo key captures, so it is never cached. */
+static bool textparser_token_is_memoizable(const textparser_language_definition *definition, int token_id)
+{
+    if (definition == nullptr || definition->regex_disambiguation == nullptr) return true;
+    const textparser_regex_disambiguation *rd = definition->regex_disambiguation;
+    return !textparser_token_in_id_list(rd->regex_tokens, token_id);
+}
+
+static void textparser_parse_memo_reset(struct textparser_handle *handle)
+{
+    if (handle == nullptr || handle->parse_memo == nullptr) return;
+    for (size_t b = 0; b < handle->parse_memo_buckets; b++) {
+        textparser_parse_memo *e = handle->parse_memo[b];
+        while (e != nullptr) {
+            textparser_parse_memo *next = e->next;
+            free(e);
+            e = next;
+        }
+        handle->parse_memo[b] = nullptr;
+    }
+    handle->parse_memo_count = 0;
+}
+
+static void textparser_parse_memo_clear(struct textparser_handle *handle)
+{
+    if (handle == nullptr || handle->parse_memo == nullptr) return;
+    textparser_parse_memo_reset(handle);
+    free(handle->parse_memo);
+    handle->parse_memo = nullptr;
+    handle->parse_memo_buckets = 0;
+}
+
 /**
  * Main token parsing dispatcher routing to specific handlers based on token definition type.
  *
@@ -2339,6 +2507,7 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
     }
 
     textparser_token_item *ret = nullptr;
+    bool memoizable = false;
 
     if (handle->recursion_depth >= MAX_RECURSION_DEPTH) {
         exit_with_error(handle, "Maximum recursion depth exceeded!", offset, 0);
@@ -2347,6 +2516,29 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
 
     const textparser_language_definition *definition = handle->language;
     const textparser_token *token_def = &definition->tokens[token_id];
+
+    // Packrat: a sub-parse known to fail in this (token, offset, parent) context
+    // is skipped. This bounds the exponential candidate retry loop.
+    memoizable = textparser_token_is_memoizable(definition, token_id);
+    if (memoizable) {
+        const textparser_parse_memo *memo = textparser_parse_memo_lookup(handle, token_id, offset, parent_token_id);
+        if (memo != nullptr) {
+            handle->error = memo->error;
+            handle->error_offset = memo->error_offset;
+            handle->error_length = memo->error_length;
+            handle->recursion_depth--;
+            return nullptr;
+        }
+    }
+
+    // Bound speculative backtracking: nested ambiguous containers can make the
+    // candidate retry loop exponential. A valid parse is O(text), so a generous
+    // multiple of the input size terminates pathological inputs with a clear
+    // error instead of hanging.
+    if (handle->parse_step_limit != 0 && ++handle->parse_steps > handle->parse_step_limit) {
+        handle->parse_budget_exceeded = true;
+        exit_with_error(handle, "Parse complexity limit exceeded!", offset, 0);
+    }
 
     LOGV("id: %d - [%s]  at offset: %zu", token_id, token_def->name, offset);
     switch(token_def->type)
@@ -2391,6 +2583,10 @@ static textparser_token_item *textparser_parse_token(struct textparser_handle *h
 
 exit:
     handle->recursion_depth--;
+    if (handle->error != nullptr && memoizable) {
+        textparser_parse_memo_store(handle, token_id, offset, parent_token_id,
+                                    handle->error, handle->error_offset, handle->error_length);
+    }
     return ret;
 }
 
@@ -3035,6 +3231,72 @@ static void free_post_processed_tokens(textparser_token_item *node)
     }
 }
 
+/**
+ * Recursively flatten synthesized post-processing nodes back into plain CST
+ * sibling lists, freeing the synthesized wrappers.
+ *
+ * Also reports whether the subtree was in AST mode, detected either through the
+ * POST_PROCESSED marker or a synthesized (0x80000000) node. This lets the
+ * incremental engine decide whether to re-derive post-processing in a single
+ * traversal.
+ *
+ * @param root In/out pointer to head of node or token list.
+ * @return true if the subtree was post-processed; false otherwise.
+ */
+static bool unwrap_post_processed_tokens(textparser_token_item **root)
+{
+    if (root == nullptr || *root == nullptr) return false;
+    bool post_processed = false;
+    textparser_token_item *curr = *root;
+    while (curr != nullptr) {
+        textparser_token_item *next_sibling = curr->next;
+        if (curr->node_flags & TEXTPARSER_NODE_POST_PROCESSED) post_processed = true;
+        if (curr->child != nullptr) {
+            if (unwrap_post_processed_tokens(&curr->child)) post_processed = true;
+        }
+        if (curr->text_flags & 0x80000000) {
+            post_processed = true;
+            textparser_token_item *first_child = curr->child;
+            if (first_child != nullptr) {
+                textparser_token_item *last_child = first_child;
+                while (last_child->next != nullptr) {
+                    last_child->parent = curr->parent;
+                    last_child = last_child->next;
+                }
+                last_child->parent = curr->parent;
+                first_child->prev = curr->prev;
+                last_child->next = curr->next;
+
+                if (curr->prev != nullptr) {
+                    curr->prev->next = first_child;
+                } else if (curr->parent != nullptr) {
+                    curr->parent->child = first_child;
+                } else if (root != nullptr) {
+                    *root = first_child;
+                }
+
+                if (curr->next != nullptr) {
+                    curr->next->prev = last_child;
+                }
+            } else {
+                if (curr->prev != nullptr) {
+                    curr->prev->next = curr->next;
+                } else if (curr->parent != nullptr) {
+                    curr->parent->child = curr->next;
+                } else if (root != nullptr) {
+                    *root = curr->next;
+                }
+                if (curr->next != nullptr) {
+                    curr->next->prev = curr->prev;
+                }
+            }
+            free(curr);
+        }
+        curr = next_sibling;
+    }
+    return post_processed;
+}
+
 void textparser_close(textparser_t handle)
 {
     void *mmap_addr = nullptr;
@@ -3076,6 +3338,7 @@ void textparser_close(textparser_t handle)
 
     free_arena(handle);
     arena_free(&handle->scratch);
+    textparser_parse_memo_clear(handle);
 
     if (handle->lines) {
         free(handle->lines);
@@ -3128,6 +3391,12 @@ void textparser_close(textparser_t handle)
         }
     }
     handle->mode_stack_depth = 0;
+
+    /* Free the active lexical goal */
+    if (handle->lexical_goal) {
+        free(handle->lexical_goal);
+        handle->lexical_goal = nullptr;
+    }
 
     /* Free registered predicates */
     textparser_predicate_entry *pred = handle->predicates;
@@ -3267,6 +3536,10 @@ typedef struct {
     size_t trivia_count;
     size_t trivia_capacity;
     size_t pending_trivia_start;
+    /* Active lexer mode reconstructed while walking the CST. Entries are
+     * borrowed pointers into the language definition (never freed here). */
+    const char *mode_stack[TEXTPARSER_MAX_MODE_STACK];
+    size_t mode_depth;
 } textparser_lexer_stream_builder;
 
 /**
@@ -3326,6 +3599,27 @@ static uint32_t textparser_lexer_span_flags(
 }
 
 /**
+ * Map a lexer mode name to the snapshot token's one-based mode id.
+ *
+ * @param language Active language definition.
+ * @param name Mode name, or NULL for the default mode.
+ * @return One-based index into `language->lexer_modes`, or 0 for the default mode.
+ */
+static int textparser_lexer_mode_id(
+    const textparser_language_definition *language,
+    const char *name)
+{
+    if (language == nullptr || language->lexer_modes == nullptr || name == nullptr) return 0;
+    for (size_t i = 0; i < language->lexer_mode_count; i++) {
+        if (language->lexer_modes[i].name != nullptr &&
+            strcmp(language->lexer_modes[i].name, name) == 0) {
+            return (int)i + 1;
+        }
+    }
+    return 0;
+}
+
+/**
  * Traverse parsed CST nodes to populate contiguous token and trivia snapshot arrays.
  *
  * @param handle Pointer to the textparser handle.
@@ -3362,7 +3656,13 @@ static bool textparser_collect_lexer_streams(
             token->end = end;
             token->leading_trivia_start = builder->pending_trivia_start;
             token->leading_trivia_count = builder->trivia_count - builder->pending_trivia_start;
-            token->mode = 0;
+            /* The mode recorded on a token is the mode active before its own
+             * push/pop transition, matching textparser_contextual_scan_one. */
+            const char *active_mode = builder->mode_depth > 0
+                ? builder->mode_stack[builder->mode_depth - 1]
+                : (handle->language != nullptr && handle->language->initial_lexer_mode != nullptr
+                    ? handle->language->initial_lexer_mode : "default");
+            token->mode = textparser_lexer_mode_id(handle->language, active_mode);
             token->lexical_goal = 0;
             token->flags = 0;
             for (size_t i = builder->pending_trivia_start; i < builder->trivia_count; i++) {
@@ -3370,6 +3670,19 @@ static bool textparser_collect_lexer_streams(
             }
             token->decoded_value = curr->decoded_value;
             builder->pending_trivia_start = builder->trivia_count;
+
+            /* Reconstruct the contextual mode stack from the token's lexer rule,
+             * mirroring textparser_lexer_consume: pop first, then push. */
+            if (handle->language != nullptr && handle->language->lexer_rules != nullptr &&
+                curr->token_id >= 0 && (size_t)curr->token_id < handle->token_count) {
+                const textparser_contextual_lexer_rule *rule =
+                    &handle->language->lexer_rules[curr->token_id];
+                if (rule->pop_mode && builder->mode_depth > 0) builder->mode_depth--;
+                if (rule->push_mode != nullptr &&
+                    builder->mode_depth < TEXTPARSER_MAX_MODE_STACK) {
+                    builder->mode_stack[builder->mode_depth++] = rule->push_mode;
+                }
+            }
         }
         pos = end;
         curr = curr->next;
@@ -3380,24 +3693,40 @@ static bool textparser_collect_lexer_streams(
 /**
  * Rebuild immutable syntax token and trivia snapshots from CST following a parse pass.
  *
+ * The snapshot buffers are retained on the handle across edits: the builder is
+ * seeded with the existing arrays and capacities so a rebuild re-fills them in
+ * place instead of freeing and reallocating on every edit.
+ *
  * @param handle Pointer to the textparser handle.
  * @return TEXTPARSER_OK (0) on success, or error code on failure.
  */
 static int textparser_rebuild_lexer_streams(struct textparser_handle *handle)
 {
     textparser_lexer_stream_builder builder = {0};
+    builder.tokens = handle->lexer_tokens;
+    builder.token_capacity = handle->lexer_token_capacity;
+    builder.trivia = handle->lexer_trivia;
+    builder.trivia_capacity = handle->lexer_trivia_capacity;
+
     if (!textparser_collect_lexer_streams(handle, handle->first_item, 0, &builder)) {
-        free(builder.tokens);
-        free(builder.trivia);
+        // The collector may have reallocated the seeded buffers, so publish the
+        // builder's pointers before releasing them; freeing the stale handle
+        // pointers here would be a use-after-free.
+        handle->lexer_tokens = builder.tokens;
+        handle->lexer_token_capacity = builder.token_capacity;
+        handle->lexer_trivia = builder.trivia;
+        handle->lexer_trivia_capacity = builder.trivia_capacity;
         textparser_clear_lexer_streams(handle);
         return TEXTPARSER_ERROR_OUT_OF_MEMORY;
     }
 
-    textparser_clear_lexer_streams(handle);
     handle->lexer_tokens = builder.tokens;
     handle->lexer_token_count = builder.token_count;
+    handle->lexer_token_capacity = builder.token_capacity;
     handle->lexer_trivia = builder.trivia;
     handle->lexer_trivia_count = builder.trivia_count;
+    handle->lexer_trivia_capacity = builder.trivia_capacity;
+    textparser_clear_lexer_cache(handle);
     handle->parser.source_offset = textparser_get_total_units(handle);
     handle->parser.token_index = builder.token_count;
     return TEXTPARSER_OK;
@@ -3444,6 +3773,171 @@ static bool textparser_tokens_shape_equal(const textparser_token_item *a, const 
     return ca == nullptr && cb == nullptr;
 }
 
+/**
+ * Reset transient lexical state (mode stack and lexical goal) to the language's
+ * initial state.
+ *
+ * `textparser_parse_incremental` anchors at the root and re-tokenizes from
+ * offset 0, so the lexical state at the anchor is always the initial state.
+ * Clearing state left over from a previous parse or `textparser_execute_production`
+ * call keeps the anchor state-safe and stops a stale mode/goal from leaking into
+ * the reparse and the rebuilt lexer snapshot.
+ *
+ * @param handle Pointer to the textparser handle.
+ */
+static void textparser_reset_lexical_state(struct textparser_handle *handle)
+{
+    if (handle == nullptr) return;
+    for (size_t m = 0; m < handle->mode_stack_depth; m++) {
+        if (handle->mode_stack[m] != nullptr) {
+            free(handle->mode_stack[m]);
+            handle->mode_stack[m] = nullptr;
+        }
+    }
+    handle->mode_stack_depth = 0;
+    if (handle->lexical_goal != nullptr) {
+        free(handle->lexical_goal);
+        handle->lexical_goal = nullptr;
+    }
+}
+
+/**
+ * Binary-search the token snapshot for the entry beginning at `start`.
+ *
+ * The snapshot is ordered by start and leaves tile the document, so a match is
+ * unique.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param start Start offset to locate.
+ * @return Entry index, or SIZE_MAX when absent.
+ */
+static size_t textparser_lexer_find_token_at(const struct textparser_handle *handle, size_t start)
+{
+    size_t lo = 0, hi = handle->lexer_token_count;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (handle->lexer_tokens[mid].start < start) lo = mid + 1;
+        else hi = mid;
+    }
+    if (lo < handle->lexer_token_count && handle->lexer_tokens[lo].start == start) return lo;
+    return SIZE_MAX;
+}
+
+/**
+ * Binary-search the trivia snapshot for the entry beginning at `start`.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param start Start offset to locate.
+ * @return Entry index, or SIZE_MAX when absent.
+ */
+static size_t textparser_lexer_find_trivia_at(const struct textparser_handle *handle, size_t start)
+{
+    size_t lo = 0, hi = handle->lexer_trivia_count;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (handle->lexer_trivia[mid].start < start) lo = mid + 1;
+        else hi = mid;
+    }
+    if (lo < handle->lexer_trivia_count && handle->lexer_trivia[lo].start == start) return lo;
+    return SIZE_MAX;
+}
+
+/**
+ * Recompute a token's aggregate flags from its leading trivia range.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_index Index of the token whose flags should be refreshed.
+ */
+static void textparser_lexer_refresh_token_flags(struct textparser_handle *handle, size_t token_index)
+{
+    textparser_lex_token *tok = &handle->lexer_tokens[token_index];
+    uint32_t flags = 0;
+    for (size_t i = tok->leading_trivia_start;
+         i < tok->leading_trivia_start + tok->leading_trivia_count &&
+         i < handle->lexer_trivia_count; i++) {
+        flags |= handle->lexer_trivia[i].flags;
+    }
+    tok->flags = flags;
+}
+
+/**
+ * Patch the flat lexer snapshot after an in-leaf length change.
+ *
+ * The in-leaf fast path guarantees the edited leaf still matches as a single
+ * token of the same kind and that no post-processing runs, so the snapshot's
+ * only difference is positional: the edited leaf's end moves by `delta_units`
+ * and every later entry shifts by the same amount. Kinds, trivia structure,
+ * leading-trivia indices and modes are untouched.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param leaf_start Start offset of the edited leaf.
+ * @param old_leaf_end End offset of the edited leaf before the edit.
+ * @param new_leaf_end End offset of the edited leaf after the edit.
+ * @param delta_units Signed length change in encoding units.
+ * @param leaf The edited CST leaf node.
+ * @return true when the snapshot was patched; false when the leaf could not be
+ *         located (the caller must fall back to a full rebuild).
+ */
+static bool textparser_patch_lexer_streams_leaf(
+    struct textparser_handle *handle,
+    size_t leaf_start,
+    size_t old_leaf_end,
+    size_t new_leaf_end,
+    ssize_t delta_units,
+    const textparser_token_item *leaf)
+{
+    if (handle == nullptr || leaf == nullptr) return false;
+
+    bool is_trivia = (leaf->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE) ||
+                     (leaf->node_flags & TEXTPARSER_NODE_TRIVIA) != 0;
+
+    if (is_trivia) {
+        size_t idx = textparser_lexer_find_trivia_at(handle, leaf_start);
+        if (idx == SIZE_MAX) return false;
+        handle->lexer_trivia[idx].end = new_leaf_end;
+        handle->lexer_trivia[idx].flags =
+            textparser_lexer_span_flags(handle, leaf_start, new_leaf_end);
+        for (size_t j = idx + 1; j < handle->lexer_trivia_count; j++) {
+            handle->lexer_trivia[j].start = (size_t)((ssize_t)handle->lexer_trivia[j].start + delta_units);
+            handle->lexer_trivia[j].end = (size_t)((ssize_t)handle->lexer_trivia[j].end + delta_units);
+        }
+        for (size_t i = 0; i < handle->lexer_token_count; i++) {
+            if (handle->lexer_tokens[i].start >= old_leaf_end) {
+                handle->lexer_tokens[i].start = (size_t)((ssize_t)handle->lexer_tokens[i].start + delta_units);
+                handle->lexer_tokens[i].end = (size_t)((ssize_t)handle->lexer_tokens[i].end + delta_units);
+            }
+        }
+        /* The edited trivia belongs to the leading run of the next token; its
+         * aggregate flags may have changed (e.g. an inserted line terminator). */
+        for (size_t i = 0; i < handle->lexer_token_count; i++) {
+            textparser_lex_token *tok = &handle->lexer_tokens[i];
+            if (idx >= tok->leading_trivia_start &&
+                idx < tok->leading_trivia_start + tok->leading_trivia_count) {
+                textparser_lexer_refresh_token_flags(handle, i);
+            }
+        }
+    } else {
+        size_t idx = textparser_lexer_find_token_at(handle, leaf_start);
+        if (idx == SIZE_MAX) return false;
+        handle->lexer_tokens[idx].end = new_leaf_end;
+        handle->lexer_tokens[idx].decoded_value = leaf->decoded_value;
+        for (size_t i = idx + 1; i < handle->lexer_token_count; i++) {
+            handle->lexer_tokens[i].start = (size_t)((ssize_t)handle->lexer_tokens[i].start + delta_units);
+            handle->lexer_tokens[i].end = (size_t)((ssize_t)handle->lexer_tokens[i].end + delta_units);
+        }
+        for (size_t j = 0; j < handle->lexer_trivia_count; j++) {
+            if (handle->lexer_trivia[j].start >= old_leaf_end) {
+                handle->lexer_trivia[j].start = (size_t)((ssize_t)handle->lexer_trivia[j].start + delta_units);
+                handle->lexer_trivia[j].end = (size_t)((ssize_t)handle->lexer_trivia[j].end + delta_units);
+            }
+        }
+    }
+
+    handle->parser.source_offset = textparser_get_total_units(handle);
+    handle->parser.token_index = handle->lexer_token_count;
+    return true;
+}
+
 EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                                                    const textparser_language_definition *definition,
                                                    size_t edit_offset,
@@ -3468,8 +3962,19 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     handle->error_offset = 0;
     handle->error_length = 0;
 
+    // Reset the parse work budget and the packrat failure memo.
+    handle->parse_steps = 0;
+    handle->parse_step_limit = textparser_get_total_units(handle) * 20 + 10000;
+    handle->parse_budget_exceeded = false;
+    textparser_parse_memo_reset(handle);
+
     // Per-call temporaries (dirty runs, alignment) reuse the scratch arena.
     arena_reset(&handle->scratch);
+
+    // The reparse anchors at the root, so it starts in the language's initial
+    // lexical state. Drop any mode/goal left over from a prior parse or grammar
+    // execution before re-tokenizing.
+    textparser_reset_lexical_state(handle);
 
     size_t unit_size = 1;
     switch (handle->text_format) {
@@ -3573,11 +4078,18 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     size_t old_end_bound = edit_offset + old_len;
     size_t total = textparser_get_total_units(handle);
 
-    // If doing a full parse from offset 0 to EOF, reset existing arena tree
+    // If doing a full parse from offset 0 to EOF, reset existing arena tree.
+    // Flattening the old tree frees any synthesized heap nodes and reports
+    // whether the caller had post-processed it, so AST mode can be preserved
+    // across the reset instead of silently dropping back to a raw CST.
+    bool was_post_processed = false;
     if (start_pos == 0 && end_pos >= total)
     {
+        if (handle->first_item != nullptr) {
+            was_post_processed = unwrap_post_processed_tokens(&handle->first_item);
+            handle->first_item = nullptr;
+        }
         free_arena(handle);
-        handle->first_item = nullptr;
     }
 
     if (handle->language != definition)
@@ -3588,9 +4100,14 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
             return -1;
     }
 
-    if (handle->regex_ctx) {
-        adv_regex_set_utf8_valid(handle->regex_ctx, textparser_validate_text_encoding(handle));
-    }
+    // Record text validity on the shared regex context (and the thread-local
+    // fast-path flag) so PCRE2 can skip re-validating the subject on every
+    // match; without this the full parse is O(n^2) on UTF-8 text.
+    adv_regex_set_utf8_valid(handle->regex_ctx, textparser_validate_text_encoding(handle));
+
+    // The text may have been spliced; drop the cached line-end bound.
+    handle->line_cache_anchor = 0;
+    handle->line_cache_end = 0;
 
     // Resolve active token from existing AST
     const textparser_token_item *active_token = nullptr;
@@ -3639,12 +4156,38 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                     handle->no_lines = 0;
                 }
 
-    int rebuild_status = textparser_rebuild_lexer_streams(handle);
+                // Patch the flat snapshot in place when the tree is a raw CST.
+                // An AST tree needs a full rebuild because post-processing may
+                // have changed token kinds relative to the snapshot; the head
+                // carries the POST_PROCESSED marker in AST mode.
+                bool ast_mode = was_post_processed ||
+                    (handle->first_item != nullptr &&
+                     ((handle->first_item->node_flags & TEXTPARSER_NODE_POST_PROCESSED) != 0 ||
+                      (handle->first_item->text_flags & 0x80000000u) != 0));
+                int rebuild_status = TEXTPARSER_OK;
+                if (ast_mode ||
+                    !textparser_patch_lexer_streams_leaf(handle, leaf_start, leaf_end,
+                                                         leaf_start + match_len, delta_units, leaf_item)) {
+                    rebuild_status = textparser_rebuild_lexer_streams(handle);
+                }
                 if (rebuild_status == TEXTPARSER_OK) {
                     textparser_memo_shift_and_invalidate(handle, 0, (size_t)-1, delta_units);
                 }
                 return rebuild_status;
             }
+        }
+    }
+
+    // Unwrap any synthesized post-processing nodes before re-tokenization so the
+    // tree structure matches the base parser output before splicing and re-deriving.
+    // The traversal also reports AST mode (marker and/or synthesized node); cast
+    // and declaration disambiguation leave only the marker behind. Only when the
+    // caller had run textparser_post_process must post-processing be re-derived
+    // after the splice; a raw CST stays raw, preserving the documented contract of
+    // textparser_parse / textparser_parse_incremental.
+    if (handle->first_item != nullptr) {
+        if (unwrap_post_processed_tokens(&handle->first_item)) {
+            was_post_processed = true;
         }
     }
 
@@ -3737,6 +4280,11 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         // match the container delimiters themselves. Back away from them.
         if (dirty_first != nullptr && dirty_first->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER)
             dirty_first = dirty_first->prev;
+
+        // Start-token end searches have unbounded lookahead, so an edit can
+        // change the extent of an earlier top-level token. Reparse from the
+        // first sibling; the alignment keeps the unchanged prefix/suffix nodes.
+        dirty_first = sibling_list;
 
         // Extend the reparse to the end of the container's children so an
         // overrun (a greedy token or a newly opened container) can resync with
@@ -3884,6 +4432,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         // continues, instead of aborting the whole edit. Top-level errors fall
         // through to the normal link-then-fail path so the partial tree remains.
         if (token_item != nullptr && handle->error != nullptr &&
+            !handle->parse_budget_exceeded &&
             parent_container != nullptr && container_other_text_inside &&
             pos < textparser_get_total_units(handle)) {
             handle->error = nullptr;
@@ -3956,9 +4505,35 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     if (stitch_right_before != nullptr) {
         ssize_t old_suffix_signed = (ssize_t)pos - delta_units;
         size_t old_suffix_pos = (old_suffix_signed > 0) ? (size_t)old_suffix_signed : 0;
-        while (stitch_right_before != nullptr &&
-               textparser_get_token_position(stitch_right_before) < old_suffix_pos) {
+        size_t right_pos = textparser_get_token_position(stitch_right_before);
+        while (stitch_right_before != nullptr && right_pos < old_suffix_pos) {
+            right_pos += stitch_right_before->len;
             stitch_right_before = stitch_right_before->next;
+        }
+    }
+
+    // Run items are consecutive siblings, so their positions can be accumulated
+    // once. The alignment loops below previously called
+    // textparser_get_token_position (a prev/parent chain walk) several times per
+    // candidate, making alignment O(window * depth).
+    size_t *old_pos = nullptr;
+    size_t *new_pos = nullptr;
+    if (old_run.count > 0) {
+        old_pos = arena_alloc(&handle->scratch, old_run.count * sizeof(size_t));
+        if (old_pos == nullptr) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+        size_t p = textparser_get_token_position(old_run.items[0]);
+        for (size_t i = 0; i < old_run.count; i++) {
+            old_pos[i] = p;
+            p += old_run.items[i]->len;
+        }
+    }
+    if (new_run.count > 0) {
+        new_pos = arena_alloc(&handle->scratch, new_run.count * sizeof(size_t));
+        if (new_pos == nullptr) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+        size_t p = textparser_get_token_position(new_run.items[0]);
+        for (size_t i = 0; i < new_run.count; i++) {
+            new_pos[i] = p;
+            p += new_run.items[i]->len;
         }
     }
 
@@ -3966,20 +4541,18 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     // prefix and suffix (reusing the existing nodes) and splice only the middle.
     size_t prefix = 0;
     while (prefix < old_run.count && prefix < new_run.count &&
-           textparser_get_token_position(old_run.items[prefix]) + old_run.items[prefix]->len <= edit_offset &&
-           textparser_get_token_position(new_run.items[prefix]) ==
-               textparser_get_token_position(old_run.items[prefix]) &&
+           old_pos[prefix] + old_run.items[prefix]->len <= edit_offset &&
+           new_pos[prefix] == old_pos[prefix] &&
            textparser_tokens_shape_equal(old_run.items[prefix], new_run.items[prefix])) {
         prefix++;
     }
     size_t suffix = 0;
     while (suffix < old_run.count - prefix && suffix < new_run.count - prefix) {
-        textparser_token_item *old_item = old_run.items[old_run.count - 1 - suffix];
-        textparser_token_item *new_item = new_run.items[new_run.count - 1 - suffix];
-        if (textparser_get_token_position(old_item) < edit_offset + old_len) break;
-        if (textparser_get_token_position(new_item) !=
-            textparser_get_token_position(old_item) + delta_units) break;
-        if (!textparser_tokens_shape_equal(old_item, new_item)) break;
+        size_t old_index = old_run.count - 1 - suffix;
+        size_t new_index = new_run.count - 1 - suffix;
+        if (old_pos[old_index] < edit_offset + old_len) break;
+        if (new_pos[new_index] != old_pos[old_index] + delta_units) break;
+        if (!textparser_tokens_shape_equal(old_run.items[old_index], new_run.items[new_index])) break;
         suffix++;
     }
 
@@ -3995,6 +4568,11 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         } else {
             handle->first_item = old_run.items[0];
         }
+    }
+
+    // Free any synthesized post-processed tokens in discarded old_run items.
+    for (size_t i = prefix; i + suffix < old_run.count; i++) {
+        free_post_processed_tokens(old_run.items[i]);
     }
 
     textparser_token_item *left = keep_left;
@@ -4035,15 +4613,21 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     }
 
     // Sign merging runs after the splice so it cannot be undone by re-linking.
+    // The walk is bounded by the spliced region: it stops at the last spliced
+    // node (or the kept right anchor), never scanning to the end of the sibling
+    // list when there is no right anchor.
     {
         textparser_token_item *merge_start = keep_left;
         if (merge_start == nullptr) {
             merge_start = parent_container ? parent_container->child : handle->first_item;
         }
+        textparser_token_item *merge_last = (new_run.count > 0)
+            ? new_run.items[new_run.count - 1]
+            : keep_right;
         for (textparser_token_item *t = merge_start; t != nullptr; ) {
             textparser_token_item *next = t->next;
             maybe_merge_sign(handle, t);
-            if (t == keep_right) break;
+            if (t == merge_last || t == keep_right) break;
             t = next;
         }
     }
@@ -4080,9 +4664,9 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     size_t changed_start = start_pos;
     size_t changed_end = old_end_bound;
     if (prefix < old_run.count && old_run.count - suffix > prefix) {
-        changed_start = textparser_get_token_position(old_run.items[prefix]);
-        textparser_token_item *last_changed = old_run.items[old_run.count - suffix - 1];
-        changed_end = textparser_get_token_position(last_changed) + last_changed->len;
+        changed_start = old_pos[prefix];
+        size_t last_changed = old_run.count - suffix - 1;
+        changed_end = old_pos[last_changed] + old_run.items[last_changed]->len;
     } else {
         changed_start = edit_offset;
         changed_end = edit_offset;
@@ -4104,6 +4688,16 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                 break;
             }
         }
+    }
+
+    // Re-derive the AST post-processing only when the caller had already applied
+    // it to this tree before the edit. This keeps expression trees, template
+    // groups, disambiguated tokens and delete_if_only_one_child unwrapping
+    // consistent across edits without changing the raw CST contract for callers
+    // that never call textparser_post_process.
+    if (was_post_processed)
+    {
+        textparser_post_process(&handle->first_item, definition);
     }
 
     int rebuild_status = textparser_rebuild_lexer_streams(handle);
@@ -4722,6 +5316,10 @@ void textparser_post_process(textparser_token_item **root, const textparser_lang
 {
     if (root == nullptr || *root == nullptr || language == nullptr) return;
 
+    /* Mark the subtree as being in AST mode. The final head is re-marked at the
+       end because delete_if_only_one_child may replace *root. */
+    (*root)->node_flags |= TEXTPARSER_NODE_POST_PROCESSED;
+
     /* First recursively process child subtrees */
     for (textparser_token_item *c = *root; c != nullptr; c = c->next) {
         if (c->child) {
@@ -4796,6 +5394,10 @@ void textparser_post_process(textparser_token_item **root, const textparser_lang
         }
 
         curr = next_sibling;
+    }
+
+    if (*root != nullptr) {
+        (*root)->node_flags |= TEXTPARSER_NODE_POST_PROCESSED;
     }
 }
 

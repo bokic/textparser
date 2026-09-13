@@ -1,7 +1,11 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 #include <c_definition.json.h>
+#include <json_definition.json.h>
+#include <cfml_definition.json.h>
 #include <cstring>
+#include <string>
+#include <vector>
 
 TEST(lexer_streams, separates_tokens_and_leading_trivia) {
     textparser::Parser parser;
@@ -97,3 +101,210 @@ TEST(lexer_streams, set_text_invalidates_snapshot) {
     EXPECT_EQ(parser.lexer_trivia(&count), nullptr);
     EXPECT_EQ(count, 0u);
 }
+
+namespace {
+
+struct TokenView {
+    int kind;
+    size_t start;
+    size_t end;
+    size_t leading_trivia_start;
+    size_t leading_trivia_count;
+    int mode;
+    int lexical_goal;
+    uint32_t flags;
+    std::string decoded_value;
+
+    bool operator==(const TokenView &other) const {
+        return kind == other.kind && start == other.start && end == other.end &&
+               leading_trivia_start == other.leading_trivia_start &&
+               leading_trivia_count == other.leading_trivia_count &&
+               mode == other.mode && lexical_goal == other.lexical_goal &&
+               flags == other.flags && decoded_value == other.decoded_value;
+    }
+};
+
+struct TriviaView {
+    int kind;
+    size_t start;
+    size_t end;
+    uint32_t flags;
+
+    bool operator==(const TriviaView &other) const {
+        return kind == other.kind && start == other.start && end == other.end &&
+               flags == other.flags;
+    }
+};
+
+struct Snapshot {
+    std::vector<TokenView> tokens;
+    std::vector<TriviaView> trivia;
+
+    bool operator==(const Snapshot &other) const {
+        return tokens == other.tokens && trivia == other.trivia;
+    }
+};
+
+Snapshot capture_snapshot(textparser::Parser &parser) {
+    Snapshot snapshot;
+    size_t token_count = 0;
+    const textparser_lex_token *tokens = parser.lexer_tokens(&token_count);
+    for (size_t i = 0; i < token_count; ++i) {
+        snapshot.tokens.push_back(TokenView{
+            tokens[i].kind, tokens[i].start, tokens[i].end,
+            tokens[i].leading_trivia_start, tokens[i].leading_trivia_count,
+            tokens[i].mode, tokens[i].lexical_goal, tokens[i].flags,
+            tokens[i].decoded_value ? tokens[i].decoded_value : ""});
+    }
+    size_t trivia_count = 0;
+    const textparser_lex_trivia *trivia = parser.lexer_trivia(&trivia_count);
+    for (size_t i = 0; i < trivia_count; ++i) {
+        snapshot.trivia.push_back(TriviaView{trivia[i].kind, trivia[i].start,
+                                             trivia[i].end, trivia[i].flags});
+    }
+    return snapshot;
+}
+
+// Apply the edit incrementally, then assert the resulting lexer snapshot is
+// byte-identical to a fresh full parse of the edited text.
+void expect_snapshot_matches_full(const char *base, size_t offset, size_t old_len,
+                                  const char *inserted, size_t new_len,
+                                  const textparser_language_definition *def) {
+    textparser::Parser incremental;
+    ASSERT_EQ(incremental.openmem(base, (int)strlen(base), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(incremental.parse(def), 0);
+    ASSERT_EQ(incremental.parse_incremental(def, offset, old_len, inserted, new_len, nullptr), 0);
+
+    std::string edited(base);
+    edited.replace(offset, old_len, inserted, new_len);
+    textparser::Parser full;
+    ASSERT_EQ(full.openmem(edited.c_str(), (int)edited.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(full.parse(def), 0);
+
+    EXPECT_EQ(capture_snapshot(incremental), capture_snapshot(full));
+}
+
+} // namespace
+
+// The in-leaf fast path patches the existing snapshot instead of rebuilding it.
+// The patched snapshot must still equal a full parse.
+TEST(lexer_streams, incremental_leaf_insert_matches_full_snapshot) {
+    const char *base = "{\"message\": \"Hello\"}";
+    expect_snapshot_matches_full(base, 13, 0, "X", 1, &json_definition);
+    expect_snapshot_matches_full(base, 2, 0, "z", 1, &json_definition);
+    expect_snapshot_matches_full(base, 12, 0, "q", 1, &json_definition);
+}
+
+TEST(lexer_streams, incremental_leaf_delete_matches_full_snapshot) {
+    const char *base = "{\"message\": \"Hello\"}";
+    expect_snapshot_matches_full(base, 13, 1, nullptr, 0, &json_definition);
+    expect_snapshot_matches_full(base, 2, 1, nullptr, 0, &json_definition);
+    expect_snapshot_matches_full(base, 12, 1, nullptr, 0, &json_definition);
+}
+
+TEST(lexer_streams, incremental_leaf_replace_matches_full_snapshot) {
+    const char *base = "{\"message\": \"Hello\"}";
+    expect_snapshot_matches_full(base, 13, 1, "Z", 1, &json_definition);
+    expect_snapshot_matches_full(base, 3, 1, "xy", 2, &json_definition);
+    expect_snapshot_matches_full(base, 4, 2, "q", 1, &json_definition);
+}
+
+// A structural edit (new delimiter) takes the general splice + rebuild path.
+TEST(lexer_streams, incremental_structural_edit_matches_full_snapshot) {
+    const char *base = "{\n  \"message\": \"Hello\",\n  \"n\": 42\n}\n";
+    size_t off = strlen("{\n  \"message\": \"Hello\"");
+    expect_snapshot_matches_full(base, off, 0, ",", 1, &json_definition);
+    expect_snapshot_matches_full(base, 1, 0, "[", 1, &json_definition);
+}
+
+// Whitespace lives in the trivia stream; an edit there must keep the trivia
+// offsets and the following token's aggregate flags correct.
+TEST(lexer_streams, incremental_whitespace_edit_matches_full_snapshot) {
+    const char *base = "int  a";
+    expect_snapshot_matches_full(base, 4, 0, " ", 1, &c_definition);
+    expect_snapshot_matches_full(base, 3, 0, "\n", 1, &c_definition);
+    expect_snapshot_matches_full(base, 3, 1, nullptr, 0, &c_definition);
+}
+
+TEST(lexer_streams, incremental_cfml_edit_matches_full_snapshot) {
+    const char *base = "<cfset a = 1><cfset b = 2>";
+    expect_snapshot_matches_full(base, 14, 0, "9", 1, &cfml_definition);
+    expect_snapshot_matches_full(base, 13, 13, "<cfset b = 200>", 15, &cfml_definition);
+}
+
+// Post-processed (AST) trees take the full-rebuild fallback; the snapshot must
+// still match a full parse that was also post-processed.
+TEST(lexer_streams, incremental_ast_mode_snapshot_matches_full) {
+    const char *base = "<cfset res = 2 + 3 * 4 />";
+    textparser::Parser incremental;
+    ASSERT_EQ(incremental.openmem(base, (int)strlen(base), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(incremental.parse(&cfml_definition), 0);
+    textparser_token_item *root = incremental.get_first_token();
+    textparser_post_process(&root, &cfml_definition);
+    ASSERT_EQ(incremental.parse_incremental(&cfml_definition, 15, 1, "*", 1, nullptr), 0);
+
+    const char *edited = "<cfset res = 2 * 3 * 4 />";
+    textparser::Parser full;
+    ASSERT_EQ(full.openmem(edited, (int)strlen(edited), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(full.parse(&cfml_definition), 0);
+    textparser_token_item *full_root = full.get_first_token();
+    textparser_post_process(&full_root, &cfml_definition);
+
+    EXPECT_EQ(capture_snapshot(incremental), capture_snapshot(full));
+}
+
+// Repeated edits must keep reusing the retained snapshot buffers while staying
+// in sync with a full parse.
+TEST(lexer_streams, repeated_leaf_edits_keep_snapshot_in_sync) {
+    std::string text = "{\"message\": \"Hello\"}";
+    textparser::Parser incremental;
+    ASSERT_EQ(incremental.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(incremental.parse(&json_definition), 0);
+
+    for (int i = 0; i < 12; ++i) {
+        size_t off = text.find("Hello") + 2;
+        std::string ins(1, (i % 2 == 0) ? 'x' : 'y');
+        ASSERT_EQ(incremental.parse_incremental(&json_definition, off, 0, ins.c_str(), 1, nullptr), 0);
+        text.insert(off, ins);
+
+        textparser::Parser full;
+        ASSERT_EQ(full.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(full.parse(&json_definition), 0);
+        EXPECT_EQ(capture_snapshot(incremental), capture_snapshot(full)) << "iteration " << i;
+    }
+}
+
+// Exact differential guard: every single-character insert and delete over a
+// structural JSON sample must leave the snapshot equal to a full parse.
+TEST(lexer_streams, all_single_char_edits_match_full_snapshot) {
+    const char *base = "{\n  \"message\": \"Hello, world!\",\n  \"n\": 42,\n  \"arr\": [1, 2.5, -3]\n}\n";
+    const char *chars[] = {"X", "9", ".", "-", "e", "\\", "\"", ",", "{", "[", ":", " ", "\n"};
+    size_t mismatches = 0;
+    size_t total = 0;
+
+    for (size_t offset = 1; offset <= strlen(base); ++offset) {
+        for (const char *ch : chars) {
+            std::string edited(base);
+            edited.insert(offset, ch);
+            textparser::Parser probe;
+            if (probe.openmem(edited.c_str(), (int)edited.size(), TEXTPARSER_ENCODING_UTF_8) != 0) continue;
+            if (probe.parse(&json_definition) != 0) continue;
+
+            textparser::Parser incremental;
+            if (incremental.openmem(base, (int)strlen(base), TEXTPARSER_ENCODING_UTF_8) != 0) continue;
+            if (incremental.parse(&json_definition) != 0) continue;
+            if (incremental.parse_incremental(&json_definition, offset, 0, ch, strlen(ch), nullptr) != 0) continue;
+
+            textparser::Parser full;
+            if (full.openmem(edited.c_str(), (int)edited.size(), TEXTPARSER_ENCODING_UTF_8) != 0) continue;
+            if (full.parse(&json_definition) != 0) continue;
+
+            ++total;
+            if (!(capture_snapshot(incremental) == capture_snapshot(full))) ++mismatches;
+        }
+    }
+
+    ASSERT_GT(total, 0u);
+    EXPECT_EQ(mismatches, 0u);
+}
+

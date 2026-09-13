@@ -124,3 +124,50 @@ before/after) or `malloc`.
 ## 1.4 (Cleanup)
 
 - Code cleanup(deslobification). Cleanup AI slob, old architecture decisions and other.
+
+## 1.5 (Incremental parser: sub-linear edit window) — FUTURE WORK
+
+Status: not implemented. The lexer-snapshot rebuild item is already addressed:
+the snapshot buffers are retained and in-leaf edits patch them in place
+(`textparser_patch_lexer_streams_leaf`).
+
+### Problem
+
+Every incremental edit is O(document), not O(edit window). The dominant cost is
+the reparse: `parent_container` is hard-wired to `nullptr`
+(`src/textparser.c:4200`), so `sibling_list = handle->first_item`
+(`src/textparser.c:4254`) and `dirty_first = sibling_list`
+(`src/textparser.c:4287`). The reparse therefore re-tokenizes from offset 0 to
+the container end on every edit. Anchoring at the root was a deliberate
+correctness fix (a token's match can depend on text outside its span, e.g. the
+JSON `Key` lookahead over its `:` sibling), so it cannot simply be reverted.
+This also allocates the per-edit arena garbage tracked in §1.3. Three further
+O(document) costs stack on top: `find_token_at_position_internal` (sibling walk
+to the edit), the lexer snapshot rebuild for structural/AST edits, and
+whole-tree `textparser_post_process` in AST mode.
+
+### Goal
+
+Make an edit cost O(edit window + log n) instead of O(document), for both raw
+CSTs and post-processed ASTs, without regressing the correctness the root anchor
+buys.
+
+### Design (to be written before implementation)
+
+1. **Bounded reparse window.** Re-introduce a forward resync that stops at the
+   first token whose re-lexed shape matches the old tree, so the reparse is
+   bounded by the edit rather than the container. Must preserve the
+   lookahead-dependent reclassifications (JSON `Key`, CFML `OutputTagPair`, JS
+   regex-vs-division) that forced the root anchor.
+2. **Persistent order-statistic index over the CST** so the dirty leaf can be
+   located and the lexer stream spliced by rank in O(log n) instead of a sibling
+   walk.
+3. **Position piece-table** (or per-segment bias) so a suffix offset shift is
+   O(1) instead of an O(n) pass over the flat snapshot.
+4. **Incremental `textparser_post_process`** scoped to the reparse window and
+   the disambiguation state it can affect, instead of a whole-tree pass.
+
+Each step needs its own design doc and differential tests before implementation;
+the existing incremental differential guards (`incremental_tests.cpp`,
+`lexer_stream_tests.cpp`) must stay at 0 mismatches.
+

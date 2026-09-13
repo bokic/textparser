@@ -283,3 +283,86 @@ TEST(lexer_modes, contextual_scanner_applies_token_validator) {
     parser.reset();
     textparser_free_language_definition(definition);
 }
+
+// The immutable lexer snapshot must record the lexer mode each token was
+// scanned under, reconstructed from the CST and the lexer push/pop rules.
+TEST(lexer_modes, snapshot_reconstructs_mode_from_cst) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(contextual_lexer_json, &definition), 0);
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("< x > body", 10, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+
+    size_t count = 0;
+    const textparser_lex_token *tokens = parser.lexer_tokens(&count);
+    ASSERT_NE(tokens, nullptr);
+    ASSERT_EQ(count, 4u);
+    // "<" scanned in default, then pushes tag; "x" and ">" scanned in tag
+    // (">" pops it); "body" scanned back in default.
+    EXPECT_EQ(tokens[0].mode, 1); // default
+    EXPECT_EQ(tokens[1].mode, 2); // tag
+    EXPECT_EQ(tokens[2].mode, 2); // tag
+    EXPECT_EQ(tokens[3].mode, 1); // default
+    for (size_t i = 0; i < count; i++) EXPECT_EQ(tokens[i].lexical_goal, 0);
+
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+// A parse anchors at the root, so it must begin from the language's initial
+// lexical state: a stale mode/goal from a prior grammar execution must not leak
+// into the parse or the rebuilt lexer snapshot.
+TEST(lexer_modes, parse_resets_stale_lexical_state) {
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("< x > body", 10, TEXTPARSER_ENCODING_UTF_8), 0);
+
+    ASSERT_EQ(textparser_push_mode(parser.get(), "tag"), 0);
+    textparser_set_lexical_goal(parser.get(), "ExpressionStart");
+    EXPECT_STREQ(textparser_get_current_mode(parser.get()), "tag");
+    EXPECT_STREQ(textparser_get_lexical_goal(parser.get()), "ExpressionStart");
+
+    ASSERT_EQ(parser.parse(&json_definition), 0);
+    EXPECT_STREQ(textparser_get_current_mode(parser.get()), "default");
+    EXPECT_EQ(textparser_get_lexical_goal(parser.get()), nullptr);
+}
+
+// An incremental edit must rebuild the snapshot with the same reconstructed
+// modes as a fresh full parse of the edited text.
+TEST(lexer_modes, incremental_snapshot_modes_match_full_parse) {
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(contextual_lexer_json, &definition), 0);
+
+    const char *base = "< x > body";
+    const struct { size_t offset; size_t old_len; const char *ins; } edits[] = {
+        {7, 0, "y"},
+        {2, 1, "yz"},
+        {6, 0, " "},
+        {4, 0, "q"},
+    };
+
+    for (const auto &e : edits) {
+        textparser::Parser inc;
+        ASSERT_EQ(inc.openmem(base, (int)strlen(base), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(inc.parse(definition), 0);
+        textparser_dirty_range dirty{};
+        ASSERT_EQ(inc.parse_incremental(definition, e.offset, e.old_len, e.ins, strlen(e.ins), &dirty), 0);
+
+        std::string edited(base);
+        edited.replace(e.offset, e.old_len, e.ins);
+        textparser::Parser full;
+        ASSERT_EQ(full.openmem(edited.c_str(), (int)edited.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(full.parse(definition), 0);
+
+        size_t inc_count = 0, full_count = 0;
+        const textparser_lex_token *inc_tokens = inc.lexer_tokens(&inc_count);
+        const textparser_lex_token *full_tokens = full.lexer_tokens(&full_count);
+        ASSERT_EQ(inc_count, full_count) << "offset " << e.offset;
+        for (size_t i = 0; i < inc_count; i++) {
+            EXPECT_EQ(inc_tokens[i].kind, full_tokens[i].kind) << "offset " << e.offset << " token " << i;
+            EXPECT_EQ(inc_tokens[i].mode, full_tokens[i].mode) << "offset " << e.offset << " token " << i;
+            EXPECT_EQ(inc_tokens[i].lexical_goal, full_tokens[i].lexical_goal) << "offset " << e.offset << " token " << i;
+        }
+    }
+
+    textparser_free_language_definition(definition);
+}

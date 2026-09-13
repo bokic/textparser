@@ -653,6 +653,19 @@ EXPORT_TEXTPARSER int textparser_parse(textparser_t handle, const textparser_lan
  * @param new_len Length of inserted text in units.
  * @param out_range (Optional) Pointer to receive the dirty repaint range coordinates.
  * @return 0 on success, non-zero error code on failure.
+ *
+ * If the current tree was previously passed to `textparser_post_process`, the
+ * edit is applied to the flattened CST and the AST post-processing is re-derived
+ * on the updated tree. A tree that has never been post-processed stays a raw CST.
+ * A full-document edit (`edit_offset == 0` and the new text reaching EOF) keeps
+ * whichever mode the tree was in.
+ *
+ * @warning On failure the edit is NOT rolled back: the internal text buffer has
+ * already been spliced and a partial CST is intentionally kept (this mirrors
+ * the `validation_tag_at_eof` contract and lets a caller keep highlighting the
+ * text it typed). A caller that needs a trustworthy tree after a non-zero
+ * return must re-parse from scratch (`textparser_parse`). The tree is always
+ * safe to read, but may be missing the region at/after `edit_offset`.
  */
 EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const textparser_language_definition *definition, size_t edit_offset, size_t old_len, const void *new_text, size_t new_len, textparser_dirty_range *out_range);
 
@@ -660,9 +673,17 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle, const te
  * Perform a 2nd AST post-processing pass to collapse/unwrap container nodes marked
  * with `delete_if_only_one_child` that contain exactly 1 child token.
  *
- * NOTE: This function MUST ONLY be called for full one-time document parses.
- * DO NOT use this function during interactive incremental parsing (`textparser_parse_incremental`),
- * as modifying node pointers invalidates parser state snapshots for subsequent edits.
+ * The pass also applies operator-precedence expression grouping, type-cast and
+ * declaration disambiguation, and template/generic disambiguation according to
+ * the language definition.
+ *
+ * A tree that has been through this function is in AST mode. `textparser_parse`
+ * and `textparser_parse_incremental` return a raw CST until this function is
+ * called; once called, the incremental engine detects AST mode on the next edit,
+ * flattens the synthesized wrappers, splices the edit, and re-derives the
+ * post-processing so the AST stays consistent across edits. Calling this
+ * function more than once on the same tree is therefore not required (and not
+ * recommended) between edits.
  *
  * @param root Pointer to the root token item pointer of the AST.
  * @param language Pointer to the language definition rules.

@@ -140,9 +140,18 @@ adv_regex_context *adv_regex_context_create(void)
     return (adv_regex_context *)calloc(1, sizeof(adv_regex_context));
 }
 
+/* Whether the current subject text is known to be valid UTF-8. Text validity is
+ * a property of the subject, not of a particular context: the generated
+ * per-token search functions keep their own private contexts, so a shared
+ * thread-local flag lets them take the PCRE2_NO_UTF_CHECK fast path too.
+ * Otherwise PCRE2 validates the whole subject on every match, making the parse
+ * O(n^2). */
+static _Thread_local bool adv_regex_thread_utf8_valid = false;
+
 void adv_regex_set_utf8_valid(adv_regex_context *ctx, bool valid)
 {
     if (ctx) ctx->utf8_valid = valid;
+    adv_regex_thread_utf8_valid = valid;
 }
 
 void adv_regex_context_free(adv_regex_context *ctx)
@@ -358,7 +367,7 @@ static bool adv_regex_find_pattern_impl(
 
     bool ret = false;
     uint32_t match_options = (only_at_start ? PCRE2_ANCHORED : 0);
-    if (is_utf && ctx->utf8_valid) match_options |= PCRE2_NO_UTF_CHECK;
+    if (is_utf && adv_regex_thread_utf8_valid) match_options |= PCRE2_NO_UTF_CHECK;
     int  rc  = api->match(*regex, (const void *)start, max_len, 0, match_options, match_data, NULL);
 
     if (rc == 1) {

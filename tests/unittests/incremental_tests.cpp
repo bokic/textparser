@@ -4,6 +4,7 @@
 #include <html_definition.json.h>
 #include <json_definition.json.h>
 #include <c_definition.json.h>
+#include <cpp_definition.json.h>
 #include <javascript_definition.json.h>
 
 #include <cstring>
@@ -17,6 +18,42 @@ static void collect_tree_shape(const textparser_token_item *token,
         out.push_back({token->token_id, token->len});
         collect_tree_shape(token->child, out);
     }
+}
+
+static bool tree_has_synthesized(const textparser_token_item *token) {
+    for (; token != nullptr; token = token->next) {
+        if (token->text_flags & 0x80000000u) return true;
+        if (tree_has_synthesized(token->child)) return true;
+    }
+    return false;
+}
+
+// Compare an incremental edit on an already post-processed AST against a full
+// parse followed by post_process of the edited text.
+static bool processed_incremental_matches_full(const char *base, size_t offset,
+                                               size_t old_len, const char *inserted,
+                                               size_t new_len,
+                                               const textparser_language_definition *def) {
+    textparser::Parser incremental;
+    if (incremental.openmem(base, (int)strlen(base), TEXTPARSER_ENCODING_UTF_8) != 0) return false;
+    if (incremental.parse(def) != 0) return false;
+    textparser_token_item *inc_root = incremental.get_first_token();
+    textparser_post_process(&inc_root, def);
+    if (incremental.parse_incremental(def, offset, old_len, inserted, new_len, nullptr) != 0) return false;
+
+    std::string edited(base);
+    edited.replace(offset, old_len, inserted, new_len);
+    textparser::Parser full;
+    if (full.openmem(edited.c_str(), (int)edited.size(), TEXTPARSER_ENCODING_UTF_8) != 0) return false;
+    if (full.parse(def) != 0) return false;
+    textparser_token_item *full_root = full.get_first_token();
+    textparser_post_process(&full_root, def);
+
+    std::vector<std::pair<int, size_t>> incremental_shape;
+    std::vector<std::pair<int, size_t>> full_shape;
+    collect_tree_shape(incremental.get_first_token(), incremental_shape);
+    collect_tree_shape(full.get_first_token(), full_shape);
+    return incremental_shape == full_shape;
 }
 
 TEST(IncrementalParsing, StateGenerateBasic) {
@@ -552,11 +589,22 @@ TEST(IncrementalParsing, AllStructuralEditsMatchFullParseExactly) {
     EXPECT_EQ(mismatches, 0u);
 }
 
+// Regression: deeply nested unterminated containers made the speculative
+// candidate retry loop exponential (the parser hung). The parse work budget must
+// make it terminate with an error instead of spinning forever.
+TEST(IncrementalParsing, PathologicalNestingTerminates) {
+    std::string text;
+    for (int i = 0; i < 30; ++i) text += "{\"a\":";
+    textparser::Parser p;
+    ASSERT_EQ(p.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    EXPECT_EQ(p.parse(&json_definition), -1);
+}
+
 TEST(IncrementalParsing, DifferentialAgainstFullParse) {
     // Regression guard for incremental/full equivalence. Every single-character
     // edit is applied incrementally and compared against a fresh full parse.
-    // Known remaining gaps are structural edits (quotes/backslashes) that still
-    // need container bubble-up; the ratio must not regress.
+    // The guard is exact: all edits that both paths accept must produce the
+    // same CST shape.
     const char *base = "{\n  \"message\": \"Hello, world!\",\n  \"n\": 42,\n  \"arr\": [1, 2.5, -3]\n}\n";
     const char *chars[] = {"X", "9", ".", "-", "e", "\\", "\"", ",", "{", "[", ":", " ", "\n"};
     size_t total = 0;
@@ -585,7 +633,7 @@ TEST(IncrementalParsing, DifferentialAgainstFullParse) {
     }
 
     ASSERT_GT(total, 0u);
-    EXPECT_GE(equivalent * 100 / total, 80u) << "equivalent " << equivalent << "/" << total;
+    EXPECT_EQ(equivalent, total) << "equivalent " << equivalent << "/" << total;
 }
 
 TEST(IncrementalParsing, MidLeafInsertResizesLeafAndMatchesFullParse) {
@@ -637,4 +685,281 @@ TEST(IncrementalParsing, MidLeafDeleteResizesLeafAndMatchesFullParse) {
 }
 
 
+
+
+TEST(IncrementalParsing, LongSingleLineArrayMatchesFullParse) {
+    // A long line exercises the single-line search-bound cache in
+    // textparser_get_end_of_line_units (previously O(line) per candidate,
+    // O(n^2) overall) and the PCRE2 UTF-8 fast path. Guards against both
+    // performance regressions while asserting the CST stays correct.
+    std::string text = "[";
+    for (int i = 0; i < 5000; ++i) {
+        text += std::to_string(i);
+        text += ",";
+    }
+    text += "1]";
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(&json_definition), 0);
+    EXPECT_EQ(parser.get_parse_error(), nullptr);
+
+    // A mid-line edit must still match a full parse.
+    const size_t offset = text.size() / 2;
+    EXPECT_TRUE(incremental_matches_full(text.c_str(), offset, 0, " ", 1));
+    EXPECT_TRUE(incremental_matches_full(text.c_str(), offset, 1, nullptr, 0));
+}
+
+TEST(IncrementalParsing, ExpressionPostProcessReDerivedOnIncrementalEdit) {
+    // Initial expression: 2 + 3 * 4 (MulOperator nested under AddOperator)
+    const char *initial_code = "<cfset res = 2 + 3 * 4 />";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(initial_code, strlen(initial_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    textparser_token_item *root = textparser_get_first_token(handle);
+    textparser_post_process(&root, &cfml_definition);
+
+    // Verify initial AST has AddOperator wrapping MulOperator
+    textparser_token_item *assign = nullptr;
+    for (textparser_token_item *t = root; t; t = t->next) {
+        for (textparser_token_item *c = t->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0) {
+                assign = c;
+                break;
+            }
+        }
+    }
+    ASSERT_NE(assign, nullptr);
+    textparser_token_item *add = nullptr;
+    for (textparser_token_item *c = assign->child; c; c = c->next) {
+        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AddOperator") == 0) {
+            add = c;
+            break;
+        }
+    }
+    ASSERT_NE(add, nullptr);
+    textparser_token_item *mul = nullptr;
+    for (textparser_token_item *c = add->child; c; c = c->next) {
+        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "MulOperator") == 0) {
+            mul = c;
+            break;
+        }
+    }
+    ASSERT_NE(mul, nullptr);
+
+    // Incrementally replace "+" with "*" and "*" with "+":
+    // Change "2 + 3 * 4" to "2 * 3 + 4"
+    // In "<cfset res = 2 + 3 * 4 />":
+    // offset of '+': 15
+    const char *plus_replacement = "*";
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 15, 1, plus_replacement, 1, nullptr), 0);
+
+    // offset of '*': 19
+    const char *mul_replacement = "+";
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 19, 1, mul_replacement, 1, nullptr), 0);
+
+    // In "<cfset res = 2 * 3 + 4 />", AddOperator must now wrap MulOperator
+    // with MulOperator being left child: (2 * 3) + 4
+    root = textparser_get_first_token(handle);
+    assign = nullptr;
+    for (textparser_token_item *t = root; t; t = t->next) {
+        for (textparser_token_item *c = t->child; c; c = c->next) {
+            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0) {
+                assign = c;
+                break;
+            }
+        }
+    }
+    ASSERT_NE(assign, nullptr);
+    add = nullptr;
+    for (textparser_token_item *c = assign->child; c; c = c->next) {
+        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AddOperator") == 0) {
+            add = c;
+            break;
+        }
+    }
+    ASSERT_NE(add, nullptr);
+    mul = nullptr;
+    for (textparser_token_item *c = add->child; c; c = c->next) {
+        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "MulOperator") == 0) {
+            mul = c;
+            break;
+        }
+    }
+    ASSERT_NE(mul, nullptr);
+
+    // Compare with full parse + post process
+    const char *final_code = "<cfset res = 2 * 3 + 4 />";
+    textparser_t full_handle = nullptr;
+    ASSERT_EQ(textparser_openmem(final_code, strlen(final_code), TEXTPARSER_ENCODING_LATIN1, &full_handle), 0);
+    ASSERT_EQ(textparser_parse(full_handle, &cfml_definition), 0);
+    textparser_token_item *full_root = textparser_get_first_token(full_handle);
+    textparser_post_process(&full_root, &cfml_definition);
+
+    std::vector<std::pair<int, size_t>> incremental_shape;
+    std::vector<std::pair<int, size_t>> full_shape;
+    collect_tree_shape(root, incremental_shape);
+    collect_tree_shape(full_root, full_shape);
+    EXPECT_EQ(incremental_shape, full_shape);
+
+    textparser_close(handle);
+    textparser_close(full_handle);
+}
+
+TEST(IncrementalParsing, RepeatedIncrementalExpressionEditsWithoutLeak) {
+    const char *initial_code = "<cfset res = 1 + 2 + 3 + 4 />";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(initial_code, strlen(initial_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    textparser_token_item *root = textparser_get_first_token(handle);
+    textparser_post_process(&root, &cfml_definition);
+
+    // Repeatedly swap operators back and forth
+    for (int iter = 0; iter < 10; iter++) {
+        const char *op = (iter % 2 == 0) ? "*" : "+";
+        ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 15, 1, op, 1, nullptr), 0);
+        ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 19, 1, op, 1, nullptr), 0);
+    }
+
+    // Now test a full parse reset (start_pos == 0, end_pos >= total)
+    const char *reset_code = "<cfset res = 10 * 20 />";
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, strlen(initial_code), reset_code, strlen(reset_code), nullptr), 0);
+
+    textparser_close(handle);
+}
+
+static bool tree_contains_type(const textparser_token_item *token,
+                               const textparser_language_definition *def,
+                               const char *name) {
+    for (; token != nullptr; token = token->next) {
+        if (token->token_id >= 0 && def->tokens[token->token_id].name != nullptr &&
+            strcmp(def->tokens[token->token_id].name, name) == 0) {
+            return true;
+        }
+        if (tree_contains_type(token->child, def, name)) return true;
+    }
+    return false;
+}
+
+// A raw CST (caller never called textparser_post_process) must stay raw after an
+// incremental edit: no synthesized expression/template wrappers may appear.
+TEST(IncrementalParsing, RawCstStaysRawAfterIncrementalEdit) {
+    const char *initial = "<cfset res = 2 + 3 * 4 />";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(initial, strlen(initial), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_FALSE(tree_has_synthesized(textparser_get_first_token(handle)));
+
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 15, 1, "*", 1, nullptr), 0);
+    EXPECT_FALSE(tree_has_synthesized(textparser_get_first_token(handle)));
+
+    textparser_close(handle);
+}
+
+// Once a caller has opted into AST mode via textparser_post_process, a full
+// document reset edit must re-derive the AST instead of silently reverting to a
+// raw CST.
+TEST(IncrementalParsing, PostProcessModeStickyAcrossFullReset) {
+    const char *initial = "<cfset res = 2 + 3 * 4 />";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(initial, strlen(initial), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    textparser_token_item *root = textparser_get_first_token(handle);
+    textparser_post_process(&root, &cfml_definition);
+    ASSERT_TRUE(tree_has_synthesized(root));
+
+    const char *replacement = "<cfset res = 5 * 6 + 7 />";
+    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, strlen(initial),
+                                           replacement, strlen(replacement), nullptr), 0);
+
+    root = textparser_get_first_token(handle);
+    ASSERT_TRUE(tree_has_synthesized(root));
+
+    textparser_t full = nullptr;
+    ASSERT_EQ(textparser_openmem(replacement, strlen(replacement), TEXTPARSER_ENCODING_LATIN1, &full), 0);
+    ASSERT_EQ(textparser_parse(full, &cfml_definition), 0);
+    textparser_token_item *full_root = textparser_get_first_token(full);
+    textparser_post_process(&full_root, &cfml_definition);
+
+    std::vector<std::pair<int, size_t>> incremental_shape;
+    std::vector<std::pair<int, size_t>> full_shape;
+    collect_tree_shape(root, incremental_shape);
+    collect_tree_shape(full_root, full_shape);
+    EXPECT_EQ(incremental_shape, full_shape);
+
+    textparser_close(handle);
+    textparser_close(full);
+}
+
+// Cast disambiguation mutates a Parenthesis token ID in place (it does not
+// synthesize a tagged wrapper), so the engine must still detect AST mode and
+// reclassify the parenthesis after an edit.
+TEST(IncrementalParsing, CastDisambiguationReDerivedOnIncrementalEdit) {
+    const char *initial = "int y = (int)x;\n";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(initial, strlen(initial), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &c_definition), 0);
+    textparser_token_item *root = textparser_get_first_token(handle);
+    textparser_post_process(&root, &c_definition);
+    ASSERT_TRUE(tree_contains_type(root, &c_definition, "TypeCast"));
+
+    ASSERT_EQ(textparser_parse_incremental(handle, &c_definition, 9, 3, "long", 4, nullptr), 0);
+    EXPECT_TRUE(tree_contains_type(textparser_get_first_token(handle), &c_definition, "TypeCast"));
+
+    EXPECT_TRUE(processed_incremental_matches_full(initial, 9, 3, "long", 4, &c_definition));
+    textparser_close(handle);
+}
+
+// Template/generic disambiguation synthesizes a TemplateGroup; after an edit the
+// group must be re-derived (or dropped) exactly like a fresh parse.
+TEST(IncrementalParsing, TemplateDisambiguationReDerivedOnIncrementalEdit) {
+    const char *initial = "std::vector<int> x;\n";
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(initial, strlen(initial), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+    ASSERT_EQ(textparser_parse(handle, &cpp_definition), 0);
+    textparser_token_item *root = textparser_get_first_token(handle);
+    textparser_post_process(&root, &cpp_definition);
+    ASSERT_TRUE(tree_contains_type(root, &cpp_definition, "TemplateGroup"));
+
+    // Keep the template valid by renaming the variable, then verify the group
+    // survives the edit and the whole AST matches a full parse.
+    EXPECT_TRUE(processed_incremental_matches_full(initial, 17, 1, "y", 1, &cpp_definition));
+    ASSERT_EQ(textparser_parse_incremental(handle, &cpp_definition, 17, 1, "y", 1, nullptr), 0);
+    EXPECT_TRUE(tree_contains_type(textparser_get_first_token(handle), &cpp_definition, "TemplateGroup"));
+
+    textparser_close(handle);
+}
+
+// Differential: every single-character insert over CFML, C and C++ must keep an
+// already post-processed AST identical to a full parse + post_process.
+TEST(IncrementalParsing, ProcessedAstIncrementalMatchesFullParse) {
+    struct LangCase {
+        const char *name;
+        const char *text;
+        const textparser_language_definition *def;
+    };
+    const LangCase cases[] = {
+        {"cfml", "<cfset res = 2 + 3 * 4 />", &cfml_definition},
+        {"c", "int y = (int)x;\n", &c_definition},
+        {"cpp", "std::vector<int> x;\n", &cpp_definition},
+    };
+    const char *chars[] = {"+", "*", "(", ")", "9", " ", "x", "<", ">"};
+
+    for (const LangCase &lang : cases) {
+        size_t mismatches = 0;
+        for (size_t offset = 0; offset <= strlen(lang.text); ++offset) {
+            for (const char *ch : chars) {
+                std::string edited(lang.text);
+                edited.insert(offset, ch);
+                textparser::Parser probe;
+                if (probe.openmem(edited.c_str(), (int)edited.size(), TEXTPARSER_ENCODING_UTF_8) != 0) continue;
+                if (probe.parse(lang.def) != 0) continue;
+                if (!processed_incremental_matches_full(lang.text, offset, 0, ch, strlen(ch), lang.def)) {
+                    mismatches++;
+                }
+            }
+        }
+        EXPECT_EQ(mismatches, 0u) << lang.name;
+    }
+}
 

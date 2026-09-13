@@ -94,6 +94,14 @@ typedef struct textparser_token_item {
 } textparser_token_item;
 ```
 
+Node identity: `id` is assigned from a per-handle monotonic counter
+(`++handle->next_node_id`) and is never reused or compacted. This is deliberate,
+not a leak: `id` is `uint64_t`, so wraparound would require 2^64 allocations, and
+a stable ID lets callers key their own maps/attachments (`user_data`, AST nodes)
+to a node across edits. In-place arena compaction (ROADMAP §1.3) preserves `id`;
+reusing orphaned IDs would risk stale-ID collisions. `id` is distinct from
+`token_id`, which is the grammar token kind.
+
 #### Node Flags (`node_flags`)
 * `TEXTPARSER_NODE_SYNTHETIC` (`1 << 0`): Synthesized node (e.g. ASI semicolon).
 * `TEXTPARSER_NODE_MISSING` (`1 << 1`): Required grammar element that was absent and inserted for recovery.
@@ -121,6 +129,10 @@ When lexing completes, tokens and trivia are organized into two contiguous immut
   * `leading_trivia_start`: Index into the trivia vector for preceding whitespace/comments.
   * `leading_trivia_count`: Number of trivia elements attached before this token.
   * `mode`, `lexical_goal`: Lexer mode and goal under which this token was scanned.
+    The snapshot builder reconstructs `mode` by replaying the lexer rule
+    `pop_mode`/`push_mode` transitions in document order (so it matches
+    `textparser_contextual_scan_one`); `lexical_goal` is the default goal (`0`)
+    for the legacy/incremental parse path, which has no grammar-scoped goal.
   * `flags`: e.g. `TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR`.
   * `decoded_value`: Cached unescaped string or decoded payload.
 
@@ -128,6 +140,11 @@ When lexing completes, tokens and trivia are organized into two contiguous immut
   * `kind`: Whitespace or comment token ID.
   * `start`, `end`: Half-open span.
   * `flags`: Contains `TEXTPARSER_LEX_FLAG_CONTAINS_LINE_TERMINATOR` if newline present.
+
+The two vectors are owned by the handle and their capacity is retained across
+incremental edits. A rebuild re-fills the existing buffers instead of freeing
+and reallocating, and the in-leaf resize fast path patches the snapshot in place
+(see §4.1 step 0). The buffers are only released on close or `textparser_set_text`.
 
 ---
 
@@ -161,10 +178,13 @@ When text is edited, `textparser_parse_incremental` performs localized re-lexing
    edited leaf length, only the leaf's length and its ancestors' lengths are
    updated; no re-scan happens. This prevents a greedy leaf (for example JSON
    `StringContent`) from being split into two adjacent leaves or from dropping
-   its unchanged prefix. `out_range` covers the resized leaf and the lexer
-   streams are rebuilt. This applies to pure inserts, deletes, and same-length
-   replacements that keep the leaf's pattern intact; anything else falls
-   through to the steps below.
+   its unchanged prefix. `out_range` covers the resized leaf. On a raw CST the
+   retained lexer snapshot is patched in place (the edited entry's end and every
+   later entry's offsets shift by the delta; kinds, trivia indices and modes are
+   untouched); on a post-processed AST the snapshot is rebuilt instead, because
+   post-processing may have changed token kinds relative to the snapshot. This
+   applies to pure inserts, deletes, and same-length replacements that keep the
+   leaf's pattern intact; anything else falls through to the steps below.
 1. **Text Splicing**: Updates the internal memory buffer by inserting or deleting the delta range.
 2. **Context Resolution**: Anchors at the **root** and re-tokenizes the
    top-level token containing the edit. Anchoring at the nearest container (or
@@ -173,16 +193,22 @@ When text is edited, `textparser_parse_incremental` performs localized re-lexing
    start/end delimiter (a CFML `OutputStartTag` inside an `OutputTagPair`, where
    an edit in the tag name invalidates the pair). Re-tokenizing from the root
    re-evaluates every ancestor; the alignment below keeps the unchanged nodes, so
-   tree mutation stays localized.
-3. **Token-boundary dirty region**: The reparse window starts at the sibling
-   containing `edit_offset - 1` (one neighbour token of lookback, so an edit at
-   a token boundary can re-evaluate the preceding token's lookahead/end
-   pattern), skips the container's start delimiter, and **extends to the last
-   child before the container's end delimiter**. Re-tokenizing to the container
-   end lets an overrun (greedy token or newly opened container) resync with the
-   old suffix; the alignment below keeps the unchanged prefix/suffix nodes, so
-   tree mutation stays localized. The container's own `otherTextInside` is used,
-   not the language-level flag.
+   tree mutation stays localized. Because the anchor is the root, the reparse
+   always starts in the language's **initial lexical state**: the parser clears
+   any `mode_stack`/`lexical_goal` left over from a previous parse or
+   `textparser_execute_production` (`textparser_reset_lexical_state`) before
+   re-tokenizing, so the anchor is state-safe for context-sensitive lexing.
+3. **Token-boundary dirty region**: The reparse window starts at the **first
+   sibling** of the anchor container, skips the container's start delimiter, and
+   **extends to the last child before the container's end delimiter**.
+   Re-tokenizing from the first sibling is required because a start token's end
+   search has unbounded lookahead, so an edit can retroactively change the
+   extent of an *earlier* top-level token (chained-edit fuzzing,
+   `tmp/fuzzchain.cpp`). Re-tokenizing to the container end lets an overrun
+   (greedy token or newly opened container) resync with the old suffix; the
+   alignment below keeps the unchanged prefix/suffix nodes, so tree mutation
+   stays localized. The container's own `otherTextInside` is used, not the
+   language-level flag.
 4. **Local Re-scan**: Re-lexes the window with the anchor's nested token rules,
    collecting the new sibling run into the per-handle **scratch arena**
    (`arena_reset(&handle->scratch)` at entry; no per-call heap traffic). A
@@ -204,6 +230,15 @@ When text is edited, `textparser_parse_incremental` performs localized re-lexing
    window, so unchanged suffix tokens keep their packrat memo entries. Shifts or
    invalidates entries intersecting that range
    (`textparser_memo_shift_and_invalidate`).
+9. **AST mode re-derivation**: If the current tree was previously passed to
+   `textparser_post_process`, the engine detects that (via the internal
+   `TEXTPARSER_NODE_POST_PROCESSED` marker and/or synthesized `0x80000000`
+   wrapper nodes), flattens the synthesized wrappers back into a raw CST before
+   the splice (freeing the heap wrappers), and re-runs
+   `textparser_post_process` on the updated tree. A tree that was never
+   post-processed stays a raw CST, so the documented `textparser_parse` /
+   `textparser_parse_incremental` contract is unchanged. A full-document reset
+   edit preserves whichever mode the tree was in.
 
 Arena reclamation: add/delete edits orphan the replaced nodes, which remain
 resident until a full parse resets the arena. An abortable in-place
@@ -212,13 +247,29 @@ resident until a full parse resets the arena. An abortable in-place
 
 Result: the incremental tree matches a full parse for all successful
 single-character inserts and deletions on JSON, CFML, C, and JavaScript samples
-(0 mismatches), with no incremental failures on valid input. Remaining known
-gaps (see `INCREMENTAL_ISSUES.md`): context-sensitive lexing (modes/goals) has no
-state-safe anchor, and the root anchor re-tokenizes the top-level token
-(O(document)) until a bounded forward resync that stops at the first matching
-token is added. The differential tests in `incremental_tests.cpp`
+(0 mismatches), with no incremental failures on valid input. Chained-edit
+fuzzing on malformed input is down to 3 divergences (JSON 0/2980, CFML 0/2997,
+C 1/2441, JavaScript 2/2494). Remaining known gaps (see `ROADMAP.md` §1.5,
+sub-linear edit window): the reparse re-tokenizes from the first top-level
+sibling (O(document), now that the full parse is linear) until a bounded forward
+resync that stops at the first matching token is added; this reparse window is
+the dominant per-edit cost. The lexer-snapshot rebuild is no longer on that hot
+path for in-leaf edits: the snapshot buffers are retained and patched in place
+(see §2.3, §4.1 step 0). The differential tests in `incremental_tests.cpp`
 (`DifferentialAgainstFullParse`, `AllStructuralEditsMatchFullParseExactly`,
 `CrossLanguageInsertsAndDeletesMatchFullParse`) guard against regressions.
+Post-processed ASTs are covered separately by
+`ProcessedAstIncrementalMatchesFullParse`, `ExpressionPostProcessReDerivedOnIncrementalEdit`,
+`CastDisambiguationReDerivedOnIncrementalEdit`,
+`TemplateDisambiguationReDerivedOnIncrementalEdit`,
+`PostProcessModeStickyAcrossFullReset`, and `RawCstStaysRawAfterIncrementalEdit`.
+
+Full-parse performance is O(n) in the input size. Two O(n^2) traps must stay
+closed: PCRE2 must not re-validate the whole subject on every match (the
+thread-local `adv_regex_thread_utf8_valid` fast path set by
+`adv_regex_set_utf8_valid`, which also covers the generated per-token search
+functions' private contexts), and the single-line search bound is cached per
+line (`line_cache_anchor` / `line_cache_end` in the handle, reset each parse).
 
 ### 4.2 Declarative Grammar Execution (`textparser_execute_production`)
 
@@ -452,6 +503,14 @@ rules (the in-memory CST still contains them):
      intentionally **not** restored, so the remembered node stays valid.
      (This was a bug in C: the error leaked into later candidates, so the first
      failing candidate poisoned all others.)
+   * Work budget: `textparser_parse_token` counts calls and aborts with
+     *"Parse complexity limit exceeded!"* once a generous multiple of the input
+     size (`text_size * 200 + 100000`) is exceeded. The candidate retry loop is
+     exponential on deeply nested ambiguous input, so this bounds the worst
+     case: a valid parse is O(text) and never reaches it, while pathological
+     input terminates with an error instead of hanging. Once exceeded the budget
+     is fatal — `otherTextInside` recovery is disabled so the parse does not
+     continue one character at a time.
 6. **Anchored matching and single-character advance**:
    * `textparser_find_token` compiles start patterns with `PCRE2_ANCHORED` and
      returns the first capture group's offset relative to the current position

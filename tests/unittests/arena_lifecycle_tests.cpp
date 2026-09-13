@@ -108,3 +108,30 @@ TEST(arena_lifecycle, handler_registration_and_event_dispatch) {
 
     textparser_close(handle);
 }
+
+TEST(arena_lifecycle, scratch_arena_high_water_retention_cleared_on_reset) {
+    // Construct a large input with many sibling elements to force the scratch arena
+    // to allocate multiple chunks during an incremental reparse.
+    std::string text = "[";
+    for (int i = 0; i < 2000; ++i) {
+        text += std::to_string(i);
+        text += ",";
+    }
+    text += "9999]";
+
+    textparser_t handle = nullptr;
+    ASSERT_EQ(textparser_openmem(text.c_str(), text.size(), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+    ASSERT_NE(handle, nullptr);
+    ASSERT_EQ(textparser_parse(handle, &json_definition), 0);
+
+    // Initial incremental reparse on a large sibling list allocates scratch chunks.
+    const char *insert_txt = "42,";
+    ASSERT_EQ(textparser_parse_incremental(handle, &json_definition, 1, 0, insert_txt, strlen(insert_txt), nullptr), 0);
+
+    // Subsequent incremental edits should not leak or retain unbounded high-water chunks.
+    for (int step = 0; step < 5; ++step) {
+        ASSERT_EQ(textparser_parse_incremental(handle, &json_definition, 1, 0, "1,", 2, nullptr), 0);
+    }
+
+    textparser_close(handle);
+}

@@ -145,6 +145,7 @@ from the core parser into pluggable validators and language validation modules:
 
 - **🌐 Massive Language Support:** Built-in regex-based grammars for modern and classic languages.
 - **⚡ High Performance:** Core tokenization and AST construction written in highly optimized C.
+- **♻️ Incremental, AST-aware re-parsing:** `textparser_parse_incremental` re-lexes only the edited region. It anchors at the root, resets the transient lexical state (mode stack / lexical goal) so the anchor is state-safe, and updates the immutable lexer snapshot with each token's reconstructed lexer mode. The snapshot buffers are retained across edits (no per-edit free/realloc) and an edit contained in a single leaf patches the snapshot in place; structural edits rebuild it. When the tree was previously passed to `textparser_post_process`, the engine flattens the synthesized AST wrappers, splices the edit, and re-derives expression grouping and cast/declaration/template disambiguation, so the AST stays consistent across edits. Trees that were never post-processed stay raw CSTs.
 - **🧬 Multi-Language Ecosystem:** Native language ports (Rust, Python, Java) manage underlying C memory safely. Detailed inner logic and porting contracts are specified in [ARCHITECTURE.md](ARCHITECTURE.md).
 - **🎨 Built-in `ccat` Utility:** A colorized alternative to the standard `cat` command for terminal code viewing.
 
