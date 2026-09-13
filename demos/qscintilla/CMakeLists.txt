@@ -27,6 +27,11 @@ target_compile_options(qscintilla PRIVATE
     -Wno-pedantic
 )
 
+target_include_directories(qscintilla PRIVATE
+    ../../include
+    ../../definitions
+)
+
 find_library(QSCINTILLA_LIBRARY NAMES qscintilla2_qt6 qscintilla2-qt6)
 if(NOT QSCINTILLA_LIBRARY)
     message(WARNING "QScintilla QT6 library not found!")

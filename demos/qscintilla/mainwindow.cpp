@@ -7,7 +7,12 @@
 #include <Qsci/qscistyle.h>
 
 #include <textparser.hpp>
-#include <../definitions/cfml_definition.json.h>
+#include <cfml_definition.json.h>
+
+#include <cstdint>
+#include <map>
+#include <tuple>
+#include <vector>
 
 
 static const quint8 breakpoint_png[] =
@@ -190,18 +195,13 @@ public:
     {
         if (m_definition)
         {
-            for(int c = 0;;c++)
+            for (int c = 0; m_definition->tokens[c].name != nullptr; c++)
             {
-                if (m_definition->tokens[c].name == nullptr)
-                {
-                    m_tokenCnt = c;
-                    break;
-                }
-
-                if (m_definition->tokens[c].text_color != TEXTPARSER_NOCOLOR)
-                    setColor(QColor::fromRgb(m_definition->tokens[c].text_color >> 16 & 0xff, m_definition->tokens[c].text_color >> 8 & 0xff, m_definition->tokens[c].text_color >> 0 & 0xff), c + 1);
-                if (m_definition->tokens[c].text_background != TEXTPARSER_NOCOLOR)
-                    setColor(QColor::fromRgb(m_definition->tokens[c].text_background >> 16 & 0xff, m_definition->tokens[c].text_background >> 8 & 0xff, m_definition->tokens[c].text_background >> 0 & 0xff), c + 1);
+                const textparser_token &token = m_definition->tokens[c];
+                int style = allocateStyle(token.text_color, token.text_background);
+                if (style > 0 && token.name)
+                    m_styleNames[style] = token.name;
+                allocateStyle(token.delimiter_text_color, token.delimiter_text_background);
             }
         }
     }
@@ -220,12 +220,8 @@ public:
 
     QString description(int style) const override
     {
-        QString ret;
-
-        if (style < m_tokenCnt)
-            ret = m_definition->tokens[style].name;
-
-        return ret;
+        auto it = m_styleNames.find(style);
+        return it != m_styleNames.end() ? it->second : QString();
     }
 
     void styleTokensRange(size_t start_pos, size_t end_pos)
@@ -241,61 +237,68 @@ public:
         {
             for (size_t i = 0; i < count; ++i)
             {
+                // Leaves such as string contents and delimiters have no style
+                // of their own; use the effective color computed by the parser.
+                int style = allocateStyle(token_buf[i].text_color, token_buf[i].text_background);
                 startStyling((int)token_buf[i].start_pos);
-                setStyling((int)token_buf[i].length, token_buf[i].token_id + 1);
+                setStyling((int)token_buf[i].length, style);
             }
         }
     }
 
     void styleText(int start, int end) override
     {
-        auto text = editor()->text().toLatin1();
-        if (text.length() <= 0)
+        Q_UNUSED(start);
+        Q_UNUSED(end);
+
+        // textparser keeps a pointer into the buffer, so keep the buffer alive
+        // for as long as the parser handle is open.
+        m_text = editor()->text().toLatin1();
+        if (m_text.isEmpty())
             return;
 
-        int len = end - start;
-        bool isMultiCharModification = (len > 1 || m_lastTextLength == 0 || abs(text.length() - m_lastTextLength) > 1);
+        if (m_parser.openmem(m_text.constData(), m_text.length(), TEXTPARSER_ENCODING_LATIN1) != 0)
+            return;
 
-        if (isMultiCharModification || !m_parser)
-        {
-            m_parser.openmem(text.constData(), text.length(), TEXTPARSER_ENCODING_LATIN1);
+        if (m_parser.parse(m_definition) != 0)
+            return;
 
-            if (m_parser.parse(m_definition) != 0)
-                return;
+        startStyling(0);
+        setStyling((int)m_text.length(), 0);
 
-            startStyling(0);
-            setStyling(text.length(), 0);
-
-            styleTokensRange(0, (size_t)text.length());
-        }
-        else
-        {
-            size_t edit_offset = (size_t)start;
-            size_t old_len = (m_lastTextLength > text.length()) ? (size_t)(m_lastTextLength - text.length() + (end - start)) : (size_t)(end - start);
-            const char *new_chunk = text.constData() + start;
-            size_t new_len = (size_t)(end - start);
-            textparser_dirty_range dirty = {};
-
-            if (m_parser.parse_incremental(m_definition, edit_offset, old_len, new_chunk, new_len, &dirty) == 0)
-            {
-                size_t rep_start = (dirty.dirty_start < (size_t)text.length()) ? dirty.dirty_start : 0;
-                size_t rep_end = (dirty.dirty_end <= (size_t)text.length() && dirty.dirty_end > rep_start) ? dirty.dirty_end : (size_t)text.length();
-
-                startStyling((int)rep_start);
-                setStyling((int)(rep_end - rep_start), 0);
-
-                styleTokensRange(rep_start, rep_end);
-            }
-        }
-
-        m_lastTextLength = text.length();
+        styleTokensRange(0, (size_t)m_text.length());
     }
 
 private:
+    int allocateStyle(uint32_t foreground, uint32_t background)
+    {
+        if (foreground == TEXTPARSER_NOCOLOR && background == TEXTPARSER_NOCOLOR)
+            return 0;
+
+        auto key = std::make_tuple(foreground, background);
+        auto it = m_colorStyles.find(key);
+        if (it != m_colorStyles.end())
+            return it->second;
+
+        int style = m_nextStyle++;
+        if (style > 255)
+            style = 0;
+
+        if (foreground != TEXTPARSER_NOCOLOR)
+            setColor(QColor::fromRgb((foreground >> 16) & 0xff, (foreground >> 8) & 0xff, foreground & 0xff), style);
+        if (background != TEXTPARSER_NOCOLOR)
+            setPaper(QColor::fromRgb((background >> 16) & 0xff, (background >> 8) & 0xff, background & 0xff), style);
+
+        m_colorStyles[key] = style;
+        return style;
+    }
+
     const textparser_language_definition *m_definition = nullptr;
     textparser::Parser m_parser;
-    int m_tokenCnt = 0;
-    int m_lastTextLength = 0;
+    QByteArray m_text;
+    int m_nextStyle = 1;
+    std::map<std::tuple<uint32_t, uint32_t>, int> m_colorStyles;
+    std::map<int, QString> m_styleNames;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -305,6 +308,14 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     ui->textEdit->setLexer(new QsciLexerTextParser(&cfml_definition));
+
+    ui->textEdit->setText(
+        "<cfset greeting = \"Hello, world!\">\n"
+        "<cfset numbers = [1, 2.5, -3]>\n"
+        "<cfoutput>\n"
+        "  <p>#greeting#</p>\n"
+        "  <!--- a comment --->\n"
+        "</cfoutput>\n");
 
     // Show line numbers
     ui->textEdit->setMarginType(0, QsciScintilla::SymbolMarginDefaultBackgroundColor);

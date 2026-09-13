@@ -22,10 +22,17 @@ if(NOT GTKSOURCEVIEW_FOUND)
     message(WARNING "GTKSOURCEVIEW not found!")
     return()
 endif()
-pkg_check_modules(TEXTPARSER IMPORTED_TARGET textparser)
-if(NOT TEXTPARSER_FOUND)
-    message(WARNING "TEXTPARSER not found!")
-    return()
+# Prefer the in-tree textparser target so the demo exercises the code being
+# built. Fall back to a system installation found through pkg-config.
+if(TARGET libtextparser)
+    set(TEXTPARSER_LINK libtextparser)
+else()
+    pkg_check_modules(TEXTPARSER IMPORTED_TARGET textparser)
+    if(NOT TEXTPARSER_FOUND)
+        message(WARNING "TEXTPARSER not found!")
+        return()
+    endif()
+    set(TEXTPARSER_LINK PkgConfig::TEXTPARSER)
 endif()
 
 add_executable(gtk4-sourceview
@@ -41,5 +48,5 @@ target_include_directories(gtk4-sourceview PRIVATE
 target_link_libraries(gtk4-sourceview PRIVATE
     PkgConfig::GTK4
     PkgConfig::GTKSOURCEVIEW
-    PkgConfig::TEXTPARSER
+    ${TEXTPARSER_LINK}
 )

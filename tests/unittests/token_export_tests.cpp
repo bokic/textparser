@@ -349,3 +349,39 @@ TEST(token_export_tests, delimiter_coloring_empty_string_edge_case) {
     textparser_free_language_definition(definition);
 }
 
+TEST(token_export_tests, cfml_string_content_inherits_container_color) {
+    const char *code = "<cfset s = \"hello\">";
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_LATIN1), 0);
+    ASSERT_EQ(parser.parse(&cfml_definition), 0);
+
+    size_t count = 0;
+    ASSERT_EQ(parser.export_tokens(nullptr, 0, &count), 0);
+    ASSERT_GT(count, 0u);
+
+    std::vector<textparser_token_range> tokens(count);
+    ASSERT_EQ(parser.export_tokens(tokens.data(), count, &count), 0);
+
+    bool found_content = false;
+    bool found_open_quote = false;
+    bool found_close_quote = false;
+    for (const auto &token : tokens) {
+        const char *text = code + token.start_pos;
+        if (token.length == 5 && memcmp(text, "hello", 5) == 0) {
+            found_content = true;
+            // String content is an inherited leaf (negative id) that must
+            // report the String token's color, not a default.
+            EXPECT_LT(token.token_id, 0);
+            EXPECT_EQ(token.text_color, 0xce9178);
+        }
+        if (token.length == 1 && text[0] == '"') {
+            EXPECT_EQ(token.text_color, 0x9e6a57);
+            if (token.start_pos == 11) found_open_quote = true;
+            if (token.start_pos == 17) found_close_quote = true;
+        }
+    }
+    EXPECT_TRUE(found_content);
+    EXPECT_TRUE(found_open_quote);
+    EXPECT_TRUE(found_close_quote);
+}
+
