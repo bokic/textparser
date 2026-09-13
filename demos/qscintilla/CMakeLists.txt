@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.19)
+
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 project(qscintilla LANGUAGES CXX)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
@@ -13,10 +19,18 @@ qt_add_executable(qscintilla
     mainwindow.ui
 )
 
+set_target_properties(qscintilla PROPERTIES
+    OUTPUT_NAME demo-qscintilla
+)
+
+target_compile_options(qscintilla PRIVATE
+    -Wno-pedantic
+)
+
 find_library(QSCINTILLA_LIBRARY NAMES qscintilla2_qt6 qscintilla2-qt6)
 if(NOT QSCINTILLA_LIBRARY)
-    message(WARNING "QScintilla QT6 library not found! Compiler link might fail.")
-    set(QSCINTILLA_LIBRARY qscintilla2_qt6) # Fallback to original
+    message(WARNING "QScintilla QT6 library not found!")
+    return()
 endif()
 
 target_link_libraries(qscintilla

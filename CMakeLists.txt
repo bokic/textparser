@@ -108,6 +108,7 @@ endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+option(BUILD_DEMOS "Build demos" OFF)
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 

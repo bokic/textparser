@@ -1,7 +1,9 @@
 #include <gtk/gtk.h>
 #include <gtksourceview/gtksource.h>
-#include "json.json.h"
 #include <string.h>
+
+#include <json_definition.json.h>
+
 
 typedef struct {
     GtkTextBuffer *buffer;
