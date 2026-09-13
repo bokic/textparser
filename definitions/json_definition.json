@@ -46,6 +46,7 @@
     },
     "Value": {
       "type": "GroupOneChildOnly",
+      "multiLine": true,
       "nestedTokens": [
         "String",
         "Number",
@@ -63,6 +64,7 @@
       "endRegex": "(\\\")\\s*:",
       "textColor": "0x9cdcfe",
       "nestedTokens": [
+        "StringContent",
         "StringEscape"
       ],
       "delimiterTextColor": "0x6a9ec0"
@@ -74,19 +76,25 @@
       "endRegex": "\\\"",
       "textColor": "0xce9178",
       "nestedTokens": [
+        "StringContent",
         "StringEscape"
       ],
       "delimiterTextColor": "0x9e6a57"
     },
     "Number": {
       "type": "SimpleToken",
-      "startRegex": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+      "startRegex": "-?\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
       "textColor": "0xb5cea8"
     },
     "StringEscape": {
       "type": "SimpleToken",
-      "startRegex": "\\\\\\\\|\\\\\\/|\\\\b|\\\\f|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-f]{4}",
+      "startRegex": "\\\\\\\\|\\\\\"|\\\\\\/|\\\\b|\\\\f|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-f]{4}",
       "textColor": "0xd7ba7d"
+    },
+    "StringContent": {
+      "type": "SimpleToken",
+      "startRegex": "[^\"\\\\\\x00-\\x1f]+",
+      "textColor": "0xce9178"
     },
     "Bool": {
       "type": "SimpleToken",

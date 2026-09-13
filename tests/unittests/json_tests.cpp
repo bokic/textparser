@@ -5,6 +5,15 @@
 
 #include <json_definition.json.h>
 
+static bool json_has_unprocessed(const textparser_token_item *token) {
+    for (; token != nullptr; token = token->next) {
+        if (token->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED)
+            return true;
+        if (json_has_unprocessed(token->child))
+            return true;
+    }
+    return false;
+}
 
 TEST(parse_JSON, empty_array) {
     auto tokens = TextParser(R"([])", &json_definition);
@@ -66,11 +75,163 @@ TEST(parse_JSON, simple_object) {
     EXPECT_EQ(tokens.count, 1);
 }
 
+TEST(parse_JSON, negative_number_object_value) {
+    auto tokens = TextParser(R"({"a": -5})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Object");
+    // Visible children: Key, KeyValueSeparator, Value.
+    ASSERT_EQ(tokens[0].children, 3);
+
+    EXPECT_STREQ(tokens[0][2].type, "Value");
+    ASSERT_EQ(tokens[0][2].children, 1);
+    EXPECT_STREQ(tokens[0][2][0].type, "Number");
+    EXPECT_EQ   (tokens[0][2][0].position, 6);
+    EXPECT_EQ   (tokens[0][2][0].length,   2);
+    EXPECT_STREQ(tokens[0][2][0].value.c_str(), "-5");
+}
+
+TEST(parse_JSON, negative_number_array_items) {
+    auto tokens = TextParser(R"([-1,-2.5,-3e+2])", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Array");
+    ASSERT_EQ(tokens[0].children, 5);
+
+    EXPECT_STREQ(tokens[0][0].type, "Number");
+    EXPECT_STREQ(tokens[0][0].value.c_str(), "-1");
+    EXPECT_EQ   (tokens[0][0].position, 1);
+    EXPECT_EQ   (tokens[0][0].length,   2);
+
+    EXPECT_STREQ(tokens[0][2].type, "Number");
+    EXPECT_STREQ(tokens[0][2].value.c_str(), "-2.5");
+    EXPECT_EQ   (tokens[0][2].position, 4);
+    EXPECT_EQ   (tokens[0][2].length,   4);
+
+    EXPECT_STREQ(tokens[0][4].type, "Number");
+    EXPECT_STREQ(tokens[0][4].value.c_str(), "-3e+2");
+    EXPECT_EQ   (tokens[0][4].position, 9);
+    EXPECT_EQ   (tokens[0][4].length,   5);
+}
+
+TEST(parse_JSON, negative_exponent_number_object_value) {
+    auto tokens = TextParser(R"({"n": -1.5e+10})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_EQ(tokens[0].children, 3);
+    ASSERT_EQ(tokens[0][2].children, 1);
+    EXPECT_STREQ(tokens[0][2][0].type, "Number");
+    EXPECT_STREQ(tokens[0][2][0].value.c_str(), "-1.5e+10");
+}
+
+TEST(parse_JSON, string_content_is_tokenized) {
+    auto tokens = TextParser(R"({"k": "abc"})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_EQ(tokens[0].children, 3);
+
+    EXPECT_STREQ(tokens[0][2].type, "String");
+    ASSERT_EQ(tokens[0][2].children, 1);
+    EXPECT_STREQ(tokens[0][2][0].type, "StringContent");
+    EXPECT_STREQ(tokens[0][2][0].value.c_str(), "abc");
+    EXPECT_EQ   (tokens[0][2][0].position, 7);
+    EXPECT_EQ   (tokens[0][2][0].length,   3);
+}
+
+TEST(parse_JSON, escaped_quote_inside_string) {
+    auto tokens = TextParser(R"({"k": "a\"b"})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_EQ(tokens[0].children, 3);
+
+    EXPECT_STREQ(tokens[0][2].type, "String");
+    ASSERT_EQ(tokens[0][2].children, 3);
+    EXPECT_STREQ(tokens[0][2][0].type, "StringContent");
+    EXPECT_STREQ(tokens[0][2][0].value.c_str(), "a");
+    EXPECT_STREQ(tokens[0][2][1].type, "StringEscape");
+    EXPECT_STREQ(tokens[0][2][1].value.c_str(), "\\\"");
+    EXPECT_EQ   (tokens[0][2][1].position, 8);
+    EXPECT_EQ   (tokens[0][2][1].length,   2);
+    EXPECT_STREQ(tokens[0][2][2].type, "StringContent");
+    EXPECT_STREQ(tokens[0][2][2].value.c_str(), "b");
+}
+
+TEST(parse_JSON, escaped_backslash_inside_string) {
+    auto tokens = TextParser(R"({"k": "a\\b"})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    ASSERT_EQ(tokens[0].children, 3);
+
+    EXPECT_STREQ(tokens[0][2].type, "String");
+    ASSERT_EQ(tokens[0][2].children, 3);
+    EXPECT_STREQ(tokens[0][2][0].type, "StringContent");
+    EXPECT_STREQ(tokens[0][2][0].value.c_str(), "a");
+    EXPECT_STREQ(tokens[0][2][1].type, "StringEscape");
+    EXPECT_STREQ(tokens[0][2][1].value.c_str(), "\\\\");
+    EXPECT_EQ   (tokens[0][2][1].position, 8);
+    EXPECT_EQ   (tokens[0][2][1].length,   2);
+    EXPECT_STREQ(tokens[0][2][2].type, "StringContent");
+    EXPECT_STREQ(tokens[0][2][2].value.c_str(), "b");
+}
+
+TEST(parse_JSON, valid_string_has_no_unprocessed) {
+    auto tokens = TextParser(R"({"k": "a\"b\\c"})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_FALSE(json_has_unprocessed(tokens[0].raw_token()));
+}
+
+TEST(parse_JSON, invalid_escape_is_unprocessed) {
+    auto tokens = TextParser(R"({"k": "a\q"})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_TRUE(json_has_unprocessed(tokens[0].raw_token()));
+}
+
+TEST(parse_JSON, unexpected_text_in_object_is_unprocessed) {
+    auto tokens = TextParser(R"({"x": @})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_TRUE(json_has_unprocessed(tokens[0].raw_token()));
+}
+
+TEST(parse_JSON, lone_minus_is_not_a_number) {
+    auto tokens = TextParser(R"({"a": -})", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Object");
+    // The stray '-' must remain an unprocessed leaf, not become a Number token.
+    EXPECT_FALSE(has_token_type(tokens, "Number"));
+}
+
 TEST(parse_JSON, multiline_object) {
     auto tokens = TextParser("{\n  \"key\": \"value\",\n  \"num\": 123\n}", &json_definition);
     EXPECT_EQ(tokens.count, 1);
     EXPECT_STREQ(tokens[0].type, "Object");
     EXPECT_EQ(tokens[0].children, 7);
+}
+
+TEST(parse_JSON, multiline_nested_array_and_object_values) {
+    auto tokens = TextParser("{\n  \"a\": [\n    \"x\"\n  ],\n  \"b\": {\n    \"c\": 1\n  }\n}", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Object");
+    // Key(a), KeyValueSeparator, Value(Array), ValueSeparator,
+    // Key(b), KeyValueSeparator, Value(Object).
+    ASSERT_EQ(tokens[0].children, 7);
+
+    EXPECT_STREQ(tokens[0][2].type, "Value");
+    ASSERT_EQ(tokens[0][2].children, 1);
+    EXPECT_STREQ(tokens[0][2][0].type, "Array");
+    EXPECT_EQ   (tokens[0][2][0].position, 9);
+    EXPECT_EQ   (tokens[0][2][0].length,   13);
+
+    EXPECT_STREQ(tokens[0][6].type, "Value");
+    ASSERT_EQ(tokens[0][6].children, 1);
+    EXPECT_STREQ(tokens[0][6][0].type, "Object");
+    EXPECT_EQ   (tokens[0][6][0].position, 31);
+    EXPECT_EQ   (tokens[0][6][0].length,   16);
+}
+
+TEST(parse_JSON, multiline_array_without_trailing_newline) {
+    auto tokens = TextParser("{\n  \"a\": [\n    1\n  ]\n}", &json_definition);
+    ASSERT_EQ(tokens.count, 1);
+    EXPECT_STREQ(tokens[0].type, "Object");
+    ASSERT_EQ(tokens[0].children, 3);
+    EXPECT_STREQ(tokens[0][2].type, "Value");
+    ASSERT_EQ(tokens[0][2].children, 1);
+    EXPECT_STREQ(tokens[0][2][0].type, "Array");
+    ASSERT_EQ(tokens[0][2][0].children, 1);
+    EXPECT_STREQ(tokens[0][2][0][0].type, "Number");
 }
 
 TEST(parse_JSON, unicode_object) {
