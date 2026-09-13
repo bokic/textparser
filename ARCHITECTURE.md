@@ -156,12 +156,69 @@ The structure (`textparser_language_definition`) contains:
 ### 4.1 Incremental Parsing & CST Patching (`textparser_parse_incremental`)
 
 When text is edited, `textparser_parse_incremental` performs localized re-lexing:
+0. **In-leaf resize fast path**: If the edit lies entirely within one leaf and
+   re-matching that leaf's pattern at its start still consumes exactly the
+   edited leaf length, only the leaf's length and its ancestors' lengths are
+   updated; no re-scan happens. This prevents a greedy leaf (for example JSON
+   `StringContent`) from being split into two adjacent leaves or from dropping
+   its unchanged prefix. `out_range` covers the resized leaf and the lexer
+   streams are rebuilt. This applies to pure inserts, deletes, and same-length
+   replacements that keep the leaf's pattern intact; anything else falls
+   through to the steps below.
 1. **Text Splicing**: Updates the internal memory buffer by inserting or deleting the delta range.
-2. **Context Resolution**: Finds the nearest enclosing open container (`find_open_container`) before the edit offset.
-3. **Local Re-scan**: Resumes tokenization from the start of the dirty region using the container's nested token rules.
-4. **Splice Re-link**: Re-links matching unchanged suffix tokens (`tail_first`), preserving node identity where possible.
-5. **Dirty Range Calculation**: Computes `out_range` (`dirty_start`, `dirty_end`) for editor syntax highlight invalidation.
-6. **Memoization Shift**: Shifts or invalidates packrat memoization entries intersecting the dirty token range (`textparser_memo_shift_and_invalidate`).
+2. **Context Resolution**: Anchors at the **root** and re-tokenizes the
+   top-level token containing the edit. Anchoring at the nearest container (or
+   its parent) was insufficient because a token's match can depend on text
+   outside its span (the JSON `Key` lookahead over its `:` sibling) or on its own
+   start/end delimiter (a CFML `OutputStartTag` inside an `OutputTagPair`, where
+   an edit in the tag name invalidates the pair). Re-tokenizing from the root
+   re-evaluates every ancestor; the alignment below keeps the unchanged nodes, so
+   tree mutation stays localized.
+3. **Token-boundary dirty region**: The reparse window starts at the sibling
+   containing `edit_offset - 1` (one neighbour token of lookback, so an edit at
+   a token boundary can re-evaluate the preceding token's lookahead/end
+   pattern), skips the container's start delimiter, and **extends to the last
+   child before the container's end delimiter**. Re-tokenizing to the container
+   end lets an overrun (greedy token or newly opened container) resync with the
+   old suffix; the alignment below keeps the unchanged prefix/suffix nodes, so
+   tree mutation stays localized. The container's own `otherTextInside` is used,
+   not the language-level flag.
+4. **Local Re-scan**: Re-lexes the window with the anchor's nested token rules,
+   collecting the new sibling run into the per-handle **scratch arena**
+   (`arena_reset(&handle->scratch)` at entry; no per-call heap traffic). A
+   failed candidate inside a nested `otherTextInside` container emits one unit
+   as `Unprocessed` and continues (matching the full parser); top-level errors
+   link the partial token and fail.
+5. **Suffix resync**: A greedy token or newly opened container can consume text
+   past the old dirty end. The old suffix anchor is advanced to the token at the
+   reparse's actual end (mapped back to old coordinates), so no overlapping or
+   malformed leaves are stitched.
+6. **Alignment / splice**: The old and new runs are aligned by kind, span, and
+   mapped position. The unchanged common prefix and suffix keep their existing
+   nodes; only the middle is replaced (add/delete/change on the linked list).
+   This is what keeps `out_range` tight and preserves node identity. Sign
+   merging runs after the splice so re-linking cannot undo it.
+7. **Dirty Range Calculation**: Computes `out_range` (`dirty_start`, `dirty_end`) from the aligned changed span for editor syntax highlight invalidation.
+8. **Memoization Shift**: The dirty lexer-token range is derived from the
+   actually-changed tokens (`old_run[prefix .. count-suffix)`), not the reparse
+   window, so unchanged suffix tokens keep their packrat memo entries. Shifts or
+   invalidates entries intersecting that range
+   (`textparser_memo_shift_and_invalidate`).
+
+Arena reclamation: add/delete edits orphan the replaced nodes, which remain
+resident until a full parse resets the arena. An abortable in-place
+`textparser_compact()` for idle-time reclamation is specified in `ROADMAP.md`
+§1.3 (not yet implemented).
+
+Result: the incremental tree matches a full parse for all successful
+single-character inserts and deletions on JSON, CFML, C, and JavaScript samples
+(0 mismatches), with no incremental failures on valid input. Remaining known
+gaps (see `INCREMENTAL_ISSUES.md`): context-sensitive lexing (modes/goals) has no
+state-safe anchor, and the root anchor re-tokenizes the top-level token
+(O(document)) until a bounded forward resync that stops at the first matching
+token is added. The differential tests in `incremental_tests.cpp`
+(`DifferentialAgainstFullParse`, `AllStructuralEditsMatchFullParseExactly`,
+`CrossLanguageInsertsAndDeletesMatchFullParse`) guard against regressions.
 
 ### 4.2 Declarative Grammar Execution (`textparser_execute_production`)
 

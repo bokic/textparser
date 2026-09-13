@@ -144,6 +144,18 @@ typedef struct textparser_lexer_cache_entry {
     struct textparser_lexer_cache_entry *next;
 } textparser_lexer_cache_entry;
 
+/* Reusable chunked bump allocator. `scratch` is reset at the start of every
+ * incremental parse and only holds per-call temporaries. */
+typedef struct {
+    void **chunks;
+    size_t chunk_count;
+    size_t chunk_capacity;
+    size_t chunk_size;
+    void *current_chunk;
+    size_t current_chunk_index;
+    size_t current_chunk_used;
+} textparser_arena;
+
 struct textparser_handle {
     const textparser_language_definition *language;
     adv_regex_context *regex_ctx;
@@ -165,13 +177,8 @@ struct textparser_handle {
     size_t no_lines;
     size_t *lines;
     // Arena allocator fields
-    void **chunks;
-    size_t chunk_count;
-    size_t chunk_capacity;
-    size_t chunk_size; // size of chunk (for new allocations)
-    void *current_chunk;
-    size_t current_chunk_index;
-    size_t current_chunk_used;
+    textparser_arena arena;   // live token tree
+    textparser_arena scratch; // per-call temporaries
     void (*callback)(textparser_t, textparser_token_item *, enum textparser_callback_type callback_type, void *user_data);
     void *user_data;
     int recursion_depth;
@@ -536,24 +543,95 @@ static void *textparser_convert_utf16be_to_native(const char *src, size_t size)
 }
 
 /**
- * Release all memory chunks managed by the handle arena allocator and reset allocation cursors.
+ * Release all memory chunks held by an arena and reset it.
+ *
+ * @param arena Pointer to the arena to free.
+ */
+static void arena_free(textparser_arena *arena)
+{
+    if (arena->chunks) {
+        for (size_t i = 0; i < arena->chunk_count; i++) {
+            free(arena->chunks[i]);
+        }
+        free(arena->chunks);
+    }
+    memset(arena, 0, sizeof(*arena));
+}
+
+/**
+ * Reset an arena so its existing chunks are reused from the start.
+ *
+ * @param arena Pointer to the arena to reset.
+ */
+static void arena_reset(textparser_arena *arena)
+{
+    arena->current_chunk_index = 0;
+    arena->current_chunk_used = 0;
+    arena->current_chunk = (arena->chunk_count > 0) ? arena->chunks[0] : nullptr;
+}
+
+/**
+ * Allocate zero-initialized, pointer-aligned memory from an arena.
+ *
+ * @param arena Pointer to the arena.
+ * @param size Number of bytes to allocate.
+ * @return Pointer to the allocation, or NULL on allocation failure.
+ */
+static void *arena_alloc(textparser_arena *arena, size_t size)
+{
+    const size_t align = sizeof(void *);
+    size = (size + align - 1) & ~(align - 1);
+
+    if (arena->current_chunk == nullptr ||
+        arena->current_chunk_used + size > arena->chunk_size)
+    {
+        if (arena->current_chunk != nullptr &&
+            arena->current_chunk_index + 1 < arena->chunk_count)
+        {
+            arena->current_chunk_index++;
+            arena->current_chunk = arena->chunks[arena->current_chunk_index];
+            arena->current_chunk_used = 0;
+        }
+        else
+        {
+            size_t chunk_size = (size > arena->chunk_size) ? size : arena->chunk_size;
+            void *new_chunk = malloc(chunk_size);
+            if (new_chunk == nullptr) {
+                return nullptr;
+            }
+
+            if (arena->chunk_count >= arena->chunk_capacity) {
+                size_t new_capacity = arena->chunk_capacity == 0 ? 4 : arena->chunk_capacity * 2;
+                void **new_chunks = realloc(arena->chunks, new_capacity * sizeof(void *));
+                if (new_chunks == nullptr) {
+                    free(new_chunk);
+                    return nullptr;
+                }
+                arena->chunks = new_chunks;
+                arena->chunk_capacity = new_capacity;
+            }
+
+            arena->chunks[arena->chunk_count] = new_chunk;
+            arena->current_chunk = new_chunk;
+            arena->current_chunk_index = arena->chunk_count;
+            arena->chunk_count++;
+            arena->current_chunk_used = 0;
+        }
+    }
+
+    void *ret = (char *)arena->current_chunk + arena->current_chunk_used;
+    arena->current_chunk_used += size;
+    return ret;
+}
+
+/**
+ * Release all memory chunks managed by the handle's live arena and reset allocation cursors.
  *
  * @param handle Pointer to the textparser handle.
  */
 static void free_arena(struct textparser_handle *handle)
 {
-    if (handle->chunks) {
-        for (size_t i = 0; i < handle->chunk_count; i++) {
-            free(handle->chunks[i]);
-        }
-        free(handle->chunks);
-        handle->chunks = nullptr;
-    }
-    handle->chunk_count = 0;
-    handle->chunk_capacity = 0;
-    handle->current_chunk = nullptr;
-    handle->current_chunk_index = 0;
-    handle->current_chunk_used = 0;
+    arena_free(&handle->arena);
 }
 
 typedef struct {
@@ -573,9 +651,9 @@ typedef struct {
 static inline textparser_arena_checkpoint textparser_arena_checkpoint_save(const struct textparser_handle *handle)
 {
     textparser_arena_checkpoint cp;
-    cp.chunk_index = handle->current_chunk_index;
-    cp.chunk_used = handle->current_chunk_used;
-    cp.chunk_count = handle->chunk_count;
+    cp.chunk_index = handle->arena.current_chunk_index;
+    cp.chunk_used = handle->arena.current_chunk_used;
+    cp.chunk_count = handle->arena.chunk_count;
     cp.token_count = handle->token_count;
     cp.next_node_id = handle->next_node_id;
     return cp;
@@ -589,13 +667,13 @@ static inline textparser_arena_checkpoint textparser_arena_checkpoint_save(const
  */
 static inline void textparser_arena_checkpoint_restore(struct textparser_handle *handle, const textparser_arena_checkpoint *cp)
 {
-    handle->current_chunk_index = cp->chunk_index;
-    if (handle->chunks && cp->chunk_index < handle->chunk_count) {
-        handle->current_chunk = handle->chunks[cp->chunk_index];
+    handle->arena.current_chunk_index = cp->chunk_index;
+    if (handle->arena.chunks && cp->chunk_index < handle->arena.chunk_count) {
+        handle->arena.current_chunk = handle->arena.chunks[cp->chunk_index];
     } else {
-        handle->current_chunk = nullptr;
+        handle->arena.current_chunk = nullptr;
     }
-    handle->current_chunk_used = cp->chunk_used;
+    handle->arena.current_chunk_used = cp->chunk_used;
     handle->token_count = cp->token_count;
     handle->next_node_id = cp->next_node_id;
 }
@@ -710,44 +788,12 @@ static inline bool textparser_match_end_token(
  */
 static textparser_token_item *textparser_alloc_token(struct textparser_handle *handle, int token_id, size_t len)
 {
-    size_t token_size = sizeof(textparser_token_item);
-    if (handle->current_chunk == nullptr ||
-        handle->current_chunk_used + token_size > handle->chunk_size)
-    {
-        if (handle->current_chunk != nullptr && handle->current_chunk_index + 1 < handle->chunk_count) {
-            handle->current_chunk_index++;
-            handle->current_chunk = handle->chunks[handle->current_chunk_index];
-            handle->current_chunk_used = 0;
-        } else {
-            void *new_chunk = malloc(handle->chunk_size);
-            if (new_chunk == nullptr) {
-                handle->error = "Can't allocate memory!";
-                return nullptr;
-            }
-
-            if (handle->chunk_count >= handle->chunk_capacity) {
-                size_t new_capacity = handle->chunk_capacity == 0 ? 4 : handle->chunk_capacity * 2;
-                void **new_chunks = realloc(handle->chunks, new_capacity * sizeof(void *));
-                if (new_chunks == nullptr) {
-                    free(new_chunk);
-                    handle->error = "Can't allocate memory!";
-                    return nullptr;
-                }
-                handle->chunks = new_chunks;
-                handle->chunk_capacity = new_capacity;
-            }
-
-            handle->chunks[handle->chunk_count] = new_chunk;
-            handle->current_chunk = new_chunk;
-            handle->current_chunk_index = handle->chunk_count;
-            handle->chunk_count++;
-            handle->current_chunk_used = 0;
-        }
+    textparser_token_item *ret = arena_alloc(&handle->arena, sizeof(textparser_token_item));
+    if (ret == nullptr) {
+        handle->error = "Can't allocate memory!";
+        return nullptr;
     }
-
-    textparser_token_item *ret = (textparser_token_item *)((char *)handle->current_chunk + handle->current_chunk_used);
-    handle->current_chunk_used += token_size;
-    memset(ret, 0, token_size);
+    memset(ret, 0, sizeof(textparser_token_item));
 
     ret->id = ++handle->next_node_id;
     ret->token_id = token_id;
@@ -1362,22 +1408,23 @@ static void append_end_delimiter(
  * @param tail In/out pointer to tail of node or token list.
  * @param len Length in character code units.
  */
-static void append_whitespace_if_needed(
+static textparser_token_item *append_whitespace_if_needed(
     struct textparser_handle *handle,
     textparser_token_item *parent,
     textparser_token_item **head,
     textparser_token_item **tail,
     size_t len)
 {
-    if (len == 0) return;
+    if (len == 0) return *tail;
     if (*tail != nullptr && (*tail)->token_id == TEXTPARSER_TOKEN_ID_WHITESPACE)
     {
         (*tail)->len += len;
-        return;
+        return *tail;
     }
     textparser_token_item *item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_WHITESPACE, len);
-    if (item == nullptr) return;
+    if (item == nullptr) return *tail;
     append_child_to_ast(parent, head, tail, item);
+    return item;
 }
 
 /**
@@ -1389,22 +1436,23 @@ static void append_whitespace_if_needed(
  * @param tail In/out pointer to tail of node or token list.
  * @param len Length of unprocessed span in units.
  */
-static void append_unprocessed_if_needed(
+static textparser_token_item *append_unprocessed_if_needed(
     struct textparser_handle *handle,
     textparser_token_item *parent,
     textparser_token_item **head,
     textparser_token_item **tail,
     size_t len)
 {
-    if (len == 0) return;
+    if (len == 0) return *tail;
     if (*tail != nullptr && (*tail)->token_id == TEXTPARSER_TOKEN_ID_UNPROCESSED)
     {
         (*tail)->len += len;
-        return;
+        return *tail;
     }
     textparser_token_item *item = textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_UNPROCESSED, len);
-    if (item == nullptr) return;
+    if (item == nullptr) return *tail;
     append_child_to_ast(parent, head, tail, item);
+    return item;
 }
 
 /**
@@ -2774,7 +2822,8 @@ int textparser_openfile(const char *pathname, int default_text_format, int bom_m
 
     local_hnd.no_lines = 0;
     local_hnd.lines = nullptr;
-    local_hnd.chunk_size = calculate_chunk_size(local_hnd.text_size);
+    local_hnd.arena.chunk_size = calculate_chunk_size(local_hnd.text_size);
+    local_hnd.scratch.chunk_size = calculate_chunk_size(local_hnd.text_size);
 
     switch(local_hnd.text_format) {
     case TEXTPARSER_ENCODING_LATIN1:
@@ -2901,7 +2950,8 @@ int textparser_openmem(const char *text, int len, int text_format, textparser_t 
     ret->text_format = (enum textparser_encoding)text_format;
     ret->text_addr = text;
     ret->text_size = (size_t)len;
-    ret->chunk_size = calculate_chunk_size(ret->text_size);
+    ret->arena.chunk_size = calculate_chunk_size(ret->text_size);
+    ret->scratch.chunk_size = calculate_chunk_size(ret->text_size);
     ret->regex_ctx = adv_regex_context_create();
 
     *handle = (textparser_t)ret;
@@ -3025,6 +3075,7 @@ void textparser_close(textparser_t handle)
     }
 
     free_arena(handle);
+    arena_free(&handle->scratch);
 
     if (handle->lines) {
         free(handle->lines);
@@ -3201,37 +3252,6 @@ static const textparser_token_item *find_token_at_position_internal(const textpa
     return best;
 }
 
-
-/**
- * Find the nearest open container enclosing an edit offset for incremental parsing.
- *
- * @param token Pointer to token item node or lexer token snapshot.
- * @param position Character unit offset in text buffer.
- * @param definition Active language definition rules.
- * @return Pointer to the enclosing open container node, or NULL if none.
- */
-static const textparser_token_item *find_open_container(const textparser_token_item *token, size_t position, const textparser_language_definition *definition)
-{
-    const textparser_token_item *curr = token;
-    while (curr != nullptr) {
-        if (curr->token_id >= 0) {
-            const textparser_token *def = &definition->tokens[curr->token_id];
-            if (def->type == TEXTPARSER_TOKEN_TYPE_START_STOP ||
-                def->type == TEXTPARSER_TOKEN_TYPE_START_OPT_STOP ||
-                def->type == TEXTPARSER_TOKEN_TYPE_GROUP ||
-                def->type == TEXTPARSER_TOKEN_TYPE_GROUP_ALL_CHILDREN_IN_SAME_ORDER ||
-                def->type == TEXTPARSER_TOKEN_TYPE_SEQUENCE) {
-                size_t curr_pos = textparser_get_token_position(curr);
-                if (position >= curr_pos && position < curr_pos + curr->len) {
-                    return curr;
-                }
-            }
-        }
-        curr = curr->parent;
-    }
-    return nullptr;
-}
-
 int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
 {
     if (handle == nullptr || definition == nullptr)
@@ -3383,6 +3403,47 @@ static int textparser_rebuild_lexer_streams(struct textparser_handle *handle)
     return TEXTPARSER_OK;
 }
 
+/* Growable array of sibling token pointers backed by the per-call scratch arena. */
+typedef struct {
+    textparser_token_item **items;
+    size_t count;
+    size_t capacity;
+} textparser_token_run;
+
+static bool textparser_run_push(textparser_token_run *run, textparser_arena *scratch, textparser_token_item *item)
+{
+    if (run->count == run->capacity)
+    {
+        size_t new_capacity = run->capacity ? run->capacity * 2 : 16;
+        textparser_token_item **new_items = arena_alloc(scratch, new_capacity * sizeof(*new_items));
+        if (new_items == nullptr) return false;
+        if (run->items != nullptr) {
+            memcpy(new_items, run->items, run->count * sizeof(*new_items));
+        }
+        run->items = new_items;
+        run->capacity = new_capacity;
+    }
+    run->items[run->count++] = item;
+    return true;
+}
+
+/* Recursively compare token identity by kind and span (not node id). */
+static bool textparser_tokens_shape_equal(const textparser_token_item *a, const textparser_token_item *b)
+{
+    if (a == b) return true;
+    if (a == nullptr || b == nullptr) return false;
+    if (a->token_id != b->token_id || a->len != b->len) return false;
+
+    const textparser_token_item *ca = a->child;
+    const textparser_token_item *cb = b->child;
+    while (ca != nullptr && cb != nullptr) {
+        if (!textparser_tokens_shape_equal(ca, cb)) return false;
+        ca = ca->next;
+        cb = cb->next;
+    }
+    return ca == nullptr && cb == nullptr;
+}
+
 EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                                                    const textparser_language_definition *definition,
                                                    size_t edit_offset,
@@ -3406,6 +3467,9 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     handle->error = nullptr;
     handle->error_offset = 0;
     handle->error_length = 0;
+
+    // Per-call temporaries (dirty runs, alignment) reuse the scratch arena.
+    arena_reset(&handle->scratch);
 
     size_t unit_size = 1;
     switch (handle->text_format) {
@@ -3534,16 +3598,66 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         active_token = find_token_at_position_internal(handle->first_item, start_pos - 1, 0);
     }
 
-    const textparser_token_item *open_container = nullptr;
-    if (active_token != nullptr) {
-        open_container = find_open_container(active_token, start_pos, definition);
+    // Fast path: an edit contained within a single leaf only changes lengths.
+    // Re-match the leaf pattern at its start; when the whole edited leaf still
+    // matches as one token, resize that leaf and all of its ancestors instead
+    // of reparsing. This also prevents the leaf from being split or its
+    // unchanged prefix from being dropped by the reparse stitch.
+    if (active_token != nullptr && active_token->child == nullptr &&
+        active_token->token_id >= 0)
+    {
+        size_t leaf_start = textparser_get_token_position(active_token);
+        size_t leaf_end = leaf_start + active_token->len;
+        if (leaf_start < edit_offset && edit_offset + old_len <= leaf_end)
+        {
+            const textparser_token *leaf_def = &definition->tokens[active_token->token_id];
+            size_t found_at = 0;
+            size_t match_len = 0;
+            bool matched = textparser_match_start_token(
+                handle, active_token->token_id,
+                handle->text_addr + textparser_get_byte_offset(handle, leaf_start),
+                textparser_get_search_len(handle, leaf_start, leaf_def),
+                &found_at, &match_len, true);
+
+            if (matched && found_at == 0 && match_len > 0 &&
+                match_len == (size_t)((ssize_t)active_token->len + delta_units))
+            {
+                textparser_token_item *leaf_item = (textparser_token_item *)active_token;
+                leaf_item->len = match_len;
+                for (textparser_token_item *p = leaf_item->parent; p != nullptr; p = p->parent) {
+                    p->len = (size_t)((ssize_t)p->len + delta_units);
+                }
+
+                if (out_range != nullptr) {
+                    out_range->dirty_start = leaf_start;
+                    out_range->dirty_end = leaf_start + match_len;
+                }
+
+                if (handle->lines) {
+                    free(handle->lines);
+                    handle->lines = nullptr;
+                    handle->no_lines = 0;
+                }
+
+    int rebuild_status = textparser_rebuild_lexer_streams(handle);
+                if (rebuild_status == TEXTPARSER_OK) {
+                    textparser_memo_shift_and_invalidate(handle, 0, (size_t)-1, delta_units);
+                }
+                return rebuild_status;
+            }
+        }
     }
 
+    // Anchor at the root: re-tokenize the top-level token containing the edit.
+    // Anchoring at the nearest container was insufficient because a token's match
+    // can depend on text outside its span (the JSON Key lookahead over its ':'
+    // sibling) or on its own start/end delimiter (a CFML OutputStartTag inside an
+    // OutputTagPair). The alignment below keeps the unchanged prefix/suffix nodes.
     const int *effective_starts_with = definition->starts_with;
-    textparser_token_item *parent_container = (textparser_token_item *)open_container;
+    textparser_token_item *parent_container = nullptr;
 
-    if (open_container) {
-        effective_starts_with = get_effective_nested_tokens(handle, open_container->token_id, open_container);
+    if (parent_container) {
+        effective_starts_with = get_effective_nested_tokens(handle, parent_container->token_id, parent_container);
     } else if (definition->override_start_tokens && handle->filename) {
         const char *file_ext = strrchr(handle->filename, '.');
         if (file_ext) {
@@ -3589,8 +3703,82 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         }
     }
 
+    const bool container_other_text_inside = parent_container
+        ? definition->tokens[parent_container->token_id].other_text_inside
+        : definition->other_text_inside;
+
     textparser_token_item *prev_item = nullptr;
     textparser_token_item *sibling_list = parent_container ? parent_container->child : handle->first_item;
+
+    // Expand the dirty region to whole sibling token boundaries so the reparse
+    // never starts or ends in the middle of a token. Backing up to the leaf that
+    // contains the character before the edit (and out to the end of the leaf at
+    // the edit's right edge) prevents greedy leaves from being split and their
+    // unchanged prefixes from being dropped.
+    textparser_token_run old_run = {0};
+    textparser_token_item *dirty_first = nullptr;
+    textparser_token_item *dirty_last = nullptr;
+    if (sibling_list != nullptr)
+    {
+        size_t base_pos = parent_container ? textparser_get_token_position(parent_container) : 0;
+        size_t probe_left = (edit_offset > 0) ? edit_offset - 1 : edit_offset;
+        size_t probe_right = old_end_bound;
+
+        size_t p = base_pos;
+        for (textparser_token_item *curr = sibling_list; curr != nullptr; curr = curr->next)
+        {
+            size_t end = p + curr->len;
+            if (dirty_first == nullptr && probe_left >= p && probe_left < end) dirty_first = curr;
+            if (probe_right >= p && probe_right <= end) dirty_last = curr;
+            p = end;
+        }
+
+        // The reparse runs with the container's nested-token rules, which never
+        // match the container delimiters themselves. Back away from them.
+        if (dirty_first != nullptr && dirty_first->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER)
+            dirty_first = dirty_first->prev;
+
+        // Extend the reparse to the end of the container's children so an
+        // overrun (a greedy token or a newly opened container) can resync with
+        // the old suffix. The alignment then keeps the unchanged prefix/suffix.
+        if (dirty_last != nullptr) {
+            textparser_token_item *scan = dirty_last;
+            while (scan->next != nullptr &&
+                   scan->next->token_id != TEXTPARSER_TOKEN_ID_END_DELIMITER) {
+                scan = scan->next;
+            }
+            dirty_last = scan;
+        }
+
+        size_t expanded_start = start_pos;
+        size_t expanded_old_end = old_end_bound;
+        if (dirty_first != nullptr)
+        {
+            expanded_start = textparser_get_token_position(dirty_first);
+            if (dirty_first->token_id == TEXTPARSER_TOKEN_ID_START_DELIMITER)
+                expanded_start += dirty_first->len;
+        }
+        if (dirty_last != nullptr)
+        {
+            expanded_old_end = textparser_get_token_position(dirty_last) + dirty_last->len;
+            if (dirty_last->token_id == TEXTPARSER_TOKEN_ID_END_DELIMITER)
+                expanded_old_end = textparser_get_token_position(dirty_last);
+        }
+        if (expanded_start < start_pos) start_pos = expanded_start;
+        if (expanded_old_end > old_end_bound) old_end_bound = expanded_old_end;
+        end_pos = old_end_bound - old_len + new_len;
+
+        if (dirty_first != nullptr && dirty_last != nullptr)
+        {
+            for (textparser_token_item *curr = dirty_first; ; curr = curr->next)
+            {
+                if (!textparser_run_push(&old_run, &handle->scratch, curr)) {
+                    return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+                }
+                if (curr == dirty_last) break;
+            }
+        }
+    }
 
     if (start_pos > 0 && sibling_list != nullptr)
     {
@@ -3628,17 +3816,20 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         }
     }
 
+    textparser_token_item *stitch_left_before = prev_item;
+    textparser_token_item *stitch_right_before = tail_first;
     size_t pos = start_pos;
-    textparser_token_item *first_new_token = nullptr;
-    textparser_token_item *last_new_token = nullptr;
+    textparser_token_run new_run = {0};
 
     while(pos < end_pos) {
         size_t ws_skipped = textparser_skip_whitespace(handle, pos) - pos;
         if (ws_skipped > 0) {
             textparser_token_item **head_ptr = parent_container ? &parent_container->child : &handle->first_item;
-            append_whitespace_if_needed(handle, parent_container, head_ptr, &prev_item, ws_skipped);
-            if (first_new_token == nullptr) first_new_token = prev_item;
-            last_new_token = prev_item;
+            textparser_token_item *before = prev_item;
+            textparser_token_item *appended = append_whitespace_if_needed(handle, parent_container, head_ptr, &prev_item, ws_skipped);
+            if (appended != nullptr && appended != before) {
+                if (!textparser_run_push(&new_run, &handle->scratch, appended)) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+            }
             pos += ws_skipped;
         }
         if (pos >= end_pos)
@@ -3650,7 +3841,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         size_t error_token_off = 0;
         for (int c = 0; effective_starts_with && effective_starts_with[c] != TextParser_END; c++) {
             int token_id = effective_starts_with[c];
-            ssize_t offset = textparser_find_token(handle, token_id, pos, definition->other_text_inside, parent_container, prev_item);
+            ssize_t offset = textparser_find_token(handle, token_id, pos, container_other_text_inside, parent_container, prev_item);
             if (offset == 0)
             {
                 textparser_arena_checkpoint cp = textparser_arena_checkpoint_save(handle);
@@ -3688,13 +3879,31 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
             handle->error_offset = error_token_off;
         }
 
+        // Match the full parser's recovery: inside a nested otherTextInside
+        // container a failed candidate emits one unit as Unprocessed and parsing
+        // continues, instead of aborting the whole edit. Top-level errors fall
+        // through to the normal link-then-fail path so the partial tree remains.
+        if (token_item != nullptr && handle->error != nullptr &&
+            parent_container != nullptr && container_other_text_inside &&
+            pos < textparser_get_total_units(handle)) {
+            handle->error = nullptr;
+            handle->error_offset = 0;
+            handle->error_length = 0;
+            size_t char_l = textparser_char_len(handle, pos);
+            textparser_token_item **head_ptr = parent_container ? &parent_container->child : &handle->first_item;
+            textparser_token_item *before = prev_item;
+            textparser_token_item *appended = append_unprocessed_if_needed(handle, parent_container, head_ptr, &prev_item, char_l);
+            if (appended != nullptr && appended != before) {
+                if (!textparser_run_push(&new_run, &handle->scratch, appended)) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+            }
+            pos += char_l;
+            continue;
+        }
+
         if (token_item != nullptr) {
             if (parent_container) {
                 token_item->parent = parent_container;
             }
-
-            if (first_new_token == nullptr)
-                first_new_token = token_item;
 
             if (prev_item) {
                 prev_item->next = token_item;
@@ -3706,21 +3915,23 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
             }
 
             size_t token_advance = token_item->len;
-            maybe_merge_sign(handle, token_item);
 
             if ((handle->error)||(token_item->len <= 0))
                 return -1;
 
+            if (!textparser_run_push(&new_run, &handle->scratch, token_item)) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+
             pos += token_advance;
             prev_item = token_item;
-            last_new_token = token_item;
         } else {
-            if (definition->other_text_inside) {
+            if (container_other_text_inside) {
                 size_t char_l = textparser_char_len(handle, pos);
                 textparser_token_item **head_ptr = parent_container ? &parent_container->child : &handle->first_item;
-                append_unprocessed_if_needed(handle, parent_container, head_ptr, &prev_item, char_l);
-                if (first_new_token == nullptr) first_new_token = prev_item;
-                last_new_token = prev_item;
+                textparser_token_item *before = prev_item;
+                textparser_token_item *appended = append_unprocessed_if_needed(handle, parent_container, head_ptr, &prev_item, char_l);
+                if (appended != nullptr && appended != before) {
+                    if (!textparser_run_push(&new_run, &handle->scratch, appended)) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+                }
                 pos += char_l;
             } else {
                 break;
@@ -3730,31 +3941,119 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
 
     if (pos < end_pos) {
         textparser_token_item **head_ptr = parent_container ? &parent_container->child : &handle->first_item;
-        append_unprocessed_if_needed(handle, parent_container, head_ptr, &prev_item, end_pos - pos);
-        if (first_new_token == nullptr) first_new_token = prev_item;
-        last_new_token = prev_item;
+        textparser_token_item *before = prev_item;
+        textparser_token_item *appended = append_unprocessed_if_needed(handle, parent_container, head_ptr, &prev_item, end_pos - pos);
+        if (appended != nullptr && appended != before) {
+            if (!textparser_run_push(&new_run, &handle->scratch, appended)) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+        }
         pos = end_pos;
     }
 
-    textparser_token_item *stitch_point = last_new_token ? last_new_token : prev_item;
-    if (tail_first) {
-        if (stitch_point) {
-            stitch_point->next = tail_first;
-            tail_first->prev = stitch_point;
-        } else if (parent_container) {
-            parent_container->child = tail_first;
-            tail_first->prev = nullptr;
-        } else {
-            handle->first_item = tail_first;
-            tail_first->prev = nullptr;
+    // Resync the suffix: a greedy token or a newly opened container can consume
+    // text past the old dirty end, so advance the old suffix anchor to the token
+    // at the reparse's actual end (mapped back to old coordinates). Old tokens
+    // the new run now covers are dropped.
+    if (stitch_right_before != nullptr) {
+        ssize_t old_suffix_signed = (ssize_t)pos - delta_units;
+        size_t old_suffix_pos = (old_suffix_signed > 0) ? (size_t)old_suffix_signed : 0;
+        while (stitch_right_before != nullptr &&
+               textparser_get_token_position(stitch_right_before) < old_suffix_pos) {
+            stitch_right_before = stitch_right_before->next;
         }
-    } else if (stitch_point) {
-        stitch_point->next = nullptr;
-    } else if (parent_container) {
-        parent_container->child = nullptr;
-    } else {
-        handle->first_item = nullptr;
     }
+
+    // Align the reparsed run against the old run: keep the unchanged common
+    // prefix and suffix (reusing the existing nodes) and splice only the middle.
+    size_t prefix = 0;
+    while (prefix < old_run.count && prefix < new_run.count &&
+           textparser_get_token_position(old_run.items[prefix]) + old_run.items[prefix]->len <= edit_offset &&
+           textparser_get_token_position(new_run.items[prefix]) ==
+               textparser_get_token_position(old_run.items[prefix]) &&
+           textparser_tokens_shape_equal(old_run.items[prefix], new_run.items[prefix])) {
+        prefix++;
+    }
+    size_t suffix = 0;
+    while (suffix < old_run.count - prefix && suffix < new_run.count - prefix) {
+        textparser_token_item *old_item = old_run.items[old_run.count - 1 - suffix];
+        textparser_token_item *new_item = new_run.items[new_run.count - 1 - suffix];
+        if (textparser_get_token_position(old_item) < edit_offset + old_len) break;
+        if (textparser_get_token_position(new_item) !=
+            textparser_get_token_position(old_item) + delta_units) break;
+        if (!textparser_tokens_shape_equal(old_item, new_item)) break;
+        suffix++;
+    }
+
+    textparser_token_item *keep_left = (prefix > 0) ? old_run.items[prefix - 1] : stitch_left_before;
+    textparser_token_item *keep_right = (suffix > 0) ? old_run.items[old_run.count - suffix] : stitch_right_before;
+
+    // When the common prefix is reused, the old nodes are already linked. Only
+    // the reparse of a run that started at the container's first child can have
+    // overwritten the head, so only then is it restored.
+    if (prefix > 0 && stitch_left_before == nullptr) {
+        if (parent_container != nullptr) {
+            parent_container->child = old_run.items[0];
+        } else {
+            handle->first_item = old_run.items[0];
+        }
+    }
+
+    textparser_token_item *left = keep_left;
+    for (size_t i = prefix; i + suffix < new_run.count; i++) {
+        textparser_token_item *item = new_run.items[i];
+        item->parent = parent_container;
+        item->prev = left;
+        if (left != nullptr) {
+            left->next = item;
+        } else if (parent_container != nullptr) {
+            parent_container->child = item;
+        } else {
+            handle->first_item = item;
+        }
+        left = item;
+    }
+    if (left != nullptr) {
+        left->next = keep_right;
+    } else if (parent_container != nullptr) {
+        parent_container->child = keep_right;
+    } else {
+        handle->first_item = keep_right;
+    }
+    if (keep_right != nullptr) {
+        keep_right->prev = left;
+    }
+
+    // Rebuild `prev` links from the head before sign merging. The splice can
+    // leave a reused node's `prev` pointing at a replaced node, and
+    // `maybe_merge_sign` unlinks through both `prev->next` and `next->prev`, so
+    // an inconsistent `prev` would leave the sign in the list.
+    {
+        textparser_token_item *prev = nullptr;
+        for (textparser_token_item *t = handle->first_item; t != nullptr; t = t->next) {
+            t->prev = prev;
+            prev = t;
+        }
+    }
+
+    // Sign merging runs after the splice so it cannot be undone by re-linking.
+    {
+        textparser_token_item *merge_start = keep_left;
+        if (merge_start == nullptr) {
+            merge_start = parent_container ? parent_container->child : handle->first_item;
+        }
+        for (textparser_token_item *t = merge_start; t != nullptr; ) {
+            textparser_token_item *next = t->next;
+            maybe_merge_sign(handle, t);
+            if (t == keep_right) break;
+            t = next;
+        }
+    }
+
+    size_t aligned_dirty_start = keep_left
+        ? textparser_get_token_position(keep_left) + keep_left->len
+        : start_pos;
+    size_t aligned_dirty_end = keep_right
+        ? textparser_get_token_position(keep_right)
+        : textparser_get_total_units(handle);
 
     if (parent_container && delta_units != 0) {
         textparser_token_item *p = parent_container;
@@ -3765,20 +4064,8 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     }
 
     if (out_range != nullptr) {
-        size_t d_start = start_pos;
-        if (first_new_token != nullptr) {
-            d_start = textparser_get_token_position(first_new_token);
-        } else if (prev_item != nullptr) {
-            d_start = textparser_get_token_position(prev_item);
-        }
-        size_t d_end = end_pos;
-        if (tail_first != nullptr) {
-            d_end = textparser_get_token_position(tail_first);
-        } else {
-            d_end = textparser_get_total_units(handle);
-        }
-        out_range->dirty_start = d_start;
-        out_range->dirty_end = d_end;
+        out_range->dirty_start = aligned_dirty_start;
+        out_range->dirty_end = aligned_dirty_end;
     }
 
     if (handle->lines && (delta_units != 0 || start_pos == 0)) {
@@ -3787,18 +4074,32 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         handle->no_lines = 0;
     }
 
+    // The dirty lexer-token range must reflect the tokens that actually
+    // changed, not the (possibly larger) reparse window, so unchanged suffix
+    // tokens keep their memo entries.
+    size_t changed_start = start_pos;
+    size_t changed_end = old_end_bound;
+    if (prefix < old_run.count && old_run.count - suffix > prefix) {
+        changed_start = textparser_get_token_position(old_run.items[prefix]);
+        textparser_token_item *last_changed = old_run.items[old_run.count - suffix - 1];
+        changed_end = textparser_get_token_position(last_changed) + last_changed->len;
+    } else {
+        changed_start = edit_offset;
+        changed_end = edit_offset;
+    }
+
     size_t old_token_count = handle->lexer_token_count;
     size_t old_dirty_tok_start = old_token_count;
     size_t old_dirty_tok_end = old_token_count;
     if (handle->lexer_tokens != nullptr) {
         for (size_t i = 0; i < old_token_count; i++) {
-            if (handle->lexer_tokens[i].end > start_pos) {
+            if (handle->lexer_tokens[i].end > changed_start) {
                 old_dirty_tok_start = i;
                 break;
             }
         }
         for (size_t i = old_dirty_tok_start; i < old_token_count; i++) {
-            if (handle->lexer_tokens[i].start >= old_end_bound) {
+            if (handle->lexer_tokens[i].start >= changed_end) {
                 old_dirty_tok_end = i;
                 break;
             }
@@ -7068,11 +7369,11 @@ EXPORT_TEXTPARSER void textparser_speculate_rollback(
     textparser_parser_checkpoint *cp = checkpoint;
     if (handle == nullptr || cp == nullptr || cp->magic != TEXTPARSER_CHECKPOINT_MAGIC || cp->owner != handle) return;
 
-    for (size_t i = cp->arena.chunk_count; i < handle->chunk_count; i++) {
-        free(handle->chunks[i]);
-        handle->chunks[i] = nullptr;
+    for (size_t i = cp->arena.chunk_count; i < handle->arena.chunk_count; i++) {
+        free(handle->arena.chunks[i]);
+        handle->arena.chunks[i] = nullptr;
     }
-    handle->chunk_count = cp->arena.chunk_count;
+    handle->arena.chunk_count = cp->arena.chunk_count;
     textparser_arena_checkpoint_restore(handle, &cp->arena);
 
     for (size_t i = 0; i < handle->mode_stack_depth; i++) {

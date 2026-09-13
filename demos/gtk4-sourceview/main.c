@@ -1,8 +1,13 @@
 #include <gtk/gtk.h>
 #include <gtksourceview/gtksource.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <json_definition.json.h>
+
+
+/* Monotonic counter printed after "[textparser]" for every parser call. */
+static unsigned g_textparser_call = 0;
 
 
 typedef struct {
@@ -262,8 +267,13 @@ parse_edit(Editor *editor, size_t offset, size_t removed,
         contains_json_syntax(old_text + offset, removed) ||
         contains_json_syntax(inserted, added);
 
+    unsigned call = ++g_textparser_call;
+    printf("[textparser %u] parse_incremental(offset=%zu, old_len=%zu, new_len=%zu)\n",
+           call, offset, removed, added);
     editor->parse_result = textparser_parse_incremental(
         editor->parser, editor->definition, offset, removed, inserted, added, NULL);
+    printf("[textparser %u] parse_incremental -> result=%d, text_size=%zu\n",
+           call, editor->parse_result, textparser_get_text_size(editor->parser));
     GArray *after = endpoint_state(editor->parser, offset + added);
     fallback = fallback || before->len != after->len ||
         (before->len > 0 && memcmp(before->data, after->data,
@@ -277,7 +287,12 @@ parse_edit(Editor *editor, size_t offset, size_t removed,
     g_array_unref(after);
     if (fallback) {
         /* Reset the tree by fully parsing the already updated parser text. */
+        unsigned fallback_call = ++g_textparser_call;
+        printf("[textparser %u] parse (full fallback)\n", fallback_call);
         editor->parse_result = textparser_parse(editor->parser, editor->definition);
+        printf("[textparser %u] parse (full fallback) -> result=%d, text_size=%zu\n",
+               fallback_call, editor->parse_result,
+               textparser_get_text_size(editor->parser));
         editor->full_parse_fallbacks++;
     }
 }
@@ -339,6 +354,7 @@ activate(GtkApplication *app, gpointer user_data)
     Editor *editor = g_new0(Editor, 1);
     editor->definition = &json_definition;
     int result = textparser_openmem("", 0, TEXTPARSER_ENCODING_UTF_8, &editor->parser);
+    printf("[textparser %u] openmem(len=0) -> result=%d\n", ++g_textparser_call, result);
     if (result != TEXTPARSER_OK) {
         g_printerr("Cannot create parser: %s\n", textparser_strerror(result));
         g_free(editor);
@@ -346,6 +362,9 @@ activate(GtkApplication *app, gpointer user_data)
         return;
     }
     editor->parse_result = textparser_parse(editor->parser, editor->definition);
+    printf("[textparser %u] parse (full, initial) -> result=%d, text_size=%zu\n",
+           ++g_textparser_call, editor->parse_result,
+           textparser_get_text_size(editor->parser));
 
     window = gtk_application_window_new(app);
     g_object_set_data_full(G_OBJECT(window), "editor", editor, editor_free);
