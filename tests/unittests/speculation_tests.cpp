@@ -2,7 +2,7 @@
 #include <textparser.hpp>
 #include <textparser-json.h>
 
-#include <json_definition.json.h>
+#include <json_legacy_definition.json.h>
 
 static bool dummy_predicate_check(textparser_t parser, const char *name, void *user_data) {
     (void)parser;

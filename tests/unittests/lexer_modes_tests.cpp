@@ -3,7 +3,7 @@
 #include <textparser-json.h>
 #include "production_helpers.hpp"
 
-#include <json_definition.json.h>
+#include <json_legacy_definition.json.h>
 
 static char *dummy_identifier_decoder(textparser_t parser, const char *raw_text, size_t length, void *user_data) {
     (void)parser;

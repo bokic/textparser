@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 
-#include <json_definition.json.h>
+#include <json_legacy_definition.json.h>
 
 static bool json_has_unprocessed(const textparser_token_item *token) {
     for (; token != nullptr; token = token->next) {

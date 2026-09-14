@@ -6,7 +6,7 @@
 
 #include <c_definition.json.h>
 #include <cfml_legacy_definition.json.h>
-#include <json_definition.json.h>
+#include <json_legacy_definition.json.h>
 #include <textparser-json.h>
 
 TEST(token_export_tests, full_document_export_c) {

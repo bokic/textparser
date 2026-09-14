@@ -89,6 +89,7 @@ add_executable( unittests
   lexer_stream_tests.cpp
   grammar_executor_tests.cpp
   json_grammar_tests.cpp
+  json_v2_grammar_tests.cpp
   speculation_tests.cpp
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp

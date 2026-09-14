@@ -2,11 +2,11 @@
 
 ## 1.1 (Compiler-Grade Parser Architecture Overhaul - Breaking Clean Upgrade)
 
-> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`). TypeScript/TSX, PHP, and CFML use primary v2 definitions (`definitions/typescript_definition.json`, `definitions/php_definition.json`, `definitions/cfml_definition.json`). The legacy CFML scanner is retained only as `definitions/cfml_legacy_definition.json` for the legacy tokenization tests and the core lexer suites.
+> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`). TypeScript/TSX, PHP, CFML, and JSON use primary v2 definitions (`definitions/typescript_definition.json`, `definitions/php_definition.json`, `definitions/cfml_definition.json`, `definitions/json_definition.json`). The legacy scanners for CFML and JSON are retained as `definitions/cfml_legacy_definition.json` and `definitions/json_legacy_definition.json` for the legacy tokenization tests and the core lexer suites.
 
 ### Remaining Work:
-- **Migrate Remaining Languages to v2 Grammar Schema**:
-  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (embedded languages: Bash, Markdown, etc.).
+- **Migrate Remaining Languages to v2 Grammar Schema** (26 remaining; `typescript`, `php`, `cfml`, `json` done):
+  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (ada, asm, bash, c, c3, cpp, csharp, css, fortran, go, html, jai, java, javascript, matlab, md, pascal, perl, python, r, rust, scratch, sql, swift, vb, zig).
   - Define language-specific error recovery synchronization tokens (`recoverSync`) and native validators.
 - **Eliminate Legacy v1 Dual-Stack Burden**:
   - Complete the clean, breaking upgrade replacing legacy v1 definitions with schema v2 entirely.

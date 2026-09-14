@@ -9,7 +9,7 @@
 #include <textparser.hpp>
 #include <textparser-json.h>
 
-#include <json_definition.json.h>
+#include <json_legacy_definition.json.h>
 
 // ────────────────────────────────────────────────────────────────────────────
 // SECTION 1: Nested Speculation & Rollback

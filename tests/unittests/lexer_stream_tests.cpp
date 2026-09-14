@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 #include <c_definition.json.h>
-#include <json_definition.json.h>
+#include <json_legacy_definition.json.h>
 #include <cfml_legacy_definition.json.h>
 #include <cstring>
 #include <string>

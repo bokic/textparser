@@ -1,120 +1,199 @@
 {
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
   "name": "json",
-  "version": 1.0,
+  "version": 2.0,
   "caseSensitivity": false,
   "defaultFileExtensions": [
     "json"
   ],
-  "otherTextInside": false,
   "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "Object",
-    "Array"
+  "supportedBom": [
+    "utf-8",
+    "utf-16-le",
+    "utf-16-be",
+    "utf-32-le",
+    "utf-32-be"
   ],
-  "tokens": {
-    "Object": {
-      "type": "StartStop",
-      "startRegex": "{",
-      "endRegex": "}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "Key",
-        "String",
-        "KeyValueSeparator",
-        "Value",
-        "ValueSeparator"
-      ]
+  "otherTextInside": false,
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "Object_Start": {
+        "regex": "\\{",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "Object_End": {
+        "regex": "\\}",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "Array_Start": {
+        "regex": "\\[",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "Array_End": {
+        "regex": "\\]",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "String": {
+        "regex": "\"(?:\\\\.|[^\"\\\\])*\"",
+        "priority": 10,
+        "textColor": "0x9e6a57"
+      },
+      "Number": {
+        "regex": "-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?",
+        "priority": 10,
+        "textColor": "0xb5cea8"
+      },
+      "Bool": {
+        "regex": "true|false",
+        "priority": 10,
+        "textColor": "0x569cd6"
+      },
+      "Null": {
+        "regex": "null",
+        "priority": 10,
+        "textColor": "0x569cd6"
+      },
+      "ValueSeparator": {
+        "regex": ",",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "KeyValueSeparator": {
+        "regex": ":",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      }
     },
-    "Array": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "String",
-        "Number",
-        "Object",
-        "Array",
-        "Bool",
-        "Null",
-        "ValueSeparator"
-      ]
-    },
-    "Value": {
-      "type": "GroupOneChildOnly",
-      "multiLine": true,
-      "nestedTokens": [
-        "String",
-        "Number",
-        "Object",
-        "Array",
-        "Bool",
-        "Null"
-      ],
-      "textColor": "0xce9178"
-    },
-    "Key": {
-      "type": "StartStop",
-      "otherTextInside": true,
-      "startRegex": "\\\"(?=[^\\\"\\\\\\\\]*(?:\\\\\\\\.[^\\\"\\\\\\\\]*)*\\\"\\s*:)",
-      "endRegex": "(\\\")\\s*:",
-      "textColor": "0x9cdcfe",
-      "nestedTokens": [
-        "StringContent",
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x6a9ec0"
-    },
-    "String": {
-      "type": "StartStop",
-      "otherTextInside": true,
-      "startRegex": "\\\"",
-      "endRegex": "\\\"",
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringContent",
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "-?\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
-      "textColor": "0xb5cea8"
-    },
-    "StringEscape": {
-      "type": "SimpleToken",
-      "startRegex": "\\\\\\\\|\\\\\"|\\\\\\/|\\\\b|\\\\f|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-f]{4}",
-      "textColor": "0xd7ba7d"
-    },
-    "StringContent": {
-      "type": "SimpleToken",
-      "startRegex": "[^\"\\\\\\x00-\\x1f]+",
-      "textColor": "0xce9178"
-    },
-    "Bool": {
-      "type": "SimpleToken",
-      "startRegex": "true|false",
-      "textColor": "0x569cd6"
-    },
-    "Null": {
-      "type": "SimpleToken",
-      "startRegex": "null",
-      "textColor": "0x569cd6"
-    },
-    "ValueSeparator": {
-      "type": "SimpleToken",
-      "startRegex": ",",
-      "textColor": "0xd4d4d4"
-    },
-    "KeyValueSeparator": {
-      "type": "SimpleToken",
-      "startRegex": ":",
-      "textColor": "0xd4d4d4"
+    "trivia": {
+      "Whitespace": {
+        "regex": "[ \\t\\r\\n]+",
+        "priority": 1,
+        "textColor": "0xd4d4d4"
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "Root": {
+        "choice": [
+          {
+            "ref": "Object"
+          },
+          {
+            "ref": "Array"
+          }
+        ]
+      },
+      "Object": {
+        "sequence": [
+          {
+            "token": "Object_Start"
+          },
+          {
+            "optional": {
+              "ref": "ObjectMembers"
+            }
+          },
+          {
+            "token": "Object_End"
+          }
+        ]
+      },
+      "ObjectMembers": {
+        "sequence": [
+          {
+            "ref": "ObjectMember"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "ValueSeparator"
+                },
+                {
+                  "ref": "ObjectMember"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ObjectMember": {
+        "sequence": [
+          {
+            "token": "String"
+          },
+          {
+            "token": "KeyValueSeparator"
+          },
+          {
+            "ref": "Value"
+          }
+        ]
+      },
+      "Array": {
+        "sequence": [
+          {
+            "token": "Array_Start"
+          },
+          {
+            "optional": {
+              "ref": "ArrayElements"
+            }
+          },
+          {
+            "token": "Array_End"
+          }
+        ]
+      },
+      "ArrayElements": {
+        "sequence": [
+          {
+            "ref": "Value"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "ValueSeparator"
+                },
+                {
+                  "ref": "Value"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Value": {
+        "choice": [
+          {
+            "token": "String"
+          },
+          {
+            "token": "Number"
+          },
+          {
+            "ref": "Object"
+          },
+          {
+            "ref": "Array"
+          },
+          {
+            "token": "Bool"
+          },
+          {
+            "token": "Null"
+          }
+        ]
+      }
     }
   }
 }
