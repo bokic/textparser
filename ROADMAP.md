@@ -8,10 +8,12 @@
 ### Completed Work:
 - **JSON Loader & Static Generator Parity (`json2h.py`)**:
   - Updated `definitions/json2h.py` to compile schema v2 declarative grammar tables, Pratt operator definitions, contextual lexer modes/goals, and error recovery policies into static C headers, achieving 1:1 parity with `src/textparser-json.c`.
+- **Migrated CFML to v2 Compiler-Grade Grammar Schema**:
+  - Authored compiler-grade v2 declarative grammar in `definitions/schema_v2/cfml_definition.json` with Adobe ColdFusion semantics, Pratt operator precedence hierarchy (16 ranks), contextual lexer mode switching (`CFMLTag`), script & tag modes, `.cfc` components/interfaces, and error recovery. Verified with dedicated test suite in `tests/unittests/cfml_grammar_tests.cpp`.
 
 ### Remaining Work:
 - **Migrate Remaining Languages to v2 Grammar Schema**:
-  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (starting with embedded languages: CFML, PHP, Bash, Markdown, etc.).
+  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (embedded languages: PHP, Bash, Markdown, etc.).
   - Define language-specific error recovery synchronization tokens (`recoverSync`) and native validators.
 - **Eliminate Legacy v1 Dual-Stack Burden**:
   - Complete the clean, breaking upgrade replacing legacy v1 definitions with schema v2 entirely.

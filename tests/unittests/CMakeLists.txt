@@ -44,6 +44,7 @@ endif()
 add_executable( unittests
   version_tests.cpp
   cfml_tests.cpp
+  cfml_grammar_tests.cpp
   json_tests.cpp
   php_tests.cpp
   java_tests.cpp
