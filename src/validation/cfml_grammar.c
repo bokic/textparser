@@ -2,6 +2,7 @@
 #include "cfml_common.h"
 #include "cfml_functions.h"
 #include "cfml_tags.h"
+#include "validation.h"
 
 #include <ctype.h>
 #include <limits.h>
