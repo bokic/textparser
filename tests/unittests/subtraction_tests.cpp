@@ -97,6 +97,8 @@ static void verify_negative_number(const textparser_language_definition *definit
     bool found_neg_one = false;
     bool found_typescript_minus = false;
     bool found_typescript_one = false;
+    bool found_php_minus = false;
+    bool found_php_one = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
         if (item.type &&
             (strcmp(item.type, "Number") == 0 || strcmp(item.type, "Value") == 0) &&
@@ -107,6 +109,10 @@ static void verify_negative_number(const textparser_language_definition *definit
             found_typescript_minus = true;
         if (item.type && strcmp(item.type, "NumericLiteral") == 0 && item.value == "1")
             found_typescript_one = true;
+        if (item.type && strcmp(item.type, "AddOperator") == 0 && item.value == "-")
+            found_php_minus = true;
+        if (item.type && strcmp(item.type, "Number") == 0 && item.value == "1")
+            found_php_one = true;
         for (size_t i = 0; i < item.children; ++i) {
             scan(item[i]);
         }
@@ -116,6 +122,8 @@ static void verify_negative_number(const textparser_language_definition *definit
     }
     if (strcmp(lang_name, "TypeScript") == 0)
         found_neg_one = found_typescript_minus && found_typescript_one;
+    else if (strcmp(lang_name, "PHP") == 0)
+        found_neg_one = found_php_minus && found_php_one;
 
     if (!found_neg_one) {
         std::cout << "DEBUG: " << lang_name << " negative number tokens:" << std::endl;

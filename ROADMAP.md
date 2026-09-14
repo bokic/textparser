@@ -2,8 +2,8 @@
 
 ## 1.1 (Compiler-Grade Parser Architecture Overhaul - Breaking Clean Upgrade)
 
-> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is fully implemented in the C core runtime (`src/textparser.c`), but is currently **enabled and authored for TypeScript/TSX only** (`definitions/typescript_definition.json`).
-> All other 30+ languages still run on the legacy v1 scanner (`definitions/*.json` → `search_function_gen.c`).
+> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`). TypeScript/TSX and PHP use primary v2 definitions (`definitions/typescript_definition.json`, `definitions/php_definition.json`); CFML has a dedicated v2 grammar under `definitions/schema_v2/`.
+> The default CFML definition still uses the legacy scanner. Authoring and testing its v2 profile does not yet replace that default.
 
 ### Completed Work:
 - **JSON Loader & Static Generator Parity (`json2h.py`)**:
@@ -13,7 +13,7 @@
 
 ### Remaining Work:
 - **Migrate Remaining Languages to v2 Grammar Schema**:
-  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (embedded languages: PHP, Bash, Markdown, etc.).
+  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (embedded languages: Bash, Markdown, etc.).
   - Define language-specific error recovery synchronization tokens (`recoverSync`) and native validators.
 - **Eliminate Legacy v1 Dual-Stack Burden**:
   - Complete the clean, breaking upgrade replacing legacy v1 definitions with schema v2 entirely.
@@ -119,4 +119,3 @@ before/after) or `malloc`.
 ## 1.4 (Cleanup)
 
 - Code cleanup(deslobification). Cleanup AI slob, old architecture decisions and other.
-

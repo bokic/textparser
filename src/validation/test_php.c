@@ -26,6 +26,20 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    /* The v2 grammar reports diagnostics through the php.legality handler, which
+     * must be registered before the grammar is executed. */
+    res = textparser_php_register_validators(handle);
+    if (res != 0) {
+        printf("Failed to register PHP validators. Error `%s`, code %d\n", textparser_parse_error(handle), res);
+        return EXIT_FAILURE;
+    }
+    textparser_match_result match = {0};
+    res = textparser_execute_language_grammar(handle, &php_definition, &match);
+    if (res != 0) {
+        printf("Failed to execute the PHP grammar. Error `%s`, code %d\n", textparser_parse_error(handle), res);
+        return EXIT_FAILURE;
+    }
+
     textparser_validation *validation = textparser_validate_php(handle);
     if (validation != nullptr) {
         for(int c = 0; c < validation->len; c++) {

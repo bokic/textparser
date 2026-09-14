@@ -158,6 +158,65 @@ from the core parser into pluggable validators and language validation modules:
 * **Web & Data:** HTML, CSS, JavaScript, TypeScript, JSON, XML, SQL, Markdown
 * **Scripting:** Python, PHP, Bash/Shell
 
+The PHP v2 migration targets **PHP 8.5** and is complete: the declarative grammar
+lives at `definitions/php_definition.json` and is the default for `.php` files.
+The profile declares whitespace and comments as lexer trivia
+and distinguishes plain assignment from compound assignment. Dedicated C-engine
+tests in `tests/unittests/php_grammar_tests.cpp` check complete source consumption,
+basic statements and calls, arrays, arithmetic precedence, assignment associativity,
+and missing-operand diagnostics. Outside PHP tags, all text (including HTML) is
+`OutsidePHP` trivia. Opening tags push the PHP lexer mode; closing tags pop it.
+Transitions work within braced statement bodies, and `?>` can terminate ordinary
+statements. Line comments stop before closing tags; strings and block comments
+retain embedded tag text. The profile supports `<?php`, `<?=`, and short `<?` tags
+(short tags are always enabled in this profile). Outside trivia creates no grammar
+CST nodes, so trailing trivia need not extend the final syntax node's source span.
+See the [PHP migration checklist in ROADMAP.md](ROADMAP.md#remaining-work) for
+the verification history.
+The grammar covers pipes, first-class callables, `(void)` statements,
+property hooks, asymmetric visibility, promoted final properties, DNF types,
+typed/attributed constants, grouped imports, alternative control syntax,
+anonymous classes, references, and heredoc/nowdoc strings. The 31-sample core
+corpus and a 123-sample extended corpus pass both the C grammar and the official
+PHP 8.5.10 lint check; their JSON-loaded and generated-header CST outputs match
+exactly. The extension also added 26 malformed samples, unterminated-construct
+checks, and a member-boundary recovery check, and fixed three grammar gaps found
+along the way (`|=`/`^=` compound assignment, `new (expr)`, and `namespace;`). All
+69 PHP unit tests pass (31 grammar/validation cases through each definition path,
+plus 7 parser/validator tests). Grammar acceptance matches PHP 8.5.10 for
+253 differential samples; the only differences are intentional (`PHP2008` arity
+diagnostics on syntactically valid calls and the PHP-semantic rejection of
+redeclaring a built-in function). Calls distinguish unpacked arguments (`...$args`) from standalone
+callable placeholders (`...` followed by `)`, with optional trivia). Regression
+coverage includes multiple unpacks, nested calls, named arguments after
+unpacking, trailing commas, and malformed placeholders.
+
+For the v2 profile, link `libtextparser_php` and call
+`textparser_php_register_validators(handle)` before executing the language grammar.
+The `php.legality` source-complete handler checks writable assignment/update
+targets, comparison and ternary chains, interpolation syntax, and heredoc/nowdoc
+indentation. It parses interpolation fragments with the same C PHP grammar,
+including nested expressions and strings; the outer CST still represents strings
+as tokens. Diagnostics use `PHP2001`–`PHP2009`, with `PHP2007` for the validation
+nesting limit. Check diagnostics even when grammar execution returns a match.
+`textparser_validate_php(handle)` exposes these diagnostics through the validation
+API. The `php.legality` handler also checks built-in call arity (`PHP2008`),
+skipping methods, static and dynamic calls, namespaced calls, first-class
+callables, `new` expressions, and functions declared in the same source, and
+rejects empty array elements in array literals (`PHP2009`) unless the array is a
+destructuring target. The v2 profile is now the default definition: `textparser`,
+`ccat`, and `php_validation_test` use it, and `test_php.c` registers the
+validators and executes the grammar before validating. The legacy validator path
+in `php.c` remains for callers that load a legacy PHP definition.
+The legacy built-in signature table is now generated from the official PHP 8.5.10
+source by `src/validation/generate_php_functions.py`, including parameter names,
+optional/variadic flags, SAPI `additional_functions` tables for CLI-only functions
+(`cli_get_process_title`), and alternative signatures for platform-dependent builds
+(`ldap_connect` has two or five parameters). A call is accepted when any variant's
+arity matches. Generator regressions are in `tests/test_php_functions.py`; arity
+regressions are in `tests/unittests/php_tests.cpp`.
+`./build.sh` regenerates the PHP v2 header for both-path regression testing.
+
 ---
 
 ## 🚀 Installation

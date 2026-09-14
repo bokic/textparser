@@ -17,47 +17,54 @@ static void scan_tokens(const TokenParserItem &item, std::set<std::string> &foun
     }
 }
 
+// Tokenizes with the v2 lexer and runs the php.legality validator. Owns the
+// handle lifetime and returns the first validation message.
+static std::string validate_php_message(const char *source, bool *has_error) {
+    textparser_t handle = nullptr;
+    if (textparser_openmem(source, (int)strlen(source), TEXTPARSER_ENCODING_LATIN1, &handle) != 0) {
+        *has_error = true;
+        return "openmem failed";
+    }
+    textparser_parse(handle, &php_definition);
+    textparser_php_register_validators(handle);
+    textparser_match_result result{};
+    textparser_execute_language_grammar(handle, &php_definition, &result);
+    textparser_validation *validation = textparser_validate_php(handle);
+    std::string message;
+    if (validation != nullptr) {
+        *has_error = true;
+        if (validation->len > 0) message = validation->items[0]->text;
+        textparser_validation_clear(validation);
+    } else {
+        *has_error = false;
+    }
+    textparser_close(handle);
+    return message;
+}
 
 TEST(parse_PHP, simple_php_block) {
     auto tokens = TextParser(R"(<?php echo "hello"; ?>)", &php_definition);
-    ASSERT_EQ(tokens.count, 1);
+    ASSERT_EQ(tokens.count, 5);
 
-    EXPECT_STREQ(tokens[0].type, "Tag");
+    EXPECT_STREQ(tokens[0].type, "PHPOpenTag");
     EXPECT_EQ   (tokens[0].position, 0);
-    EXPECT_EQ   (tokens[0].length,   22);
-    
-    // Within Tag, we should have Keyword, DoubleString, and Operator (;)
-    ASSERT_EQ   (tokens[0].children, 3);
-    
-    EXPECT_STREQ(tokens[0][0].type, "Keyword");
-    EXPECT_EQ   (tokens[0][0].position, 6);
-    EXPECT_EQ   (tokens[0][0].length,   4); // "echo"
+    EXPECT_EQ   (tokens[0].length,   5);
 
-    EXPECT_STREQ(tokens[0][1].type, "DoubleString");
-    EXPECT_EQ   (tokens[0][1].position, 11);
-    EXPECT_EQ   (tokens[0][1].length,   7); // "\"hello\""
+    EXPECT_STREQ(tokens[1].type, "EchoKeyword");
+    EXPECT_EQ   (tokens[1].position, 6);
+    EXPECT_EQ   (tokens[1].length,   4);
 
-    EXPECT_STREQ(tokens[0][2].type, "Operator");
-    EXPECT_EQ   (tokens[0][2].position, 18);
-    EXPECT_EQ   (tokens[0][2].length,   1); // ";"
-}
+    EXPECT_STREQ(tokens[2].type, "DoubleString");
+    EXPECT_EQ   (tokens[2].position, 11);
+    EXPECT_EQ   (tokens[2].length,   7);
 
-TEST(parse_PHP, php_comments) {
-    auto tokens = TextParser(R"(<?php
-// line comment
-# shell comment
-/* block
-comment */
-?>)", &php_definition);
-    ASSERT_EQ(tokens.count, 1);
-    EXPECT_STREQ(tokens[0].type, "Tag");
-    
-    // Tag should have 3 comment children
-    ASSERT_EQ(tokens[0].children, 3);
-    
-    EXPECT_STREQ(tokens[0][0].type, "LineComment");
-    EXPECT_STREQ(tokens[0][1].type, "LineComment");
-    EXPECT_STREQ(tokens[0][2].type, "BlockComment");
+    EXPECT_STREQ(tokens[3].type, "Semicolon");
+    EXPECT_EQ   (tokens[3].position, 18);
+    EXPECT_EQ   (tokens[3].length,   1);
+
+    EXPECT_STREQ(tokens[4].type, "PHPCloseTag");
+    EXPECT_EQ   (tokens[4].position, 20);
+    EXPECT_EQ   (tokens[4].length,   2);
 }
 
 TEST(parse_PHP, variables_and_blocks) {
@@ -67,39 +74,33 @@ if (true) {
     $y = false;
 }
 ?>)", &php_definition);
-    ASSERT_EQ(tokens.count, 1);
-    EXPECT_STREQ(tokens[0].type, "Tag");
-    
+
     std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {
         scan_tokens(tokens[i], found);
     }
 
     EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
+    EXPECT_TRUE(found.contains("LBrace"));
+    EXPECT_TRUE(found.contains("RBrace"));
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Boolean"));
 }
 
-TEST(parse_PHP, double_string_interpolation) {
+TEST(parse_PHP, double_string_is_a_single_token) {
     auto tokens = TextParser(R"(<?php $str = "hello $world"; ?>)", &php_definition);
-    ASSERT_EQ(tokens.count, 1);
-    EXPECT_STREQ(tokens[0].type, "Tag");
 
-    // Let's find DoubleString
     int double_str_idx = -1;
-    for (size_t i = 0; i < tokens[0].children; ++i) {
-        if (std::string(tokens[0][i].type) == "DoubleString") {
-            double_str_idx = i;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        if (std::string(tokens[i].type) == "DoubleString") {
+            double_str_idx = (int)i;
             break;
         }
     }
     ASSERT_NE(double_str_idx, -1);
-
-    // DoubleString should have a child of type Variable ($world)
-    auto double_str = tokens[0][double_str_idx];
-    ASSERT_EQ(double_str.children, 1);
-    EXPECT_STREQ(double_str[0].type, "Variable");
+    EXPECT_EQ(tokens[double_str_idx].value, "\"hello $world\"");
+    EXPECT_EQ(tokens[double_str_idx].position, 13);
+    EXPECT_EQ(tokens[double_str_idx].length, 14);
 }
 
 TEST(parse_PHP, extra_tokens_coverage) {
@@ -107,165 +108,113 @@ TEST(parse_PHP, extra_tokens_coverage) {
 $arr = ['key' => 'value'];
 $obj->method();
 ?>)", &php_definition);
-    
-    ASSERT_EQ(tokens.count, 1);
-    EXPECT_STREQ(tokens[0].type, "Tag");
 
     std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("ArrayKeyValue"));
+    EXPECT_TRUE(found.contains("DoubleArrow"));
     EXPECT_TRUE(found.contains("MemberAccess"));
     EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("Identifier"));
 }
 
-TEST(parse_PHP, string_escapes) {
+TEST(parse_PHP, string_literals_keep_escapes) {
     auto tokens = TextParser(R"(<?php
 $s1 = 'escaped \' \\ string';
 $s2 = "escaped \" \$ \\ \n \r \t string";
 ?>)", &php_definition);
-    ASSERT_EQ(tokens.count, 1);
-    EXPECT_STREQ(tokens[0].type, "Tag");
 
-    // Find s1 and s2 strings
-    int single_str_idx = -1;
-    int double_str_idx = -1;
-    for (size_t i = 0; i < tokens[0].children; ++i) {
-        if (std::string(tokens[0][i].type) == "SingleString") {
-            single_str_idx = i;
+    bool found_single = false;
+    bool found_double = false;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        if (std::string(tokens[i].type) == "SingleString") {
+            found_single = true;
+            EXPECT_NE(tokens[i].value.find("escaped"), std::string::npos);
         }
-        if (std::string(tokens[0][i].type) == "DoubleString") {
-            double_str_idx = i;
-        }
-    }
-    ASSERT_NE(single_str_idx, -1);
-    ASSERT_NE(double_str_idx, -1);
-
-    auto single_str = tokens[0][single_str_idx];
-    // SingleString should have 2 children of type StringEscape (\' and \\)
-    ASSERT_EQ(single_str.children, 2);
-    EXPECT_STREQ(single_str[0].type, "StringEscape");
-    EXPECT_STREQ(single_str[1].type, "StringEscape");
-
-    auto double_str = tokens[0][double_str_idx];
-    // DoubleString should have 6 children of type StringEscape ( \", \$, \\, \n, \r, \t )
-    int escape_count = 0;
-    for (size_t i = 0; i < double_str.children; ++i) {
-        if (std::string(double_str[i].type) == "StringEscape") {
-            escape_count++;
+        if (std::string(tokens[i].type) == "DoubleString") {
+            found_double = true;
+            EXPECT_NE(tokens[i].value.find("escaped"), std::string::npos);
         }
     }
-    EXPECT_EQ(escape_count, 6);
+    EXPECT_TRUE(found_single);
+    EXPECT_TRUE(found_double);
 }
 
 TEST(validate_PHP, built_in_functions) {
-    // 1. Valid call to strlen
-    {
+    bool has_error = false;
+    std::string message;
+
+    // Valid call to strlen
+    message = validate_php_message("<?php strlen('hello'); ?>", &has_error);
+    EXPECT_FALSE(has_error);
+    EXPECT_TRUE(message.empty());
+
+    // Invalid call to strlen (0 arguments instead of 1)
+    message = validate_php_message("<?php strlen(); ?>", &has_error);
+    ASSERT_TRUE(has_error);
+    EXPECT_EQ(message, "PHP2008: Function [strlen] requires at least 1 arguments, but 0 were provided");
+
+    // The v2 validator intentionally does not flag unknown functions: a call to
+    // a function defined in another file is indistinguishable from a typo.
+    message = validate_php_message("<?php nonexistent_function(); ?>", &has_error);
+    EXPECT_FALSE(has_error);
+    EXPECT_TRUE(message.empty());
+
+    // User defined function call should not raise error
+    message = validate_php_message("<?php function custom_func() {} custom_func(); ?>", &has_error);
+    EXPECT_FALSE(has_error);
+    EXPECT_TRUE(message.empty());
+
+    // Mixed-case built-in function names are recognized case-insensitively
+    message = validate_php_message("<?php STRLEN('a'); StrToLower('B'); substr('x', 0); ?>", &has_error);
+    EXPECT_FALSE(has_error);
+    EXPECT_TRUE(message.empty());
+
+    // `new ClassName(...)` is not a function call
+    message = validate_php_message("<?php new Foo(); ?>", &has_error);
+    EXPECT_FALSE(has_error);
+    EXPECT_TRUE(message.empty());
+
+    // Method call syntax -> and :: is not a function call
+    message = validate_php_message("<?php $obj->method(); ClassName::staticMethod(); ?>", &has_error);
+    EXPECT_FALSE(has_error);
+    EXPECT_TRUE(message.empty());
+}
+
+TEST(validate_PHP, php85_signature_arity) {
+    const struct { const char *source; bool valid; } cases[] = {
+        {"<?php array_merge();", true},
+        {"<?php array_merge([1], [2], [3]);", true},
+        {"<?php array_diff([1]);", true},
+        {"<?php array_diff();", false},
+        {"<?php sprintf('literal');", true},
+        {"<?php sprintf('%s %s', 'a', 'b');", true},
+        {"<?php sprintf();", false},
+        {"<?php max(1);", true},
+        {"<?php strlen('a', 'b');", false},
+        {"<?php sizeof([1]);", true},
+        {"<?php sizeof();", false},
+        {"<?php ldap_connect();", true},
+        {"<?php ldap_connect('uri', 389);", true},
+        {"<?php ldap_connect('uri', 389, 'wallet', 'password', 0);", true},
+        {"<?php ldap_connect('uri', 389, 'wallet', 'password', 0, 1);", false},
+        {"<?php cli_get_process_title();", true},
+        {"<?php cli_get_process_title(1);", false},
+        {"<?php dl();", false},
+    };
+    for (const auto &test : cases) {
+        SCOPED_TRACE(test.source);
         textparser_t handle = nullptr;
-        int res = textparser_openmem("<?php strlen('hello'); ?>", 25, TEXTPARSER_ENCODING_LATIN1, &handle);
-        ASSERT_EQ(res, 0);
-        res = textparser_parse(handle, &php_definition);
-        ASSERT_EQ(res, 0);
-
+        ASSERT_EQ(textparser_openmem(test.source, strlen(test.source), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &php_definition), 0);
+        ASSERT_EQ(textparser_php_register_validators(handle), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(textparser_execute_language_grammar(handle, &php_definition, &result), 0);
         textparser_validation *validation = textparser_validate_php(handle);
-        EXPECT_EQ(validation, nullptr);
-        textparser_close(handle);
-    }
-
-    // 2. Invalid call to strlen (0 arguments instead of 1)
-    {
-        textparser_t handle = nullptr;
-        int res = textparser_openmem("<?php strlen(); ?>", 18, TEXTPARSER_ENCODING_LATIN1, &handle);
-        ASSERT_EQ(res, 0);
-        res = textparser_parse(handle, &php_definition);
-        ASSERT_EQ(res, 0);
-
-        textparser_validation *validation = textparser_validate_php(handle);
-        ASSERT_NE(validation, nullptr);
-        EXPECT_EQ(validation->len, 1);
-        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
-        EXPECT_STREQ(validation->items[0]->text, "Function [strlen] requires at least 1 arguments, but 0 were provided");
-
-        textparser_validation_clear(validation);
-        textparser_close(handle);
-    }
-
-    // 3. Unknown function call
-    {
-        textparser_t handle = nullptr;
-        int res = textparser_openmem("<?php nonexistent_function(); ?>", 32, TEXTPARSER_ENCODING_LATIN1, &handle);
-        ASSERT_EQ(res, 0);
-        res = textparser_parse(handle, &php_definition);
-        ASSERT_EQ(res, 0);
-
-        textparser_validation *validation = textparser_validate_php(handle);
-        ASSERT_NE(validation, nullptr);
-        EXPECT_EQ(validation->len, 1);
-        EXPECT_EQ(validation->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
-        EXPECT_STREQ(validation->items[0]->text, "Unknown PHP function: [nonexistent_function]");
-
-        textparser_validation_clear(validation);
-        textparser_close(handle);
-    }
-
-    // 4. User defined function call should not raise error
-    {
-        textparser_t handle = nullptr;
-        const char *code = "<?php function custom_func() {} custom_func(); ?>";
-        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
-        ASSERT_EQ(res, 0);
-        res = textparser_parse(handle, &php_definition);
-        ASSERT_EQ(res, 0);
-
-        textparser_validation *validation = textparser_validate_php(handle);
-        EXPECT_EQ(validation, nullptr);
-        textparser_close(handle);
-    }
-
-    // 5. Mixed-case built-in function names (name_lower defer path) are
-    //    recognized case-insensitively and must not raise errors
-    {
-        textparser_t handle = nullptr;
-        const char *code = "<?php STRLEN('a'); StrToLower('B'); substr('x', 0); ?>";
-        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
-        ASSERT_EQ(res, 0);
-        res = textparser_parse(handle, &php_definition);
-        ASSERT_EQ(res, 0);
-
-        textparser_validation *validation = textparser_validate_php(handle);
-        EXPECT_EQ(validation, nullptr);
-        textparser_close(handle);
-    }
-
-    // 6. `new ClassName(...)` is not a function call (get_function_name_before_paren)
-    {
-        textparser_t handle = nullptr;
-        const char *code = "<?php new Foo(); ?>";
-        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
-        ASSERT_EQ(res, 0);
-        res = textparser_parse(handle, &php_definition);
-        ASSERT_EQ(res, 0);
-
-        textparser_validation *validation = textparser_validate_php(handle);
-        EXPECT_EQ(validation, nullptr);
-        textparser_close(handle);
-    }
-
-    // 7. Method call syntax -> and :: is not a function call
-    {
-        textparser_t handle = nullptr;
-        const char *code = "<?php $obj->method(); ClassName::staticMethod(); ?>";
-        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
-        ASSERT_EQ(res, 0);
-        res = textparser_parse(handle, &php_definition);
-        ASSERT_EQ(res, 0);
-
-        textparser_validation *validation = textparser_validate_php(handle);
-        EXPECT_EQ(validation, nullptr);
+        EXPECT_EQ(validation == nullptr, test.valid);
+        if (validation) textparser_validation_clear(validation);
         textparser_close(handle);
     }
 }
-
-

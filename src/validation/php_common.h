@@ -25,8 +25,18 @@ typedef struct {
     php_attr_type type;
 } php_function_parameter_info;
 
-typedef struct {
+typedef struct php_function_info {
     const char *name;
     php_attr_type return_type;
     const php_function_parameter_info *parameters;
+    /* Alternative signatures from conditional PHP builds; NULL ends the list. */
+    const struct php_function_info *alternative;
 } php_function_info;
+
+/* Case-folded built-in lookup against the generated signature table. Returns
+ * NULL when the name is not a known built-in. */
+const php_function_info *php_find_function(const char *name);
+
+/* Returns a malloc'd arity diagnostic for a call to a known built-in, or NULL
+ * when the argument count is accepted by at least one signature variant. */
+char *php_function_arity_error(const php_function_info *info, const char *name, int arg_count);

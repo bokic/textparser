@@ -32,6 +32,8 @@ if(NOT TARGET GTest::gtest_main)
 endif()
 
 enable_testing()
+add_test(NAME php_function_generator
+  COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/test_php_functions.py")
 
 if(NOT MSVC)
   add_test(NAME json2h_generated_headers
@@ -47,6 +49,7 @@ add_executable( unittests
   cfml_grammar_tests.cpp
   json_tests.cpp
   php_tests.cpp
+  php_grammar_tests.cpp
   java_tests.cpp
   c_tests.cpp
   cpp_tests.cpp

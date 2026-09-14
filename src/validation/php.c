@@ -1,10 +1,10 @@
+#include <limits.h>
 #include "php.h"
 #include "php_common.h"
 #include "php_functions.h"
 #include "validation.h"
 
 #include <textparser.h>
-#include <php_definition.json.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -72,6 +72,10 @@ static int compare_php_function_info(const void *key, const void *element) {
 }
 
 static const php_function_info *find_php_function_info(const char *name) {
+    return php_find_function(name);
+}
+
+const php_function_info *php_find_function(const char *name) {
     return (const php_function_info *)bsearch(
         name,
         php_functions,
@@ -79,6 +83,37 @@ static const php_function_info *find_php_function_info(const char *name) {
         sizeof(php_function_info),
         compare_php_function_info
     );
+}
+
+char *php_function_arity_error(const php_function_info *fn_info, const char *name, int arg_count) {
+    /* Accept a call when any platform's signature accepts its arity. */
+    int min_params = INT_MAX;
+    int max_params = 0;
+    bool is_variadic = false;
+    bool accepted = false;
+    for (const php_function_info *variant = fn_info; variant;
+         variant = variant->alternative) {
+        int minimum = 0, maximum = 0;
+        bool variadic = false;
+        for (const php_function_parameter_info *param = variant->parameters;
+             param && param->name; ++param) {
+            maximum++;
+            minimum += param->required;
+            variadic |= param->is_variadic;
+        }
+        if (minimum < min_params) min_params = minimum;
+        if (maximum > max_params) max_params = maximum;
+        is_variadic |= variadic;
+        if (arg_count >= minimum && (variadic || arg_count <= maximum))
+            accepted = true;
+    }
+
+    if (accepted) return nullptr;
+    if (arg_count < min_params)
+        return dynamic_printf("Function [%s] requires at least %d arguments, but %d were provided", name, min_params, arg_count);
+    if (!is_variadic && arg_count > max_params)
+        return dynamic_printf("Function [%s] takes at most %d arguments, but %d were provided", name, max_params, arg_count);
+    return dynamic_printf("Function [%s] has no supported signature accepting %d arguments", name, arg_count);
 }
 
 static bool is_token_in_string(textparser_t handle, textparser_token_item *token) {
@@ -365,31 +400,9 @@ static void textparser_validate_php_token(const php_dynamic_token_ids *ids, text
                     arg_count--;
                 }
 
-                // Calculate parameter expectations
-                int min_params = 0;
-                int max_params = 0;
-                bool is_variadic = false;
-
-                if (fn_info->parameters != nullptr) {
-                    const php_function_parameter_info *param = fn_info->parameters;
-                    while (param->name != nullptr) {
-                        max_params++;
-                        if (param->required) {
-                            min_params++;
-                        }
-                        if (param->is_variadic) {
-                            is_variadic = true;
-                        }
-                        param++;
-                    }
-                }
-
-                if (arg_count < min_params) {
-                    char *str = dynamic_printf("Function [%s] requires at least %d arguments, but %d were provided", name_lower, min_params, arg_count);
-                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, func_pos, func_len);
-                } else if (!is_variadic && arg_count > max_params) {
-                    char *str = dynamic_printf("Function [%s] takes at most %d arguments, but %d were provided", name_lower, max_params, arg_count);
-                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, func_pos, func_len);
+                char *error = php_function_arity_error(fn_info, name_lower, arg_count);
+                if (error != nullptr) {
+                    textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, error, func_pos, func_len);
                 }
             }
         }
@@ -410,6 +423,25 @@ static void textparser_validate_php_tree(const php_dynamic_token_ids *ids, textp
 }
 
 textparser_validation *textparser_validate_php(textparser_t handle) {
+    if (handle == nullptr) return nullptr;
+    const textparser_language_definition *definition = textparser_get_language(handle);
+    if (definition != nullptr && definition->grammar != nullptr) {
+        textparser_validation *ret = nullptr;
+        for (size_t i = 0; i < textparser_get_diagnostic_count(handle); ++i) {
+            textparser_diagnostic diagnostic = {0};
+            if (textparser_get_diagnostic(handle, i, &diagnostic) != 0) continue;
+            enum textparser_validation_item_type type = TEXTPARSER_VALIDATION_ITEM_TYPE_INFO;
+            if (diagnostic.severity == TEXTPARSER_SEVERITY_ERROR)
+                type = TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR;
+            else if (diagnostic.severity == TEXTPARSER_SEVERITY_WARNING)
+                type = TEXTPARSER_VALIDATION_ITEM_TYPE_WARNING;
+            textparser_validation_item_add(type, &ret,
+                dynamic_printf("%s: %s", diagnostic.code ? diagnostic.code : "PHP",
+                               diagnostic.message ? diagnostic.message : ""),
+                diagnostic.start_pos, diagnostic.length);
+        }
+        return ret;
+    }
     php_dynamic_token_ids ids;
     resolve_php_token_ids(handle, &ids);
 

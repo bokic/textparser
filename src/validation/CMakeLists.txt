@@ -41,6 +41,7 @@ set_target_properties(cfml_test PROPERTIES
 
 add_library(php SHARED
     php.c
+    php_grammar.c
 )
 
 target_include_directories(php PRIVATE
