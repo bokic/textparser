@@ -2,14 +2,7 @@
 
 ## 1.1 (Compiler-Grade Parser Architecture Overhaul - Breaking Clean Upgrade)
 
-> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`). TypeScript/TSX and PHP use primary v2 definitions (`definitions/typescript_definition.json`, `definitions/php_definition.json`); CFML has a dedicated v2 grammar under `definitions/schema_v2/`.
-> The default CFML definition still uses the legacy scanner. Authoring and testing its v2 profile does not yet replace that default.
-
-### Completed Work:
-- **JSON Loader & Static Generator Parity (`json2h.py`)**:
-  - Updated `definitions/json2h.py` to compile schema v2 declarative grammar tables, Pratt operator definitions, contextual lexer modes/goals, and error recovery policies into static C headers, achieving 1:1 parity with `src/textparser-json.c`.
-- **Migrated CFML to v2 Compiler-Grade Grammar Schema**:
-  - Authored compiler-grade v2 declarative grammar in `definitions/schema_v2/cfml_definition.json` with Adobe ColdFusion semantics, Pratt operator precedence hierarchy (16 ranks), contextual lexer mode switching (`CFMLTag`), script & tag modes, `.cfc` components/interfaces, and error recovery. Verified with dedicated test suite in `tests/unittests/cfml_grammar_tests.cpp`.
+> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`). TypeScript/TSX, PHP, and CFML use primary v2 definitions (`definitions/typescript_definition.json`, `definitions/php_definition.json`, `definitions/cfml_definition.json`). The legacy CFML scanner is retained only as `definitions/cfml_legacy_definition.json` for the legacy tokenization tests and the core lexer suites.
 
 ### Remaining Work:
 - **Migrate Remaining Languages to v2 Grammar Schema**:

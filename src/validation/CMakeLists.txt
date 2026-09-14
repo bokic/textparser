@@ -2,6 +2,7 @@ set(CMAKE_C_STANDARD 23)
 
 add_library(cfml SHARED
     cfml.c
+    cfml_grammar.c
 )
 
 target_include_directories(cfml PRIVATE

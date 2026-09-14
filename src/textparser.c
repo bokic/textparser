@@ -144,6 +144,12 @@ typedef struct {
     textparser_lex_token previous_token;
 } textparser_parser_runtime;
 
+typedef struct {
+    int kind;
+    size_t start;
+    size_t end;
+} textparser_cached_trivia;
+
 typedef struct textparser_lexer_cache_entry {
     size_t source_offset;
     int source_rule;
@@ -3624,6 +3630,9 @@ static const textparser_token_item *find_token_at_position_internal(const textpa
     return best;
 }
 
+static int textparser_parse_contextual(struct textparser_handle *handle,
+                                       const textparser_language_definition *definition);
+
 int textparser_parse(textparser_t handle, const textparser_language_definition *definition)
 {
     if (handle == nullptr || definition == nullptr)
@@ -4249,6 +4258,12 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     // The text may have been spliced; drop the cached line-end bound.
     handle->line_cache_anchor = 0;
     handle->line_cache_end = 0;
+
+    // v2 definitions (contextual lexer) are tokenized by the mode/priority-aware
+    // contextual lexer instead of the legacy scanner. The legacy scanner ignores
+    // lexer modes and token priorities, so it mislabels mode-dependent trivia.
+    if (definition->lexer_rules != nullptr)
+        return textparser_parse_contextual(handle, definition);
 
     // Resolve active token from existing AST
     const textparser_token_item *active_token = nullptr;
@@ -7306,6 +7321,11 @@ EXPORT_TEXTPARSER const char *textparser_get_current_mode(textparser_t handle)
     if (handle->mode_stack_depth > 0 && handle->mode_stack[handle->mode_stack_depth - 1] != nullptr) {
         return handle->mode_stack[handle->mode_stack_depth - 1];
     }
+    /* With an empty stack the active mode is the definition's initial mode, so
+     * consume and peek agree. */
+    if (handle->language != nullptr && handle->language->initial_lexer_mode != nullptr) {
+        return handle->language->initial_lexer_mode;
+    }
     return "default";
 }
 
@@ -7445,10 +7465,14 @@ static int textparser_contextual_scan_one(
     const char *mode_name,
     const char *goal_name,
     const textparser_lex_token **out_token,
-    int *out_source_rule)
+    int *out_source_rule,
+    textparser_cached_trivia **out_trivia,
+    size_t *out_trivia_count)
 {
     *out_token = nullptr;
     if (out_source_rule != nullptr) *out_source_rule = -1;
+    if (out_trivia != nullptr) *out_trivia = nullptr;
+    if (out_trivia_count != nullptr) *out_trivia_count = 0;
     const char *mode = mode_name ? mode_name : "default";
     const char *goal = goal_name ? goal_name : "";
     for (textparser_lexer_cache_entry *cached = handle->lexer_cache;
@@ -7467,6 +7491,9 @@ static int textparser_contextual_scan_one(
     size_t offset = source_offset;
     size_t trivia_start = offset;
     uint32_t flags = 0;
+    textparser_cached_trivia *trivia = nullptr;
+    size_t trivia_count = 0;
+    size_t trivia_capacity = 0;
     for (;;) {
         int best = -1;
         size_t best_len = 0;
@@ -7482,9 +7509,23 @@ static int textparser_contextual_scan_one(
             }
         }
         if (best < 0) break;
+        if (trivia_count == trivia_capacity) {
+            size_t capacity = trivia_capacity ? trivia_capacity * 2 : 8;
+            textparser_cached_trivia *grown = realloc(trivia, capacity * sizeof(*grown));
+            if (grown == nullptr) { free(trivia); return -1; }
+            trivia = grown;
+            trivia_capacity = capacity;
+        }
+        trivia[trivia_count++] = (textparser_cached_trivia){best, offset, offset + best_len};
         flags |= textparser_lexer_span_flags(handle, offset, offset + best_len);
         offset += best_len;
     }
+
+    /* Hand the collected trivia to the caller (ownership transfers), or drop it
+     * when the caller only needs the next token. */
+    if (out_trivia != nullptr) { *out_trivia = trivia; *out_trivia_count = trivia_count; }
+    else free(trivia);
+
     if (offset >= total) return 1;
 
     int best = -1;
@@ -7545,7 +7586,7 @@ EXPORT_TEXTPARSER int textparser_lexer_peek(
         const char *mode = depth ? modes[depth - 1] :
             (handle->language->initial_lexer_mode ? handle->language->initial_lexer_mode : "default");
         int ret = textparser_contextual_scan_one(
-            handle, offset, mode, goal_name, &token, &source_rule);
+            handle, offset, mode, goal_name, &token, &source_rule, nullptr, nullptr);
         if (ret != 0) { *out_token = nullptr; return ret; }
         if (i == lookahead) break;
         const textparser_contextual_lexer_rule *source = source_rule >= 0
@@ -7569,7 +7610,7 @@ EXPORT_TEXTPARSER int textparser_lexer_consume(
     int source_rule = -1;
     const char *mode = textparser_get_current_mode(handle);
     if (textparser_contextual_scan_one(
-            handle, handle->parser.source_offset, mode, goal_name, out_token, &source_rule) != 0)
+            handle, handle->parser.source_offset, mode, goal_name, out_token, &source_rule, nullptr, nullptr) != 0)
         return -1;
     const textparser_contextual_lexer_rule *source = source_rule >= 0
         ? &handle->language->lexer_rules[source_rule] : nullptr;
@@ -7594,6 +7635,98 @@ EXPORT_TEXTPARSER int textparser_lexer_consume(
             return -1;
     }
     return 0;
+}
+
+/* Append a flat sibling node to the contextual parse tree. */
+static void textparser_contextual_append(textparser_token_item **first,
+                                         textparser_token_item **last,
+                                         textparser_token_item *node) {
+    if (*first == nullptr) *first = node;
+    else (*last)->next = node;
+    node->prev = *last;
+    *last = node;
+}
+
+/*
+ * Tokenize a v2 (contextual lexer) definition with mode/priority awareness and
+ * build a flat top-level token tree plus the immutable lexer snapshots. The
+ * legacy scanner cannot be used here because it ignores lexer modes and token
+ * priorities; see BUGS.md.
+ */
+static int textparser_parse_contextual(struct textparser_handle *handle,
+                                       const textparser_language_definition *definition) {
+    if (handle->first_item != nullptr) {
+        unwrap_post_processed_tokens(&handle->first_item);
+        handle->first_item = nullptr;
+        free_arena(handle);
+    }
+    textparser_clear_lexer_cache(handle);
+    textparser_reset_lexical_state(handle);
+    handle->parser.source_offset = 0;
+    handle->parser.token_index = 0;
+    handle->parser.has_previous_token = false;
+
+    textparser_token_item *first = nullptr;
+    textparser_token_item *last = nullptr;
+    size_t total = textparser_get_total_units(handle);
+    while (handle->parser.source_offset < total) {
+        size_t pos = handle->parser.source_offset;
+        const char *mode = textparser_get_current_mode(handle);
+        const textparser_lex_token *token = nullptr;
+        int source_rule = -1;
+        textparser_cached_trivia *trivia = nullptr;
+        size_t trivia_count = 0;
+        int rc = textparser_contextual_scan_one(
+            handle, pos, mode, nullptr, &token, &source_rule, &trivia, &trivia_count);
+
+        for (size_t i = 0; i < trivia_count; ++i) {
+            const textparser_cached_trivia *item = &trivia[i];
+            const char *name = definition->tokens[item->kind].name;
+            int kind = (name != nullptr && strstr(name, "Whitespace") != nullptr)
+                ? TEXTPARSER_TOKEN_ID_WHITESPACE : item->kind;
+            textparser_token_item *node =
+                textparser_alloc_token(handle, kind, item->end - item->start);
+            if (node == nullptr) { free(trivia); return TEXTPARSER_ERROR_OUT_OF_MEMORY; }
+            node->node_flags |= TEXTPARSER_NODE_TRIVIA;
+            textparser_contextual_append(&first, &last, node);
+        }
+        size_t trivia_end = trivia_count > 0 ? trivia[trivia_count - 1].end : pos;
+        free(trivia);
+
+        if (token == nullptr || rc != 0) {
+            /* EOF, or unlexable input after any leading trivia. */
+            if (trivia_end >= total) break;
+            size_t char_len = textparser_char_len(handle, trivia_end);
+            textparser_token_item *node =
+                textparser_alloc_token(handle, TEXTPARSER_TOKEN_ID_UNPROCESSED, char_len);
+            if (node == nullptr) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+            textparser_contextual_append(&first, &last, node);
+            handle->parser.source_offset = trivia_end + char_len;
+            continue;
+        }
+
+        textparser_token_item *node =
+            textparser_alloc_token(handle, token->kind, token->end - token->start);
+        if (node == nullptr) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+        textparser_contextual_append(&first, &last, node);
+
+        const textparser_contextual_lexer_rule *source = source_rule >= 0
+            ? &definition->lexer_rules[source_rule] : nullptr;
+        const textparser_contextual_lexer_rule *rule = source != nullptr &&
+            (source->pop_mode || source->push_mode != nullptr)
+            ? source : &definition->lexer_rules[token->kind];
+        if (rule->pop_mode) textparser_pop_mode(handle);
+        if (rule->push_mode != nullptr) textparser_push_mode(handle, rule->push_mode);
+        handle->parser.source_offset = token->end;
+        handle->parser.token_index++;
+    }
+
+    handle->first_item = first;
+    /* Leave the handle in the language's initial lexical state: the legacy
+     * scanner never touched the mode stack, but this path does, and grammar
+     * execution expects an empty stack. */
+    textparser_reset_lexical_state(handle);
+    return textparser_rebuild_lexer_streams(handle);
 }
 
 EXPORT_TEXTPARSER bool textparser_has_line_terminator_between(textparser_t handle, size_t start_pos, size_t end_pos)

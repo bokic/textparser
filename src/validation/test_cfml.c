@@ -27,6 +27,20 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    /* The v2 grammar reports diagnostics through the cfml.legality handler, which
+     * must be registered before the grammar is executed. */
+    res = textparser_cfml_register_validators(handle);
+    if (res != 0) {
+        printf("Failed to register CFML validators. Error `%s`, code %d\n", textparser_parse_error(handle), res);
+        return EXIT_FAILURE;
+    }
+    textparser_match_result match = {0};
+    res = textparser_execute_language_grammar(handle, &cfml_definition, &match);
+    if (res != 0) {
+        printf("Failed to execute the CFML grammar. Error `%s`, code %d\n", textparser_parse_error(handle), res);
+        return EXIT_FAILURE;
+    }
+
     textparser_validation *validation = textparser_validate_cfml(handle);
     if (validation != nullptr) {
         for(int c = 0; c < validation->len; c++) {

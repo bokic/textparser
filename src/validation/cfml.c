@@ -5,7 +5,6 @@
 #include "validation.h"
 
 #include <textparser.h>
-#include <cfml_definition.json.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -423,7 +422,7 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
             }
         }
     }
-    else if (token->token_id != TextParser_END && (token->token_id == ids->OutputExpression || token->token_id == TextParser_cfml_OutputExpression)) {
+    else if (token->token_id != TextParser_END && (token->token_id == ids->OutputExpression)) {
         const char *expr_text = text + token_pos;
         size_t limit = token->len;
         for (size_t i = 0; i < limit; i++) {
@@ -557,6 +556,25 @@ static void textparser_validate_cfml_tree(const cfml_dynamic_token_ids *ids, tex
 }
 
 textparser_validation *textparser_validate_cfml(textparser_t handle) {
+    if (handle == nullptr) return nullptr;
+    const textparser_language_definition *definition = textparser_get_language(handle);
+    if (definition != nullptr && definition->grammar != nullptr) {
+        textparser_validation *ret = nullptr;
+        for (size_t i = 0; i < textparser_get_diagnostic_count(handle); ++i) {
+            textparser_diagnostic diagnostic = {0};
+            if (textparser_get_diagnostic(handle, i, &diagnostic) != 0) continue;
+            enum textparser_validation_item_type type = TEXTPARSER_VALIDATION_ITEM_TYPE_INFO;
+            if (diagnostic.severity == TEXTPARSER_SEVERITY_ERROR)
+                type = TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR;
+            else if (diagnostic.severity == TEXTPARSER_SEVERITY_WARNING)
+                type = TEXTPARSER_VALIDATION_ITEM_TYPE_WARNING;
+            textparser_validation_item_add(type, &ret,
+                dynamic_printf("%s: %s", diagnostic.code ? diagnostic.code : "CFML",
+                               diagnostic.message ? diagnostic.message : ""),
+                diagnostic.start_pos, diagnostic.length);
+        }
+        return ret;
+    }
     cfml_dynamic_token_ids ids;
     resolve_cfml_token_ids(handle, &ids);
 

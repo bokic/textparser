@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
-#include <cfml_definition.json.h>
+#include <cfml_legacy_definition.json.h>
 #include "tokenparser.hpp"
 
 #include <chrono>

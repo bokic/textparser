@@ -366,3 +366,46 @@ TEST(lexer_modes, incremental_snapshot_modes_match_full_parse) {
 
     textparser_free_language_definition(definition);
 }
+
+TEST(lexer_modes, initial_mode_is_used_by_peek_and_consume) {
+    const char *json = R"json({
+      "formatVersion":2,
+      "name":"initial_mode_probe", "version":2, "caseSensitivity":true,
+      "defaultFileExtensions":["txt"], "defaultTextEncoding":"utf-8",
+      "otherTextInside":true,
+      "lexer":{
+        "initialMode":"Special",
+        "tokens":{
+          "Open":{"regex":"s","pushMode":"Other"},
+          "Value":{"regex":"o"}
+        },
+        "modes":{
+          "default":{"tokens":[],"trivia":[]},
+          "Special":{"tokens":["Open"],"trivia":[]},
+          "Other":{"tokens":["Value"],"trivia":[]}
+        },
+        "trivia":{}
+      },
+      "grammar":{
+        "start":"Root",
+        "productions":{"Root":{"sequence":[{"token":"Open"},{"token":"Value"}]}}
+      }
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(json, &definition), TEXTPARSER_JSON_NO_ERROR);
+    ASSERT_NE(definition, nullptr);
+    ASSERT_STREQ(definition->initial_lexer_mode, "Special");
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("so", 2, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    // With an empty mode stack the active mode is the definition's initial mode,
+    // so peek and consume agree.
+    EXPECT_STREQ(textparser_get_current_mode(parser.get()), "Special");
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+
+    parser.reset();
+    textparser_free_language_definition(definition);
+}

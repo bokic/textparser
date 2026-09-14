@@ -122,7 +122,9 @@ static void verify_negative_number(const textparser_language_definition *definit
     }
     if (strcmp(lang_name, "TypeScript") == 0)
         found_neg_one = found_typescript_minus && found_typescript_one;
-    else if (strcmp(lang_name, "PHP") == 0)
+    else if (strcmp(lang_name, "PHP") == 0 || strcmp(lang_name, "CFML") == 0)
+        // v2 PHP/CFML use the contextual lexer, which keeps the unary minus
+        // separate from its Number operand (like TypeScript).
         found_neg_one = found_php_minus && found_php_one;
 
     if (!found_neg_one) {

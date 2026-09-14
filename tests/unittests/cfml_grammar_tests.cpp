@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 #include <textparser-json.h>
+#include <cfml.h>
 
 #include <cstring>
 #include <string>
@@ -13,7 +14,7 @@ struct CFMLGrammarFixture : testing::Test {
 
     void SetUp() override {
         ASSERT_EQ(textparser_json_load_language_definition_from_json_file(
-                      "definitions/schema_v2/cfml_definition.json", &definition),
+                      "definitions/cfml_definition.json", &definition),
                   TEXTPARSER_JSON_NO_ERROR);
         ASSERT_NE(definition, nullptr);
         ASSERT_NE(definition->grammar, nullptr);
@@ -67,6 +68,7 @@ struct CFMLGrammarFixture : testing::Test {
         parser.reset();
         EXPECT_EQ(parser.openmem(source, (int)std::strlen(source), TEXTPARSER_ENCODING_UTF_8), 0);
         EXPECT_EQ(parser.parse(definition), 0);
+        EXPECT_EQ(textparser_cfml_register_validators(parser.get()), 0);
         for (size_t i = 0; i < definition->operator_definition_count; i++) {
             EXPECT_EQ(textparser_register_operator(parser.get(), &definition->operator_definitions[i]), 0);
         }
@@ -87,6 +89,22 @@ struct CFMLGrammarFixture : testing::Test {
 
     const char *node_name(const textparser_node *node) {
         return textparser_grammar_node_name(parser.get(), node);
+    }
+
+    void rejects(const char *source, const char *code) {
+        SCOPED_TRACE(source);
+        parse_source(source);
+        bool found = false;
+        for (size_t i = 0; i < textparser_get_diagnostic_count(parser.get()); ++i) {
+            textparser_diagnostic diagnostic{};
+            EXPECT_EQ(textparser_get_diagnostic(parser.get(), i, &diagnostic), 0);
+            if (diagnostic.code && std::strcmp(diagnostic.code, code) == 0) {
+                found = true;
+                EXPECT_EQ(diagnostic.severity, TEXTPARSER_SEVERITY_ERROR);
+                EXPECT_GT(diagnostic.length, 0u);
+            }
+        }
+        EXPECT_TRUE(found) << code;
     }
 
     textparser::Parser parser;
@@ -365,6 +383,121 @@ TEST_F(CFMLGrammarFixture, parses_safe_navigation_and_member_chains) {
     EXPECT_NE(parse_expression("user?.profile?.address?.zip"), nullptr);
     EXPECT_NE(parse_expression("data.items[1].getValue()"), nullptr);
     EXPECT_NE(parse_expression("new services.ReportService(config).generate()"), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_full_expressions_in_tag_attributes) {
+    for (const char *code : {
+             "<cfset x = a + b />",
+             "<cfset x = -1 />",
+             "<cfset x = f(a, b) />",
+             "<cfset x = a.b.c />",
+             "<cfset x = a[0] />",
+             "<cfset x = #a + b# />",
+             "<cfset x = user?.name />",
+             "<cfset x = a eq b />",
+             "<cfset x = a MOD b />"})
+        EXPECT_NE(parse_source(code), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_assignment_and_ordered_struct_literals) {
+    EXPECT_NE(parse_expression("{ a = 1, b: 'two' }"), nullptr);
+    EXPECT_NE(parse_expression("[ a = 1, b = 2 ]"), nullptr);
+    EXPECT_NE(parse_expression("{ \"a\" = 1 }"), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_if_tag_pairs) {
+    for (const char *code : {
+             "<cfif x>a</cfif>",
+             "<cfif x eq 1>a<cfelse>b</cfif>",
+             "<cfif x>a<cfelseif y>b<cfelse>c</cfif>",
+             "<cfif x>a</cfif><cfif y>b</cfif>"})
+        EXPECT_NE(parse_source(code), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_nested_comments) {
+    EXPECT_NE(parse_source("<!--- outer <!--- inner ---> outer ---><cfset x = 1 />"), nullptr);
+    EXPECT_NE(parse_source("<!--- simple ---><cfset x = 1 />"), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_pageencoding_directive) {
+    EXPECT_NE(parse_source("<cfscript>pageencoding \"UTF-8\";</cfscript>"), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_string_concatenation_in_tag_attributes) {
+    EXPECT_NE(parse_source("<cfset res = \"A\" & 2 + 3 />"), nullptr);
+    EXPECT_NE(parse_source("<cfset res = \"A\" & \"B\" />"), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_multiple_switch_cases) {
+    EXPECT_NE(parse_source("<cfscript>switch(v){ case 1: break; case 2: break; }</cfscript>"), nullptr);
+    EXPECT_NE(parse_source("<cfscript>switch(v){ case 1: x=1; default: x=2; }</cfscript>"), nullptr);
+    EXPECT_NE(parse_source(
+        "<cfscript>switch(val) { case \"B\": res = \"Got B\"; break; default: continue; }</cfscript>"),
+        nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_cfset_expressions) {
+    for (const char *code : {
+             "<cfset x = 1 />",
+             "<cfset x = a + b />",
+             "<cfset x++ />",
+             "<cfset ++x />",
+             "<cfset x-- />",
+             "<cfset var x = 1 />",
+             "<cfset x = user?.name />"})
+        EXPECT_NE(parse_source(code), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_property_and_thread_declarations) {
+    EXPECT_NE(parse_source(
+        "<cfscript>property name=\"id\" required=\"true\"; param name=\"p\" default=\"1\"; "
+        "lock name=\"L\" { super.init(); null; } transaction { thread name=\"T\" {} }</cfscript>"),
+        nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, line_comment_stops_before_script_end_tag) {
+    EXPECT_NE(parse_source("<cfscript>//</cfscript>"), nullptr);
+    EXPECT_NE(parse_source("<cfscript>a = 1; // trailing</cfscript>"), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_literal_hash_and_nested_sharp) {
+    EXPECT_NE(parse_source("<cfoutput>#a#</cfoutput>"), nullptr);
+    EXPECT_NE(parse_source("<cfoutput>#</cfoutput>"), nullptr);
+    EXPECT_NE(parse_source("<cfoutput>#\"x #a#\"</cfoutput>"), nullptr);
+    EXPECT_NE(parse_source("<cfoutput>#\"x #a#\"#</cfoutput>"), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, validates_builtin_function_calls) {
+    EXPECT_NE(parse_source("<cfset x = acos(0.5) />"), nullptr);
+    EXPECT_NE(parse_source("<cfset x = acos(0.5) /><cfset y = abs(-1) />"), nullptr);
+    rejects("<cfset x = nonExistingFunc() />", "CF2001");
+    rejects("<cfset x = acos() />", "CF2002");
+    rejects("<cfset x = acos(1, 2) />", "CF2002");
+}
+
+TEST_F(CFMLGrammarFixture, validates_cfprocessingdirective_position) {
+    std::string ok = std::string(3000, ' ') + "<cfprocessingdirective pageEncoding=\"utf-8\" />";
+    EXPECT_NE(parse_source(ok.c_str()), nullptr);
+    std::string bad = std::string(4090, ' ') + "<cfprocessingdirective pageEncoding=\"utf-8\" />";
+    rejects(bad.c_str(), "CF2003");
+}
+
+TEST_F(CFMLGrammarFixture, validates_known_and_unknown_tags) {
+    EXPECT_NE(parse_source("<cfset x = 1 />"), nullptr);
+    EXPECT_NE(parse_source("<cfcomponent></cfcomponent>"), nullptr);
+    EXPECT_NE(parse_source("<div>hello</div>"), nullptr); // HTML is not a CFML tag
+    rejects("<cffoo></cffoo>", "CF2004");
+}
+
+TEST_F(CFMLGrammarFixture, validates_tag_pairing) {
+    EXPECT_NE(parse_source("<cfcomponent></cfcomponent>"), nullptr);
+    EXPECT_NE(parse_source("<cfcomponent />"), nullptr);
+    EXPECT_NE(parse_source("<cfoutput></CFOUTPUT><CFCOMPONENT></cfcomponent>"), nullptr);
+    rejects("<cfcomponent>", "CF2005");
+    rejects("<CFCOMPONENT>", "CF2005");
+    rejects("<cfabort></cfabort>", "CF2006");
+    rejects("<CFSET x = 1></CFSET>", "CF2006");
+    rejects("</cfcomponent>", "CF2007");
 }
 
 // -------------------------------------------------------------------------

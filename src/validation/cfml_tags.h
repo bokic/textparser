@@ -120,7 +120,7 @@ static const cfml_attribute_combo cfmail_combos[] = {
     {nullptr}
 };
 
-const cfml_tag_info cfml_tags[] = {
+static const cfml_tag_info cfml_tags[] = {
     {"cf_socialplugin", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
     {"cfabort", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, cfabort_combos},
     {"cfadmin", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr},
@@ -297,4 +297,4 @@ const cfml_tag_info cfml_tags[] = {
     {"cfzip", CFML_END_TAG_OPTIONAL, CFML_PARAMS_KEY_VALUE, nullptr},
     {"cfzipparam", CFML_END_TAG_FORBIDDEN, CFML_PARAMS_KEY_VALUE, nullptr}
 };
-const int cfml_tag_count = sizeof(cfml_tags) / sizeof(cfml_tags[0]);
+static const int cfml_tag_count = sizeof(cfml_tags) / sizeof(cfml_tags[0]);

@@ -120,6 +120,20 @@ $obj->method();
     EXPECT_TRUE(found.contains("Identifier"));
 }
 
+TEST(parse_PHP, comments_are_tokenized_by_the_contextual_lexer) {
+    auto tokens = TextParser(R"(<?php // line
+$x = 1; /* block */ ?>)", &php_definition);
+
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("LineComment"));
+    EXPECT_TRUE(found.contains("BlockComment"));
+    EXPECT_FALSE(found.contains("MulOperator"));
+}
+
 TEST(parse_PHP, string_literals_keep_escapes) {
     auto tokens = TextParser(R"(<?php
 $s1 = 'escaped \' \\ string';

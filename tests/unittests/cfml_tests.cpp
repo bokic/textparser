@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include <cfml_definition.json.h>
+#include <cfml_legacy_definition.json.h>
 #include <cfml.h>
 
 
@@ -1910,7 +1910,7 @@ protected:
     textparser_language_definition *runtime = nullptr;
     void SetUp() override {
         const auto path = std::filesystem::path(__FILE__).parent_path()
-            .parent_path().parent_path() / "definitions/cfml_definition.json";
+            .parent_path().parent_path() / "definitions/cfml_legacy_definition.json";
         ASSERT_EQ(textparser_json_load_language_definition_from_json_file(
             path.string().c_str(), &runtime), 0);
         ASSERT_NE(runtime, nullptr);
