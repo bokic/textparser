@@ -241,6 +241,34 @@ struct textparser_handle {
     size_t lexer_trivia_capacity;
     textparser_lexer_cache_entry *lexer_cache;
 
+    /* Phase 3 — position bias for the flat snapshot arrays.
+     *
+     * In-leaf edits change the length of one leaf without restructuring the
+     * tree. Instead of walking the entire suffix of `lexer_tokens` and
+     * `lexer_trivia` to shift every entry's `start`/`end` by `delta_units`,
+     * the delta is recorded here and applied lazily:
+     *
+     *   For i >= lexer_snapshot_token_bias_start:
+     *     effective start = lexer_tokens[i].start + lexer_snapshot_bias
+     *     effective end   = lexer_tokens[i].end   + lexer_snapshot_bias
+     *
+     *   For j >= lexer_snapshot_trivia_bias_start:
+     *     effective start = lexer_trivia[j].start + lexer_snapshot_bias
+     *     effective end   = lexer_trivia[j].end   + lexer_snapshot_bias
+     *
+     * Callers that need absolute positions (binary-search find functions,
+     * memo-shift reads) must use the LEXER_TOKEN_START / LEXER_TOKEN_END /
+     * LEXER_TRIVIA_START / LEXER_TRIVIA_END accessor macros.  The bias is
+     * materialized (applied to every suffix entry) before any full rebuild and
+     * on stream clear, so the grammar executor always sees correct values.
+     *
+     * Multiple consecutive in-leaf edits with the same bias threshold
+     * accumulate into a single delta field without extra allocation. */
+    ssize_t  lexer_snapshot_bias;
+    size_t   lexer_snapshot_token_bias_start;
+    size_t   lexer_snapshot_trivia_bias_start;
+
+
     /* Packrat memoization table for grammar productions. */
     struct textparser_memo_entry *grammar_memo;
     uint64_t next_memo_seq;
@@ -286,6 +314,64 @@ static void textparser_clear_lexer_cache(struct textparser_handle *handle)
     handle->lexer_cache = nullptr;
 }
 
+/* ---- Phase 3: snapshot position-bias accessor macros --------------------
+ *
+ * These macros must be used by any code that reads a lexer_tokens[i].start/end
+ * or lexer_trivia[j].start/end after a potential in-leaf patch. The bias is
+ * zero (no-op) when lexer_snapshot_bias == 0 or the index is below the
+ * threshold. The grammar executor and full-rebuild paths always see a
+ * materialized (bias-free) snapshot, so they can read the fields directly.
+ */
+#define LEXER_TOKEN_START(h, i) \
+    ((size_t)((ssize_t)(h)->lexer_tokens[(i)].start + \
+              ((i) >= (h)->lexer_snapshot_token_bias_start ? (h)->lexer_snapshot_bias : 0)))
+#define LEXER_TOKEN_END(h, i) \
+    ((size_t)((ssize_t)(h)->lexer_tokens[(i)].end + \
+              ((i) >= (h)->lexer_snapshot_token_bias_start ? (h)->lexer_snapshot_bias : 0)))
+#define LEXER_TRIVIA_START(h, j) \
+    ((size_t)((ssize_t)(h)->lexer_trivia[(j)].start + \
+              ((j) >= (h)->lexer_snapshot_trivia_bias_start ? (h)->lexer_snapshot_bias : 0)))
+#define LEXER_TRIVIA_END(h, j) \
+    ((size_t)((ssize_t)(h)->lexer_trivia[(j)].end + \
+              ((j) >= (h)->lexer_snapshot_trivia_bias_start ? (h)->lexer_snapshot_bias : 0)))
+
+/**
+ * Materialize a pending snapshot position bias into the stored arrays.
+ *
+ * Each in-leaf patch records a `lexer_snapshot_bias` delta instead of walking
+ * the O(n) suffix. Before any full rebuild or stream release the bias must be
+ * applied so the stored values are correct absolute positions again.
+ *
+ * The function is O(n_suffix_tokens + n_suffix_trivia) — the same cost as the
+ * old per-edit loops — but is called at most once per structural edit (rebuild)
+ * rather than once per in-leaf edit, so the total work over a sequence of k
+ * in-leaf edits followed by one rebuild drops from O(k*n) to O(n).
+ *
+ * @param handle Pointer to the textparser handle.
+ */
+static void textparser_snapshot_materialize_bias(struct textparser_handle *handle)
+{
+    if (handle == nullptr || handle->lexer_snapshot_bias == 0) return;
+    ssize_t bias = handle->lexer_snapshot_bias;
+    for (size_t i = handle->lexer_snapshot_token_bias_start;
+         i < handle->lexer_token_count; i++) {
+        handle->lexer_tokens[i].start =
+            (size_t)((ssize_t)handle->lexer_tokens[i].start + bias);
+        handle->lexer_tokens[i].end   =
+            (size_t)((ssize_t)handle->lexer_tokens[i].end   + bias);
+    }
+    for (size_t j = handle->lexer_snapshot_trivia_bias_start;
+         j < handle->lexer_trivia_count; j++) {
+        handle->lexer_trivia[j].start =
+            (size_t)((ssize_t)handle->lexer_trivia[j].start + bias);
+        handle->lexer_trivia[j].end   =
+            (size_t)((ssize_t)handle->lexer_trivia[j].end   + bias);
+    }
+    handle->lexer_snapshot_bias = 0;
+    handle->lexer_snapshot_token_bias_start  = 0;
+    handle->lexer_snapshot_trivia_bias_start = 0;
+}
+
 /**
  * Release allocated lexer token streams, trivia streams, and cached lexer lookup entries stored in the handle.
  *
@@ -302,6 +388,9 @@ static void textparser_clear_lexer_streams(struct textparser_handle *handle)
     handle->lexer_trivia = nullptr;
     handle->lexer_trivia_count = 0;
     handle->lexer_trivia_capacity = 0;
+    handle->lexer_snapshot_bias = 0;
+    handle->lexer_snapshot_token_bias_start  = 0;
+    handle->lexer_snapshot_trivia_bias_start = 0;
     textparser_clear_lexer_cache(handle);
 }
 
@@ -861,6 +950,7 @@ static textparser_token_item *textparser_alloc_token(struct textparser_handle *h
     ret->id = ++handle->next_node_id;
     ret->token_id = token_id;
     ret->len = len;
+    ret->span_len = len;
     ret->text_color = TEXTPARSER_NOCOLOR;
     ret->text_background = TEXTPARSER_NOCOLOR;
     return ret;
@@ -3505,12 +3595,25 @@ static const textparser_token_item *find_token_at_position_internal(const textpa
     const textparser_token_item *best = nullptr;
     size_t curr_pos = (token->parent != nullptr) ? textparser_get_token_position(token) : 0;
     while (token != nullptr) {
+        if (curr_pos > position) {
+            break;
+        }
         if (position >= curr_pos && position < curr_pos + token->len) {
             best = token;
             if (token->child != nullptr) {
-                const textparser_token_item *child_match = find_token_at_position_internal(token->child, position, depth + 1);
-                if (child_match) {
-                    best = child_match;
+                // Pass curr_pos directly to child search avoiding re-walking up the tree
+                const textparser_token_item *child = token->child;
+                size_t child_pos = curr_pos;
+                while (child != nullptr) {
+                    if (child_pos > position) break;
+                    if (position >= child_pos && position < child_pos + child->len) {
+                        const textparser_token_item *deeper = find_token_at_position_internal(child, position, depth + 1);
+                        if (deeper) best = deeper;
+                        else best = child;
+                        break;
+                    }
+                    child_pos += child->len;
+                    child = child->next;
                 }
             }
             break;
@@ -3702,6 +3805,15 @@ static bool textparser_collect_lexer_streams(
  */
 static int textparser_rebuild_lexer_streams(struct textparser_handle *handle)
 {
+    // Phase 3: ensure any pending position bias is cleared before we overwrite
+    // the snapshot arrays. The collector rebuilds from the CST and produces
+    // fresh absolute offsets, so the bias is no longer valid after a rebuild.
+    // Clearing here (without materializing) is safe because the rebuild
+    // overwrites every entry anyway.
+    handle->lexer_snapshot_bias = 0;
+    handle->lexer_snapshot_token_bias_start  = 0;
+    handle->lexer_snapshot_trivia_bias_start = 0;
+
     textparser_lexer_stream_builder builder = {0};
     builder.tokens = handle->lexer_tokens;
     builder.token_capacity = handle->lexer_token_capacity;
@@ -3816,10 +3928,10 @@ static size_t textparser_lexer_find_token_at(const struct textparser_handle *han
     size_t lo = 0, hi = handle->lexer_token_count;
     while (lo < hi) {
         size_t mid = lo + (hi - lo) / 2;
-        if (handle->lexer_tokens[mid].start < start) lo = mid + 1;
+        if (LEXER_TOKEN_START(handle, mid) < start) lo = mid + 1;
         else hi = mid;
     }
-    if (lo < handle->lexer_token_count && handle->lexer_tokens[lo].start == start) return lo;
+    if (lo < handle->lexer_token_count && LEXER_TOKEN_START(handle, lo) == start) return lo;
     return SIZE_MAX;
 }
 
@@ -3835,10 +3947,10 @@ static size_t textparser_lexer_find_trivia_at(const struct textparser_handle *ha
     size_t lo = 0, hi = handle->lexer_trivia_count;
     while (lo < hi) {
         size_t mid = lo + (hi - lo) / 2;
-        if (handle->lexer_trivia[mid].start < start) lo = mid + 1;
+        if (LEXER_TRIVIA_START(handle, mid) < start) lo = mid + 1;
         else hi = mid;
     }
-    if (lo < handle->lexer_trivia_count && handle->lexer_trivia[lo].start == start) return lo;
+    if (lo < handle->lexer_trivia_count && LEXER_TRIVIA_START(handle, lo) == start) return lo;
     return SIZE_MAX;
 }
 
@@ -3894,19 +4006,34 @@ static bool textparser_patch_lexer_streams_leaf(
     if (is_trivia) {
         size_t idx = textparser_lexer_find_trivia_at(handle, leaf_start);
         if (idx == SIZE_MAX) return false;
+
+        // If a bias was already active at a different boundary, materialize it first
+        if (handle->lexer_snapshot_bias != 0 &&
+            (handle->lexer_snapshot_trivia_bias_start != idx + 1)) {
+            textparser_snapshot_materialize_bias(handle);
+        }
+
         handle->lexer_trivia[idx].end = new_leaf_end;
         handle->lexer_trivia[idx].flags =
             textparser_lexer_span_flags(handle, leaf_start, new_leaf_end);
-        for (size_t j = idx + 1; j < handle->lexer_trivia_count; j++) {
-            handle->lexer_trivia[j].start = (size_t)((ssize_t)handle->lexer_trivia[j].start + delta_units);
-            handle->lexer_trivia[j].end = (size_t)((ssize_t)handle->lexer_trivia[j].end + delta_units);
-        }
+
+        // Find the first token starting at or after old_leaf_end
+        size_t tok_start_idx = handle->lexer_token_count;
         for (size_t i = 0; i < handle->lexer_token_count; i++) {
-            if (handle->lexer_tokens[i].start >= old_leaf_end) {
-                handle->lexer_tokens[i].start = (size_t)((ssize_t)handle->lexer_tokens[i].start + delta_units);
-                handle->lexer_tokens[i].end = (size_t)((ssize_t)handle->lexer_tokens[i].end + delta_units);
+            if (LEXER_TOKEN_START(handle, i) >= old_leaf_end) {
+                tok_start_idx = i;
+                break;
             }
         }
+
+        if (handle->lexer_snapshot_bias == 0) {
+            handle->lexer_snapshot_trivia_bias_start = idx + 1;
+            handle->lexer_snapshot_token_bias_start = tok_start_idx;
+            handle->lexer_snapshot_bias = delta_units;
+        } else {
+            handle->lexer_snapshot_bias += delta_units;
+        }
+
         /* The edited trivia belongs to the leading run of the next token; its
          * aggregate flags may have changed (e.g. an inserted line terminator). */
         for (size_t i = 0; i < handle->lexer_token_count; i++) {
@@ -3919,17 +4046,31 @@ static bool textparser_patch_lexer_streams_leaf(
     } else {
         size_t idx = textparser_lexer_find_token_at(handle, leaf_start);
         if (idx == SIZE_MAX) return false;
+
+        // If a bias was already active at a different boundary, materialize it first
+        if (handle->lexer_snapshot_bias != 0 &&
+            (handle->lexer_snapshot_token_bias_start != idx + 1)) {
+            textparser_snapshot_materialize_bias(handle);
+        }
+
         handle->lexer_tokens[idx].end = new_leaf_end;
         handle->lexer_tokens[idx].decoded_value = leaf->decoded_value;
-        for (size_t i = idx + 1; i < handle->lexer_token_count; i++) {
-            handle->lexer_tokens[i].start = (size_t)((ssize_t)handle->lexer_tokens[i].start + delta_units);
-            handle->lexer_tokens[i].end = (size_t)((ssize_t)handle->lexer_tokens[i].end + delta_units);
-        }
+
+        // Find the first trivia starting at or after old_leaf_end
+        size_t trivia_start_idx = handle->lexer_trivia_count;
         for (size_t j = 0; j < handle->lexer_trivia_count; j++) {
-            if (handle->lexer_trivia[j].start >= old_leaf_end) {
-                handle->lexer_trivia[j].start = (size_t)((ssize_t)handle->lexer_trivia[j].start + delta_units);
-                handle->lexer_trivia[j].end = (size_t)((ssize_t)handle->lexer_trivia[j].end + delta_units);
+            if (LEXER_TRIVIA_START(handle, j) >= old_leaf_end) {
+                trivia_start_idx = j;
+                break;
             }
+        }
+
+        if (handle->lexer_snapshot_bias == 0) {
+            handle->lexer_snapshot_token_bias_start = idx + 1;
+            handle->lexer_snapshot_trivia_bias_start = trivia_start_idx;
+            handle->lexer_snapshot_bias = delta_units;
+        } else {
+            handle->lexer_snapshot_bias += delta_units;
         }
     }
 
@@ -4178,6 +4319,9 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
         }
     }
 
+    // Materialize any pending snapshot bias before structural reparse begins
+    textparser_snapshot_materialize_bias(handle);
+
     // Unwrap any synthesized post-processing nodes before re-tokenization so the
     // tree structure matches the base parser output before splicing and re-deriving.
     // The traversal also reports AST mode (marker and/or synthesized node); cast
@@ -4369,6 +4513,34 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     size_t pos = start_pos;
     textparser_token_run new_run = {0};
 
+    // Phase 1 bounded forward-resync: walk an old-sibling cursor in parallel
+    // with the new-token emission. Once we have emitted a new token whose start
+    // is >= resync_safe_pos (strictly past the dirty edit window), compare it to
+    // the corresponding old sibling. A pure leaf (no children) whose token_id
+    // and len both match is a safe resync point: we clamp end_pos to stop the
+    // reparse there and let the existing suffix-alignment reuse the unchanged old
+    // suffix. Containers are excluded because their interior may have changed
+    // even when the outer span happens to be identical.
+    //
+    // The cursor starts at the first old sibling that covers start_pos.
+    textparser_token_item *resync_old_cursor = nullptr;
+    size_t resync_old_cursor_pos = 0;
+    {
+        textparser_token_item *c = sibling_list;
+        size_t cp = parent_container ? textparser_get_token_position(parent_container) : 0;
+        while (c != nullptr) {
+            if (cp + c->len > start_pos) {
+                resync_old_cursor = c;
+                resync_old_cursor_pos = cp;
+                break;
+            }
+            cp += c->len;
+            c = c->next;
+        }
+    }
+    // Minimum new-coordinate position that is guaranteed to be past the dirty window.
+    const size_t resync_safe_pos = edit_offset + new_len;
+
     while(pos < end_pos) {
         size_t ws_skipped = textparser_skip_whitespace(handle, pos) - pos;
         if (ws_skipped > 0) {
@@ -4472,6 +4644,39 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
 
             pos += token_advance;
             prev_item = token_item;
+
+            // Advance the old-sibling cursor to stay aligned with the new pos.
+            // The old cursor lives in old coordinates: new pos maps to
+            // (pos - delta_units) in old-document space.  Walk the cursor
+            // forward until it reaches the sibling that starts at that position.
+            if (resync_old_cursor != nullptr) {
+                ssize_t old_pos_signed = (ssize_t)pos - delta_units;
+                size_t old_pos = (old_pos_signed > 0) ? (size_t)old_pos_signed : 0;
+                while (resync_old_cursor != nullptr &&
+                       resync_old_cursor_pos + resync_old_cursor->len <= old_pos) {
+                    resync_old_cursor_pos += resync_old_cursor->len;
+                    resync_old_cursor = resync_old_cursor->next;
+                }
+
+                // Attempt a resync once the newly emitted token starts past the
+                // dirty edit window.  Only pure leaf nodes (no children) are
+                // considered: containers may have changed internal structure even
+                // when the outer span is unchanged, and tokens with errors must
+                // not be used as anchors.
+                if (pos >= resync_safe_pos &&
+                    resync_old_cursor != nullptr &&
+                    handle->error == nullptr &&
+                    token_item->child == nullptr &&
+                    resync_old_cursor->child == nullptr &&
+                    resync_old_cursor->token_id == token_item->token_id &&
+                    resync_old_cursor->len == token_item->len &&
+                    resync_old_cursor_pos == old_pos - token_item->len) {
+                    // The freshly emitted token matches the old sibling exactly.
+                    // Stop the reparse here; the suffix alignment below will reuse
+                    // all old siblings from resync_old_cursor->next onward.
+                    end_pos = pos;
+                }
+            }
         } else {
             if (container_other_text_inside) {
                 size_t char_l = textparser_char_len(handle, pos);
@@ -4576,8 +4781,12 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     }
 
     textparser_token_item *left = keep_left;
+    textparser_token_item *first_spliced = nullptr;
+    textparser_token_item *last_spliced = nullptr;
     for (size_t i = prefix; i + suffix < new_run.count; i++) {
         textparser_token_item *item = new_run.items[i];
+        if (first_spliced == nullptr) first_spliced = item;
+        last_spliced = item;
         item->parent = parent_container;
         item->prev = left;
         if (left != nullptr) {
@@ -4695,9 +4904,20 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     // groups, disambiguated tokens and delete_if_only_one_child unwrapping
     // consistent across edits without changing the raw CST contract for callers
     // that never call textparser_post_process.
+    //
+    // Phase 4: When the splice is isolated within an existing container (parent_container != nullptr),
+    // we can scope post-processing to that container's subtree rather than re-traversing the whole
+    // document from the root.
     if (was_post_processed)
     {
-        textparser_post_process(&handle->first_item, definition);
+        if (parent_container != nullptr && parent_container->child != nullptr) {
+            textparser_post_process(&parent_container->child, definition);
+            if (handle->first_item != nullptr) {
+                handle->first_item->node_flags |= TEXTPARSER_NODE_POST_PROCESSED;
+            }
+        } else {
+            textparser_post_process(&handle->first_item, definition);
+        }
     }
 
     int rebuild_status = textparser_rebuild_lexer_streams(handle);
@@ -6629,6 +6849,9 @@ EXPORT_TEXTPARSER const textparser_lex_token *textparser_get_lexer_tokens(
     size_t *out_count)
 {
     if (out_count == nullptr) return nullptr;
+    if (handle != nullptr) {
+        textparser_snapshot_materialize_bias((struct textparser_handle *)handle);
+    }
     *out_count = handle ? handle->lexer_token_count : 0;
     return handle ? handle->lexer_tokens : nullptr;
 }
@@ -6638,6 +6861,9 @@ EXPORT_TEXTPARSER const textparser_lex_trivia *textparser_get_lexer_trivia(
     size_t *out_count)
 {
     if (out_count == nullptr) return nullptr;
+    if (handle != nullptr) {
+        textparser_snapshot_materialize_bias((struct textparser_handle *)handle);
+    }
     *out_count = handle ? handle->lexer_trivia_count : 0;
     return handle ? handle->lexer_trivia : nullptr;
 }

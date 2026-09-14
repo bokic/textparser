@@ -346,6 +346,11 @@ typedef struct textparser_token_item {
     size_t source_start;
     size_t source_end;
     textparser_cst_category category;
+
+    /* Phase 2: Order-statistic subtree length sum (span of this node and all its descendants).
+     * For leaves without children, span_len == len. For container nodes, span_len is the sum
+     * of lengths of its children. */
+    size_t span_len;
 } textparser_token_item;
 
 #define TEXTPARSER_NODE_EXPLICIT_SPAN (1u << 7)

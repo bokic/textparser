@@ -249,17 +249,30 @@ Result: the incremental tree matches a full parse for all successful
 single-character inserts and deletions on JSON, CFML, C, and JavaScript samples
 (0 mismatches), with no incremental failures on valid input. Chained-edit
 fuzzing on malformed input is down to 3 divergences (JSON 0/2980, CFML 0/2997,
-C 1/2441, JavaScript 2/2494). Remaining known gaps (see `ROADMAP.md` §1.5,
-sub-linear edit window): the reparse re-tokenizes from the first top-level
-sibling (O(document), now that the full parse is linear) until a bounded forward
-resync that stops at the first matching token is added; this reparse window is
-the dominant per-edit cost. The lexer-snapshot rebuild is no longer on that hot
-path for in-leaf edits: the snapshot buffers are retained and patched in place
-(see §2.3, §4.1 step 0). The differential tests in `incremental_tests.cpp`
-(`DifferentialAgainstFullParse`, `AllStructuralEditsMatchFullParseExactly`,
+C 1/2441, JavaScript 2/2494). **All 4 phases** of `ROADMAP.md` §1.5
+(Sub-linear edit window) are implemented:
+1. **Phase 1 (bounded forward-resync)**: after emitting each new leaf token past
+   the dirty edit window, the engine compares it against the corresponding old
+   sibling. When the two tokens match (same `token_id`, same `len`, both pure
+   leaves — containers are excluded to preserve lookahead-dependent
+   reclassifications), `end_pos` is clamped and the reparse stops early.
+2. **Phase 2 (hierarchical position descent & span index)**: `span_len` tracking
+   on `textparser_token_item` and bounds-pruned hierarchical descent in
+   `find_token_at_position_internal`.
+3. **Phase 3 (position bias for in-leaf snapshot shifts)**: in-leaf edits
+   accumulate suffix offset changes lazily into `lexer_snapshot_bias` in O(1),
+   avoiding O(n) passes over the snapshot on consecutive keystrokes until read
+   or rebuilt.
+4. **Phase 4 (scoped incremental AST post-processing)**: re-derivation of
+   Pratt expression trees, template groups, and disambiguation is scoped to the
+   modified subtree container when isolated.
+
+The differential tests in `incremental_tests.cpp` (`DifferentialAgainstFullParse`,
+`AllStructuralEditsMatchFullParseExactly`,
 `CrossLanguageInsertsAndDeletesMatchFullParse`) guard against regressions.
 Post-processed ASTs are covered separately by
-`ProcessedAstIncrementalMatchesFullParse`, `ExpressionPostProcessReDerivedOnIncrementalEdit`,
+`ProcessedAstIncrementalMatchesFullParse`, `IncrementalAstPostProcessScopedToEditWindow`,
+`ExpressionPostProcessReDerivedOnIncrementalEdit`,
 `CastDisambiguationReDerivedOnIncrementalEdit`,
 `TemplateDisambiguationReDerivedOnIncrementalEdit`,
 `PostProcessModeStickyAcrossFullReset`, and `RawCstStaysRawAfterIncrementalEdit`.

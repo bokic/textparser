@@ -308,3 +308,32 @@ TEST(lexer_streams, all_single_char_edits_match_full_snapshot) {
     EXPECT_EQ(mismatches, 0u);
 }
 
+
+// Phase 3: verify consecutive in-leaf edits correctly accumulate lazy position
+// bias and materialize byte-for-byte identical to full re-parse when queried.
+TEST(lexer_streams, consecutive_in_leaf_edits_accumulate_lazy_bias) {
+    std::string text = "{\"first\": 12345, \"second\": 67890, \"third\": 11111}";
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(&json_definition), 0);
+
+    // Edit inside "12345" three times consecutively without intermediate snapshot query
+    size_t off1 = text.find("12345") + 2;
+    ASSERT_EQ(parser.parse_incremental(&json_definition, off1, 0, "99", 2, nullptr), 0);
+    text.insert(off1, "99");
+
+    size_t off2 = text.find("1299345") + 1;
+    ASSERT_EQ(parser.parse_incremental(&json_definition, off2, 1, "8", 1, nullptr), 0);
+    text.replace(off2, 1, "8");
+
+    size_t off3 = text.find("1899345") + 3;
+    ASSERT_EQ(parser.parse_incremental(&json_definition, off3, 2, nullptr, 0, nullptr), 0);
+    text.erase(off3, 2);
+
+    // Now query snapshot: it should lazily materialize and match full parse exactly
+    textparser::Parser full;
+    ASSERT_EQ(full.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(full.parse(&json_definition), 0);
+
+    EXPECT_EQ(capture_snapshot(parser), capture_snapshot(full));
+}

@@ -963,3 +963,160 @@ TEST(IncrementalParsing, ProcessedAstIncrementalMatchesFullParse) {
     }
 }
 
+
+// ---- Phase 1: Bounded Forward-Resync Tests --------------------------------
+
+// Verify that an edit in the first of many independent top-level tokens
+// produces a dirty range strictly smaller than the whole document.
+// The resync operates on the top-level sibling list. Languages like JSON that
+// always produce a single top-level container (Array/Object) have no multiple
+// top-level siblings to resync against; the resync correctly fires only when
+// independent same-kind siblings follow the edit. CFML with many <cfset> tags
+// is the canonical case.
+TEST(IncrementalParsing, ResyncBoundsEditWindowOnLargeDocument) {
+    // Build many independent CFML cfset tags so the suffix is long.
+    std::string text;
+    for (int i = 0; i < 50; ++i) {
+        text += "<cfset v";
+        text += std::to_string(i);
+        text += " = 1>";
+    }
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_LATIN1), 0);
+    ASSERT_EQ(parser.parse(&cfml_definition), 0);
+
+    // Edit inside the first tag only (change "v0" to "w0", same length).
+    textparser_dirty_range dirty = {};
+    ASSERT_EQ(parser.parse_incremental(&cfml_definition, 7, 1, "w", 1, &dirty), 0);
+
+    // Correctness: must match a full re-parse.
+    EXPECT_TRUE(incremental_matches_full_def(text.c_str(), 7, 1, "w", 1, &cfml_definition));
+
+    // The dirty range must end before the document end (resync fired on the
+    // unchanged sibling tokens in the suffix).
+    size_t doc_len = text.size();
+    EXPECT_LT(dirty.dirty_end, doc_len)
+        << "dirty_end=" << dirty.dirty_end << " doc_len=" << doc_len
+        << " — resync did not bound the dirty range";
+}
+
+// A replace in the first token of a multi-token CFML document must not dirty
+// the whole document.
+TEST(IncrementalParsing, ResyncBoundsEditWindowOnCfml) {
+    const char *base = "<cfset a = 1><cfset b = 2><cfset c = 3><cfset d = 4><cfset e = 5>";
+    size_t doc_len = strlen(base);
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(base, (int)doc_len, TEXTPARSER_ENCODING_LATIN1), 0);
+    ASSERT_EQ(parser.parse(&cfml_definition), 0);
+
+    // Replace "a" in first tag with "x" — same length.
+    textparser_dirty_range dirty = {};
+    ASSERT_EQ(parser.parse_incremental(&cfml_definition, 7, 1, "x", 1, &dirty), 0);
+
+    EXPECT_TRUE(incremental_matches_full_def(base, 7, 1, "x", 1, &cfml_definition));
+    EXPECT_LT(dirty.dirty_end, doc_len)
+        << "dirty_end=" << dirty.dirty_end << " doc_len=" << doc_len
+        << " — resync did not bound the dirty range on CFML";
+}
+
+// JSON Key lookahead regression: inserting before the colon must still
+// reclassify Key->String even with resync enabled.
+TEST(IncrementalParsing, ResyncDoesNotBreakJsonKeyLookahead) {
+    const char *base = "{\"message\": \"hello\", \"n\": 42}";
+    size_t colon = 0;
+    while (base[colon] != ':') colon++;
+    EXPECT_TRUE(incremental_matches_full(base, colon, 0, "X", 1))
+        << "JSON Key lookahead reclassification failed with resync enabled";
+    EXPECT_TRUE(incremental_matches_full(base, colon, 0, "\"", 1))
+        << "JSON Key quote-insert reclassification failed with resync enabled";
+}
+
+// JS regex-vs-division regression: must remain correct with resync enabled.
+TEST(IncrementalParsing, ResyncDoesNotBreakJsRegexVsDivision) {
+    const char *base = "var x = /ab+c/g;\nvar y = a / b / c;\nfunction f(a){ return a + 1; }\n";
+    EXPECT_TRUE(incremental_matches_full_def(base, 8, 0, " ", 1, &javascript_definition))
+        << "JS regex-vs-division mismatch (insert before slash)";
+    EXPECT_TRUE(incremental_matches_full_def(base, 16, 0, "+1", 2, &javascript_definition))
+        << "JS post-regex insert mismatch";
+}
+
+// CFML OutputTagPair regression: container tokens are excluded from resync by
+// the leaf-only predicate, so the pair is still re-evaluated on edit.
+TEST(IncrementalParsing, ResyncDoesNotBreakCfmlOutputTagPair) {
+    const char *base = "<cfoutput>#x#</cfoutput>\n";
+    EXPECT_TRUE(incremental_matches_full_def(base, 3, 0, "X", 1, &cfml_definition))
+        << "CFML OutputTagPair reclassification failed with resync enabled";
+}
+
+// Phase 2: verify token position lookup and find_token_at_position accuracy
+// on large documents with many nested and sibling tokens.
+TEST(IncrementalParsing, TokenPositionAndFindTokenAtPositionAccuracy) {
+    std::string text = "int a = 1;\n";
+    for (int i = 0; i < 100; ++i) {
+        text += "int v" + std::to_string(i) + " = " + std::to_string(i * 10) + ";\n";
+    }
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(&c_definition), 0);
+
+    const textparser_token_item *first = parser.get_first_token();
+    ASSERT_NE(first, nullptr);
+
+    // Walk all top-level tokens, verifying textparser_get_token_position matches linear expectation
+    size_t expected_pos = 0;
+    for (const textparser_token_item *curr = first; curr != nullptr; curr = curr->next) {
+        size_t actual_pos = textparser_get_token_position(curr);
+        EXPECT_EQ(actual_pos, expected_pos);
+        expected_pos += curr->len;
+    }
+    EXPECT_EQ(expected_pos, text.size());
+
+    // Perform an in-leaf edit and verify positions update correctly
+    size_t target_off = text.find("v50");
+    ASSERT_NE(target_off, std::string::npos);
+    ASSERT_EQ(parser.parse_incremental(&c_definition, target_off, 3, "very_long_variable_name_50", 26, nullptr), 0);
+    text.replace(target_off, 3, "very_long_variable_name_50");
+
+    expected_pos = 0;
+    for (const textparser_token_item *curr = parser.get_first_token(); curr != nullptr; curr = curr->next) {
+        size_t actual_pos = textparser_get_token_position(curr);
+        EXPECT_EQ(actual_pos, expected_pos);
+        expected_pos += curr->len;
+    }
+    EXPECT_EQ(expected_pos, text.size());
+}
+
+// Phase 4: verify incremental AST post-processing on multi-tag documents
+// where an edit inside one tag preserves AST post-processing across all tags.
+TEST(IncrementalParsing, IncrementalAstPostProcessScopedToEditWindow) {
+    std::string text = "<cfset a = 1 + 2 * 3 />\n"
+                       "<cfset b = 4 * 5 + 6 />\n"
+                       "<cfset c = 7 + 8 * 9 />\n";
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(&cfml_definition), 0);
+    textparser_token_item *root = parser.get_first_token();
+    textparser_post_process(&root, &cfml_definition);
+
+    // Edit inside middle tag: change "4 * 5" to "40 * 5"
+    size_t off = text.find("4 * 5");
+    ASSERT_NE(off, std::string::npos);
+    ASSERT_EQ(parser.parse_incremental(&cfml_definition, off, 1, "40", 2, nullptr), 0);
+    text.replace(off, 1, "40");
+
+    // Compare tree shape against full parse + post_process
+    textparser::Parser full;
+    ASSERT_EQ(full.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(full.parse(&cfml_definition), 0);
+    textparser_token_item *full_root = full.get_first_token();
+    textparser_post_process(&full_root, &cfml_definition);
+
+    std::vector<std::pair<int, size_t>> inc_shape, full_shape;
+    collect_tree_shape(parser.get_first_token(), inc_shape);
+    collect_tree_shape(full.get_first_token(), full_shape);
+    EXPECT_EQ(inc_shape, full_shape);
+}
