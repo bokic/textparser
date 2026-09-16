@@ -442,7 +442,22 @@ typedef struct {
     const char *push_mode;
     bool pop_mode;
     const char *validator;
+    /* 1-based regex capture group stored in the lexer capture slots after a
+     * successful match; 0 disables capture. */
+    int capture;
+    /* 1-based regex capture group whose non-empty match sets the "strip leading
+     * tabs" flag on the stored capture (bash `<<-`). 0 disables. */
+    int capture_flag;
+    /* 1-based lexer capture slot. When > 0, this token matches the captured
+     * text literally (at a line boundary) instead of using its regex. Used for
+     * here-doc style dynamic delimiters. */
+    int dynamic;
+    /* 1-based capture slot. When > 0, this token only matches while the capture
+     * queue for that slot is non-empty (bash newline that opens a here-doc body). */
+    int dynamic_trigger;
 } textparser_contextual_lexer_rule;
+
+#define TEXTPARSER_MAX_LEXER_CAPTURES 8
 
 typedef struct {
     const char *name;

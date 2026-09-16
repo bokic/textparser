@@ -48,6 +48,18 @@ void adv_regex_set_utf8_valid(adv_regex_context *ctx, bool valid);
 bool adv_regex_find_pattern_ctx(adv_regex_context *ctx, const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start);
 
 /**
+ * Like adv_regex_find_pattern_ctx, but also returns the span of a regex capture
+ * group (1-based). Used for dynamic lexer constructs such as here-doc
+ * delimiters, where a later token must match the captured text.
+ *
+ * @param capture_group 1-based capture group to report; 0 disables capture.
+ * @param capture_offset Output offset of the capture group relative to `start`.
+ * @param capture_length Output length of the capture group.
+ * @return True if the pattern matched (and the requested group participated).
+ */
+bool adv_regex_find_pattern_capture_ctx(adv_regex_context *ctx, const char *regex_str, void **regex, enum textparser_encoding encoding, const char *start, size_t max_len, size_t *offset, size_t *length, bool is_caseless, bool only_at_start, bool whole_match, int capture_group, size_t *capture_offset, size_t *capture_length);
+
+/**
  * Release a compiled PCRE2 regular expression object for a specific encoding.
  *
  * @param ctx Advanced regex context pointer.

@@ -5,6 +5,8 @@
 
 #include <json_legacy_definition.json.h>
 
+#include <cstring>
+
 static char *dummy_identifier_decoder(textparser_t parser, const char *raw_text, size_t length, void *user_data) {
     (void)parser;
     (void)user_data;
@@ -405,6 +407,85 @@ TEST(lexer_modes, initial_mode_is_used_by_peek_and_consume) {
     textparser_match_result result{};
     ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
     EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+
+    parser.reset();
+    textparser_free_language_definition(definition);
+}
+
+TEST(lexer_modes, dynamic_capture_heredoc_delimiter) {
+    const char *json = R"json({
+      "formatVersion":2,
+      "name":"heredoc_probe","version":2,"caseSensitivity":true,
+      "defaultFileExtensions":["txt"],"defaultTextEncoding":"utf-8","otherTextInside":false,
+      "lexer":{
+        "initialMode":"default",
+        "tokens":{
+          "Word":{"regex":"[a-zA-Z_][a-zA-Z0-9_]*","priority":5},
+          "HereStart":{"regex":"<<(-?)(['\"]?)([a-zA-Z_][a-zA-Z0-9_]*)\\2","priority":20,"capture":3,"captureFlag":1},
+          "Newline":{"regex":"\\n","priority":10},
+          "HereTrigger":{"regex":"\\n","priority":30,"dynamicTrigger":3,"pushMode":"Here"},
+          "HereEnd":{"regex":".","priority":30,"dynamic":3,"popMode":true},
+          "HereBody":{"regex":"[^\\n]*\\n","priority":5}
+        },
+        "trivia":{"Whitespace":{"regex":"[ \\t\\r]+","priority":1}},
+        "modes":{
+          "default":{"tokens":["Word","HereStart","Newline","HereTrigger"],"trivia":["Whitespace"]},
+          "Here":{"tokens":["HereEnd","HereBody"],"trivia":[]}
+        }
+      },
+      "grammar":{"start":"Root","productions":{"Root":{"repeat":{"choice":[{"token":"Word"},{"token":"HereStart"},{"token":"Newline"},{"token":"HereTrigger"},{"token":"HereBody"},{"token":"HereEnd"}]}}}}
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(json, &definition), TEXTPARSER_JSON_NO_ERROR);
+    ASSERT_NE(definition, nullptr);
+
+    textparser::Parser parser;
+    auto count_kind = [&](const char *name) {
+        size_t count = 0;
+        const textparser_lex_token *tokens = parser.lexer_tokens(&count);
+        int found = 0;
+        for (size_t i = 0; i < count; i++) {
+            if (tokens[i].kind < 0) continue;
+            if (std::strcmp(definition->tokens[tokens[i].kind].name, name) == 0) found++;
+        }
+        return found;
+    };
+
+    // Single here-doc.
+    const char *single = "cat <<EOF\nbody\nEOF\n";
+    ASSERT_EQ(parser.openmem(single, (int)std::strlen(single), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    EXPECT_EQ(count_kind("HereStart"), 1);
+    EXPECT_EQ(count_kind("HereEnd"), 1);
+
+    // Trailing content on the command line stays out of the body.
+    parser.reset();
+    const char *trailing = "cat <<EOF > out\nbody\nEOF\n";
+    ASSERT_EQ(parser.openmem(trailing, (int)std::strlen(trailing), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    EXPECT_EQ(count_kind("HereEnd"), 1);
+
+    // `<<-` allows tab-indented delimiters.
+    parser.reset();
+    const char *tabbed = "cat <<-EOF\n\tbody\n\tEOF\n";
+    ASSERT_EQ(parser.openmem(tabbed, (int)std::strlen(tabbed), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    EXPECT_EQ(count_kind("HereEnd"), 1);
+
+    // Multiple here-docs on one command line are read in order.
+    parser.reset();
+    const char *multi = "cat <<EOF1 <<EOF2\na\nEOF1\nb\nEOF2\n";
+    ASSERT_EQ(parser.openmem(multi, (int)std::strlen(multi), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    EXPECT_EQ(count_kind("HereStart"), 2);
+    EXPECT_EQ(count_kind("HereEnd"), 2);
+
+    // A delimiter-looking word mid-line must not close the here-doc.
+    parser.reset();
+    const char *midline = "cat <<EOF\nsay EOF here\nEOF\n";
+    ASSERT_EQ(parser.openmem(midline, (int)std::strlen(midline), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    EXPECT_EQ(count_kind("HereEnd"), 1);
 
     parser.reset();
     textparser_free_language_definition(definition);

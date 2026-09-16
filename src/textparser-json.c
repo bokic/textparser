@@ -1294,6 +1294,14 @@ static int json_parse_contextual_lexer(
                 definition->lexer_rules[id].validator = textparser_string_pool_strdup(pool, json_object_get_string(field));
                 if (definition->lexer_rules[id].validator == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
             }
+            if (json_object_object_get_ex(item.val, "capture", &field))
+                definition->lexer_rules[id].capture = json_object_get_int(field);
+            if (json_object_object_get_ex(item.val, "captureFlag", &field))
+                definition->lexer_rules[id].capture_flag = json_object_get_int(field);
+            if (json_object_object_get_ex(item.val, "dynamic", &field))
+                definition->lexer_rules[id].dynamic = json_object_get_int(field);
+            if (json_object_object_get_ex(item.val, "dynamicTrigger", &field))
+                definition->lexer_rules[id].dynamic_trigger = json_object_get_int(field);
         }
     }
 

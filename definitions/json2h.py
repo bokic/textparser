@@ -726,6 +726,10 @@ def generate_header(in_file, out_file, skip_native_regex=False):
                 "push_mode": push,
                 "pop_mode": pop,
                 "validator": val,
+                "capture": t_info.get("capture", 0),
+                "capture_flag": t_info.get("captureFlag", 0),
+                "dynamic": t_info.get("dynamic", 0),
+                "dynamic_trigger": t_info.get("dynamicTrigger", 0),
             })
         if "modes" in lexer_obj and isinstance(lexer_obj["modes"], dict):
             modes_dict = lexer_obj["modes"]
@@ -857,7 +861,7 @@ def generate_header(in_file, out_file, skip_native_regex=False):
         for rule in lexer_rules:
             push_str = c_string_literal(rule["push_mode"])
             val_str = c_string_literal(rule["validator"])
-            text += f"    {{ .priority = {rule['priority']}, .is_trivia = {python_bool_to_c_string(rule['is_trivia'])}, .push_mode = {push_str}, .pop_mode = {python_bool_to_c_string(rule['pop_mode'])}, .validator = {val_str} }}," + os.linesep
+            text += f"    {{ .priority = {rule['priority']}, .is_trivia = {python_bool_to_c_string(rule['is_trivia'])}, .push_mode = {push_str}, .pop_mode = {python_bool_to_c_string(rule['pop_mode'])}, .validator = {val_str}, .capture = {rule['capture']}, .capture_flag = {rule['capture_flag']}, .dynamic = {rule['dynamic']}, .dynamic_trigger = {rule['dynamic_trigger']} }}," + os.linesep
         text += "};" + os.linesep + os.linesep
 
         if lexer_modes:

@@ -159,6 +159,22 @@ typedef struct textparser_lexer_cache_entry {
     struct textparser_lexer_cache_entry *next;
 } textparser_lexer_cache_entry;
 
+/* A dynamic lexer capture (e.g. a here-doc delimiter). Stored as raw subject
+ * bytes so the dynamic match can compare without re-encoding. */
+typedef struct {
+    char *bytes;
+    size_t byte_length;
+    size_t unit_length;
+    bool strip_tabs;
+} textparser_lexer_capture;
+
+/* FIFO of captures for one slot (bash reads queued here-docs in order). */
+typedef struct {
+    textparser_lexer_capture *items;
+    size_t count;
+    size_t capacity;
+} textparser_lexer_capture_queue;
+
 /* Reusable chunked bump allocator. `scratch` is reset at the start of every
  * incremental parse and only holds per-call temporaries. */
 typedef struct {
@@ -246,6 +262,9 @@ struct textparser_handle {
     size_t lexer_trivia_count;
     size_t lexer_trivia_capacity;
     textparser_lexer_cache_entry *lexer_cache;
+    /* Dynamic lexer captures (here-doc delimiters). Slot 0 is unused; slots are
+     * 1-based to match the JSON `capture`/`dynamic` fields. */
+    textparser_lexer_capture_queue lexer_captures[TEXTPARSER_MAX_LEXER_CAPTURES];
 
     /* Phase 3 — position bias for the flat snapshot arrays.
      *
@@ -318,6 +337,14 @@ static void textparser_clear_lexer_cache(struct textparser_handle *handle)
         entry = next;
     }
     handle->lexer_cache = nullptr;
+    for (int i = 0; i < TEXTPARSER_MAX_LEXER_CAPTURES; i++) {
+        textparser_lexer_capture_queue *queue = &handle->lexer_captures[i];
+        for (size_t j = 0; j < queue->count; j++) free(queue->items[j].bytes);
+        free(queue->items);
+        queue->items = nullptr;
+        queue->count = 0;
+        queue->capacity = 0;
+    }
 }
 
 /* ---- Phase 3: snapshot position-bias accessor macros --------------------
@@ -855,7 +882,8 @@ static inline bool textparser_match_start_token(
     size_t len,
     size_t *offset,
     size_t *match_len,
-    bool only_at_start)
+    bool only_at_start,
+    bool whole_match)
 {
     const textparser_token *token_def = &handle->language->tokens[token_id];
     bool ret;
@@ -870,7 +898,7 @@ static inline bool textparser_match_start_token(
             only_at_start
         );
     } else {
-        ret = adv_regex_find_pattern_ctx(
+        ret = adv_regex_find_pattern_capture_ctx(
             handle->regex_ctx,
             token_def->start_regex,
             (void **)handle->start_regex + token_id,
@@ -880,7 +908,9 @@ static inline bool textparser_match_start_token(
             offset,
             match_len,
             !handle->language->case_sensitivity,
-            only_at_start
+            only_at_start,
+            whole_match,
+            0, NULL, NULL
         );
     }
     return ret;
@@ -1395,7 +1425,7 @@ static ssize_t textparser_find_token(const struct textparser_handle *handle, int
             /* fallthrough */
         case TEXTPARSER_TOKEN_TYPE_START_OPT_STOP:
             LOGV("textparser_find_token() - TEXTPARSER_TOKEN_TYPE_START_OPT_STOP");
-            if (textparser_match_start_token(handle, token_id, text, len, &found_at, nullptr, true)) {
+            if (textparser_match_start_token(handle, token_id, text, len, &found_at, nullptr, true, false)) {
                 LOGI("found_at token type: [%s] at %zu",  handle->language->tokens[token_id].name, pos + found_at);
                 result = (ssize_t)found_at;
                 if (result == 0 && handle->language && handle->language->regex_disambiguation) {
@@ -1456,7 +1486,7 @@ static bool check_parent_token_boundary(
         {
             size_t token_start = 0;
             size_t start_len = 0;
-            bool found_start = textparser_match_start_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_start, &start_len, true);
+            bool found_start = textparser_match_start_token(handle, parent_token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, &token_start, &start_len, true, false);
             if (found_start && token_start == 0)
             {
                 return true;
@@ -2155,7 +2185,7 @@ static textparser_token_item *parse_token_simple_token(struct textparser_handle 
     }
 
     size_t len = 0;
-    if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true)) {
+    if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true, false)) {
         exit_with_error(handle, "Can't find start of the token!", offset, 1);
     }
 
@@ -2224,7 +2254,7 @@ static textparser_token_item *parse_token_start_stop(struct textparser_handle *h
     ret->prev = (textparser_token_item *)prev_sibling;
 
     // Search for start token
-    if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true)) {
+    if (!textparser_match_start_token(handle, token_id, handle->text_addr + textparser_get_byte_offset(handle, offset), textparser_get_total_units(handle) - offset, nullptr, &len, true, false)) {
         exit_with_error(handle, "Can't find start of the token!", offset, 1);
     }
 
@@ -4290,7 +4320,7 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
                 handle, active_token->token_id,
                 handle->text_addr + textparser_get_byte_offset(handle, leaf_start),
                 textparser_get_search_len(handle, leaf_start, leaf_def),
-                &found_at, &match_len, true);
+                &found_at, &match_len, true, false);
 
             if (matched && found_at == 0 && match_len > 0 &&
                 match_len == (size_t)((ssize_t)active_token->len + delta_units))
@@ -7423,6 +7453,47 @@ static bool textparser_contextual_match(
     size_t offset,
     size_t *length)
 {
+    const textparser_contextual_lexer_rule *lexer_rule = handle->language->lexer_rules != nullptr
+        ? &handle->language->lexer_rules[token_id] : nullptr;
+    if (lexer_rule != nullptr && lexer_rule->dynamic_trigger > 0) {
+        int slot = lexer_rule->dynamic_trigger;
+        if (slot >= TEXTPARSER_MAX_LEXER_CAPTURES ||
+            handle->lexer_captures[slot].count == 0)
+            return false;
+    }
+    if (lexer_rule != nullptr && lexer_rule->dynamic > 0) {
+        int slot = lexer_rule->dynamic;
+        if (slot >= TEXTPARSER_MAX_LEXER_CAPTURES) return false;
+        const textparser_lexer_capture_queue *queue = &handle->lexer_captures[slot];
+        if (queue->count == 0) return false;
+        const textparser_lexer_capture *capture = &queue->items[0];
+        if (capture->bytes == nullptr || capture->unit_length == 0) return false;
+        size_t total = textparser_get_total_units(handle);
+        if (offset >= total) return false;
+        size_t start = offset;
+        if (capture->strip_tabs) {
+            while (start < total && textparser_get_unit_at(handle, start) == '\t') start++;
+        }
+        if (capture->unit_length > total - start) return false;
+        size_t byte_offset = textparser_get_byte_offset(handle, start);
+        if (byte_offset + capture->byte_length > handle->text_size) return false;
+        if (memcmp(handle->text_addr + byte_offset, capture->bytes, capture->byte_length) != 0)
+            return false;
+        /* The dynamic token must occupy a whole line (here-doc delimiter) and
+         * consumes the line terminator so it ties the line-based body token. */
+        size_t after = start + capture->unit_length;
+        size_t match_length = after - offset;
+        if (after < total) {
+            uint32_t ch = textparser_get_unit_at(handle, after);
+            if (ch != '\n' && ch != '\r' && ch != 0x2028 && ch != 0x2029) return false;
+            match_length++;
+            after++;
+            if (ch == '\r' && after < total && textparser_get_unit_at(handle, after) == '\n')
+                match_length++;
+        }
+        *length = match_length;
+        return true;
+    }
     const textparser_token *rule = &handle->language->tokens[token_id];
     if (rule->name != nullptr && strcmp(rule->name, "Hashbang") == 0 && offset != 0)
         return false;
@@ -7433,7 +7504,7 @@ static bool textparser_contextual_match(
     if (offset >= total || !textparser_match_start_token(
             handle, token_id,
             handle->text_addr + textparser_get_byte_offset(handle, offset),
-            total - offset, &found_at, &found_len, true) || found_at != 0 || found_len == 0) {
+            total - offset, &found_at, &found_len, true, true) || found_at != 0 || found_len == 0) {
         return false;
     }
     *length = found_len;
@@ -7445,6 +7516,91 @@ static bool textparser_contextual_match(
         if (!textparser_validate_token(handle, validator_name, raw_text, found_len, &err_msg))
             return false;
     }
+    return true;
+}
+
+/**
+ * Record a dynamic lexer capture (e.g. a here-doc delimiter) for a matched token.
+ *
+ * @param handle Pointer to the textparser handle.
+ * @param token_id Matched token id whose lexer rule declares `capture`.
+ * @param offset Unit offset where the token matched.
+ */
+static void textparser_contextual_capture(
+    struct textparser_handle *handle,
+    int token_id,
+    size_t offset)
+{
+    if (handle->language->lexer_rules == nullptr) return;
+    const textparser_contextual_lexer_rule *lexer_rule = &handle->language->lexer_rules[token_id];
+    int slot = lexer_rule->capture;
+    if (slot <= 0 || slot >= TEXTPARSER_MAX_LEXER_CAPTURES) return;
+    const textparser_token *token_def = &handle->language->tokens[token_id];
+    if (token_def->start_regex == nullptr) return;
+
+    size_t found_at = 0, found_len = 0, capture_at = 0, capture_len = 0;
+    size_t total = textparser_get_total_units(handle);
+    if (!adv_regex_find_pattern_capture_ctx(
+            handle->regex_ctx, token_def->start_regex,
+            (void **)handle->start_regex + token_id, handle->text_format,
+            handle->text_addr + textparser_get_byte_offset(handle, offset), total - offset,
+            &found_at, &found_len, !handle->language->case_sensitivity, true, true,
+            slot, &capture_at, &capture_len) ||
+        capture_len == 0) {
+        return;
+    }
+    bool strip_tabs = false;
+    if (lexer_rule->capture_flag > 0) {
+        size_t flag_at = 0, flag_len = 0;
+        if (adv_regex_find_pattern_capture_ctx(
+                handle->regex_ctx, token_def->start_regex,
+                (void **)handle->start_regex + token_id, handle->text_format,
+                handle->text_addr + textparser_get_byte_offset(handle, offset), total - offset,
+                &found_at, &found_len, !handle->language->case_sensitivity, true, true,
+                lexer_rule->capture_flag, &flag_at, &flag_len) && flag_len > 0) {
+            strip_tabs = true;
+        }
+    }
+    size_t byte_start = textparser_get_byte_offset(handle, offset + capture_at);
+    size_t byte_end = textparser_get_byte_offset(handle, offset + capture_at + capture_len);
+    size_t byte_length = byte_end - byte_start;
+    char *bytes = malloc(byte_length + 1);
+    if (bytes == nullptr) return;
+    memcpy(bytes, handle->text_addr + byte_start, byte_length);
+    bytes[byte_length] = '\0';
+
+    textparser_lexer_capture_queue *queue = &handle->lexer_captures[slot];
+    if (queue->count == queue->capacity) {
+        size_t capacity = queue->capacity ? queue->capacity * 2 : 4;
+        textparser_lexer_capture *items = realloc(queue->items, capacity * sizeof(*items));
+        if (items == nullptr) { free(bytes); return; }
+        queue->items = items;
+        queue->capacity = capacity;
+    }
+    queue->items[queue->count++] = (textparser_lexer_capture){
+        bytes, byte_length, capture_len, strip_tabs};
+}
+
+/* Consume the front of a dynamic capture queue once its token is selected. */
+static void textparser_contextual_consume_capture(struct textparser_handle *handle, int token_id) {
+    if (handle->language->lexer_rules == nullptr) return;
+    int slot = handle->language->lexer_rules[token_id].dynamic;
+    if (slot <= 0 || slot >= TEXTPARSER_MAX_LEXER_CAPTURES) return;
+    textparser_lexer_capture_queue *queue = &handle->lexer_captures[slot];
+    if (queue->count == 0) return;
+    free(queue->items[0].bytes);
+    memmove(&queue->items[0], &queue->items[1], (queue->count - 1) * sizeof(*queue->items));
+    queue->count--;
+}
+
+/* A dynamic token keeps its mode while more queued captures remain (bash reads
+ * queued here-doc bodies in order). */
+static bool textparser_rule_should_pop(struct textparser_handle *handle,
+                                       const textparser_contextual_lexer_rule *rule) {
+    if (!rule->pop_mode) return false;
+    if (rule->dynamic > 0 && rule->dynamic < TEXTPARSER_MAX_LEXER_CAPTURES &&
+        handle->lexer_captures[rule->dynamic].count > 0)
+        return false;
     return true;
 }
 
@@ -7547,6 +7703,11 @@ static int textparser_contextual_scan_one(
     }
     if (best < 0) return 1;
 
+    /* Store any dynamic capture (e.g. a here-doc delimiter) declared by the rule.
+     * Capture from the token start (after leading trivia). */
+    textparser_contextual_capture(handle, best_source, offset);
+    textparser_contextual_consume_capture(handle, best_source);
+
     textparser_lexer_cache_entry *entry = calloc(1, sizeof(*entry));
     if (entry == nullptr) return -1;
     entry->mode = strdup(mode);
@@ -7617,7 +7778,7 @@ EXPORT_TEXTPARSER int textparser_lexer_consume(
     const textparser_contextual_lexer_rule *rule = source != nullptr &&
         (source->pop_mode || source->push_mode != nullptr)
         ? source : &handle->language->lexer_rules[(*out_token)->kind];
-    if (rule->pop_mode && textparser_pop_mode(handle) != 0) return -1;
+    if (textparser_rule_should_pop(handle, rule) && textparser_pop_mode(handle) != 0) return -1;
     if (rule->push_mode != nullptr && textparser_push_mode(handle, rule->push_mode) != 0) return -1;
     handle->parser.previous_token = **out_token;
     handle->parser.has_previous_token = true;
@@ -7715,7 +7876,7 @@ static int textparser_parse_contextual(struct textparser_handle *handle,
         const textparser_contextual_lexer_rule *rule = source != nullptr &&
             (source->pop_mode || source->push_mode != nullptr)
             ? source : &definition->lexer_rules[token->kind];
-        if (rule->pop_mode) textparser_pop_mode(handle);
+        if (textparser_rule_should_pop(handle, rule)) textparser_pop_mode(handle);
         if (rule->push_mode != nullptr) textparser_push_mode(handle, rule->push_mode);
         handle->parser.source_offset = token->end;
         handle->parser.token_index++;

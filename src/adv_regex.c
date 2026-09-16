@@ -312,7 +312,11 @@ static bool adv_regex_find_pattern_impl(
     size_t                   max_len,
     size_t                  *offset,
     size_t                  *length,
-    bool                     only_at_start)
+    bool                     only_at_start,
+    bool                     whole_match,
+    int                      capture_group,
+    size_t                  *capture_offset,
+    size_t                  *capture_length)
 {
     if (!load_pcre2_dyn(ctx, width_idx)) return false;
     pcre2_dyn_api_t *api = &ctx->api[width_idx];
@@ -377,12 +381,38 @@ static bool adv_regex_find_pattern_impl(
             if (length) *length = ov[1] - ov[0];
             ret = true;
         }
+        if (ret && capture_group > 0 && capture_offset && capture_length) {
+            size_t group = (size_t)capture_group;
+            if (ov[group * 2] != PCRE2_UNSET && ov[group * 2 + 1] != PCRE2_UNSET &&
+                ov[group * 2 + 1] >= ov[group * 2]) {
+                *capture_offset = ov[group * 2];
+                *capture_length = ov[group * 2 + 1] - ov[group * 2];
+            } else {
+                ret = false;
+            }
+        }
     } else if (rc >= 2) {
         PCRE2_SIZE *ov = api->get_ovector_pointer(match_data);
-        if (ov && ov[2] != PCRE2_UNSET && ov[3] != PCRE2_UNSET && ov[3] > ov[2]) {
+        if (whole_match) {
+            if (ov && ov[1] > 0) {
+                if (offset) *offset = ov[0];
+                if (length) *length = ov[1] - ov[0];
+                ret = true;
+            }
+        } else if (ov && ov[2] != PCRE2_UNSET && ov[3] != PCRE2_UNSET && ov[3] > ov[2]) {
             if (offset) *offset = ov[2];
             if (length) *length = ov[3] - ov[2];
             ret = true;
+        }
+        if (ret && capture_group > 0 && capture_offset && capture_length) {
+            size_t group = (size_t)capture_group;
+            if (ov[group * 2] != PCRE2_UNSET && ov[group * 2 + 1] != PCRE2_UNSET &&
+                ov[group * 2 + 1] >= ov[group * 2]) {
+                *capture_offset = ov[group * 2];
+                *capture_length = ov[group * 2 + 1] - ov[group * 2];
+            } else {
+                ret = false;
+            }
         }
     }
 
@@ -403,24 +433,49 @@ bool adv_regex_find_pattern_ctx(
     bool                     is_caseless,
     bool                     only_at_start)
 {
+    return adv_regex_find_pattern_capture_ctx(ctx, regex_str, regex, encoding, start, max_len,
+        offset, length, is_caseless, only_at_start, false, 0, NULL, NULL);
+}
+
+bool adv_regex_find_pattern_capture_ctx(
+    adv_regex_context       *ctx,
+    const char              *regex_str,
+    void                   **regex,
+    enum textparser_encoding encoding,
+    const char              *start,
+    size_t                   max_len,
+    size_t                  *offset,
+    size_t                  *length,
+    bool                     is_caseless,
+    bool                     only_at_start,
+    bool                     whole_match,
+    int                      capture_group,
+    size_t                  *capture_offset,
+    size_t                  *capture_length)
+{
     if (!ctx || !regex_str) return false;
 
     switch (encoding) {
     case TEXTPARSER_ENCODING_LATIN1:
         return adv_regex_find_pattern_impl(ctx, PCRE2_WIDTH_8, 8,
-            regex_str, regex, false, is_caseless, start, max_len, offset, length, only_at_start);
+            regex_str, regex, false, is_caseless, start, max_len, offset, length, only_at_start,
+            whole_match, capture_group, capture_offset, capture_length);
     case TEXTPARSER_ENCODING_UTF_8:
         return adv_regex_find_pattern_impl(ctx, PCRE2_WIDTH_8, 8,
-            regex_str, regex, true,  is_caseless, start, max_len, offset, length, only_at_start);
+            regex_str, regex, true,  is_caseless, start, max_len, offset, length, only_at_start,
+            whole_match, capture_group, capture_offset, capture_length);
     case TEXTPARSER_ENCODING_UNICODE:
         return adv_regex_find_pattern_impl(ctx, PCRE2_WIDTH_16, 16,
-            regex_str, regex, false, is_caseless, start, max_len, offset, length, only_at_start);
+            regex_str, regex, false, is_caseless, start, max_len, offset, length, only_at_start,
+            whole_match, capture_group, capture_offset, capture_length);
     case TEXTPARSER_ENCODING_UTF_16:
         return adv_regex_find_pattern_impl(ctx, PCRE2_WIDTH_16, 16,
-            regex_str, regex, true,  is_caseless, start, max_len, offset, length, only_at_start);
+            regex_str, regex, true,  is_caseless, start, max_len, offset, length, only_at_start,
+            whole_match, capture_group, capture_offset, capture_length);
     case TEXTPARSER_ENCODING_UTF_32:
         return adv_regex_find_pattern_impl(ctx, PCRE2_WIDTH_32, 32,
-            regex_str, regex, true,  is_caseless, start, max_len, offset, length, only_at_start);
+            regex_str, regex, true,  is_caseless, start, max_len, offset, length, only_at_start,
+            whole_match, capture_group, capture_offset, capture_length);
     default:
         fprintf(stderr, "Illegal text encoding(%d) at adv_regex_find_pattern()\n", encoding);
         return false;

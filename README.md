@@ -191,6 +191,23 @@ callable placeholders (`...` followed by `)`, with optional trivia). Regression
 coverage includes multiple unpacks, nested calls, named arguments after
 unpacking, trailing commas, and malformed placeholders.
 
+The Bash v2 grammar lives at `definitions/bash_definition.json` and is the default for `.sh`/`.bash` files;
+it covers simple commands, assignments (`+=`, empty values, array initializers), pipelines (`|`, `|&`),
+and/or lists (`&&`, `||`, `&`), redirections (including fd and `2>&1`),
+`if`/`elif`/`else`, `for` (with/without `in`, and C-style `for ((...))`), `while`/`until`, `select`, `case`
+(globs, `|` alternatives, `[!...]` classes, `-*`/`--opt=*` patterns), functions
+(`name()`, `function name`, `function name()`), groups `{ }`, subshells `( )`,
+brace expansion `{a,b}`/`{1..5}`, `$'...'` ANSI-C quoting, `[[ ]]`/`(( ))` (including `=~`), the parameter-expansion
+operators (`${x%%}`, `${x##}`, `${x:-}`, `${x-c}`, `${x:1:2}`, `${x/a/b}`,
+`${#x}`), command/process/backtick substitution, arithmetic, line continuations,
+comments, here-docs (`<<`, `<<-`, `<< EOF`, multiple per line, `<<-` tab
+stripping, blank lines trailing here-docs, and here-docs in command substitutions with subshells and functions),
+`case` pattern clauses (with/without command bodies, multiple patterns `p1|p2`, trailing newlines before `;;`),
+arithmetic operators (`+`, `-`, `*`, `/`) in word argument positions and backticks,
+as well as POSIX command splitting for reserved words as arguments.
+The grammar achieves a 100% clean parse rate across all 523 `bash -n`-valid `/usr/bin/*` shell scripts.
+`tests/unittests/bash_v2_grammar_tests.cpp` exercises both unit grammar fixtures and end-to-end command lists.
+
 For the v2 profile, link `libtextparser_php` and call
 `textparser_php_register_validators(handle)` before executing the language grammar.
 The `php.legality` source-complete handler checks writable assignment/update
