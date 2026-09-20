@@ -280,6 +280,7 @@ git clone https://github.com/bokic/textparser.git
 cd textparser
 ./build.sh
 ```
+`textparser` is cross-platform and fully supports both little-endian (e.g. x86_64, aarch64) and big-endian architectures (e.g. IBM s390x). UTF-16 and UTF-32 encodings use host-endian code units (`uint16_t` and `uint32_t`).
 
 ### Windows builds
 

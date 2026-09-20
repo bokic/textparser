@@ -51,7 +51,7 @@ The golden C definitions reside in [`include/textparser.h`](include/textparser.h
 
 The main handle (`struct textparser_handle`) encapsulates all parsing context, state, and resources:
 
-* **Buffer & Encoding**: Pointer to mapped or allocated text buffer (`text_addr`), length (`text_size`), character encoding enum (`text_format`), BOM mask (`bom`), and optional file path (`filename`).
+* **Buffer & Encoding**: Pointer to mapped or allocated text buffer (`text_addr`), length (`text_size`), character encoding enum (`text_format`), BOM mask (`bom`), and optional file path (`filename`). Note that `TEXTPARSER_ENCODING_UTF_16` and `TEXTPARSER_ENCODING_UTF_32` operate on native host-endian code units (`uint16_t` / `uint32_t`), ensuring full compatibility across little-endian and big-endian (e.g. s390x) architectures.
 * **Line Index Map**: Cached line starts (`lines`, `no_lines`) for O(log N) position-to-line/column mapping.
 * **Arena Memory Allocator**: Chunks (`chunks`, `chunk_count`, `current_chunk`) allocating CST nodes and allocations with instant mass-free or checkpoint rollback.
 * **Lexer Mode Stack & Goals**: Transient lexical modes (`mode_stack`, `mode_stack_depth` up to 64) and active lexical goal (`lexical_goal`).
