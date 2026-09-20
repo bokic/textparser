@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 
-#include <cpp_definition.json.h>
+#include <cpp_legacy_definition.json.h>
 
 
 TEST(parse_CPP, basic_cpp_program) {
