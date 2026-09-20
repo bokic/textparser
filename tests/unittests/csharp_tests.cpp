@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 
-#include <csharp_definition.json.h>
+#include <csharp_legacy_definition.json.h>
 
 
 TEST(parse_CSharp, basic_csharp_program) {

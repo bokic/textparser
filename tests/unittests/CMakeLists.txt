@@ -93,6 +93,7 @@ add_executable( unittests
   bash_v2_grammar_tests.cpp
   c_v2_grammar_tests.cpp
   cpp_v2_grammar_tests.cpp
+  csharp_v2_grammar_tests.cpp
   speculation_tests.cpp
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp
