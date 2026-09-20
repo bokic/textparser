@@ -306,4 +306,4 @@ Contributions are what make the open-source community an amazing place to learn,
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-Developed with ❤️ by [Boris Barbulovski (bokic)](https://github.com).
+Developed with ❤️ by [Boris Barbulovski (bokic)](https://github.com/bokic).
