@@ -3,7 +3,7 @@
 #include <cfml_legacy_definition.json.h>
 #include <html_definition.json.h>
 #include <json_legacy_definition.json.h>
-#include <c_definition.json.h>
+#include <c_legacy_definition.json.h>
 #include <cpp_definition.json.h>
 #include <javascript_definition.json.h>
 

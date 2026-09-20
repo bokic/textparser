@@ -208,6 +208,8 @@ as well as POSIX command splitting for reserved words as arguments.
 The grammar achieves a 100% clean parse rate across all 523 `bash -n`-valid `/usr/bin/*` shell scripts.
 `tests/unittests/bash_v2_grammar_tests.cpp` exercises both unit grammar fixtures and end-to-end command lists.
 
+`definitions/c_definition.json` provides a compiler-grade ISO C (C89 through C23) schema-v2 grammar, featuring granular keyword and operator tokens, an 18-level Pratt operator precedence hierarchy (handling ternary `? :`, assignment chains, comma operators, cast expressions, pointer member access `->`, and prefix/postfix increment and decrement), C23 standard attributes `[[...]]`, `_Static_assert`/`static_assert`, `typeof`/`typeof_unqual`, `_Generic` selection, bitfields, designated initializers, compound literals, and synchronization-token recovery. The legacy v1 C scanner is preserved as `definitions/c_legacy_definition.json` for legacy tokenization test compatibility. `tests/unittests/c_v2_grammar_tests.cpp` verifies both static header and dynamic JSON definition pipelines.
+
 For the v2 profile, link `libtextparser_php` and call
 `textparser_php_register_validators(handle)` before executing the language grammar.
 The `php.legality` source-complete handler checks writable assignment/update

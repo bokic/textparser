@@ -4,7 +4,7 @@
 #include <string>
 #include <cstring>
 
-#include <c_definition.json.h>
+#include <c_legacy_definition.json.h>
 #include <cfml_legacy_definition.json.h>
 #include <json_legacy_definition.json.h>
 #include <textparser-json.h>
