@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 
-#include <javascript_definition.json.h>
+#include <javascript_legacy_definition.json.h>
 
 
 TEST(parse_JavaScript, basic_js_program) {

@@ -28,3 +28,12 @@ but `definitions/json2h.py` rejects it with `Construct must have exactly one cor
 key, found []`. Found during the CSS V2 migration. CSS uses the equivalent
 `sequence: [item, {repeat: item}]` form; the shared schema/generator mismatch
 remains to be fixed separately.
+
+## V2 `astKind` metadata is ignored
+
+The JSON loader and header generator accept `astKind`, but neither transfers it
+to the compiled production; emitted CST kinds use production names. Found during
+the JavaScript V2 migration when an `InitializedVariableDeclaration` production
+with `astKind: "VariableDeclaration"` still emitted its original name in both
+loading paths. The JavaScript definition uses explicit production names instead;
+implementing or removing the advertised metadata is separate engine work.

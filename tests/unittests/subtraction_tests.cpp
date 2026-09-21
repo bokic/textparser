@@ -13,7 +13,7 @@
 #include <fortran_definition.json.h>
 #include <go_definition.json.h>
 #include <java_definition.json.h>
-#include <javascript_definition.json.h>
+#include <javascript_legacy_definition.json.h>
 #include <matlab_definition.json.h>
 #include <pascal_definition.json.h>
 #include <perl_definition.json.h>

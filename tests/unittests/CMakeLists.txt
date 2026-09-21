@@ -55,6 +55,7 @@ add_executable( unittests
   cpp_tests.cpp
   csharp_tests.cpp
   javascript_tests.cpp
+  javascript_v2_grammar_tests.cpp
   css_tests.cpp
   html_tests.cpp
   bash_tests.cpp

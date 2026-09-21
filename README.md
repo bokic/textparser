@@ -239,6 +239,35 @@ semantics and function argument/selector legality are not fully validated.
 The existing property/pseudo/at-rule validator and legacy scanner tests continue
 to use `definitions/css_legacy_definition.json`, matching the HTML migration.
 
+`definitions/javascript_definition.json` is the primary JavaScript/JSX schema-v2
+definition, derived from the shared ECMAScript rules in the TypeScript grammar.
+It covers declarations, destructuring/default/rest bindings, functions and arrows,
+async/generator syntax, classes (heritage expressions, private fields, static
+blocks, methods and accessors), control flow, modules and import attributes,
+dynamic imports, `import.meta`, `new.target`, optional chaining, and modern
+assignment operators. Contextual lexical goals distinguish regular expressions
+from division; stack-based modes handle nested template interpolation and JSX.
+The Pratt table provides operator precedence and associativity, and statement
+recovery and automatic semicolon insertion preserve subsequent statements.
+TypeScript type annotations, declarations, generic parameters/calls, assertions,
+and non-null suffixes are excluded regardless of filename. JSX requires a `.jsx`
+filename supplied through `textparser_set_filename` before grammar execution.
+
+For the JavaScript grammar API, link `libtextparser_typescript` and call
+`textparser_typescript_register_validators(handle)` after opening the input and
+before parsing/executing the grammar. The definition deliberately reuses the
+existing identifier, assignment/update-target, and source-legality callbacks
+and their `TS` diagnostic codes. This is a syntax parser with those shared
+legality checks, not a complete ECMAScript semantic validator (for example,
+strict-mode rules and module binding resolution are outside its coverage).
+As with other V2 definitions, the CLI still exposes normalized tokenization;
+structured grammar execution uses `textparser_execute_language_grammar`.
+`tests/unittests/javascript_v2_grammar_tests.cpp` exercises compiled and JSON-loaded
+definitions, complete consumption, malformed input, recovery, CST categories,
+and mode restoration. The old scanner remains in
+`definitions/javascript_legacy_definition.json` for tokenization and incremental
+scanner regression tests; the obsolete `definitions/schema_v2` draft is removed.
+
 For the v2 profile, link `libtextparser_php` and call
 `textparser_php_register_validators(handle)` before executing the language grammar.
 The `php.legality` source-complete handler checks writable assignment/update

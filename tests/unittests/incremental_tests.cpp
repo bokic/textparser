@@ -5,7 +5,7 @@
 #include <json_legacy_definition.json.h>
 #include <c_legacy_definition.json.h>
 #include <cpp_legacy_definition.json.h>
-#include <javascript_definition.json.h>
+#include <javascript_legacy_definition.json.h>
 
 #include <cstring>
 #include <string>
