@@ -76,6 +76,7 @@ add_executable( unittests
   python_tests.cpp
   jai_tests.cpp
   c3_tests.cpp
+  c3_v2_grammar_tests.cpp
   zig_tests.cpp
   rust_tests.cpp
   subtraction_tests.cpp

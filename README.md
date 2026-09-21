@@ -163,6 +163,32 @@ from the core parser into pluggable validators and language validation modules:
 * **Web & Data:** HTML, CSS, JavaScript, TypeScript, JSON, XML, SQL, Markdown
 * **Scripting:** Python, PHP, Bash/Shell
 
+The C3 schema-v2 migration targets **C3 0.8.4**, the
+[latest stable release](https://github.com/c3lang/c3c/releases/tag/v0.8.4)
+verified on 2026-09-21. `definitions/c3_definition.json` is the primary definition
+for `.c3`, `.c3i`, and `.c3t`; the legacy scanner remains in
+`definitions/c3_legacy_definition.json` for scanner regression tests. The obsolete
+`definitions/schema_v2/c3_definition.json` draft has been removed.
+
+The declarative grammar covers modules and imports, generic module parameters
+and type arguments, aliases and function aliases, structs/unions, enums with
+associated data, interfaces, bitstructs, fault definitions, attributes, functions,
+methods, macros and lambdas, runtime and compile-time control flow, optional
+operators, calls and named arguments, slices, initializers, and inline assembly.
+Pratt operators use C3 precedence (including shifts binding more tightly than
+addition), with right-associative assignment and ternaries. Nested block comments,
+escaped/raw strings, hex floats, documentation attached to declarations, and
+statement-boundary recovery have dedicated regression coverage. Obsolete postfix
+`?` and the eight previously identified compiler-rejected forms are rejected.
+
+`tests/unittests/c3_v2_grammar_tests.cpp` checks generated-header and JSON loading,
+full input consumption, clean successful parses, malformed inputs, precedence,
+recovery diagnostics, CST categories, and matching tree spans across both paths.
+Run `python3 tests/c3_compare/verify_fixtures.py` to check the literal unit fixtures
+against the installed `c3c` using syntax-only `-P` compilation. This is parser
+coverage; name resolution, type checking, and other compiler semantic checks are
+outside the grammar's scope.
+
 The PHP v2 migration targets **PHP 8.5** and is complete: the declarative grammar
 lives at `definitions/php_definition.json` and is the default for `.php` files.
 The profile declares whitespace and comments as lexer trivia
