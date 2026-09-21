@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <python_definition.json.h>
+#include <python_legacy_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {

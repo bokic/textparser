@@ -1,230 +1,3276 @@
 {
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
   "name": "python",
-  "version": 1.0,
+  "version": 2.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [
-    "py"
+    "py",
+    "pyw",
+    "pyi"
   ],
-  "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "LineComment",
-    "TripleSingleString",
-    "TripleDoubleString",
-    "SingleString",
-    "DoubleString",
-    "FString",
-    "Boolean",
-    "Keyword",
-    "Number",
-    "Variable",
-    "Operator",
-    "Parenthesis",
-    "ArrayIndex",
-    "CodeBlock"
+  "defaultTextEncoding": "utf-8",
+  "supportedBom": [
+    "utf-8"
   ],
-  "otherTextInside": true,
-  "tokens": {
-    "LineComment": {
-      "type": "SimpleToken",
-      "startRegex": "#[^\\r\\n]*",
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+  "otherTextInside": false,
+  "diagnostics": {
+    "expected": {
+      "code": "PY1001",
+      "message": "Expected %s."
     },
-    "TripleSingleString": {
-      "type": "StartStop",
-      "startRegex": "'''",
-      "endRegex": "'''",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x6a9955",
-      "delimiterTextColor": "0x557a44"
+    "tokenExpected": {
+      "code": "PY1002",
+      "message": "'%s' expected."
     },
-    "TripleDoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"\"\"",
-      "endRegex": "\"\"\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x6a9955",
-      "delimiterTextColor": "0x557a44"
-    },
-    "SingleString": {
-      "type": "StartStop",
-      "startRegex": "'",
-      "endRegex": "'",
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "DoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "FString": {
-      "type": "StartStop",
-      "startRegex": "[fF](?:\"\"\"|'''|\"|')",
-      "endRegex": "(?:\"\"\"|'''|\"|')",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape",
-        "FStringInterpolation"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "FStringInterpolation": {
-      "type": "StartStop",
-      "startRegex": "\\{",
-      "endRegex": "\\}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x569cd6",
-      "nestedTokens": [
-        "Keyword",
-        "Boolean",
-        "Number",
-        "Variable",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ],
-      "delimiterTextColor": "0x4075a0"
-    },
-    "StringEscape": {
-      "type": "SimpleToken",
-      "startRegex": "\\\\[\\\\\\\"'nrt0]|\\\\x[0-9a-fA-F]{2}|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8}|\\\\N\\{[a-zA-Z_][a-zA-Z0-9_]*\\}",
-      "textColor": "0xd7ba7d"
-    },
-    "Keyword": {
-      "type": "SimpleToken",
-      "startRegex": "None\\b|and\\b|as\\b|assert\\b|async\\b|await\\b|break\\b|class\\b|continue\\b|def\\b|del\\b|elif\\b|else\\b|except\\b|finally\\b|for\\b|from\\b|global\\b|if\\b|import\\b|in\\b|is\\b|lambda\\b|nonlocal\\b|not\\b|or\\b|pass\\b|raise\\b|return\\b|try\\b|while\\b|with\\b|yield\\b",
-      "textColor": "0xc586c0"
-    },
-    "Boolean": {
-      "type": "SimpleToken",
-      "startRegex": "True\\b|False\\b",
-      "textColor": "0x569cd6"
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "0[xX][0-9a-fA-F][0-9a-fA-F_]*|0[oO][0-7][0-7_]*|0[bB][01][01_]*|[0-9][0-9_]*(?:\\.[0-9][0-9_]*)?(?:[eE][-+]?[0-9][0-9_]*)?[jJ]?",
-      "textColor": "0xb5cea8"
-    },
-    "Variable": {
-      "type": "SimpleToken",
-      "startRegex": "@?[a-zA-Z_][a-zA-Z0-9_]*",
-      "textColor": "0x9cdcfe"
-    },
-    "Operator": {
-      "type": "SimpleToken",
-      "startRegex": ":=|\\.\\.\\.|->|//|\\*\\*|<<|>>|==|!=|<=|>=|\\+=|\\-=|\\*=|\\/=|//=|%=|@=|&=|\\|=|\\^=|<<=|>>=|\\*\\*=|[=<>!&|^~+\\-*/%@.,;:]",
-      "textColor": "0xd4d4d4"
-    },
-    "Parenthesis": {
-      "type": "StartStop",
-      "startRegex": "\\(",
-      "endRegex": "\\)",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "TripleSingleString",
-        "TripleDoubleString",
-        "SingleString",
-        "DoubleString",
-        "FString",
-        "Boolean",
-        "Keyword",
-        "Number",
-        "Variable",
-        "Operator",
-        "FStringInterpolation",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "ArrayIndex": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "TripleSingleString",
-        "TripleDoubleString",
-        "SingleString",
-        "DoubleString",
-        "FString",
-        "Boolean",
-        "Keyword",
-        "Number",
-        "Variable",
-        "Operator",
-        "FStringInterpolation",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "CodeBlock": {
-      "type": "StartStop",
-      "startRegex": "\\{",
-      "endRegex": "\\}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "TripleSingleString",
-        "TripleDoubleString",
-        "SingleString",
-        "DoubleString",
-        "FString",
-        "Boolean",
-        "Keyword",
-        "Number",
-        "Variable",
-        "Operator",
-        "FStringInterpolation",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
+    "recovered": {
+      "code": "PY1003",
+      "message": "Syntax error: unexpected token, recovering."
     }
   },
-  "mergeSignIntoNumber": {
-    "signTokens": [
-      "Operator"
-    ],
-    "numberTokens": [
-      "Number"
-    ],
-    "operandTokens": [
-      "Number",
-      "Variable",
-      "Boolean",
-      "SingleString",
-      "DoubleString",
-      "FString",
-      "Parenthesis",
-      "ArrayIndex",
-      "CodeBlock"
+  "recovery": {
+    "maximumDiagnostics": 100,
+    "maximumSkippedTokens": 50,
+    "maximumRecoveryAttempts": 30,
+    "synchronizationTokens": [
+      "Semicolon",
+      "Colon",
+      "RParen",
+      "RBracket",
+      "RBrace"
     ]
+  },
+  "lexer": {
+    "trivia": {
+      "Whitespace": {
+        "regex": "[ \\t\\r\\n]+"
+      },
+      "LineContinuation": {
+        "regex": "\\\\(?:\\r\\n|\\r|\\n)"
+      },
+      "LineComment": {
+        "regex": "#[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      }
+    },
+    "tokens": {
+      "TripleString": {
+        "regex": "(?:[rR][bB]|[bB][rR]|[fF][rR]|[rR][fF]|[rR]|[bB]|[uU]|[fF])?(?:\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?''')",
+        "priority": 30,
+        "textColor": "0xce9178"
+      },
+      "StringLiteral": {
+        "regex": "(?:[rR][bB]|[bB][rR]|[fF][rR]|[rR][fF]|[rR]|[bB]|[uU]|[fF])?(?:\"(?:[^\"\\\\\\r\\n]|\\\\.)*\"|'(?:[^'\\\\\\r\\n]|\\\\.)*')",
+        "priority": 28,
+        "textColor": "0xce9178"
+      },
+      "Number": {
+        "regex": "0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|[0-9](?:_?[0-9])*(?:\\.[0-9](?:_?[0-9])*)?(?:[eE][+-]?[0-9](?:_?[0-9])*)?[jJ]?|\\.[0-9](?:_?[0-9])*(?:[eE][+-]?[0-9](?:_?[0-9])*)?[jJ]?",
+        "priority": 25,
+        "textColor": "0xb5cea8"
+      },
+      "Boolean": {
+        "regex": "True\\b|False\\b",
+        "priority": 20,
+        "textColor": "0x569cd6"
+      },
+      "NoneKeyword": {
+        "regex": "None\\b",
+        "priority": 20,
+        "textColor": "0x569cd6"
+      },
+      "AndKeyword": {
+        "regex": "and\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AsKeyword": {
+        "regex": "as\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AssertKeyword": {
+        "regex": "assert\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AsyncKeyword": {
+        "regex": "async\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AwaitKeyword": {
+        "regex": "await\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "BreakKeyword": {
+        "regex": "break\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CaseKeyword": {
+        "regex": "case\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ClassKeyword": {
+        "regex": "class\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ContinueKeyword": {
+        "regex": "continue\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DefKeyword": {
+        "regex": "def\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DelKeyword": {
+        "regex": "del\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ElifKeyword": {
+        "regex": "elif\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ElseKeyword": {
+        "regex": "else\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ExceptKeyword": {
+        "regex": "except\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "FinallyKeyword": {
+        "regex": "finally\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ForKeyword": {
+        "regex": "for\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "FromKeyword": {
+        "regex": "from\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "GlobalKeyword": {
+        "regex": "global\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IfKeyword": {
+        "regex": "if\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ImportKeyword": {
+        "regex": "import\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "InKeyword": {
+        "regex": "in\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IsKeyword": {
+        "regex": "is\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "LambdaKeyword": {
+        "regex": "lambda\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "MatchKeyword": {
+        "regex": "match\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "NonlocalKeyword": {
+        "regex": "nonlocal\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "NotKeyword": {
+        "regex": "not\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "OrKeyword": {
+        "regex": "or\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "PassKeyword": {
+        "regex": "pass\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "RaiseKeyword": {
+        "regex": "raise\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ReturnKeyword": {
+        "regex": "return\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TryKeyword": {
+        "regex": "try\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TypeKeyword": {
+        "regex": "type\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "WhileKeyword": {
+        "regex": "while\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "WithKeyword": {
+        "regex": "with\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "YieldKeyword": {
+        "regex": "yield\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "StarStarEqual": {
+        "regex": "\\*\\*=",
+        "priority": 18,
+        "textColor": "0xd4d4d4"
+      },
+      "DoubleSlashEqual": {
+        "regex": "//=",
+        "priority": 18,
+        "textColor": "0xd4d4d4"
+      },
+      "LShiftEqual": {
+        "regex": "<<=",
+        "priority": 18,
+        "textColor": "0xd4d4d4"
+      },
+      "RShiftEqual": {
+        "regex": ">>=",
+        "priority": 18,
+        "textColor": "0xd4d4d4"
+      },
+      "PlusEqual": {
+        "regex": "\\+=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "MinusEqual": {
+        "regex": "-=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "StarEqual": {
+        "regex": "\\*=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "SlashEqual": {
+        "regex": "/=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "PercentEqual": {
+        "regex": "%=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "AtEqual": {
+        "regex": "@=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "AmpersandEqual": {
+        "regex": "&=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "BarEqual": {
+        "regex": "\\|=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "CaretEqual": {
+        "regex": "\\^=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "StarStar": {
+        "regex": "\\*\\*",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "DoubleSlash": {
+        "regex": "//",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "LShift": {
+        "regex": "<<",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "RShift": {
+        "regex": ">>",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "EqualEqual": {
+        "regex": "==",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "ExclamationEqual": {
+        "regex": "!=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "LessEqual": {
+        "regex": "<=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "GreaterEqual": {
+        "regex": ">=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "Walrus": {
+        "regex": ":=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "Arrow": {
+        "regex": "->",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "Ellipsis": {
+        "regex": "\\.\\.\\.",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "Equal": {
+        "regex": "=",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Plus": {
+        "regex": "\\+",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Minus": {
+        "regex": "-",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Star": {
+        "regex": "\\*",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Slash": {
+        "regex": "/",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Percent": {
+        "regex": "%",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "At": {
+        "regex": "@",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Ampersand": {
+        "regex": "&",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Bar": {
+        "regex": "\\|",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Caret": {
+        "regex": "\\^",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Tilde": {
+        "regex": "~",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "LessThan": {
+        "regex": "<",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "GreaterThan": {
+        "regex": ">",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Colon": {
+        "regex": ":",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Semicolon": {
+        "regex": ";",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Comma": {
+        "regex": ",",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Dot": {
+        "regex": "\\.",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "LParen": {
+        "regex": "\\(",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "RParen": {
+        "regex": "\\)",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "LBracket": {
+        "regex": "\\[",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "RBracket": {
+        "regex": "\\]",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "LBrace": {
+        "regex": "\\{",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "RBrace": {
+        "regex": "\\}",
+        "priority": 10,
+        "textColor": "0xffd700"
+      },
+      "Identifier": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "priority": 5,
+        "textColor": "0x9cdcfe"
+      }
+    }
+  },
+  "operators": [
+    {
+      "token": "Equal",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "PlusEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "MinusEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "StarEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "SlashEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "DoubleSlashEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "PercentEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "AtEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "AmpersandEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "BarEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "CaretEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "LShiftEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "RShiftEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "StarStarEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "Walrus",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "IfKeyword",
+      "role": "ternary",
+      "precedence": 2,
+      "associativity": "right",
+      "middleTerminator": "ElseKeyword"
+    },
+    {
+      "token": "OrKeyword",
+      "role": "infix",
+      "precedence": 3,
+      "associativity": "left"
+    },
+    {
+      "token": "AndKeyword",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "NotKeyword",
+      "role": "prefix",
+      "precedence": 5
+    },
+    {
+      "token": "EqualEqual",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "ExclamationEqual",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "LessThan",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "GreaterThan",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "LessEqual",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "GreaterEqual",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "InKeyword",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "IsKeyword",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "Bar",
+      "role": "infix",
+      "precedence": 7,
+      "associativity": "left"
+    },
+    {
+      "token": "Caret",
+      "role": "infix",
+      "precedence": 8,
+      "associativity": "left"
+    },
+    {
+      "token": "Ampersand",
+      "role": "infix",
+      "precedence": 9,
+      "associativity": "left"
+    },
+    {
+      "token": "LShift",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "RShift",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "Plus",
+      "roles": [
+        "prefix",
+        "infix"
+      ],
+      "prefixPrecedence": 13,
+      "infixPrecedence": 11,
+      "associativity": "left"
+    },
+    {
+      "token": "Minus",
+      "roles": [
+        "prefix",
+        "infix"
+      ],
+      "prefixPrecedence": 13,
+      "infixPrecedence": 11,
+      "associativity": "left"
+    },
+    {
+      "token": "Star",
+      "roles": [
+        "prefix",
+        "infix"
+      ],
+      "prefixPrecedence": 13,
+      "infixPrecedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Slash",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "DoubleSlash",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Percent",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "At",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Tilde",
+      "role": "prefix",
+      "precedence": 13
+    },
+    {
+      "token": "StarStar",
+      "roles": [
+        "prefix",
+        "infix"
+      ],
+      "prefixPrecedence": 13,
+      "infixPrecedence": 14,
+      "associativity": "right"
+    }
+  ],
+  "grammar": {
+    "start": "Module",
+    "productions": {
+      "Module": {
+        "sequence": [
+          {
+            "repeat": {
+              "ref": "Statement"
+            }
+          }
+        ]
+      },
+      "Statement": {
+        "category": "statement",
+        "choice": [
+          {
+            "ref": "CompoundStatement"
+          },
+          {
+            "ref": "SimpleStatement"
+          }
+        ]
+      },
+      "CompoundStatement": {
+        "category": "statement",
+        "choice": [
+          {
+            "ref": "DecoratedDefinition"
+          },
+          {
+            "ref": "FunctionDefinition"
+          },
+          {
+            "ref": "AsyncFunctionDefinition"
+          },
+          {
+            "ref": "ClassDefinition"
+          },
+          {
+            "ref": "IfStatement"
+          },
+          {
+            "ref": "WhileStatement"
+          },
+          {
+            "ref": "ForStatement"
+          },
+          {
+            "ref": "AsyncForStatement"
+          },
+          {
+            "ref": "TryStatement"
+          },
+          {
+            "ref": "WithStatement"
+          },
+          {
+            "ref": "AsyncWithStatement"
+          },
+          {
+            "ref": "MatchStatement"
+          }
+        ]
+      },
+      "SimpleStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "ref": "ImportStatement"
+              },
+              {
+                "ref": "ImportFromStatement"
+              },
+              {
+                "ref": "ReturnStatement"
+              },
+              {
+                "ref": "RaiseStatement"
+              },
+              {
+                "ref": "YieldStatement"
+              },
+              {
+                "ref": "PassStatement"
+              },
+              {
+                "ref": "BreakStatement"
+              },
+              {
+                "ref": "ContinueStatement"
+              },
+              {
+                "ref": "GlobalStatement"
+              },
+              {
+                "ref": "NonlocalStatement"
+              },
+              {
+                "ref": "AssertStatement"
+              },
+              {
+                "ref": "DelStatement"
+              },
+              {
+                "ref": "TypeAliasStatement"
+              },
+              {
+                "ref": "AnnotatedAssignmentStatement"
+              },
+              {
+                "ref": "AugmentedAssignmentStatement"
+              },
+              {
+                "ref": "AssignmentStatement"
+              },
+              {
+                "ref": "ExpressionStatement"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "Suite": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "Statement"
+          },
+          {
+            "repeat": {
+              "ref": "Statement"
+            }
+          }
+        ]
+      },
+      "IdentifierName": {
+        "choice": [
+          {
+            "token": "Identifier"
+          },
+          {
+            "token": "TypeKeyword"
+          },
+          {
+            "token": "AsyncKeyword"
+          },
+          {
+            "token": "AwaitKeyword"
+          }
+        ]
+      },
+      "DottedName": {
+        "sequence": [
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Dot"
+                },
+                {
+                  "ref": "IdentifierName"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "DecoratedDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "repeat": {
+              "ref": "Decorator"
+            }
+          },
+          {
+            "choice": [
+              {
+                "ref": "FunctionDefinition"
+              },
+              {
+                "ref": "AsyncFunctionDefinition"
+              },
+              {
+                "ref": "ClassDefinition"
+              }
+            ]
+          }
+        ]
+      },
+      "Decorator": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "At"
+          },
+          {
+            "ref": "DottedName"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "LParen"
+                },
+                {
+                  "optional": {
+                    "ref": "ArgumentList"
+                  }
+                },
+                {
+                  "token": "RParen"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "FunctionDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "DefKeyword"
+          },
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "ref": "TypeParameterList"
+            }
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "ParameterList"
+            }
+          },
+          {
+            "token": "RParen"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Arrow"
+                },
+                {
+                  "ref": "TypeAnnotation"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "AsyncFunctionDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "AsyncKeyword"
+          },
+          {
+            "token": "DefKeyword"
+          },
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "ref": "TypeParameterList"
+            }
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "ParameterList"
+            }
+          },
+          {
+            "token": "RParen"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Arrow"
+                },
+                {
+                  "ref": "TypeAnnotation"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "ClassDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "ClassKeyword"
+          },
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "ref": "TypeParameterList"
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "LParen"
+                },
+                {
+                  "optional": {
+                    "ref": "ArgumentList"
+                  }
+                },
+                {
+                  "token": "RParen"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "ParameterList": {
+        "sequence": [
+          {
+            "ref": "Parameter"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Parameter"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "Parameter": {
+        "choice": [
+          {
+            "ref": "SlashParameter"
+          },
+          {
+            "ref": "StarParameter"
+          },
+          {
+            "ref": "StarStarParameter"
+          },
+          {
+            "ref": "StandardParameter"
+          }
+        ]
+      },
+      "SlashParameter": {
+        "token": "Slash"
+      },
+      "StarParameter": {
+        "sequence": [
+          {
+            "token": "Star"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "ref": "IdentifierName"
+                },
+                {
+                  "optional": {
+                    "sequence": [
+                      {
+                        "token": "Colon"
+                      },
+                      {
+                        "ref": "TypeAnnotation"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "StarStarParameter": {
+        "sequence": [
+          {
+            "token": "StarStar"
+          },
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Colon"
+                },
+                {
+                  "ref": "TypeAnnotation"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "StandardParameter": {
+        "sequence": [
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Colon"
+                },
+                {
+                  "ref": "TypeAnnotation"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Equal"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "TypeParameterList": {
+        "sequence": [
+          {
+            "token": "LBracket"
+          },
+          {
+            "ref": "TypeParameter"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "TypeParameter"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          },
+          {
+            "token": "RBracket"
+          }
+        ]
+      },
+      "TypeParameter": {
+        "sequence": [
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "StarStar"
+                },
+                {
+                  "token": "Star"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Colon"
+                },
+                {
+                  "ref": "TypeAnnotation"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "IfStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "IfKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          },
+          {
+            "repeat": {
+              "ref": "ElifClause"
+            }
+          },
+          {
+            "optional": {
+              "ref": "ElseClause"
+            }
+          }
+        ]
+      },
+      "ElifClause": {
+        "sequence": [
+          {
+            "token": "ElifKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "ElseClause": {
+        "sequence": [
+          {
+            "token": "ElseKeyword"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "WhileStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "WhileKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          },
+          {
+            "optional": {
+              "ref": "ElseClause"
+            }
+          }
+        ]
+      },
+      "ForStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ForKeyword"
+          },
+          {
+            "ref": "ForTarget"
+          },
+          {
+            "token": "InKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          },
+          {
+            "optional": {
+              "ref": "ElseClause"
+            }
+          }
+        ]
+      },
+      "AsyncForStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "AsyncKeyword"
+          },
+          {
+            "token": "ForKeyword"
+          },
+          {
+            "ref": "ForTarget"
+          },
+          {
+            "token": "InKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          },
+          {
+            "optional": {
+              "ref": "ElseClause"
+            }
+          }
+        ]
+      },
+      "ForTarget": {
+        "sequence": [
+          {
+            "ref": "TargetItem"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "TargetItem"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "TargetItem": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "Star"
+              },
+              {
+                "ref": "PrimaryTarget"
+              }
+            ]
+          },
+          {
+            "ref": "PrimaryTarget"
+          }
+        ]
+      },
+      "PrimaryTarget": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "LParen"
+              },
+              {
+                "optional": {
+                  "ref": "ForTarget"
+                }
+              },
+              {
+                "token": "RParen"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "LBracket"
+              },
+              {
+                "optional": {
+                  "ref": "ForTarget"
+                }
+              },
+              {
+                "token": "RBracket"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "ref": "IdentifierName"
+              },
+              {
+                "repeat": {
+                  "choice": [
+                    {
+                      "ref": "IndexOrSliceSuffix"
+                    },
+                    {
+                      "ref": "MemberAccessSuffix"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "TryStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "TryKeyword"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "repeat": {
+                      "ref": "ExceptClause"
+                    }
+                  },
+                  {
+                    "optional": {
+                      "ref": "ElseClause"
+                    }
+                  },
+                  {
+                    "optional": {
+                      "ref": "FinallyClause"
+                    }
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "repeat": {
+                      "ref": "ExceptStarClause"
+                    }
+                  },
+                  {
+                    "optional": {
+                      "ref": "ElseClause"
+                    }
+                  },
+                  {
+                    "optional": {
+                      "ref": "FinallyClause"
+                    }
+                  }
+                ]
+              },
+              {
+                "ref": "FinallyClause"
+              }
+            ]
+          }
+        ]
+      },
+      "ExceptClause": {
+        "sequence": [
+          {
+            "token": "ExceptKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "ref": "Expression"
+                },
+                {
+                  "optional": {
+                    "sequence": [
+                      {
+                        "token": "AsKeyword"
+                      },
+                      {
+                        "ref": "IdentifierName"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "ExceptStarClause": {
+        "sequence": [
+          {
+            "token": "ExceptKeyword"
+          },
+          {
+            "token": "Star"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "AsKeyword"
+                },
+                {
+                  "ref": "IdentifierName"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "FinallyClause": {
+        "sequence": [
+          {
+            "token": "FinallyKeyword"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "WithStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "WithKeyword"
+          },
+          {
+            "ref": "WithItemList"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "AsyncWithStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "AsyncKeyword"
+          },
+          {
+            "token": "WithKeyword"
+          },
+          {
+            "ref": "WithItemList"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "WithItemList": {
+        "sequence": [
+          {
+            "ref": "WithItem"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "WithItem"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "WithItem": {
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "AsKeyword"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "MatchStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "MatchKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "repeat": {
+              "ref": "CaseClause"
+            }
+          }
+        ]
+      },
+      "CaseClause": {
+        "sequence": [
+          {
+            "token": "CaseKeyword"
+          },
+          {
+            "ref": "Pattern"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "IfKeyword"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Suite"
+          }
+        ]
+      },
+      "Pattern": {
+        "choice": [
+          {
+            "ref": "AsPattern"
+          },
+          {
+            "ref": "OrPattern"
+          }
+        ]
+      },
+      "AsPattern": {
+        "sequence": [
+          {
+            "ref": "OrPattern"
+          },
+          {
+            "token": "AsKeyword"
+          },
+          {
+            "ref": "IdentifierName"
+          }
+        ]
+      },
+      "OrPattern": {
+        "sequence": [
+          {
+            "ref": "ClosedPattern"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Bar"
+                },
+                {
+                  "ref": "ClosedPattern"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ClosedPattern": {
+        "choice": [
+          {
+            "ref": "LiteralPattern"
+          },
+          {
+            "ref": "GroupPattern"
+          },
+          {
+            "ref": "SequencePattern"
+          },
+          {
+            "ref": "MappingPattern"
+          },
+          {
+            "ref": "ClassPattern"
+          },
+          {
+            "ref": "StarPattern"
+          },
+          {
+            "ref": "ValuePattern"
+          },
+          {
+            "ref": "CapturePattern"
+          }
+        ]
+      },
+      "LiteralPattern": {
+        "choice": [
+          {
+            "token": "Number"
+          },
+          {
+            "token": "TripleString"
+          },
+          {
+            "token": "StringLiteral"
+          },
+          {
+            "token": "Boolean"
+          },
+          {
+            "token": "NoneKeyword"
+          }
+        ]
+      },
+      "StarPattern": {
+        "sequence": [
+          {
+            "token": "Star"
+          },
+          {
+            "ref": "IdentifierName"
+          }
+        ]
+      },
+      "CapturePattern": {
+        "token": "Identifier"
+      },
+      "ValuePattern": {
+        "sequence": [
+          {
+            "token": "Identifier"
+          },
+          {
+            "sequence": [
+              {
+                "token": "Dot"
+              },
+              {
+                "ref": "IdentifierName"
+              }
+            ]
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Dot"
+                },
+                {
+                  "ref": "IdentifierName"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "GroupPattern": {
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "Pattern"
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "SequencePattern": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "LBracket"
+              },
+              {
+                "optional": {
+                  "ref": "PatternList"
+                }
+              },
+              {
+                "token": "RBracket"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "LParen"
+              },
+              {
+                "optional": {
+                  "ref": "PatternList"
+                }
+              },
+              {
+                "token": "RParen"
+              }
+            ]
+          }
+        ]
+      },
+      "PatternList": {
+        "sequence": [
+          {
+            "ref": "Pattern"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Pattern"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "MappingPattern": {
+        "sequence": [
+          {
+            "token": "LBrace"
+          },
+          {
+            "optional": {
+              "ref": "MappingPatternEntries"
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "MappingPatternEntries": {
+        "sequence": [
+          {
+            "ref": "MappingPatternEntry"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "MappingPatternEntry"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "MappingPatternEntry": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "StarStar"
+              },
+              {
+                "ref": "IdentifierName"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "ref": "Expression"
+              },
+              {
+                "token": "Colon"
+              },
+              {
+                "ref": "Pattern"
+              }
+            ]
+          }
+        ]
+      },
+      "ClassPattern": {
+        "sequence": [
+          {
+            "ref": "DottedName"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "ClassPatternArguments"
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "ClassPatternArguments": {
+        "sequence": [
+          {
+            "ref": "ClassPatternArg"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "ClassPatternArg"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "ClassPatternArg": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "ref": "IdentifierName"
+              },
+              {
+                "token": "Equal"
+              },
+              {
+                "ref": "Pattern"
+              }
+            ]
+          },
+          {
+            "ref": "Pattern"
+          }
+        ]
+      },
+      "ReturnStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ReturnKeyword"
+          },
+          {
+            "optional": {
+              "ref": "ExpressionList"
+            }
+          }
+        ]
+      },
+      "YieldStatement": {
+        "category": "statement",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "YieldKeyword"
+              },
+              {
+                "token": "FromKeyword"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "YieldKeyword"
+              },
+              {
+                "optional": {
+                  "ref": "ExpressionList"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "RaiseStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "RaiseKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "ref": "Expression"
+                },
+                {
+                  "optional": {
+                    "sequence": [
+                      {
+                        "token": "FromKeyword"
+                      },
+                      {
+                        "ref": "Expression"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "PassStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "PassKeyword"
+          }
+        ]
+      },
+      "BreakStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "BreakKeyword"
+          }
+        ]
+      },
+      "ContinueStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ContinueKeyword"
+          }
+        ]
+      },
+      "GlobalStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "GlobalKeyword"
+          },
+          {
+            "ref": "IdentifierList"
+          }
+        ]
+      },
+      "NonlocalStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "NonlocalKeyword"
+          },
+          {
+            "ref": "IdentifierList"
+          }
+        ]
+      },
+      "IdentifierList": {
+        "sequence": [
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "IdentifierName"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "AssertStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "AssertKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "DelStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "DelKeyword"
+          },
+          {
+            "ref": "ExpressionList"
+          }
+        ]
+      },
+      "TypeAliasStatement": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "TypeKeyword"
+          },
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "ref": "TypeParameterList"
+            }
+          },
+          {
+            "token": "Equal"
+          },
+          {
+            "ref": "TypeAnnotation"
+          }
+        ]
+      },
+      "AnnotatedAssignmentStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "PrimaryExpression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "TypeAnnotation"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Equal"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "AugmentedAssignmentStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "PrimaryExpression"
+          },
+          {
+            "choice": [
+              {
+                "token": "PlusEqual"
+              },
+              {
+                "token": "MinusEqual"
+              },
+              {
+                "token": "StarEqual"
+              },
+              {
+                "token": "SlashEqual"
+              },
+              {
+                "token": "DoubleSlashEqual"
+              },
+              {
+                "token": "PercentEqual"
+              },
+              {
+                "token": "AtEqual"
+              },
+              {
+                "token": "AmpersandEqual"
+              },
+              {
+                "token": "BarEqual"
+              },
+              {
+                "token": "CaretEqual"
+              },
+              {
+                "token": "LShiftEqual"
+              },
+              {
+                "token": "RShiftEqual"
+              },
+              {
+                "token": "StarStarEqual"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "AssignmentStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "PrimaryExpression"
+          },
+          {
+            "token": "Equal"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Equal"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ExpressionStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "ExpressionList"
+          }
+        ]
+      },
+      "ImportStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ImportKeyword"
+          },
+          {
+            "ref": "DottedAsNameList"
+          }
+        ]
+      },
+      "DottedAsNameList": {
+        "sequence": [
+          {
+            "ref": "DottedAsName"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "DottedAsName"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "DottedAsName": {
+        "sequence": [
+          {
+            "ref": "DottedName"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "AsKeyword"
+                },
+                {
+                  "ref": "IdentifierName"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ImportFromStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "FromKeyword"
+          },
+          {
+            "ref": "FromModule"
+          },
+          {
+            "token": "ImportKeyword"
+          },
+          {
+            "choice": [
+              {
+                "token": "Star"
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "LParen"
+                  },
+                  {
+                    "ref": "ImportTargetList"
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              },
+              {
+                "ref": "ImportTargetList"
+              }
+            ]
+          }
+        ]
+      },
+      "FromModule": {
+        "sequence": [
+          {
+            "repeat": {
+              "token": "Dot"
+            }
+          },
+          {
+            "optional": {
+              "ref": "DottedName"
+            }
+          }
+        ]
+      },
+      "ImportTargetList": {
+        "sequence": [
+          {
+            "ref": "ImportTarget"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "ImportTarget"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "ImportTarget": {
+        "sequence": [
+          {
+            "ref": "IdentifierName"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "AsKeyword"
+                },
+                {
+                  "ref": "IdentifierName"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ExpressionList": {
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "Expression": {
+        "category": "expression",
+        "pratt": {
+          "primary": {
+            "ref": "PrimaryExpression"
+          },
+          "postfix": {
+            "ref": "PostfixExpressionSuffix"
+          },
+          "minimumPrecedence": 1
+        },
+        "expect": "expression"
+      },
+      "PrimaryExpression": {
+        "category": "expression",
+        "choice": [
+          {
+            "ref": "LiteralExpression"
+          },
+          {
+            "ref": "LambdaExpression"
+          },
+          {
+            "ref": "AwaitExpression"
+          },
+          {
+            "ref": "YieldExpression"
+          },
+          {
+            "ref": "ParenthesizedOrTupleExpression"
+          },
+          {
+            "ref": "ListOrComprehensionExpression"
+          },
+          {
+            "ref": "DictOrSetExpression"
+          },
+          {
+            "ref": "IdentifierExpression"
+          }
+        ]
+      },
+      "LiteralExpression": {
+        "category": "expression",
+        "choice": [
+          {
+            "token": "Number"
+          },
+          {
+            "token": "TripleString"
+          },
+          {
+            "token": "StringLiteral"
+          },
+          {
+            "token": "Boolean"
+          },
+          {
+            "token": "NoneKeyword"
+          },
+          {
+            "token": "Ellipsis"
+          }
+        ]
+      },
+      "IdentifierExpression": {
+        "category": "expression",
+        "ref": "IdentifierName"
+      },
+      "ParenthesizedOrTupleExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "ref": "GeneratorComprehension"
+                },
+                {
+                  "ref": "ExpressionList"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "ListOrComprehensionExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LBracket"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "ref": "ListComprehension"
+                },
+                {
+                  "ref": "ExpressionList"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBracket"
+          }
+        ]
+      },
+      "DictOrSetExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LBrace"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "ref": "DictComprehension"
+                },
+                {
+                  "ref": "SetComprehension"
+                },
+                {
+                  "ref": "DictOrSetEntries"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "DictOrSetEntries": {
+        "sequence": [
+          {
+            "ref": "DictOrSetEntry"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "DictOrSetEntry"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "DictOrSetEntry": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "StarStar"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "Star"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "ref": "Expression"
+              },
+              {
+                "token": "Colon"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "ListComprehension": {
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "ref": "ComprehensionFor"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "ComprehensionFor"
+                },
+                {
+                  "ref": "ComprehensionIf"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "SetComprehension": {
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "ref": "ComprehensionFor"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "ComprehensionFor"
+                },
+                {
+                  "ref": "ComprehensionIf"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "DictComprehension": {
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "ref": "ComprehensionFor"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "ComprehensionFor"
+                },
+                {
+                  "ref": "ComprehensionIf"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "GeneratorComprehension": {
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "ref": "ComprehensionFor"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "ComprehensionFor"
+                },
+                {
+                  "ref": "ComprehensionIf"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "DisjunctionExpression": {
+        "pratt": {
+          "primary": {
+            "ref": "PrimaryExpression"
+          },
+          "postfix": {
+            "ref": "PostfixExpressionSuffix"
+          },
+          "minimumPrecedence": 3
+        }
+      },
+      "ComprehensionFor": {
+        "sequence": [
+          {
+            "optional": {
+              "token": "AsyncKeyword"
+            }
+          },
+          {
+            "token": "ForKeyword"
+          },
+          {
+            "ref": "ForTarget"
+          },
+          {
+            "token": "InKeyword"
+          },
+          {
+            "ref": "DisjunctionExpression"
+          }
+        ]
+      },
+      "ComprehensionIf": {
+        "sequence": [
+          {
+            "token": "IfKeyword"
+          },
+          {
+            "ref": "DisjunctionExpression"
+          }
+        ]
+      },
+      "LambdaExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LambdaKeyword"
+          },
+          {
+            "optional": {
+              "ref": "LambdaParameters"
+            }
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "LambdaParameters": {
+        "sequence": [
+          {
+            "ref": "LambdaParam"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "LambdaParam"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "LambdaParam": {
+        "choice": [
+          {
+            "token": "Slash"
+          },
+          {
+            "sequence": [
+              {
+                "token": "StarStar"
+              },
+              {
+                "ref": "IdentifierName"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "Star"
+              },
+              {
+                "optional": {
+                  "ref": "IdentifierName"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "ref": "IdentifierName"
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "Equal"
+                    },
+                    {
+                      "ref": "Expression"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "AwaitExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "AwaitKeyword"
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "YieldExpression": {
+        "category": "expression",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "YieldKeyword"
+              },
+              {
+                "token": "FromKeyword"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "YieldKeyword"
+              },
+              {
+                "optional": {
+                  "ref": "ExpressionList"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "PostfixExpressionSuffix": {
+        "category": "expression",
+        "choice": [
+          {
+            "ref": "CallSuffix"
+          },
+          {
+            "ref": "IndexOrSliceSuffix"
+          },
+          {
+            "ref": "MemberAccessSuffix"
+          }
+        ]
+      },
+      "CallSuffix": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "ArgumentList"
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "ArgumentList": {
+        "sequence": [
+          {
+            "ref": "Argument"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Argument"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "Argument": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "ref": "IdentifierName"
+              },
+              {
+                "token": "Equal"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "StarStar"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "Star"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "IndexOrSliceSuffix": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LBracket"
+          },
+          {
+            "ref": "SliceList"
+          },
+          {
+            "token": "RBracket"
+          }
+        ]
+      },
+      "SliceList": {
+        "sequence": [
+          {
+            "ref": "SliceItem"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "SliceItem"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "SliceItem": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "optional": {
+                  "ref": "Expression"
+                }
+              },
+              {
+                "token": "Colon"
+              },
+              {
+                "optional": {
+                  "ref": "Expression"
+                }
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "Colon"
+                    },
+                    {
+                      "optional": {
+                        "ref": "Expression"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "MemberAccessSuffix": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "Dot"
+          },
+          {
+            "ref": "IdentifierName"
+          }
+        ]
+      },
+      "TypeAnnotation": {
+        "category": "type",
+        "ref": "Expression"
+      }
+    }
   }
 }

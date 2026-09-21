@@ -96,6 +96,7 @@ add_executable( unittests
   csharp_v2_grammar_tests.cpp
   java_v2_grammar_tests.cpp
   rust_v2_grammar_tests.cpp
+  python_v2_grammar_tests.cpp
   speculation_tests.cpp
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp

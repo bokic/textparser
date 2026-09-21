@@ -126,8 +126,8 @@ static void verify_negative_number(const textparser_language_definition *definit
         // v2 PHP/CFML use the contextual lexer, which keeps the unary minus
         // separate from its Number operand (like TypeScript).
         found_neg_one = found_php_minus && found_php_one;
-    else if (strcmp(lang_name, "C") == 0 || strcmp(lang_name, "C++") == 0 || strcmp(lang_name, "C#") == 0 || strcmp(lang_name, "Java") == 0)
-        // v2 C/C++/C#/Java use the contextual lexer, which keeps the unary minus (Minus)
+    else if (strcmp(lang_name, "C") == 0 || strcmp(lang_name, "C++") == 0 || strcmp(lang_name, "C#") == 0 || strcmp(lang_name, "Java") == 0 || strcmp(lang_name, "Python") == 0)
+        // v2 C/C++/C#/Java/Python use the contextual lexer, which keeps the unary minus (Minus)
         // separate from its Number operand.
         found_neg_one = found_typescript_minus && found_php_one;
 
