@@ -27,17 +27,11 @@ else
     fi
 
     echo "Compiling Java sources..."
+    SOURCES=$(find "$SCRIPT_DIR/src" -name "*.java")
+    TEST_SOURCES=$(find "$SCRIPT_DIR/tests" -name "*.java")
     javac -cp "$LIB_JAR" -d "$OUT_DIR" \
-        "$SCRIPT_DIR/src/com/textparser/TokenItem.java" \
-        "$SCRIPT_DIR/src/com/textparser/Definition.java" \
-        "$SCRIPT_DIR/src/com/textparser/ParseError.java" \
-        "$SCRIPT_DIR/src/com/textparser/TextParser.java" \
-        "$SCRIPT_DIR/src/com/textparser/cli/Parse.java" \
-        "$SCRIPT_DIR/src/com/textparser/cli/ParseDir.java" \
-        "$SCRIPT_DIR/src/com/textparser/cli/Validate.java" \
-        "$SCRIPT_DIR/src/com/textparser/cli/ValidateAll.java" \
-        "$SCRIPT_DIR/src/com/textparser/cli/CompareAllLanguages.java" \
-        "$SCRIPT_DIR/tests/TextParserTest.java"
+        $SOURCES \
+        $TEST_SOURCES
 
     echo "Running Java Unit Tests..."
     java -cp "$OUT_DIR:$LIB_JAR" com.textparser.TextParserTest

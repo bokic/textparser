@@ -37,10 +37,11 @@ This replaces `textparser_typescript_cst_category_of(handle, node)`,
 `textparser_typescript_cst_category`, and `TEXTPARSER_TS_CST_*` with
 `textparser_node_get_category(node)`, `textparser_cst_category`, and
 `TEXTPARSER_CST_*`. Numeric family values and TypeScript golden CST output are
-include a category field. Both the JSON runtime loader (`src/textparser-json.c`)
-and the static header compiler (`definitions/json2h.py`) fully support schema-v2
-declarative grammar tables, lexer modes, lexical goals, Pratt operators, and
-grammar constructs including `oneOrMore` (desugared into sequence and repeat).
+include a category field. The JSON runtime loader (`src/textparser-json.c`),
+the static header compiler (`definitions/json2h.py`), and the Java port loader
+(`com.textparser.grammar.GrammarLoader`) fully support schema-v2 declarative grammar
+tables, lexer modes, lexical goals, Pratt operators, and grammar constructs including
+`oneOrMore` (desugared into sequence and repeat), with left recursion and nullable loop validation.
 
 ### Declarative grammar guards
 

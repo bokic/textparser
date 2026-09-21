@@ -525,6 +525,14 @@ public class TextParserTest {
             t.printStackTrace();
         }
 
+        try {
+            passed += GrammarLoaderTest.runAllTests();
+        } catch (Throwable t) {
+            failed++;
+            System.err.println("[FAIL] GrammarLoaderTest: " + t.getMessage());
+            t.printStackTrace();
+        }
+
         System.out.println("\nTest Summary: " + passed + " PASSED, " + failed + " FAILED.");
         if (failed > 0) {
             System.exit(1);

@@ -12,12 +12,4 @@ normalization, literal `+`/`-` sign merging), reports parse failures as a
 accessors, and materializes hidden `Whitespace` leaves in the in-memory CST the
 way C does (hidden again at the JSON boundary).
 
-## 1. The `formatVersion: 2` grammar engine is not implemented
-
-Only the CLI-compatible normalization is implemented (see `ARCHITECTURE.md`
-§9.1 item 8). The declarative grammar executor, contextual lexer modes/goals,
-Pratt expression engine, recovery rules and CST views exposed by
-`textparser_execute_language_grammar` / `textparser_execute_production` are not
-ported. This is only observable through that API (unit tests and `cstdump`),
-not through the CLI.
-
+(No known open issues).

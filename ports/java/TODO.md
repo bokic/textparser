@@ -65,12 +65,13 @@ Fixing the V2 grammar engine parity gap is a **major undertaking (High to Very H
 
 Suggested execution in 7 distinct phases:
 
-1. **Model + JSON loader** — `Production` (15 kinds), `GrammarDefinition`,
+1. **Model + JSON loader** [COMPLETED] — `Production` (15 kinds), `GrammarDefinition`,
    `LexerMode`, `LexerGoal`, `ContextualLexerRule`, `OperatorDef`,
    `MatchResult`, and the CST `Node` fields (`node_flags`, `cst_kind`,
-   `source_start/end`, `decoded_value`, `user_data`). Load the `lexer`,
-   `grammar`, `operators`, and `recovery` sections; resolve names to IDs and
-   validate undefined refs / nullable loops / left recursion.
+   `source_start/end`, `decoded_value`, `user_data`). Loaded the `lexer`,
+   `grammar`, `operators`, and `recovery` sections; resolved names to IDs and
+   validated undefined refs / nullable loops / left recursion via 3-color DFS cycle check.
+   Covered with comprehensive tests in `GrammarLoaderTest.java`.
 2. **Contextual lexer** — mode stack (`pushMode`/`popMode`), lexical goals and
    goal→token remapping, priority-ordered token + trivia scanning,
    `lexer_peek`/`lexer_consume`, line-terminator flags, native predicates.
