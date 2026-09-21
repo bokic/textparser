@@ -298,6 +298,7 @@ typedef struct {
     textparser_cst_category category;
     const textparser_guard *guard;
     textparser_diagnostic_templates diagnostics;
+    const char *ast_kind;
 } textparser_production;
 
 typedef enum {

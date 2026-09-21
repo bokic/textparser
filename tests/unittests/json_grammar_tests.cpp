@@ -1036,3 +1036,103 @@ TEST(json_grammar, rejects_malformed_diagnostic_metadata_at_every_scope) {
         if (definition) textparser_free_language_definition(definition);
     }
 }
+
+TEST(json_grammar, one_or_more_construct) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{
+        "Root":{"oneOrMore":{"token":"A"}}
+      }
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    ASSERT_NE(definition, nullptr);
+
+    // 1 match
+    {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem("a", 1, TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(result.consumed_tokens, 1u);
+    }
+
+    // Multiple matches (3)
+    {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem("a a a", 5, TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(result.consumed_tokens, 3u);
+    }
+
+    // Zero matches: fails
+    {
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem("b", 1, TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(definition), 0);
+        textparser_match_result result{};
+        ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+        EXPECT_NE(result.status, TEXTPARSER_MATCH_OK);
+    }
+
+    textparser_free_language_definition(definition);
+
+    // Nullable item in oneOrMore rejected at load time
+    const std::string nullable_grammar = R"json({
+      "start":"Root",
+      "productions":{
+        "Root":{"oneOrMore":{"optional":{"token":"A"}}}
+      }
+    })json";
+    EXPECT_EQ(load(nullable_grammar, &definition), TEXTPARSER_JSON_GRAMMAR_NULLABLE_REPEAT);
+
+    // Malformed oneOrMore rejected
+    const std::string malformed_grammar = R"json({
+      "start":"Root",
+      "productions":{
+        "Root":{"oneOrMore":"not_an_object"}
+      }
+    })json";
+    EXPECT_EQ(load(malformed_grammar, &definition), TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+}
+
+TEST(json_grammar, ast_kind_metadata) {
+    const std::string grammar = R"json({
+      "start":"Root",
+      "productions":{
+        "Root":{"ref":"MySpecialDeclaration"},
+        "MySpecialDeclaration":{
+          "astKind":"StandardDeclaration",
+          "sequence":[{"token":"A"},{"token":"B"}]
+        }
+      }
+    })json";
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(load(grammar, &definition), TEXTPARSER_JSON_NO_ERROR);
+    ASSERT_NE(definition, nullptr);
+
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem("a b", 3, TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(definition), 0);
+    textparser_match_result result{};
+    ASSERT_EQ(parser.execute_language_grammar(definition, &result), 0);
+    EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+    ASSERT_NE(result.node, nullptr);
+    EXPECT_STREQ(result.node->cst_kind, "StandardDeclaration");
+    EXPECT_STREQ(textparser_grammar_node_name(parser.get(), result.node), "StandardDeclaration");
+
+    textparser_free_language_definition(definition);
+
+    // Rejection of invalid astKind types (number, boolean, null, array, object)
+    for (const char *bad_kind : {"123", "true", "null", "[]", "{}"}) {
+        const std::string bad_grammar = "{\"start\":\"Root\",\"productions\":{\"Root\":{\"astKind\":" +
+            std::string(bad_kind) + ",\"token\":\"A\"}}}";
+        EXPECT_EQ(load(bad_grammar, &definition), TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION);
+        if (definition) textparser_free_language_definition(definition);
+    }
+}

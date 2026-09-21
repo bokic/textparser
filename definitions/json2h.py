@@ -146,6 +146,7 @@ class GrammarBuilder:
             "category": "TEXTPARSER_CST_UNKNOWN",
             "guard": None,
             "diagnostics": {},
+            "ast_kind": None,
         })
         return idx
 
@@ -205,12 +206,10 @@ class GrammarBuilder:
         prod["guard"] = guard
 
     def parse_construct_core(self, construct, prod_id):
-        if not isinstance(construct, dict):
-            raise ValueError("Construct must be dict")
         keys = [
             "token", "ref", "sequence", "choice", "optional", "repeat",
             "lookahead", "not", "when", "withContext", "commit", "pratt", "withGoal",
-            "capture", "matchCapture"
+            "capture", "matchCapture", "oneOrMore"
         ]
         present = [k for k in keys if k in construct]
         if len(present) != 1:
@@ -258,6 +257,18 @@ class GrammarBuilder:
             child_id = self.append_anonymous()
             prod["children"] = [child_id]
             self.parse_construct(val, child_id)
+        elif key == "oneOrMore":
+            if not isinstance(val, dict):
+                raise ValueError("oneOrMore must be a dict")
+            prod["kind"] = "TEXTPARSER_PROD_SEQUENCE"
+            child1 = self.append_anonymous()
+            child2 = self.append_anonymous()
+            prod["children"] = [child1, child2]
+            self.parse_construct(val, child1)
+            repeat_child = self.append_anonymous()
+            self.items[child2]["kind"] = "TEXTPARSER_PROD_REPEAT"
+            self.items[child2]["children"] = [repeat_child]
+            self.parse_construct(val, repeat_child)
         elif key == "when":
             self.parse_guard(val, prod)
         elif key == "commit":
@@ -357,7 +368,7 @@ class GrammarBuilder:
         if not isinstance(construct, dict):
             raise ValueError("Construct must be dict")
         plain = {}
-        envelope_keys = ("expect", "recover", "recoverUntil", "allowASI", "events", "diagnostics", "category")
+        envelope_keys = ("expect", "recover", "recoverUntil", "allowASI", "events", "diagnostics", "category", "astKind")
         env = {}
         for k, v in construct.items():
             if k in envelope_keys:
@@ -366,6 +377,10 @@ class GrammarBuilder:
                 plain[k] = v
         self.parse_construct_core(plain, prod_id)
         prod = self.items[prod_id]
+        if "astKind" in env:
+            if not isinstance(env["astKind"], str) or not env["astKind"]:
+                raise ValueError("astKind must be a non-empty string")
+            prod["ast_kind"] = env["astKind"]
         if "diagnostics" in env:
             prod["diagnostics"] = env["diagnostics"]
         if "category" in env:
@@ -841,6 +856,7 @@ def generate_header(in_file, out_file, skip_native_regex=False):
                 "category": "TEXTPARSER_CST_UNKNOWN",
                 "guard": None,
                 "diagnostics": {},
+                "ast_kind": None,
             })
         start_name = grammar_obj["start"]
         if start_name not in builder.named_map:
@@ -1004,9 +1020,11 @@ def generate_header(in_file, out_file, skip_native_regex=False):
             text += f"        .recovery_configuration = {r_c}," + os.linesep
             text += f"        .lexical_goal = {l_g}," + os.linesep
             text += f"        .capture_name = {c_n}," + os.linesep
+            ak_str = c_string_literal(prod.get("ast_kind"))
             text += f"        .category = {prod['category']}," + os.linesep
             text += f"        .guard = {guard_ptr}," + os.linesep
-            text += f"        .diagnostics = {diag_str}" + os.linesep
+            text += f"        .diagnostics = {diag_str}," + os.linesep
+            text += f"        .ast_kind = {ak_str}" + os.linesep
             text += "    }," + os.linesep
         text += "};" + os.linesep + os.linesep
 

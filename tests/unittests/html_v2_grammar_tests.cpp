@@ -171,7 +171,7 @@ TEST_P(HTMLGrammarFixture, parses_link_and_meta_void_elements) {
 TEST_P(HTMLGrammarFixture, parses_simple_paired_element) {
     auto *node = parse_source("<div>hello</div>");
     ASSERT_NE(node, nullptr);
-    EXPECT_NE(find(node, "PairedElement"), nullptr);
+    EXPECT_NE(find(node, "Element"), nullptr);
     EXPECT_NE(find(node, "ClosingTag"), nullptr);
 }
 
@@ -195,7 +195,7 @@ TEST_P(HTMLGrammarFixture, parses_full_html_document_tree) {
     auto *node = parse_source(source);
     ASSERT_NE(node, nullptr);
     EXPECT_NE(find(node, "Doctype"), nullptr);
-    EXPECT_NE(find(node, "PairedElement"), nullptr);
+    EXPECT_NE(find(node, "Element"), nullptr);
     EXPECT_NE(find(node, "Attribute"), nullptr);
     EXPECT_NE(find(node, "StartTag"), nullptr);
     EXPECT_NE(find(node, "ClosingTag"), nullptr);
@@ -207,7 +207,7 @@ TEST_P(HTMLGrammarFixture, parses_deeply_nested_elements) {
         "<div><section><article><p><span><em>deep</em></span></p></article></section></div>";
     auto *node = parse_source(source);
     ASSERT_NE(node, nullptr);
-    EXPECT_NE(find(node, "PairedElement"), nullptr);
+    EXPECT_NE(find(node, "Element"), nullptr);
 }
 
 // ---------------------------------------------------------------------------
@@ -217,13 +217,13 @@ TEST_P(HTMLGrammarFixture, parses_deeply_nested_elements) {
 TEST_P(HTMLGrammarFixture, parses_self_closing_non_void_element) {
     auto *node = parse_source("<my-component/>");
     ASSERT_NE(node, nullptr);
-    EXPECT_NE(find(node, "SelfClosingElement"), nullptr);
+    EXPECT_NE(find(node, "SelfClosingTag"), nullptr);
 }
 
 TEST_P(HTMLGrammarFixture, parses_self_closing_with_attributes) {
     auto *node = parse_source("<app-header title=\"Home\" show-back/>");
     ASSERT_NE(node, nullptr);
-    EXPECT_NE(find(node, "SelfClosingElement"), nullptr);
+    EXPECT_NE(find(node, "SelfClosingTag"), nullptr);
     EXPECT_NE(find(node, "Attribute"), nullptr);
 }
 
@@ -420,7 +420,7 @@ TEST_P(HTMLGrammarFixture, parses_complete_page_with_all_node_types) {
     EXPECT_NE(find(node, "Comment"), nullptr);
     EXPECT_NE(find(node, "ProcessingInstruction"), nullptr);
     EXPECT_NE(find(node, "CData"), nullptr);
-    EXPECT_NE(find(node, "PairedElement"), nullptr);
+    EXPECT_NE(find(node, "Element"), nullptr);
     EXPECT_NE(find(node, "VoidElement"), nullptr);
     EXPECT_NE(find(node, "ScriptElement"), nullptr);
     EXPECT_NE(find(node, "StyleElement"), nullptr);
@@ -448,7 +448,7 @@ TEST_P(HTMLGrammarFixture, recovers_from_unclosed_tag) {
     const char *source = "<div class=\"test\"><p>content</p></div>";
     auto *node = parse_source(source);
     ASSERT_NE(node, nullptr);
-    EXPECT_NE(find(node, "PairedElement"), nullptr);
+    EXPECT_NE(find(node, "Element"), nullptr);
 }
 
 } // namespace

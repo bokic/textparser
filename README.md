@@ -29,6 +29,9 @@ the token fallback. Omitted or `unknown` metadata uses generic structural defaul
 leaves are `TOKEN`, non-synthetic nodes with children are `EXPRESSION`, and other
 containers or missing tokens are `OTHER`. A null node returns `UNKNOWN`.
 No category is inferred from the language name or CST kind spelling.
+Productions and inline constructs can also specify `astKind` (e.g. `"astKind": "VariableDeclaration"`)
+to override the emitted CST node kind independently of the production rule name. When omitted,
+emitted CST kinds use the production rule name or structural defaults.
 
 This replaces `textparser_typescript_cst_category_of(handle, node)`,
 `textparser_typescript_cst_category`, and `TEXTPARSER_TS_CST_*` with
@@ -36,7 +39,8 @@ This replaces `textparser_typescript_cst_category_of(handle, node)`,
 `TEXTPARSER_CST_*`. Numeric family values and TypeScript golden CST output are
 include a category field. Both the JSON runtime loader (`src/textparser-json.c`)
 and the static header compiler (`definitions/json2h.py`) fully support schema-v2
-declarative grammar tables, lexer modes, lexical goals, and Pratt operators.
+declarative grammar tables, lexer modes, lexical goals, Pratt operators, and
+grammar constructs including `oneOrMore` (desugared into sequence and repeat).
 
 ### Declarative grammar guards
 

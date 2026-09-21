@@ -8662,10 +8662,11 @@ static textparser_node *textparser_grammar_group_node(
         "Lookahead", "NegativeLookahead", "Predicate", "Context", "Commit",
         "PrattExpression", "LexicalGoal", "Capture", "MatchCapture"
     };
-    node->cst_kind = production->name != nullptr ? production->name :
+    node->cst_kind = production->ast_kind != nullptr ? production->ast_kind :
+        (production->name != nullptr ? production->name :
         (production->kind >= TEXTPARSER_PROD_TOKEN &&
          production->kind <= TEXTPARSER_PROD_MATCH_CAPTURE
-            ? production_kinds[production->kind] : "Production");
+            ? production_kinds[production->kind] : "Production"));
     node->category = production->category;
     node->source_start = source_start;
     node->source_end = source_start + source_length;
@@ -9101,8 +9102,10 @@ EXPORT_TEXTPARSER const char *textparser_grammar_node_name(const textparser_t ha
         if (node->cst_kind != nullptr) return node->cst_kind;
         if (handle != nullptr && handle->language != nullptr && handle->language->grammar != nullptr) {
             for (size_t i = 0; i < handle->language->grammar->production_count; i++) {
-                if (handle->language->grammar->productions[i].id == node->token_id)
-                    return handle->language->grammar->productions[i].name;
+                if (handle->language->grammar->productions[i].id == node->token_id) {
+                    const textparser_production *prod = &handle->language->grammar->productions[i];
+                    return prod->ast_kind != nullptr ? prod->ast_kind : prod->name;
+                }
             }
         }
         return nullptr;
@@ -9438,7 +9441,8 @@ static textparser_match_result textparser_parse_choice(
                 result.node->cst_kind != nullptr &&
                 strcmp(result.node->cst_kind, "Sequence") == 0 &&
                 result.node->child != nullptr) {
-                result.node->cst_kind = production->name;
+                result.node->cst_kind = production->ast_kind != nullptr ?
+                    production->ast_kind : production->name;
                 result.node->category = production->category;
             }
             return result;
