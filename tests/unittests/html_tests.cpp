@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <html_definition.json.h>
+#include <html_legacy_definition.json.h>
 #include <html.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {

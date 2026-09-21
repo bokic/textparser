@@ -4,7 +4,7 @@
 #include "validation.h"
 
 #include <textparser.h>
-#include <html_definition.json.h>
+#include <html_legacy_definition.json.h>
 
 #include <string.h>
 #include <stdlib.h>

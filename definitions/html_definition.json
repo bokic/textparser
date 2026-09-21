@@ -1,90 +1,580 @@
 {
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
   "name": "html",
-  "version": 1.0,
+  "version": 2.0,
   "caseSensitivity": false,
   "defaultFileExtensions": [
     "html",
-    "htm"
+    "htm",
+    "shtml",
+    "xhtml"
   ],
   "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "Comment",
-    "Doctype",
-    "ClosingTag",
-    "Tag"
+  "supportedBom": [
+    "utf-8",
+    "utf-16-le",
+    "utf-16-be",
+    "utf-32-le",
+    "utf-32-be"
   ],
-  "otherTextInside": true,
-  "tokens": {
-    "Comment": {
-      "type": "StartStop",
-      "startRegex": "<!--",
-      "endRegex": "-->",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+  "otherTextInside": false,
+  "recovery": {
+    "synchronizationTokens": [
+      "Tag_Start",
+      "VoidTag_Start",
+      "ScriptTag_Start",
+      "StyleTag_Start",
+      "ClosingTag",
+      "Doctype",
+      "Comment"
+    ],
+    "maximumDiagnostics": 100,
+    "maximumRecoveryAttempts": 100,
+    "maximumSkippedTokens": 20
+  },
+  "diagnostics": {
+    "expected": {
+      "code": "HTML1001",
+      "message": "Expected %s."
     },
-    "Doctype": {
-      "type": "SimpleToken",
-      "startRegex": "<!doctype\\b[^>]*>",
-      "textColor": "0xc586c0"
+    "tokenExpected": {
+      "code": "HTML1001",
+      "message": "'%s' expected."
     },
-    "ClosingTag": {
-      "type": "SimpleToken",
-      "startRegex": "<\\/[a-zA-Z0-9:-]+\\s*>",
-      "textColor": "0x569cd6"
+    "recovered": {
+      "code": "HTML1002",
+      "message": "Syntax error: unexpected token, recovering."
+    }
+  },
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "Doctype": {
+        "regex": "<!doctype\\b[^>]*>",
+        "priority": 25,
+        "textColor": "0xc586c0"
+      },
+      "Comment": {
+        "regex": "<!--(?:[^-]|-(?!->)|--(?!>))*-->",
+        "priority": 25,
+        "textColor": "0x6a9955"
+      },
+      "CData": {
+        "regex": "<!\\[cdata\\[(?:[^\\]]|\\](?!\\]>))*\\]\\]>",
+        "priority": 25,
+        "textColor": "0x6a9955"
+      },
+      "ProcessingInstruction": {
+        "regex": "<\\?(?:[^?]|\\?(?!>))*\\?>",
+        "priority": 25,
+        "textColor": "0xc586c0"
+      },
+      "ScriptTag_Start": {
+        "regex": "<script\\b",
+        "priority": 22,
+        "pushMode": "ScriptTag",
+        "textColor": "0x569cd6"
+      },
+      "StyleTag_Start": {
+        "regex": "<style\\b",
+        "priority": 22,
+        "pushMode": "StyleTag",
+        "textColor": "0x569cd6"
+      },
+      "VoidTag_Start": {
+        "regex": "<(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)\\b",
+        "priority": 20,
+        "pushMode": "Tag",
+        "textColor": "0x569cd6"
+      },
+      "Tag_Start": {
+        "regex": "<[a-zA-Z_][a-zA-Z0-9_:.-]*",
+        "priority": 15,
+        "pushMode": "Tag",
+        "textColor": "0x569cd6"
+      },
+      "ClosingTag": {
+        "regex": "<\\/[a-zA-Z_][a-zA-Z0-9_:.-]*\\s*>",
+        "priority": 20,
+        "textColor": "0x569cd6"
+      },
+      "Entity": {
+        "regex": "&(?:[a-zA-Z0-9]+|#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6});",
+        "priority": 12,
+        "textColor": "0xd7ba7d"
+      },
+      "Text": {
+        "regex": "[^<>& \\t\\r\\n]+",
+        "priority": 5,
+        "textColor": "0xd4d4d4"
+      },
+      "Tag_End": {
+        "regex": ">",
+        "priority": 20,
+        "popMode": true,
+        "textColor": "0x569cd6"
+      },
+      "Tag_SelfClose": {
+        "regex": "\\/\\s*>",
+        "priority": 22,
+        "popMode": true,
+        "textColor": "0x569cd6"
+      },
+      "ScriptTag_End": {
+        "regex": ">",
+        "priority": 20,
+        "popMode": true,
+        "pushMode": "ScriptContent",
+        "textColor": "0x569cd6"
+      },
+      "StyleTag_End": {
+        "regex": ">",
+        "priority": 20,
+        "popMode": true,
+        "pushMode": "StyleContent",
+        "textColor": "0x569cd6"
+      },
+      "Script_End": {
+        "regex": "<\\/script\\s*>",
+        "priority": 25,
+        "popMode": true,
+        "textColor": "0x569cd6"
+      },
+      "Script_Body": {
+        "regex": "(?:(?!<\\/script)[\\s\\S])+",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Style_End": {
+        "regex": "<\\/style\\s*>",
+        "priority": 25,
+        "popMode": true,
+        "textColor": "0x569cd6"
+      },
+      "Style_Body": {
+        "regex": "(?:(?!<\\/style)[\\s\\S])+",
+        "priority": 10,
+        "textColor": "0xd4d4d4"
+      },
+      "Equal": {
+        "regex": "=",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "DoubleString": {
+        "regex": "\"(?:\\\\.|[^\"\\\\])*\"",
+        "priority": 16,
+        "textColor": "0xce9178"
+      },
+      "SingleString": {
+        "regex": "'(?:\\\\.|[^'\\\\])*'",
+        "priority": 16,
+        "textColor": "0xce9178"
+      },
+      "AttributeName": {
+        "regex": "[@*#:([a-zA-Z0-9_][a-zA-Z0-9_:.@#*()\\[\\]\\-]*",
+        "priority": 12,
+        "textColor": "0x9cdcfe"
+      },
+      "AttributeValue": {
+        "regex": "[^ \\t\\r\\n\"'>/=]+",
+        "priority": 10,
+        "textColor": "0xce9178"
+      }
     },
-    "Tag": {
-      "type": "StartStop",
-      "startRegex": "<[a-zA-Z0-9:-]+",
-      "endRegex": "\\/?>",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x569cd6",
-      "nestedTokens": [
-        "DoubleString",
-        "SingleString",
-        "Equal",
-        "AttributeName"
-      ]
+    "trivia": {
+      "Whitespace": {
+        "regex": "[ \\t\\r\\n]+",
+        "priority": 1,
+        "textColor": "0xd4d4d4"
+      }
     },
-    "DoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "SingleString": {
-      "type": "StartStop",
-      "startRegex": "'",
-      "endRegex": "'",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "StringEscape": {
-      "type": "SimpleToken",
-      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
-      "textColor": "0xd7ba7d"
-    },
-    "Equal": {
-      "type": "SimpleToken",
-      "startRegex": "=",
-      "textColor": "0xd4d4d4"
-    },
-    "AttributeName": {
-      "type": "SimpleToken",
-      "startRegex": "[a-zA-Z0-9:-]+",
-      "textColor": "0x9cdcfe"
+    "modes": {
+      "default": {
+        "tokens": [
+          "Doctype",
+          "Comment",
+          "CData",
+          "ProcessingInstruction",
+          "ScriptTag_Start",
+          "StyleTag_Start",
+          "VoidTag_Start",
+          "Tag_Start",
+          "ClosingTag",
+          "Entity",
+          "Text"
+        ],
+        "trivia": [
+          "Whitespace"
+        ]
+      },
+      "Tag": {
+        "tokens": [
+          "Tag_SelfClose",
+          "Tag_End",
+          "Equal",
+          "DoubleString",
+          "SingleString",
+          "AttributeName",
+          "AttributeValue"
+        ],
+        "trivia": [
+          "Whitespace"
+        ]
+      },
+      "ScriptTag": {
+        "tokens": [
+          "Tag_SelfClose",
+          "ScriptTag_End",
+          "Equal",
+          "DoubleString",
+          "SingleString",
+          "AttributeName",
+          "AttributeValue"
+        ],
+        "trivia": [
+          "Whitespace"
+        ]
+      },
+      "ScriptContent": {
+        "tokens": [
+          "Script_End",
+          "Script_Body"
+        ],
+        "trivia": []
+      },
+      "StyleTag": {
+        "tokens": [
+          "Tag_SelfClose",
+          "StyleTag_End",
+          "Equal",
+          "DoubleString",
+          "SingleString",
+          "AttributeName",
+          "AttributeValue"
+        ],
+        "trivia": [
+          "Whitespace"
+        ]
+      },
+      "StyleContent": {
+        "tokens": [
+          "Style_End",
+          "Style_Body"
+        ],
+        "trivia": []
+      }
+    }
+  },
+  "grammar": {
+    "start": "Root",
+    "productions": {
+      "Root": {
+        "ref": "Document"
+      },
+      "Document": {
+        "astKind": "Document",
+        "repeat": {
+          "ref": "Node"
+        }
+      },
+      "Node": {
+        "choice": [
+          {
+            "ref": "Doctype"
+          },
+          {
+            "ref": "Comment"
+          },
+          {
+            "ref": "CData"
+          },
+          {
+            "ref": "ProcessingInstruction"
+          },
+          {
+            "ref": "ScriptElement"
+          },
+          {
+            "ref": "StyleElement"
+          },
+          {
+            "ref": "VoidElement"
+          },
+          {
+            "ref": "PairedElement"
+          },
+          {
+            "ref": "SelfClosingElement"
+          },
+          {
+            "ref": "StandaloneTag"
+          },
+          {
+            "ref": "ClosingTag"
+          },
+          {
+            "ref": "TextNode"
+          }
+        ]
+      },
+      "Doctype": {
+        "astKind": "Doctype",
+        "token": "Doctype"
+      },
+      "Comment": {
+        "astKind": "Comment",
+        "token": "Comment"
+      },
+      "CData": {
+        "astKind": "CData",
+        "token": "CData"
+      },
+      "ProcessingInstruction": {
+        "astKind": "ProcessingInstruction",
+        "token": "ProcessingInstruction"
+      },
+      "ScriptElement": {
+        "astKind": "ScriptElement",
+        "sequence": [
+          {
+            "token": "ScriptTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "ScriptTag_End"
+                  },
+                  {
+                    "optional": {
+                      "token": "Script_Body"
+                    }
+                  },
+                  {
+                    "token": "Script_End"
+                  }
+                ]
+              },
+              {
+                "token": "Tag_SelfClose"
+              }
+            ]
+          }
+        ]
+      },
+      "StyleElement": {
+        "astKind": "StyleElement",
+        "sequence": [
+          {
+            "token": "StyleTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "StyleTag_End"
+                  },
+                  {
+                    "optional": {
+                      "token": "Style_Body"
+                    }
+                  },
+                  {
+                    "token": "Style_End"
+                  }
+                ]
+              },
+              {
+                "token": "Tag_SelfClose"
+              }
+            ]
+          }
+        ]
+      },
+      "VoidElement": {
+        "astKind": "VoidElement",
+        "sequence": [
+          {
+            "token": "VoidTag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "choice": [
+              {
+                "token": "Tag_End"
+              },
+              {
+                "token": "Tag_SelfClose"
+              }
+            ]
+          }
+        ]
+      },
+      "PairedElement": {
+        "astKind": "Element",
+        "sequence": [
+          {
+            "ref": "StartTag"
+          },
+          {
+            "repeat": {
+              "ref": "ChildNode"
+            }
+          },
+          {
+            "token": "ClosingTag"
+          }
+        ]
+      },
+      "ChildNode": {
+        "choice": [
+          {
+            "ref": "Comment"
+          },
+          {
+            "ref": "CData"
+          },
+          {
+            "ref": "ProcessingInstruction"
+          },
+          {
+            "ref": "ScriptElement"
+          },
+          {
+            "ref": "StyleElement"
+          },
+          {
+            "ref": "VoidElement"
+          },
+          {
+            "ref": "PairedElement"
+          },
+          {
+            "ref": "SelfClosingElement"
+          },
+          {
+            "ref": "TextNode"
+          }
+        ]
+      },
+      "SelfClosingElement": {
+        "astKind": "SelfClosingTag",
+        "sequence": [
+          {
+            "token": "Tag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "token": "Tag_SelfClose"
+          }
+        ]
+      },
+      "StartTag": {
+        "astKind": "StartTag",
+        "sequence": [
+          {
+            "token": "Tag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "token": "Tag_End"
+          }
+        ]
+      },
+      "StandaloneTag": {
+        "astKind": "Tag",
+        "sequence": [
+          {
+            "token": "Tag_Start"
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "token": "Tag_End"
+          }
+        ]
+      },
+      "ClosingTag": {
+        "astKind": "ClosingTag",
+        "token": "ClosingTag"
+      },
+      "TextNode": {
+        "astKind": "TextNode",
+        "choice": [
+          {
+            "token": "Text"
+          },
+          {
+            "token": "Entity"
+          }
+        ]
+      },
+      "Attribute": {
+        "astKind": "Attribute",
+        "sequence": [
+          {
+            "token": "AttributeName"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Equal"
+                },
+                {
+                  "ref": "AttributeValue"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "AttributeValue": {
+        "astKind": "AttributeValue",
+        "choice": [
+          {
+            "token": "DoubleString"
+          },
+          {
+            "token": "SingleString"
+          },
+          {
+            "token": "AttributeValue"
+          },
+          {
+            "token": "AttributeName"
+          }
+        ]
+      }
     }
   }
 }

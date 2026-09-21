@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include <html_definition.json.h>
+#include <html_legacy_definition.json.h>
 
 TEST(native_query_engine, type_selector) {
     const char *code = R"(

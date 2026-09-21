@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <textparser.h>
-#include <html_definition.json.h>
+#include <html_legacy_definition.json.h>
 #include "html.h"
 
 #include <string.h>
