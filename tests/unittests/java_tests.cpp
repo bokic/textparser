@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <java_definition.json.h>
+#include <java_legacy_definition.json.h>
 
 void collect_token_types(const TokenParserItem &item, std::set<std::string> &collected) {
     if (item.type != nullptr) {
