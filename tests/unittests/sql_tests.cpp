@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <sql_definition.json.h>
+#include <sql_legacy_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -30,7 +30,7 @@ CREATE TABLE `users` (
 select u.id, u.[name], u.email
 from `users` as u
 where u.id > 100 AND u.is_active = true AND u.[name] = 'John' AND u.email != "john@example.com";
-)", &sql_definition);
+)", &sql_legacy_definition);
 
     std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {

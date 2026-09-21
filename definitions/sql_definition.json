@@ -1,210 +1,2868 @@
 {
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
   "name": "sql",
-  "version": 1.0,
+  "version": 2.0,
   "caseSensitivity": false,
   "defaultFileExtensions": [
     "sql"
   ],
-  "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "LineComment",
-    "BlockComment",
-    "Keyword",
-    "DataType",
-    "Boolean",
-    "BacktickIdentifier",
-    "BracketIdentifier",
-    "Variable",
-    "Operator",
-    "SingleString",
-    "DoubleString",
-    "Number",
-    "Parenthesis",
-    "ArrayIndex",
-    "CodeBlock"
+  "defaultTextEncoding": "utf-8",
+  "supportedBom": [
+    "utf-8"
   ],
-  "otherTextInside": true,
-  "tokens": {
-    "LineComment": {
-      "type": "SimpleToken",
-      "startRegex": "--[^\\r\\n]*",
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+  "otherTextInside": false,
+  "diagnostics": {
+    "expected": {
+      "code": "SQL1001",
+      "message": "Expected %s."
     },
-    "BlockComment": {
-      "type": "StartStop",
-      "startRegex": "\\/\\*",
-      "endRegex": "\\*\\/",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+    "tokenExpected": {
+      "code": "SQL1002",
+      "message": "'%s' expected."
     },
-    "Keyword": {
-      "type": "SimpleToken",
-      "startRegex": "select\\b|insert\\b|update\\b|delete\\b|from\\b|where\\b|join\\b|left\\b|right\\b|inner\\b|outer\\b|on\\b|group\\b|by\\b|having\\b|order\\b|limit\\b|offset\\b|create\\b|table\\b|drop\\b|alter\\b|add\\b|column\\b|index\\b|primary\\b|key\\b|foreign\\b|references\\b|into\\b|values\\b|set\\b|and\\b|or\\b|not\\b|in\\b|is\\b|null\\b|like\\b|between\\b|exists\\b|any\\b|all\\b|as\\b|distinct\\b|union\\b|intersect\\b|except\\b|with\\b|recursive\\b|database\\b|use\\b|view\\b|trigger\\b|procedure\\b|function\\b|returns\\b|declare\\b|begin\\b|end\\b|if\\b|else\\b|then\\b|commit\\b|rollback\\b|transaction\\b|grant\\b|revoke\\b|constraint\\b|default\\b|unique\\b|check\\b",
-      "textColor": "0xc586c0"
-    },
-    "DataType": {
-      "type": "SimpleToken",
-      "startRegex": "int\\b|integer\\b|varchar\\b|char\\b|text\\b|boolean\\b|bool\\b|date\\b|time\\b|timestamp\\b|datetime\\b|decimal\\b|numeric\\b|float\\b|double\\b|real\\b|blob\\b|clob\\b|json\\b|uuid\\b",
-      "textColor": "0x4ec9b0"
-    },
-    "Boolean": {
-      "type": "SimpleToken",
-      "startRegex": "true\\b|false\\b",
-      "textColor": "0x569cd6"
-    },
-    "BacktickIdentifier": {
-      "type": "StartStop",
-      "startRegex": "`",
-      "endRegex": "`",
-      "otherTextInside": true,
-      "textColor": "0x9cdcfe",
-      "delimiterTextColor": "0x6a9ec0"
-    },
-    "BracketIdentifier": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "otherTextInside": true,
-      "textColor": "0x9cdcfe"
-    },
-    "Variable": {
-      "type": "SimpleToken",
-      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
-      "textColor": "0x9cdcfe"
-    },
-    "Operator": {
-      "type": "SimpleToken",
-      "startRegex": "<>|<=|>=|!=|:=|[-+*/%&|^~<>!=;.,|=]",
-      "textColor": "0xd4d4d4"
-    },
-    "SingleString": {
-      "type": "StartStop",
-      "startRegex": "'",
-      "endRegex": "'",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "DoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "StringEscape": {
-      "type": "SimpleToken",
-      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t",
-      "textColor": "0xd7ba7d"
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "\\b[0-9]+(?:\\.[0-9]+)?\\b",
-      "textColor": "0xb5cea8"
-    },
-    "Parenthesis": {
-      "type": "StartStop",
-      "startRegex": "\\(",
-      "endRegex": "\\)",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "BlockComment",
-        "Keyword",
-        "DataType",
-        "Boolean",
-        "BacktickIdentifier",
-        "BracketIdentifier",
-        "Variable",
-        "Operator",
-        "SingleString",
-        "DoubleString",
-        "Number",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "ArrayIndex": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "BlockComment",
-        "Keyword",
-        "DataType",
-        "Boolean",
-        "BacktickIdentifier",
-        "BracketIdentifier",
-        "Variable",
-        "Operator",
-        "SingleString",
-        "DoubleString",
-        "Number",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "CodeBlock": {
-      "type": "StartStop",
-      "startRegex": "\\{",
-      "endRegex": "\\}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "BlockComment",
-        "Keyword",
-        "DataType",
-        "Boolean",
-        "BacktickIdentifier",
-        "BracketIdentifier",
-        "Variable",
-        "Operator",
-        "SingleString",
-        "DoubleString",
-        "Number",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
+    "recovered": {
+      "code": "SQL1003",
+      "message": "Syntax error: unexpected token, recovering."
     }
   },
-  "mergeSignIntoNumber": {
-    "signTokens": [
-      "Operator"
-    ],
-    "numberTokens": [
-      "Number"
-    ],
-    "operandTokens": [
-      "Number",
-      "Variable",
-      "Boolean",
-      "SingleString",
-      "DoubleString",
-      "Parenthesis",
-      "ArrayIndex",
-      "CodeBlock"
+  "recovery": {
+    "maximumDiagnostics": 100,
+    "maximumSkippedTokens": 50,
+    "maximumRecoveryAttempts": 30,
+    "synchronizationTokens": [
+      "Semicolon",
+      "RParen",
+      "RBracket",
+      "GoKeyword"
     ]
+  },
+  "lexer": {
+    "trivia": {
+      "Whitespace": {
+        "regex": "[ \\t\\r\\n]+"
+      },
+      "LineComment": {
+        "regex": "(?:--|#)[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment": {
+        "regex": "/\\*(?:[^*]|\\*(?!/))*\\*/",
+        "textColor": "0x6a9955"
+      }
+    },
+    "tokens": {
+      "SingleString": {
+        "regex": "'(?:[^'\\\\]|\\\\.|'')*'",
+        "priority": 28,
+        "textColor": "0xce9178"
+      },
+      "DoubleString": {
+        "regex": "\"(?:[^\"\\\\]|\\\\.|\"\")*\"",
+        "priority": 28,
+        "textColor": "0xce9178"
+      },
+      "BacktickIdentifier": {
+        "regex": "`[^`]*`",
+        "priority": 28,
+        "textColor": "0x9cdcfe"
+      },
+      "BracketIdentifier": {
+        "regex": "\\[[^\\]]*\\]",
+        "priority": 28,
+        "textColor": "0x9cdcfe"
+      },
+      "Number": {
+        "regex": "0[xX][0-9a-fA-F]+|[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?",
+        "priority": 25,
+        "textColor": "0xb5cea8"
+      },
+      "Variable": {
+        "regex": "@[a-zA-Z0-9_]+|:[a-zA-Z0-9_]+|\\$[0-9]+",
+        "priority": 24,
+        "textColor": "0x9cdcfe"
+      },
+      "Semicolon": {
+        "regex": ";",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Comma": {
+        "regex": ",",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Dot": {
+        "regex": "\\.",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "LParen": {
+        "regex": "\\(",
+        "priority": 15,
+        "textColor": "0xffd700"
+      },
+      "RParen": {
+        "regex": "\\)",
+        "priority": 15,
+        "textColor": "0xffd700"
+      },
+      "LBracket": {
+        "regex": "\\[",
+        "priority": 14,
+        "textColor": "0xffd700"
+      },
+      "RBracket": {
+        "regex": "\\]",
+        "priority": 14,
+        "textColor": "0xffd700"
+      },
+      "Asterisk": {
+        "regex": "\\*",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Equal": {
+        "regex": "=",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "NotEqual": {
+        "regex": "<>|!=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "LessEqual": {
+        "regex": "<=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "GreaterEqual": {
+        "regex": ">=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "Less": {
+        "regex": "<",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Greater": {
+        "regex": ">",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Plus": {
+        "regex": "\\+",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Minus": {
+        "regex": "-",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Slash": {
+        "regex": "/",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Percent": {
+        "regex": "%",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Concat": {
+        "regex": "\\|\\|",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "BitwiseAnd": {
+        "regex": "&",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "BitwiseOr": {
+        "regex": "\\|",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "BitwiseXor": {
+        "regex": "\\^",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "BitwiseNot": {
+        "regex": "~",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "ColonEqual": {
+        "regex": ":=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "SelectKeyword": {
+        "regex": "select\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "FromKeyword": {
+        "regex": "from\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "WhereKeyword": {
+        "regex": "where\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "GroupKeyword": {
+        "regex": "group\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ByKeyword": {
+        "regex": "by\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "HavingKeyword": {
+        "regex": "having\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "OrderKeyword": {
+        "regex": "order\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "LimitKeyword": {
+        "regex": "limit\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "OffsetKeyword": {
+        "regex": "offset\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DistinctKeyword": {
+        "regex": "distinct\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AllKeyword": {
+        "regex": "all\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AsKeyword": {
+        "regex": "as\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "JoinKeyword": {
+        "regex": "join\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "LeftKeyword": {
+        "regex": "left\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "RightKeyword": {
+        "regex": "right\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "FullKeyword": {
+        "regex": "full\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "InnerKeyword": {
+        "regex": "inner\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "OuterKeyword": {
+        "regex": "outer\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CrossKeyword": {
+        "regex": "cross\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "NaturalKeyword": {
+        "regex": "natural\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "OnKeyword": {
+        "regex": "on\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "UsingKeyword": {
+        "regex": "using\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "UnionKeyword": {
+        "regex": "union\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IntersectKeyword": {
+        "regex": "intersect\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ExceptKeyword": {
+        "regex": "except\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "InsertKeyword": {
+        "regex": "insert\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IntoKeyword": {
+        "regex": "into\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ValuesKeyword": {
+        "regex": "values\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "UpdateKeyword": {
+        "regex": "update\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "SetKeyword": {
+        "regex": "set\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DeleteKeyword": {
+        "regex": "delete\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CreateKeyword": {
+        "regex": "create\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TableKeyword": {
+        "regex": "table\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ViewKeyword": {
+        "regex": "view\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IndexKeyword": {
+        "regex": "index\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DatabaseKeyword": {
+        "regex": "database\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "SchemaKeyword": {
+        "regex": "schema\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DropKeyword": {
+        "regex": "drop\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AlterKeyword": {
+        "regex": "alter\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AddKeyword": {
+        "regex": "add\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ColumnKeyword": {
+        "regex": "column\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "PrimaryKeyword": {
+        "regex": "primary\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "KeyKeyword": {
+        "regex": "key\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ForeignKeyword": {
+        "regex": "foreign\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ReferencesKeyword": {
+        "regex": "references\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ConstraintKeyword": {
+        "regex": "constraint\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DefaultKeyword": {
+        "regex": "default\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "UniqueKeyword": {
+        "regex": "unique\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CheckKeyword": {
+        "regex": "check\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "NullKeyword": {
+        "regex": "null\\b",
+        "priority": 20,
+        "textColor": "0x569cd6"
+      },
+      "AndKeyword": {
+        "regex": "and\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "OrKeyword": {
+        "regex": "or\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "NotKeyword": {
+        "regex": "not\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "InKeyword": {
+        "regex": "in\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IsKeyword": {
+        "regex": "is\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "LikeKeyword": {
+        "regex": "like\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IlikeKeyword": {
+        "regex": "ilike\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "BetweenKeyword": {
+        "regex": "between\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ExistsKeyword": {
+        "regex": "exists\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CaseKeyword": {
+        "regex": "case\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "WhenKeyword": {
+        "regex": "when\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ThenKeyword": {
+        "regex": "then\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ElseKeyword": {
+        "regex": "else\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "EndKeyword": {
+        "regex": "end\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TrueKeyword": {
+        "regex": "true\\b",
+        "priority": 20,
+        "textColor": "0x569cd6"
+      },
+      "FalseKeyword": {
+        "regex": "false\\b",
+        "priority": 20,
+        "textColor": "0x569cd6"
+      },
+      "WithKeyword": {
+        "regex": "with\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "RecursiveKeyword": {
+        "regex": "recursive\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AscKeyword": {
+        "regex": "asc\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "DescKeyword": {
+        "regex": "desc\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "BeginKeyword": {
+        "regex": "begin\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CommitKeyword": {
+        "regex": "commit\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "RollbackKeyword": {
+        "regex": "rollback\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TransactionKeyword": {
+        "regex": "transaction\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TruncateKeyword": {
+        "regex": "truncate\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IfKeyword": {
+        "regex": "if\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "GoKeyword": {
+        "regex": "go\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CastKeyword": {
+        "regex": "cast\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "ReplaceKeyword": {
+        "regex": "replace\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TemporaryKeyword": {
+        "regex": "temporary\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "TempKeyword": {
+        "regex": "temp\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "CascadeKeyword": {
+        "regex": "cascade\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "RestrictKeyword": {
+        "regex": "restrict\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "NullsKeyword": {
+        "regex": "nulls\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "FirstKeyword": {
+        "regex": "first\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "LastKeyword": {
+        "regex": "last\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "AutoIncrementKeyword": {
+        "regex": "auto_increment\\b|autoincrement\\b",
+        "priority": 20,
+        "textColor": "0xc586c0"
+      },
+      "IntKeyword": {
+        "regex": "int\\b|integer\\b|smallint\\b|bigint\\b|tinyint\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "VarcharKeyword": {
+        "regex": "varchar\\b|char\\b|character\\b|nvarchar\\b|nchar\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "TextKeyword": {
+        "regex": "text\\b|clob\\b|tinytext\\b|mediumtext\\b|longtext\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "BooleanKeyword": {
+        "regex": "boolean\\b|bool\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "DateKeyword": {
+        "regex": "date\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "TimeKeyword": {
+        "regex": "time\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "TimestampKeyword": {
+        "regex": "timestamp\\b|timestamptz\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "DatetimeKeyword": {
+        "regex": "datetime\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "DecimalKeyword": {
+        "regex": "decimal\\b|numeric\\b|dec\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "FloatKeyword": {
+        "regex": "float\\b|real\\b|double\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "BlobKeyword": {
+        "regex": "blob\\b|binary\\b|varbinary\\b|bytea\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "JsonKeyword": {
+        "regex": "json\\b|jsonb\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "UuidKeyword": {
+        "regex": "uuid\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "SerialKeyword": {
+        "regex": "serial\\b|bigserial\\b",
+        "priority": 20,
+        "textColor": "0x4ec9b0"
+      },
+      "Identifier": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "priority": 10,
+        "textColor": "0x9cdcfe"
+      }
+    }
+  },
+  "operators": [
+    {
+      "token": "OrKeyword",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "left"
+    },
+    {
+      "token": "AndKeyword",
+      "role": "infix",
+      "precedence": 2,
+      "associativity": "left"
+    },
+    {
+      "token": "NotKeyword",
+      "role": "prefix",
+      "precedence": 3
+    },
+    {
+      "token": "Equal",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "NotEqual",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "Less",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "LessEqual",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "Greater",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "GreaterEqual",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "BitwiseOr",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "left"
+    },
+    {
+      "token": "BitwiseXor",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "left"
+    },
+    {
+      "token": "BitwiseAnd",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "left"
+    },
+    {
+      "token": "Plus",
+      "roles": ["prefix", "infix"],
+      "prefixPrecedence": 8,
+      "infixPrecedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "Minus",
+      "roles": ["prefix", "infix"],
+      "prefixPrecedence": 8,
+      "infixPrecedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "Concat",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "Asterisk",
+      "role": "infix",
+      "precedence": 7,
+      "associativity": "left"
+    },
+    {
+      "token": "Slash",
+      "role": "infix",
+      "precedence": 7,
+      "associativity": "left"
+    },
+    {
+      "token": "Percent",
+      "role": "infix",
+      "precedence": 7,
+      "associativity": "left"
+    }
+  ],
+  "grammar": {
+    "start": "SourceFile",
+    "productions": {
+      "SourceFile": {
+        "category": "source_file",
+        "astKind": "SourceFile",
+        "sequence": [
+          {
+            "repeat": {
+              "ref": "Statement"
+            }
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "Statement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "StatementCore"
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "StatementCore": {
+        "category": "statement",
+        "choice": [
+          {
+            "ref": "SelectStatement"
+          },
+          {
+            "ref": "InsertStatement"
+          },
+          {
+            "ref": "UpdateStatement"
+          },
+          {
+            "ref": "DeleteStatement"
+          },
+          {
+            "ref": "CreateTableStatement"
+          },
+          {
+            "ref": "AlterTableStatement"
+          },
+          {
+            "ref": "DropTableStatement"
+          },
+          {
+            "ref": "CreateViewStatement"
+          },
+          {
+            "ref": "DropViewStatement"
+          },
+          {
+            "ref": "CreateIndexStatement"
+          },
+          {
+            "ref": "DropIndexStatement"
+          },
+          {
+            "ref": "TruncateStatement"
+          },
+          {
+            "ref": "TransactionStatement"
+          }
+        ],
+        "recover": {
+          "skip": true,
+          "synchronize": [
+            "Semicolon"
+          ]
+        }
+      },
+      "SelectStatement": {
+        "category": "statement",
+        "astKind": "SelectStatement",
+        "sequence": [
+          {
+            "optional": {
+              "ref": "WithClause"
+            }
+          },
+          {
+            "ref": "SelectStatementCore"
+          }
+        ]
+      },
+      "SelectStatementCore": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "SelectKeyword"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "DistinctKeyword"
+                },
+                {
+                  "token": "AllKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "SelectList"
+          },
+          {
+            "optional": {
+              "ref": "FromClause"
+            }
+          },
+          {
+            "optional": {
+              "ref": "WhereClause"
+            }
+          },
+          {
+            "optional": {
+              "ref": "GroupByClause"
+            }
+          },
+          {
+            "optional": {
+              "ref": "HavingClause"
+            }
+          },
+          {
+            "optional": {
+              "ref": "SetOperation"
+            }
+          },
+          {
+            "optional": {
+              "ref": "OrderByClause"
+            }
+          },
+          {
+            "optional": {
+              "ref": "LimitClause"
+            }
+          }
+        ]
+      },
+      "WithClause": {
+        "category": "declaration",
+        "astKind": "WithClause",
+        "sequence": [
+          {
+            "token": "WithKeyword"
+          },
+          {
+            "optional": {
+              "token": "RecursiveKeyword"
+            }
+          },
+          {
+            "ref": "CteList"
+          }
+        ]
+      },
+      "CteList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "CteDefinition"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "CteDefinition"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "CteDefinition": {
+        "category": "declaration",
+        "astKind": "CommonTableExpression",
+        "sequence": [
+          {
+            "ref": "IdentifierOrQuoted"
+          },
+          {
+            "optional": {
+              "ref": "ColumnNameList"
+            }
+          },
+          {
+            "token": "AsKeyword"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "SelectStatementCore"
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "SelectList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "SelectItem"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "SelectItem"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "SelectItem": {
+        "category": "expression",
+        "astKind": "SelectItem",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "Asterisk"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "AliasClause"
+            }
+          }
+        ]
+      },
+      "AliasClause": {
+        "category": "other",
+        "astKind": "Alias",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "AsKeyword"
+              },
+              {
+                "ref": "IdentifierOrQuoted"
+              }
+            ]
+          },
+          {
+            "ref": "IdentifierOrQuoted"
+          }
+        ]
+      },
+      "FromClause": {
+        "category": "other",
+        "astKind": "FromClause",
+        "sequence": [
+          {
+            "token": "FromKeyword"
+          },
+          {
+            "ref": "TableReferenceList"
+          }
+        ]
+      },
+      "TableReferenceList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "TableFactor"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "token": "Comma"
+                    },
+                    {
+                      "ref": "TableFactor"
+                    }
+                  ]
+                },
+                {
+                  "ref": "JoinClause"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "TableFactor": {
+        "category": "expression",
+        "astKind": "TableFactor",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "LParen"
+                  },
+                  {
+                    "choice": [
+                      {
+                        "ref": "SelectStatementCore"
+                      },
+                      {
+                        "ref": "TableReferenceList"
+                      }
+                    ]
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              },
+              {
+                "ref": "TableName"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "AliasClause"
+            }
+          }
+        ]
+      },
+      "TableName": {
+        "category": "expression",
+        "astKind": "TableName",
+        "sequence": [
+          {
+            "ref": "IdentifierOrQuoted"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Dot"
+                },
+                {
+                  "ref": "IdentifierOrQuoted"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "JoinClause": {
+        "category": "other",
+        "astKind": "JoinClause",
+        "sequence": [
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "NaturalKeyword"
+                },
+                {
+                  "token": "CrossKeyword"
+                },
+                {
+                  "choice": [
+                    {
+                      "token": "InnerKeyword"
+                    },
+                    {
+                      "sequence": [
+                        {
+                          "choice": [
+                            {
+                              "token": "LeftKeyword"
+                            },
+                            {
+                              "token": "RightKeyword"
+                            },
+                            {
+                              "token": "FullKeyword"
+                            }
+                          ]
+                        },
+                        {
+                          "optional": {
+                            "token": "OuterKeyword"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "token": "JoinKeyword"
+          },
+          {
+            "ref": "TableFactor"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "token": "OnKeyword"
+                    },
+                    {
+                      "ref": "Expression"
+                    }
+                  ]
+                },
+                {
+                  "sequence": [
+                    {
+                      "token": "UsingKeyword"
+                    },
+                    {
+                      "ref": "ColumnNameList"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "WhereClause": {
+        "category": "other",
+        "astKind": "WhereClause",
+        "sequence": [
+          {
+            "token": "WhereKeyword"
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "GroupByClause": {
+        "category": "other",
+        "astKind": "GroupByClause",
+        "sequence": [
+          {
+            "token": "GroupKeyword"
+          },
+          {
+            "token": "ByKeyword"
+          },
+          {
+            "ref": "ExpressionList"
+          }
+        ]
+      },
+      "HavingClause": {
+        "category": "other",
+        "astKind": "HavingClause",
+        "sequence": [
+          {
+            "token": "HavingKeyword"
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "OrderByClause": {
+        "category": "other",
+        "astKind": "OrderByClause",
+        "sequence": [
+          {
+            "token": "OrderKeyword"
+          },
+          {
+            "token": "ByKeyword"
+          },
+          {
+            "ref": "OrderItemList"
+          }
+        ]
+      },
+      "OrderItemList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "OrderItem"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "OrderItem"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "OrderItem": {
+        "category": "other",
+        "astKind": "OrderItem",
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "AscKeyword"
+                },
+                {
+                  "token": "DescKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "NullsKeyword"
+                },
+                {
+                  "choice": [
+                    {
+                      "token": "FirstKeyword"
+                    },
+                    {
+                      "token": "LastKeyword"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "LimitClause": {
+        "category": "other",
+        "astKind": "LimitClause",
+        "sequence": [
+          {
+            "token": "LimitKeyword"
+          },
+          {
+            "token": "Number"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "token": "Comma"
+                    },
+                    {
+                      "token": "Number"
+                    }
+                  ]
+                },
+                {
+                  "sequence": [
+                    {
+                      "token": "OffsetKeyword"
+                    },
+                    {
+                      "token": "Number"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "SetOperation": {
+        "category": "other",
+        "astKind": "SetOperation",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "UnionKeyword"
+              },
+              {
+                "token": "IntersectKeyword"
+              },
+              {
+                "token": "ExceptKeyword"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "AllKeyword"
+                },
+                {
+                  "token": "DistinctKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "SelectStatementCore"
+          }
+        ]
+      },
+      "InsertStatement": {
+        "category": "statement",
+        "astKind": "InsertStatement",
+        "sequence": [
+          {
+            "token": "InsertKeyword"
+          },
+          {
+            "optional": {
+              "token": "IntoKeyword"
+            }
+          },
+          {
+            "ref": "TableName"
+          },
+          {
+            "optional": {
+              "ref": "ColumnNameList"
+            }
+          },
+          {
+            "choice": [
+              {
+                "ref": "ValuesClause"
+              },
+              {
+                "ref": "SelectStatementCore"
+              }
+            ]
+          }
+        ]
+      },
+      "ValuesClause": {
+        "category": "other",
+        "astKind": "ValuesClause",
+        "sequence": [
+          {
+            "token": "ValuesKeyword"
+          },
+          {
+            "ref": "ValueRowList"
+          }
+        ]
+      },
+      "ValueRowList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "ValueRow"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "ValueRow"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ValueRow": {
+        "category": "expression",
+        "astKind": "Row",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "ExpressionList"
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "UpdateStatement": {
+        "category": "statement",
+        "astKind": "UpdateStatement",
+        "sequence": [
+          {
+            "token": "UpdateKeyword"
+          },
+          {
+            "ref": "TableName"
+          },
+          {
+            "token": "SetKeyword"
+          },
+          {
+            "ref": "AssignmentList"
+          },
+          {
+            "optional": {
+              "ref": "WhereClause"
+            }
+          }
+        ]
+      },
+      "AssignmentList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "Assignment"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Assignment"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Assignment": {
+        "category": "expression",
+        "astKind": "Assignment",
+        "sequence": [
+          {
+            "ref": "ColumnRef"
+          },
+          {
+            "choice": [
+              {
+                "token": "Equal"
+              },
+              {
+                "token": "ColonEqual"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "DeleteStatement": {
+        "category": "statement",
+        "astKind": "DeleteStatement",
+        "sequence": [
+          {
+            "token": "DeleteKeyword"
+          },
+          {
+            "optional": {
+              "token": "FromKeyword"
+            }
+          },
+          {
+            "ref": "TableName"
+          },
+          {
+            "optional": {
+              "ref": "WhereClause"
+            }
+          }
+        ]
+      },
+      "CreateTableStatement": {
+        "category": "declaration",
+        "astKind": "CreateTableStatement",
+        "sequence": [
+          {
+            "token": "CreateKeyword"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "TemporaryKeyword"
+                },
+                {
+                  "token": "TempKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "token": "TableKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "IfKeyword"
+                },
+                {
+                  "token": "NotKeyword"
+                },
+                {
+                  "token": "ExistsKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "TableName"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "LParen"
+                  },
+                  {
+                    "ref": "TableElementList"
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "AsKeyword"
+                  },
+                  {
+                    "ref": "SelectStatementCore"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "TableElementList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "TableElement"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "TableElement"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "TableElement": {
+        "category": "declaration",
+        "choice": [
+          {
+            "ref": "TableConstraint"
+          },
+          {
+            "ref": "ColumnDefinition"
+          }
+        ]
+      },
+      "ColumnDefinition": {
+        "category": "declaration",
+        "astKind": "ColumnDefinition",
+        "sequence": [
+          {
+            "ref": "IdentifierOrQuoted"
+          },
+          {
+            "ref": "DataType"
+          },
+          {
+            "repeat": {
+              "ref": "ColumnConstraint"
+            }
+          }
+        ]
+      },
+      "ColumnConstraint": {
+        "category": "other",
+        "astKind": "ColumnConstraint",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "PrimaryKeyword"
+              },
+              {
+                "token": "KeyKeyword"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "NotKeyword"
+              },
+              {
+                "token": "NullKeyword"
+              }
+            ]
+          },
+          {
+            "token": "NullKeyword"
+          },
+          {
+            "token": "UniqueKeyword"
+          },
+          {
+            "token": "AutoIncrementKeyword"
+          },
+          {
+            "sequence": [
+              {
+                "token": "DefaultKeyword"
+              },
+              {
+                "ref": "PrimaryExpression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "ReferencesKeyword"
+              },
+              {
+                "ref": "TableName"
+              },
+              {
+                "optional": {
+                  "ref": "ColumnNameList"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "CheckKeyword"
+              },
+              {
+                "token": "LParen"
+              },
+              {
+                "ref": "Expression"
+              },
+              {
+                "token": "RParen"
+              }
+            ]
+          }
+        ]
+      },
+      "TableConstraint": {
+        "category": "declaration",
+        "astKind": "TableConstraint",
+        "sequence": [
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "ConstraintKeyword"
+                },
+                {
+                  "ref": "IdentifierOrQuoted"
+                }
+              ]
+            }
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "PrimaryKeyword"
+                  },
+                  {
+                    "token": "KeyKeyword"
+                  },
+                  {
+                    "ref": "ColumnNameList"
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "ForeignKeyword"
+                  },
+                  {
+                    "optional": {
+                      "token": "KeyKeyword"
+                    }
+                  },
+                  {
+                    "ref": "ColumnNameList"
+                  },
+                  {
+                    "token": "ReferencesKeyword"
+                  },
+                  {
+                    "ref": "TableName"
+                  },
+                  {
+                    "optional": {
+                      "ref": "ColumnNameList"
+                    }
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "UniqueKeyword"
+                  },
+                  {
+                    "optional": {
+                      "token": "KeyKeyword"
+                    }
+                  },
+                  {
+                    "ref": "ColumnNameList"
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "CheckKeyword"
+                  },
+                  {
+                    "token": "LParen"
+                  },
+                  {
+                    "ref": "Expression"
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ColumnNameList": {
+        "category": "other",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "IdentifierOrQuoted"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "IdentifierOrQuoted"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "DropTableStatement": {
+        "category": "statement",
+        "astKind": "DropTableStatement",
+        "sequence": [
+          {
+            "token": "DropKeyword"
+          },
+          {
+            "token": "TableKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "IfKeyword"
+                },
+                {
+                  "token": "ExistsKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "TableNameList"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "CascadeKeyword"
+                },
+                {
+                  "token": "RestrictKeyword"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "TableNameList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "TableName"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "TableName"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "AlterTableStatement": {
+        "category": "statement",
+        "astKind": "AlterTableStatement",
+        "sequence": [
+          {
+            "token": "AlterKeyword"
+          },
+          {
+            "token": "TableKeyword"
+          },
+          {
+            "ref": "TableName"
+          },
+          {
+            "ref": "AlterActionList"
+          }
+        ]
+      },
+      "AlterActionList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "AlterAction"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "AlterAction"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "AlterAction": {
+        "category": "other",
+        "astKind": "AlterAction",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "AddKeyword"
+              },
+              {
+                "optional": {
+                  "token": "ColumnKeyword"
+                }
+              },
+              {
+                "choice": [
+                  {
+                    "ref": "TableConstraint"
+                  },
+                  {
+                    "ref": "ColumnDefinition"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "DropKeyword"
+              },
+              {
+                "optional": {
+                  "token": "ColumnKeyword"
+                }
+              },
+              {
+                "ref": "IdentifierOrQuoted"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "AlterKeyword"
+              },
+              {
+                "optional": {
+                  "token": "ColumnKeyword"
+                }
+              },
+              {
+                "ref": "IdentifierOrQuoted"
+              },
+              {
+                "ref": "DataType"
+              }
+            ]
+          }
+        ]
+      },
+      "CreateViewStatement": {
+        "category": "declaration",
+        "astKind": "CreateViewStatement",
+        "sequence": [
+          {
+            "token": "CreateKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "OrKeyword"
+                },
+                {
+                  "token": "ReplaceKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "token": "ViewKeyword"
+          },
+          {
+            "ref": "TableName"
+          },
+          {
+            "optional": {
+              "ref": "ColumnNameList"
+            }
+          },
+          {
+            "token": "AsKeyword"
+          },
+          {
+            "ref": "SelectStatementCore"
+          }
+        ]
+      },
+      "DropViewStatement": {
+        "category": "statement",
+        "astKind": "DropViewStatement",
+        "sequence": [
+          {
+            "token": "DropKeyword"
+          },
+          {
+            "token": "ViewKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "IfKeyword"
+                },
+                {
+                  "token": "ExistsKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "TableName"
+          }
+        ]
+      },
+      "CreateIndexStatement": {
+        "category": "declaration",
+        "astKind": "CreateIndexStatement",
+        "sequence": [
+          {
+            "token": "CreateKeyword"
+          },
+          {
+            "optional": {
+              "token": "UniqueKeyword"
+            }
+          },
+          {
+            "token": "IndexKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "IfKeyword"
+                },
+                {
+                  "token": "NotKeyword"
+                },
+                {
+                  "token": "ExistsKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "IdentifierOrQuoted"
+          },
+          {
+            "token": "OnKeyword"
+          },
+          {
+            "ref": "TableName"
+          },
+          {
+            "ref": "ColumnNameList"
+          }
+        ]
+      },
+      "DropIndexStatement": {
+        "category": "statement",
+        "astKind": "DropIndexStatement",
+        "sequence": [
+          {
+            "token": "DropKeyword"
+          },
+          {
+            "token": "IndexKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "IfKeyword"
+                },
+                {
+                  "token": "ExistsKeyword"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "IdentifierOrQuoted"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "OnKeyword"
+                },
+                {
+                  "ref": "TableName"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "TruncateStatement": {
+        "category": "statement",
+        "astKind": "TruncateStatement",
+        "sequence": [
+          {
+            "token": "TruncateKeyword"
+          },
+          {
+            "optional": {
+              "token": "TableKeyword"
+            }
+          },
+          {
+            "ref": "TableName"
+          }
+        ]
+      },
+      "TransactionStatement": {
+        "category": "statement",
+        "astKind": "TransactionStatement",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "BeginKeyword"
+              },
+              {
+                "optional": {
+                  "token": "TransactionKeyword"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "CommitKeyword"
+              },
+              {
+                "optional": {
+                  "token": "TransactionKeyword"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "RollbackKeyword"
+              },
+              {
+                "optional": {
+                  "token": "TransactionKeyword"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "DataType": {
+        "category": "type",
+        "astKind": "DataType",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "VarcharKeyword"
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "LParen"
+                    },
+                    {
+                      "token": "Number"
+                    },
+                    {
+                      "token": "RParen"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "DecimalKeyword"
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "LParen"
+                    },
+                    {
+                      "token": "Number"
+                    },
+                    {
+                      "optional": {
+                        "sequence": [
+                          {
+                            "token": "Comma"
+                          },
+                          {
+                            "token": "Number"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "token": "RParen"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "token": "IntKeyword"
+          },
+          {
+            "token": "TextKeyword"
+          },
+          {
+            "token": "BooleanKeyword"
+          },
+          {
+            "token": "DateKeyword"
+          },
+          {
+            "token": "TimeKeyword"
+          },
+          {
+            "token": "TimestampKeyword"
+          },
+          {
+            "token": "DatetimeKeyword"
+          },
+          {
+            "token": "FloatKeyword"
+          },
+          {
+            "token": "BlobKeyword"
+          },
+          {
+            "token": "JsonKeyword"
+          },
+          {
+            "token": "UuidKeyword"
+          },
+          {
+            "token": "SerialKeyword"
+          }
+        ]
+      },
+      "Expression": {
+        "category": "expression",
+        "pratt": {
+          "primary": {
+            "ref": "PrimaryExpression"
+          },
+          "postfix": {
+            "ref": "PostfixExpressionSuffix"
+          },
+          "minimumPrecedence": 0
+        },
+        "expect": "expression"
+      },
+      "ExpressionList": {
+        "category": "other",
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "PrimaryExpression": {
+        "category": "expression",
+        "choice": [
+          {
+            "ref": "CaseExpression"
+          },
+          {
+            "ref": "CastExpression"
+          },
+          {
+            "ref": "ExistsExpression"
+          },
+          {
+            "ref": "ParenthesizedExpression"
+          },
+          {
+            "ref": "ColumnRef"
+          },
+          {
+            "ref": "Literal"
+          }
+        ]
+      },
+      "Literal": {
+        "category": "expression",
+        "astKind": "Literal",
+        "choice": [
+          {
+            "token": "Number"
+          },
+          {
+            "token": "SingleString"
+          },
+          {
+            "token": "DoubleString"
+          },
+          {
+            "token": "TrueKeyword"
+          },
+          {
+            "token": "FalseKeyword"
+          },
+          {
+            "token": "NullKeyword"
+          },
+          {
+            "token": "Variable"
+          }
+        ]
+      },
+      "ColumnRef": {
+        "category": "expression",
+        "astKind": "ColumnRef",
+        "sequence": [
+          {
+            "ref": "IdentifierOrQuoted"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Dot"
+                },
+                {
+                  "choice": [
+                    {
+                      "token": "Asterisk"
+                    },
+                    {
+                      "ref": "IdentifierOrQuoted"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "IdentifierOrQuoted": {
+        "category": "other",
+        "choice": [
+          {
+            "token": "Identifier"
+          },
+          {
+            "token": "BacktickIdentifier"
+          },
+          {
+            "token": "BracketIdentifier"
+          }
+        ]
+      },
+      "ParenthesizedExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "choice": [
+              {
+                "ref": "SelectStatementCore"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "CaseExpression": {
+        "category": "expression",
+        "astKind": "CaseExpression",
+        "sequence": [
+          {
+            "token": "CaseKeyword"
+          },
+          {
+            "optional": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "oneOrMore": {
+              "ref": "WhenClause"
+            }
+          },
+          {
+            "optional": {
+              "ref": "ElseClause"
+            }
+          },
+          {
+            "token": "EndKeyword"
+          }
+        ]
+      },
+      "WhenClause": {
+        "category": "other",
+        "astKind": "WhenClause",
+        "sequence": [
+          {
+            "token": "WhenKeyword"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "ThenKeyword"
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "ElseClause": {
+        "category": "other",
+        "astKind": "ElseClause",
+        "sequence": [
+          {
+            "token": "ElseKeyword"
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "CastExpression": {
+        "category": "expression",
+        "astKind": "CastExpression",
+        "sequence": [
+          {
+            "token": "CastKeyword"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "AsKeyword"
+          },
+          {
+            "ref": "DataType"
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "ExistsExpression": {
+        "category": "expression",
+        "astKind": "ExistsExpression",
+        "sequence": [
+          {
+            "token": "ExistsKeyword"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "SelectStatementCore"
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "PostfixExpressionSuffix": {
+        "category": "other",
+        "choice": [
+          {
+            "ref": "CallSuffix"
+          },
+          {
+            "ref": "IsSuffix"
+          },
+          {
+            "ref": "InSuffix"
+          },
+          {
+            "ref": "NotInSuffix"
+          },
+          {
+            "ref": "LikeSuffix"
+          },
+          {
+            "ref": "NotLikeSuffix"
+          },
+          {
+            "ref": "BetweenSuffix"
+          },
+          {
+            "ref": "NotBetweenSuffix"
+          }
+        ]
+      },
+      "CallSuffix": {
+        "category": "expression",
+        "astKind": "FunctionCall",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "Asterisk"
+                },
+                {
+                  "ref": "ExpressionList"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "IsSuffix": {
+        "category": "expression",
+        "astKind": "IsPredicate",
+        "sequence": [
+          {
+            "token": "IsKeyword"
+          },
+          {
+            "optional": {
+              "token": "NotKeyword"
+            }
+          },
+          {
+            "choice": [
+              {
+                "token": "NullKeyword"
+              },
+              {
+                "token": "TrueKeyword"
+              },
+              {
+                "token": "FalseKeyword"
+              }
+            ]
+          }
+        ]
+      },
+      "InSuffix": {
+        "category": "expression",
+        "astKind": "InPredicate",
+        "sequence": [
+          {
+            "token": "InKeyword"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "choice": [
+              {
+                "ref": "SelectStatementCore"
+              },
+              {
+                "ref": "ExpressionList"
+              }
+            ]
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "NotInSuffix": {
+        "category": "expression",
+        "astKind": "InPredicate",
+        "sequence": [
+          {
+            "token": "NotKeyword"
+          },
+          {
+            "token": "InKeyword"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "choice": [
+              {
+                "ref": "SelectStatementCore"
+              },
+              {
+                "ref": "ExpressionList"
+              }
+            ]
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "LikeSuffix": {
+        "category": "expression",
+        "astKind": "LikePredicate",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "LikeKeyword"
+              },
+              {
+                "token": "IlikeKeyword"
+              }
+            ]
+          },
+          {
+            "ref": "PrimaryExpression"
+          }
+        ]
+      },
+      "NotLikeSuffix": {
+        "category": "expression",
+        "astKind": "LikePredicate",
+        "sequence": [
+          {
+            "token": "NotKeyword"
+          },
+          {
+            "choice": [
+              {
+                "token": "LikeKeyword"
+              },
+              {
+                "token": "IlikeKeyword"
+              }
+            ]
+          },
+          {
+            "ref": "PrimaryExpression"
+          }
+        ]
+      },
+      "BetweenSuffix": {
+        "category": "expression",
+        "astKind": "BetweenPredicate",
+        "sequence": [
+          {
+            "token": "BetweenKeyword"
+          },
+          {
+            "ref": "PrimaryExpression"
+          },
+          {
+            "token": "AndKeyword"
+          },
+          {
+            "ref": "PrimaryExpression"
+          }
+        ]
+      },
+      "NotBetweenSuffix": {
+        "category": "expression",
+        "astKind": "BetweenPredicate",
+        "sequence": [
+          {
+            "token": "NotKeyword"
+          },
+          {
+            "token": "BetweenKeyword"
+          },
+          {
+            "ref": "PrimaryExpression"
+          },
+          {
+            "token": "AndKeyword"
+          },
+          {
+            "ref": "PrimaryExpression"
+          }
+        ]
+      }
+    }
   }
 }
