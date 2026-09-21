@@ -3,7 +3,7 @@
 #include "validation.h"
 
 #include <textparser.h>
-#include <css_definition.json.h>
+#include <css_legacy_definition.json.h>
 
 #include <string.h>
 #include <stdlib.h>

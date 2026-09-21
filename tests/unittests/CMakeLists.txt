@@ -98,6 +98,7 @@ add_executable( unittests
   rust_v2_grammar_tests.cpp
   python_v2_grammar_tests.cpp
   html_v2_grammar_tests.cpp
+  css_v2_grammar_tests.cpp
   speculation_tests.cpp
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp

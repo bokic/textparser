@@ -9,7 +9,7 @@
 #include <cfml_definition.json.h>
 #include <cpp_definition.json.h>
 #include <csharp_definition.json.h>
-#include <css_definition.json.h>
+#include <css_legacy_definition.json.h>
 #include <fortran_definition.json.h>
 #include <go_definition.json.h>
 #include <java_definition.json.h>

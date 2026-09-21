@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <css_definition.json.h>
+#include <css_legacy_definition.json.h>
 #include <css.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {

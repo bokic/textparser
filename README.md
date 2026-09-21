@@ -223,6 +223,22 @@ The grammar achieves a 100% clean parse rate across all 523 `bash -n`-valid `/us
 `definitions/html_definition.json` provides a compiler-grade HTML5 schema-v2 grammar with six stack-based lexer modes (`default`, `Tag`, `ScriptTag`, `StyleTag`, `ScriptContent`, `StyleContent`) that enforce correct tokenization boundaries for tags, attributes, raw script/style bodies, and top-level document content. The grammar handles all standard HTML5 node types: `DOCTYPE` declarations (case-insensitive, with optional public/system identifiers), HTML comments (`<!-- ... -->`), `CDATA` sections (`<![CDATA[...]]>`), XML processing instructions (`<?...?>`), void elements (`area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `param`, `source`, `track`, `wbr`) recognised at higher lexer priority to avoid ambiguity with regular open tags, self-closing non-void elements (e.g. Web Component `<my-widget/>`), paired elements with nested child content, raw `<script>` and `<style>` elements whose bodies are captured as opaque `Script_Body`/`Style_Body` tokens preventing any inner markup from being tokenized. Attributes support standard quoted values (`"..."`, `'...'`), unquoted bare-word values, and boolean attributes without values. The `AttributeName` token regex covers framework-style attribute syntaxes: Angular event bindings `(click)="..."`, property bindings `[class.active]="..."`, structural directives `*ngIf` and `*ngFor`, Vue event shorthands `@submit.prevent` and `:href`, template references `#formRef`, and custom-element attributes such as `:user-id` and `data-*`/`aria-*`. Character entity references (`&amp;`, `&#65;`, `&#x1F600;`) are recognized as `Entity` tokens at document level. The `caseSensitivity: false` setting enables case-insensitive regex matching throughout (matching browser HTML parsing behaviour). Error recovery uses `Tag_Start`, `VoidTag_Start`, `ScriptTag_Start`, `StyleTag_Start`, `ClosingTag`, `Doctype`, and `Comment` as synchronization tokens, allowing the parser to skip malformed content and resume at the next recognizable structure. The legacy v1 HTML scanner is preserved as `definitions/html_legacy_definition.json` for legacy tokenization test and validator compatibility. `tests/unittests/html_v2_grammar_tests.cpp` verifies both static header and dynamic JSON definition load paths with corner-case tests covering empty documents, all node types, framework attributes, entities, self-closing and void elements, and syntax-error recovery.
 
 
+`definitions/css_definition.json` is the primary CSS schema-v2 definition. Its
+EBNF grammar builds stylesheet, at-rule, selector, declaration, function, and
+balanced component-value nodes. Six stack-based lexer modes separate rule bodies,
+parentheses, brackets, and single/double quoted strings. Coverage includes nested
+rules and `&`, functional pseudo-selectors, namespace/attribute selectors, custom
+properties, keyframe blocks, media/supports/container conditions, layers, font-face
+and page rules, escaped identifiers, URLs, numeric dimensions, and comments as
+trivia. Declaration recovery synchronizes at semicolons and closing braces;
+otherwise-unrecognized characters remain visible as `Invalid` tokens.
+`tests/unittests/css_v2_grammar_tests.cpp` checks both generated C definitions and
+JSON loading, including complete consumption, malformed input, AST structure, and
+mode restoration. This is a structural syntax grammar: property-specific value
+semantics and function argument/selector legality are not fully validated.
+The existing property/pseudo/at-rule validator and legacy scanner tests continue
+to use `definitions/css_legacy_definition.json`, matching the HTML migration.
+
 For the v2 profile, link `libtextparser_php` and call
 `textparser_php_register_validators(handle)` before executing the language grammar.
 The `php.legality` source-complete handler checks writable assignment/update

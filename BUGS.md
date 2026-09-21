@@ -20,3 +20,11 @@ Pratt expression engine, recovery rules and CST views exposed by
 `textparser_execute_language_grammar` / `textparser_execute_production` are not
 ported. This is only observable through that API (unit tests and `cstdump`),
 not through the CLI.
+
+## Schema/header generator mismatch
+
+`schema/textparser-schema.json` advertises `oneOrMore` as a grammar construct,
+but `definitions/json2h.py` rejects it with `Construct must have exactly one core
+key, found []`. Found during the CSS V2 migration. CSS uses the equivalent
+`sequence: [item, {repeat: item}]` form; the shared schema/generator mismatch
+remains to be fixed separately.
