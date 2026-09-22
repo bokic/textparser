@@ -12,4 +12,12 @@ normalization, literal `+`/`-` sign merging), reports parse failures as a
 accessors, and materializes hidden `Whitespace` leaves in the in-memory CST the
 way C does (hidden again at the JSON boundary).
 
-(No known open issues).
+(No known open Java parity issues).
+
+## Compiler fixture verification
+
+- `tests/c3_compare/verify_fixtures.py` stops extracting a `sources[]` array at
+  the first `};`, including when those characters occur inside a C++ fixture
+  string. Later entries can therefore be omitted from compiler verification.
+  The Zig comparator uses a string-aware array pattern; the existing C3 script
+  still needs the equivalent fix and a rerun of its reference checks.

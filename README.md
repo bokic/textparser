@@ -189,6 +189,33 @@ against the installed `c3c` using syntax-only `-P` compilation. This is parser
 coverage; name resolution, type checking, and other compiler semantic checks are
 outside the grammar's scope.
 
+The Zig schema-v2 migration targets **Zig 0.16.0**, matching the installed
+`zig version`. `definitions/zig_definition.json` is the primary `.zig`
+definition; `definitions/zig_legacy_definition.json` preserves the old scanner
+for tokenization regression tests. The obsolete `definitions/schema_v2` Zig
+draft has been removed.
+
+The grammar covers container and root fields, functions and declaration
+attributes, inferred and explicit error unions, pointer/slice/array sentinels and
+qualifiers, function types, struct/tuple initializers, destructuring, labeled
+blocks and switches, loop and error captures, inline assembly, and documentation
+comments. Zig's shared type/value syntax is represented by common productions.
+Arithmetic uses Pratt parsing; explicit expression layers enforce non-chained
+comparisons and the shared precedence of bitwise operators, `catch` (including
+its capture), and `orelse`. Recovery retains following block statements and
+subsequent declarations. Strings and line strings are whole tokens: Zig has no
+string interpolation or nested block comments requiring additional lexer modes.
+Removed `usingnamespace`/`async`/`await` constructs are rejected; those words
+remain usable as ordinary identifiers in 0.16.0.
+
+`tests/unittests/zig_v2_grammar_tests.cpp` checks both generated C and JSON-loaded
+definitions, complete input consumption, malformed syntax and literals,
+precedence, recovery, and identical CST names, categories, spans, and diagnostics.
+Run `python3 tests/zig_compare/verify_fixtures.py` for comparison with the installed
+compiler (`zig fmt --stdin` for syntax, `zig ast-check` for invalid literals).
+See `tests/zig_compare/README.md` for the verification scope. Name resolution,
+type checking, and compiler semantic checks are outside this grammar's scope.
+
 The PHP v2 migration targets **PHP 8.5** and is complete: the declarative grammar
 lives at `definitions/php_definition.json` and is the default for `.php` files.
 The profile declares whitespace and comments as lexer trivia

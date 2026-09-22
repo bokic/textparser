@@ -2,16 +2,17 @@
 
 ## 1.1 (Compiler-Grade Parser Architecture Overhaul - Breaking Clean Upgrade)
 
-> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`). TypeScript/TSX, PHP, CFML, JSON, Bash, C, C++, C#, Java, Rust, Python, HTML, CSS, JavaScript/JSX, Go, SQL, Swift, and C3 use primary v2 definitions (`definitions/{typescript,php,cfml,json,bash,c,cpp,csharp,java,rust,python,html,css,javascript,go,sql,swift,c3}_definition.json`) with full EBNF grammars, stack-based lexer modes, and error recovery. The legacy scanners for CFML, JSON, Bash, C, C++, C#, Java, Rust, Python, HTML, CSS, JavaScript/JSX, Go, SQL, Swift, and C3 are retained as `definitions/{cfml,json,bash,c,cpp,csharp,java,rust,python,html,css,javascript,go,sql,swift,c3}_legacy_definition.json` for the legacy tokenization tests and the core lexer suites.
+> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`). TypeScript/TSX, PHP, CFML, JSON, Bash, C, C++, C#, Java, Rust, Python, HTML, CSS, JavaScript/JSX, Go, SQL, Swift, C3, and Zig use primary v2 definitions (`definitions/{typescript,php,cfml,json,bash,c,cpp,csharp,java,rust,python,html,css,javascript,go,sql,swift,c3,zig}_definition.json`) with full EBNF grammars, stack-based lexer modes, and error recovery. The legacy scanners for CFML, JSON, Bash, C, C++, C#, Java, Rust, Python, HTML, CSS, JavaScript/JSX, Go, SQL, Swift, C3, and Zig are retained as `definitions/{cfml,json,bash,c,cpp,csharp,java,rust,python,html,css,javascript,go,sql,swift,c3,zig}_legacy_definition.json` for the legacy tokenization tests and the core lexer suites.
 
 ### Remaining Work:
-- **Migrate Remaining Languages to v2 Grammar Schema** (12 remaining; `typescript`, `php`, `cfml`, `json`, `bash`, `c`, `cpp`, `csharp`, `java`, `rust`, `python`, `html`, `css`, `javascript`, `go`, `sql`, `swift`, `c3` done):
-  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (ada, asm, fortran, jai, matlab, md, pascal, perl, r, scratch, vb, zig).
+- **Migrate Remaining Languages to v2 Grammar Schema** (11 remaining; `typescript`, `php`, `cfml`, `json`, `bash`, `c`, `cpp`, `csharp`, `java`, `rust`, `python`, `html`, `css`, `javascript`, `go`, `sql`, `swift`, `c3`, `zig` done):
+  - Author real EBNF grammars, stack-based lexer modes (`pushMode`/`popMode`), contextual lexical goals, and Pratt operator precedence tables for other languages (ada, asm, fortran, jai, matlab, md, pascal, perl, r, scratch, vb).
   - Define language-specific error recovery synchronization tokens (`recoverSync`) and native validators.
 - **Eliminate Legacy v1 Dual-Stack Burden**:
   - Complete the clean, breaking upgrade replacing legacy v1 definitions with schema v2 entirely.
   - Remove legacy v1 scanner generation paths (`src/search_function_gen.c`) once all languages are migrated.
 - **Cleanup .md files.
+- **Regen C
 
 ## 1.2 (Validator/Tree-Sitter compatibility)
 

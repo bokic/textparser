@@ -6,7 +6,7 @@
 #include <string>
 #include <iostream>
 
-#include <zig_definition.json.h>
+#include <zig_legacy_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
