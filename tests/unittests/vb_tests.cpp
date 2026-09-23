@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <vb_definition.json.h>
+#include <vb_legacy_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -45,7 +45,7 @@ Module Program
         Console.WriteLine(g.Greet())
     End Sub
 End Module
-)", &vb_definition);
+)", &vb_legacy_definition);
 
     std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {
