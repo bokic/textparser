@@ -111,7 +111,7 @@ static void verify_negative_number(const textparser_language_definition *definit
             found_typescript_one = true;
         if (item.type && strcmp(item.type, "AddOperator") == 0 && item.value == "-")
             found_php_minus = true;
-        if (item.type && strcmp(item.type, "Number") == 0 && item.value == "1")
+        if (item.type && (strcmp(item.type, "Number") == 0 || strcmp(item.type, "DecNumber") == 0) && item.value == "1")
             found_php_one = true;
         for (size_t i = 0; i < item.children; ++i) {
             scan(item[i]);
@@ -126,9 +126,9 @@ static void verify_negative_number(const textparser_language_definition *definit
         // v2 PHP/CFML use the contextual lexer, which keeps the unary minus
         // separate from its Number operand (like TypeScript).
         found_neg_one = found_php_minus && found_php_one;
-    else if (strcmp(lang_name, "C") == 0 || strcmp(lang_name, "C++") == 0 || strcmp(lang_name, "C#") == 0 || strcmp(lang_name, "Java") == 0 || strcmp(lang_name, "Python") == 0 || strcmp(lang_name, "Go") == 0 || strcmp(lang_name, "Swift") == 0)
-        // v2 C/C++/C#/Java/Python/Go/Swift use the contextual lexer, which keeps the unary minus (Minus)
-        // separate from its Number operand.
+    else if (strcmp(lang_name, "C") == 0 || strcmp(lang_name, "C++") == 0 || strcmp(lang_name, "C#") == 0 || strcmp(lang_name, "Java") == 0 || strcmp(lang_name, "Python") == 0 || strcmp(lang_name, "Go") == 0 || strcmp(lang_name, "Swift") == 0 || strcmp(lang_name, "Pascal") == 0)
+        // v2 C/C++/C#/Java/Python/Go/Swift/Pascal keep the unary minus (Minus)
+        // separate from its Number/DecNumber operand.
         found_neg_one = found_typescript_minus && found_php_one;
 
     if (!found_neg_one) {

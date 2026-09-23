@@ -158,8 +158,7 @@ from the core parser into pluggable validators and language validation modules:
 
 ## 📚 Supported Languages
 
-`textparser` features rich tokenization and syntax parsing rules for:
-* **System & General:** C, C++, C#, Java, Go, Rust, Swift, Zig, C3, Jai, V, Ada, Assembly (x86/ARM)
+* **System & General:** C, C++, C#, Java, Go, Rust, Swift, Zig, C3, Jai, V, Ada, Assembly (x86/ARM), Pascal
 * **Web & Data:** HTML, CSS, JavaScript, TypeScript, JSON, XML, SQL, Markdown
 * **Scripting:** Python, PHP, Bash/Shell
 
