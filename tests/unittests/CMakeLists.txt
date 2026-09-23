@@ -105,6 +105,7 @@ add_executable( unittests
   sql_v2_grammar_tests.cpp
   swift_v2_grammar_tests.cpp
   zig_v2_grammar_tests.cpp
+  jai_v2_grammar_tests.cpp
   speculation_tests.cpp
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp

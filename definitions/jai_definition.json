@@ -1,170 +1,4043 @@
 {
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
   "name": "jai",
-  "version": 1.0,
+  "version": 2.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [
     "jai"
   ],
   "defaultTextEncoding": "utf-8",
-  "startTokens": [
-    "LineComment",
-    "BlockComment",
-    "Directive",
-    "Boolean",
-    "Keyword",
-    "Variable",
-    "CodeBlock",
-    "Operator",
-    "DoubleString",
-    "Number",
-    "Parenthesis",
-    "ArrayIndex"
+  "supportedBom": [
+    "utf-8"
   ],
-  "otherTextInside": true,
-  "tokens": {
-    "LineComment": {
-      "type": "SimpleToken",
-      "startRegex": "\\/\\/[^\\r\\n]*",
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+  "otherTextInside": false,
+  "diagnostics": {
+    "expected": {
+      "code": "JAI1001",
+      "message": "Expected %s."
     },
-    "BlockComment": {
-      "type": "StartStop",
-      "startRegex": "\\/\\*",
-      "endRegex": "\\*\\/",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+    "tokenExpected": {
+      "code": "JAI1002",
+      "message": "'%s' expected."
     },
-    "Directive": {
-      "type": "SimpleToken",
-      "startRegex": "#(?:import|add_context|align|as|assert|bake_arguments|bake_constants|bake|bytes|caller_code|caller_location|char|code|compile_time|complete|dump|elsewhere|expand|file|filepath|ifx|if|insert|intrinsic|modify|module_parameters|must|no_abc|no_alias|no_padding|no_reset|place|placeholder|procedure_name|procedure_of_call|program_export|run|specified|symmetric|this|through|type_info|type|unshared|scope_export|scope_file|scope_module|string)\\b",
-      "textColor": "0xd7ba7d"
-    },
-    "Keyword": {
-      "type": "SimpleToken",
-      "startRegex": "if\\b|ifx\\b|then\\b|else\\b|case\\b|return\\b|break\\b|continue\\b|while\\b|for\\b|remove\\b|defer\\b|context\\b|push_context\\b|using\\b|temp\\b|struct\\b|enum\\b|union\\b|cast\\b|trunc\\b|no_check\\b|xx\\b|inline\\b|int\\b|u8\\b|u16\\b|u32\\b|u64\\b|s8\\b|s16\\b|s32\\b|s64\\b|float\\b|float32\\b|float64\\b|bool\\b|string\\b|void\\b|Code\\b|Type\\b",
-      "textColor": "0xc586c0"
-    },
-    "Boolean": {
-      "type": "SimpleToken",
-      "startRegex": "true\\b|false\\b|null\\b",
-      "textColor": "0x569cd6"
-    },
-    "Variable": {
-      "type": "SimpleToken",
-      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
-      "textColor": "0x9cdcfe"
-    },
-    "CodeBlock": {
-      "type": "StartStop",
-      "startRegex": "\\{",
-      "endRegex": "\\}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "BlockComment",
-        "Directive",
-        "Boolean",
-        "Keyword",
-        "Variable",
-        "CodeBlock",
-        "Operator",
-        "DoubleString",
-        "Number",
-        "Parenthesis",
-        "ArrayIndex"
-      ]
-    },
-    "Operator": {
-      "type": "SimpleToken",
-      "startRegex": "::|:=|:|===|==|!=|<=|>=|&&|\\|\\||\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|\\|=|<<=|>>=|->|<<|>>|[=<>!&|^~+\\-*/%\\?:;.,]",
-      "textColor": "0xd4d4d4"
-    },
-    "DoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "StringEscape": {
-      "type": "SimpleToken",
-      "startRegex": "\\\\\\\\|\\\\\\\"|\\\\\\'|\\\\n|\\\\r|\\\\t|\\\\u[0-9a-fA-F]{4}|\\\\x[0-9a-fA-F]{2}",
-      "textColor": "0xd7ba7d"
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "0[xX][0-9a-fA-F_]+\\b|0[bB][01_]+\\b|0[hH][0-9a-fA-F_]+\\b|[0-9_]*\\.?[0-9_]+(?:[eE][-+]?[0-9_]+)?\\b",
-      "textColor": "0xb5cea8"
-    },
-    "Parenthesis": {
-      "type": "StartStop",
-      "startRegex": "\\(",
-      "endRegex": "\\)",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "BlockComment",
-        "Directive",
-        "Boolean",
-        "Keyword",
-        "Variable",
-        "CodeBlock",
-        "Operator",
-        "DoubleString",
-        "Number",
-        "Parenthesis",
-        "ArrayIndex"
-      ]
-    },
-    "ArrayIndex": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "BlockComment",
-        "Directive",
-        "Boolean",
-        "Keyword",
-        "Variable",
-        "CodeBlock",
-        "Operator",
-        "DoubleString",
-        "Number",
-        "Parenthesis",
-        "ArrayIndex"
-      ]
+    "recovered": {
+      "code": "JAI1003",
+      "message": "Syntax error: unexpected token, recovering."
     }
   },
-  "mergeSignIntoNumber": {
-    "signTokens": [
-      "Operator"
-    ],
-    "numberTokens": [
-      "Number"
-    ],
-    "operandTokens": [
-      "Number",
-      "Variable",
-      "Boolean",
-      "DoubleString",
-      "Parenthesis",
-      "ArrayIndex",
-      "CodeBlock"
+  "recovery": {
+    "maximumDiagnostics": 100,
+    "maximumSkippedTokens": 50,
+    "maximumRecoveryAttempts": 30,
+    "synchronizationTokens": [
+      "Semicolon",
+      "RBrace",
+      "RParen",
+      "RBracket"
     ]
-  }
+  },
+  "lexer": {
+    "trivia": {
+      "Whitespace": {
+        "regex": "[ \\t\\r\\n]+",
+        "textColor": "0xd4d4d4"
+      },
+      "LineComment": {
+        "regex": "//[^\\r\\n]*",
+        "textColor": "0x6a9955"
+      },
+      "BlockComment": {
+        "regex": "/\\*(?:[^*/]+|/(?!\\*)|\\*(?!/)|(?R))*\\*/",
+        "textColor": "0x6a9955"
+      }
+    },
+    "tokens": {
+      "HereString": {
+        "regex": "((?s:#string(?:,[a-zA-Z_0-9]+)?[ \\t]+([a-zA-Z_][a-zA-Z0-9_]*)[ \\t]*\\r?\\n(?:.*?\\n)?[ \\t]*\\2(?![a-zA-Z0-9_])))",
+        "priority": 32,
+        "textColor": "0xce9178"
+      },
+      "StringLiteral": {
+        "regex": "\"(?:[^\"\\\\\\r\\n]|\\\\.)*\"",
+        "priority": 30,
+        "textColor": "0xce9178"
+      },
+      "CharLiteral": {
+        "regex": "'(?:[^'\\\\\\r\\n]|\\\\.)'",
+        "priority": 30,
+        "textColor": "0xce9178"
+      },
+      "HexNumber": {
+        "regex": "0[xX][0-9a-fA-F_]+\\b",
+        "priority": 28,
+        "textColor": "0xb5cea8"
+      },
+      "HexFloat": {
+        "regex": "0[hH][0-9a-fA-F_]+\\b",
+        "priority": 28,
+        "textColor": "0xb5cea8"
+      },
+      "BinNumber": {
+        "regex": "0[bB][01_]+\\b",
+        "priority": 28,
+        "textColor": "0xb5cea8"
+      },
+      "FloatNumber": {
+        "regex": "[0-9][0-9_]*\\.[0-9][0-9_]*(?:[eE][+-]?[0-9_]+)?\\b|\\.[0-9][0-9_]+(?:[eE][+-]?[0-9_]+)?\\b|[0-9][0-9_]+[eE][+-]?[0-9_]+\\b",
+        "priority": 27,
+        "textColor": "0xb5cea8"
+      },
+      "DecNumber": {
+        "regex": "[0-9][0-9_]*\\b",
+        "priority": 26,
+        "textColor": "0xb5cea8"
+      },
+      "UninitializedLiteral": {
+        "regex": "---",
+        "priority": 25,
+        "textColor": "0x569cd6"
+      },
+      "Note": {
+        "regex": "@[a-zA-Z_][a-zA-Z0-9_]*(?:\\([^)]*\\))?|@\"(?:[^\"\\\\\\r\\n]|\\\\.)*\"",
+        "priority": 25,
+        "textColor": "0xd7ba7d"
+      },
+      "ImportDirective": {
+        "regex": "#import\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "LoadDirective": {
+        "regex": "#load\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "RunDirective": {
+        "regex": "#run\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "HashIfDirective": {
+        "regex": "#if\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "HashIfxDirective": {
+        "regex": "#ifx\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "AssertDirective": {
+        "regex": "#assert\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "InsertDirective": {
+        "regex": "#insert(?:_internal)?\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CodeDirective": {
+        "regex": "#code\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "BakeArgumentsDirective": {
+        "regex": "#bake_arguments\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "BakeConstantsDirective": {
+        "regex": "#bake_constants\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CharDirective": {
+        "regex": "#char\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "AlignDirective": {
+        "regex": "#align\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "AsDirective": {
+        "regex": "#as\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CCallDirective": {
+        "regex": "#c_call\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CompilerDirective": {
+        "regex": "#compiler\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CompileTimeDirective": {
+        "regex": "#compile_time\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CompleteDirective": {
+        "regex": "#complete\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "DumpDirective": {
+        "regex": "#dump\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ElsewhereDirective": {
+        "regex": "#elsewhere\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "InlineDirective": {
+        "regex": "#inline\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoInlineDirective": {
+        "regex": "#no_inline\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ExpandDirective": {
+        "regex": "#expand\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "FileDirective": {
+        "regex": "#file\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "FilepathDirective": {
+        "regex": "#filepath\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ForeignDirective": {
+        "regex": "#foreign\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "IntrinsicDirective": {
+        "regex": "#intrinsic\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ModifyDirective": {
+        "regex": "#modify\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ModuleParametersDirective": {
+        "regex": "#module_parameters\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "MustDirective": {
+        "regex": "#must\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoAbcDirective": {
+        "regex": "#no_abc\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoAocDirective": {
+        "regex": "#no_aoc\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoAliasDirective": {
+        "regex": "#no_alias\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoPaddingDirective": {
+        "regex": "#no_padding\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoResetDirective": {
+        "regex": "#no_reset\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoContextDirective": {
+        "regex": "#no_context\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "NoDebugDirective": {
+        "regex": "#no_debug\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "PlaceDirective": {
+        "regex": "#place\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "PlaceholderDirective": {
+        "regex": "#placeholder\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ProcedureOfCallDirective": {
+        "regex": "#procedure_of_call\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ProcedureNameDirective": {
+        "regex": "#procedure_name\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ProgramExportDirective": {
+        "regex": "#program_export\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ScopeExportDirective": {
+        "regex": "#scope_export\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ScopeFileDirective": {
+        "regex": "#scope_file\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ScopeModuleDirective": {
+        "regex": "#scope_module\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "SymmetricDirective": {
+        "regex": "#symmetric\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ThisDirective": {
+        "regex": "#this\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ThroughDirective": {
+        "regex": "#through\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "TypeDirective": {
+        "regex": "#type\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "TypeInfoDirective": {
+        "regex": "#type_info(?:_none|_procedures_are_void_pointers|_no_size_complaint)?\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "SpecifiedDirective": {
+        "regex": "#specified\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "OverlayDirective": {
+        "regex": "#overlay\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "LocationDirective": {
+        "regex": "#location\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ExistsDirective": {
+        "regex": "#exists\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "LibraryDirective": {
+        "regex": "#library\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "DeprecatedDirective": {
+        "regex": "#deprecated\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "EntryPointDirective": {
+        "regex": "#entry_point\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CallerLocationDirective": {
+        "regex": "#caller_location\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "CallerCodeDirective": {
+        "regex": "#caller_code\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "LineDirective": {
+        "regex": "#line\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "BytesDirective": {
+        "regex": "#bytes\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "AsmDirective": {
+        "regex": "#asm\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "AddContextDirective": {
+        "regex": "#add_context\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "ContextTypeDirective": {
+        "regex": "#Context\\b",
+        "priority": 23,
+        "textColor": "0xd7ba7d"
+      },
+      "GenericDirective": {
+        "regex": "#[a-zA-Z_][a-zA-Z0-9_]*\\b",
+        "priority": 20,
+        "textColor": "0xd7ba7d"
+      },
+      "IfKeyword": {
+        "regex": "if\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "IfxKeyword": {
+        "regex": "ifx\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "ThenKeyword": {
+        "regex": "then\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "ElseKeyword": {
+        "regex": "else\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "CaseKeyword": {
+        "regex": "case\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "WhileKeyword": {
+        "regex": "while\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "ForKeyword": {
+        "regex": "for\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "ReturnKeyword": {
+        "regex": "return\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "BreakKeyword": {
+        "regex": "break\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "ContinueKeyword": {
+        "regex": "continue\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "RemoveKeyword": {
+        "regex": "remove\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "DeferKeyword": {
+        "regex": "defer\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "PushContextKeyword": {
+        "regex": "push_context\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "UsingKeyword": {
+        "regex": "using\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "StructKeyword": {
+        "regex": "struct\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "UnionKeyword": {
+        "regex": "union\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "EnumKeyword": {
+        "regex": "enum\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "EnumFlagsKeyword": {
+        "regex": "enum_flags\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "CastKeyword": {
+        "regex": "cast\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "XxKeyword": {
+        "regex": "xx\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "InlineKeyword": {
+        "regex": "inline\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "NoInlineKeyword": {
+        "regex": "no_inline\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "OperatorKeyword": {
+        "regex": "operator\\b",
+        "priority": 22,
+        "textColor": "0xc586c0"
+      },
+      "TrueKeyword": {
+        "regex": "true\\b",
+        "priority": 22,
+        "textColor": "0x569cd6"
+      },
+      "FalseKeyword": {
+        "regex": "false\\b",
+        "priority": 22,
+        "textColor": "0x569cd6"
+      },
+      "NullKeyword": {
+        "regex": "null\\b",
+        "priority": 22,
+        "textColor": "0x569cd6"
+      },
+      "IntKeyword": {
+        "regex": "int\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "U8Keyword": {
+        "regex": "u8\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "U16Keyword": {
+        "regex": "u16\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "U32Keyword": {
+        "regex": "u32\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "U64Keyword": {
+        "regex": "u64\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "S8Keyword": {
+        "regex": "s8\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "S16Keyword": {
+        "regex": "s16\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "S32Keyword": {
+        "regex": "s32\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "S64Keyword": {
+        "regex": "s64\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "FloatKeyword": {
+        "regex": "float\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "Float32Keyword": {
+        "regex": "float32\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "Float64Keyword": {
+        "regex": "float64\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "BoolKeyword": {
+        "regex": "bool\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "StringKeyword": {
+        "regex": "string\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "VoidKeyword": {
+        "regex": "void\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "TypeKeyword": {
+        "regex": "Type\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "CodeKeyword": {
+        "regex": "Code\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "AnyKeyword": {
+        "regex": "Any\\b",
+        "priority": 22,
+        "textColor": "0x4ec9b0"
+      },
+      "BacktickIdentifier": {
+        "regex": "`[a-zA-Z_][a-zA-Z0-9_]*",
+        "priority": 21,
+        "textColor": "0x9cdcfe"
+      },
+      "Identifier": {
+        "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+        "priority": 10,
+        "textColor": "0x9cdcfe"
+      },
+      "ShiftLeft3Equal": {
+        "regex": "<<<=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "ShiftRight3Equal": {
+        "regex": ">>>=",
+        "priority": 16,
+        "textColor": "0xd4d4d4"
+      },
+      "ShiftLeftEqual": {
+        "regex": "<<=",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "ShiftRightEqual": {
+        "regex": ">>=",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "AmpAmpEqual": {
+        "regex": "&&=",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "PipePipeEqual": {
+        "regex": "\\|\\|=",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "ShiftLeft3": {
+        "regex": "<<<",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "ShiftRight3": {
+        "regex": ">>>",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "ColonColon": {
+        "regex": "::",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "ColonEqual": {
+        "regex": ":=",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "DotDot": {
+        "regex": "\\.\\.",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "FatArrow": {
+        "regex": "=>",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Arrow": {
+        "regex": "->",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "DoubleComma": {
+        "regex": ",,",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "DoubleDollar": {
+        "regex": "\\$\\$",
+        "priority": 15,
+        "textColor": "0xd4d4d4"
+      },
+      "Dollar": {
+        "regex": "\\$",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "ShiftLeft": {
+        "regex": "<<",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "ShiftRight": {
+        "regex": ">>",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "EqualEqual": {
+        "regex": "==",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "ExclamationEqual": {
+        "regex": "!=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "LessEqual": {
+        "regex": "<=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "GreaterEqual": {
+        "regex": ">=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "AmpAmp": {
+        "regex": "&&",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "PipePipe": {
+        "regex": "\\|\\|",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "PlusEqual": {
+        "regex": "\\+=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "MinusEqual": {
+        "regex": "-=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "StarEqual": {
+        "regex": "\\*=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "SlashEqual": {
+        "regex": "/=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "PercentEqual": {
+        "regex": "%=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "AmpEqual": {
+        "regex": "&=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "PipeEqual": {
+        "regex": "\\|=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "CaretEqual": {
+        "regex": "\\^=",
+        "priority": 14,
+        "textColor": "0xd4d4d4"
+      },
+      "Equal": {
+        "regex": "=",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Plus": {
+        "regex": "\\+",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Minus": {
+        "regex": "-",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Star": {
+        "regex": "\\*",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Slash": {
+        "regex": "/",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Percent": {
+        "regex": "%",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Amp": {
+        "regex": "&",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Pipe": {
+        "regex": "\\|",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Caret": {
+        "regex": "\\^",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Tilde": {
+        "regex": "~",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Exclamation": {
+        "regex": "!",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Less": {
+        "regex": "<",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Greater": {
+        "regex": ">",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Question": {
+        "regex": "\\?",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Colon": {
+        "regex": ":",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Semicolon": {
+        "regex": ";",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Comma": {
+        "regex": ",",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "Dot": {
+        "regex": "\\.",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "LParen": {
+        "regex": "\\(",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "RParen": {
+        "regex": "\\)",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "LBrace": {
+        "regex": "\\{",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "RBrace": {
+        "regex": "\\}",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "LBracket": {
+        "regex": "\\[",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      },
+      "RBracket": {
+        "regex": "\\]",
+        "priority": 11,
+        "textColor": "0xd4d4d4"
+      }
+    }
+  },
+  "grammar": {
+    "start": "SourceFile",
+    "productions": {
+      "SourceFile": {
+        "category": "source_file",
+        "sequence": [
+          {
+            "repeat": {
+              "ref": "RecoverableStatement"
+            }
+          }
+        ]
+      },
+      "Statement": {
+        "category": "statement",
+        "choice": [
+          {
+            "ref": "EmptyStatement"
+          },
+          {
+            "ref": "BlockStatement"
+          },
+          {
+            "ref": "Declaration"
+          },
+          {
+            "ref": "IfCaseStatement"
+          },
+          {
+            "ref": "IfStatement"
+          },
+          {
+            "ref": "WhileStatement"
+          },
+          {
+            "ref": "ForStatement"
+          },
+          {
+            "ref": "ReturnStatement"
+          },
+          {
+            "ref": "BreakStatement"
+          },
+          {
+            "ref": "ContinueStatement"
+          },
+          {
+            "ref": "RemoveStatement"
+          },
+          {
+            "ref": "DeferStatement"
+          },
+          {
+            "ref": "PushContextStatement"
+          },
+          {
+            "ref": "UsingStatement"
+          },
+          {
+            "ref": "ImportStatement"
+          },
+          {
+            "ref": "LoadStatement"
+          },
+          {
+            "ref": "RunStatement"
+          },
+          {
+            "ref": "AssertStatement"
+          },
+          {
+            "ref": "ScopeDirectiveStatement"
+          },
+          {
+            "ref": "PlaceholderStatement"
+          },
+          {
+            "ref": "AddContextStatement"
+          },
+          {
+            "ref": "ModuleParametersStatement"
+          },
+          {
+            "ref": "AsmStatement"
+          },
+          {
+            "ref": "ExpressionStatement"
+          }
+        ]
+      },
+      "EmptyStatement": {
+        "category": "statement",
+        "token": "Semicolon"
+      },
+      "BlockStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "LBrace"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "CaseClause"
+                },
+                {
+                  "ref": "RecoverableStatement"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "Declaration": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "Note"
+                },
+                {
+                  "ref": "UsingClause"
+                },
+                {
+                  "token": "AsDirective"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "DeclarationNameList"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "ColonColon"
+                  },
+                  {
+                    "ref": "Expression"
+                  },
+                  {
+                    "optional": {
+                      "token": "Semicolon"
+                    }
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "ColonEqual"
+                  },
+                  {
+                    "ref": "ExpressionList"
+                  },
+                  {
+                    "optional": {
+                      "token": "Semicolon"
+                    }
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "Colon"
+                  },
+                  {
+                    "optional": {
+                      "ref": "Type"
+                    }
+                  },
+                  {
+                    "repeat": {
+                      "ref": "DeclarationDirective"
+                    }
+                  },
+                  {
+                    "optional": {
+                      "choice": [
+                        {
+                          "sequence": [
+                            {
+                              "token": "Colon"
+                            },
+                            {
+                              "ref": "ExpressionList"
+                            }
+                          ]
+                        },
+                        {
+                          "sequence": [
+                            {
+                              "token": "Equal"
+                            },
+                            {
+                              "ref": "ExpressionList"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "optional": {
+                      "token": "Semicolon"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "DeclarationNameList": {
+        "sequence": [
+          {
+            "ref": "DeclarationName"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "DeclarationName"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "DeclarationName": {
+        "category": "other",
+        "choice": [
+          {
+            "token": "Identifier"
+          },
+          {
+            "token": "BacktickIdentifier"
+          },
+          {
+            "ref": "OperatorName"
+          }
+        ]
+      },
+      "OperatorName": {
+        "category": "other",
+        "sequence": [
+          {
+            "token": "OperatorKeyword"
+          },
+          {
+            "choice": [
+              {
+                "token": "Plus"
+              },
+              {
+                "token": "Minus"
+              },
+              {
+                "token": "Star"
+              },
+              {
+                "token": "Slash"
+              },
+              {
+                "token": "Percent"
+              },
+              {
+                "token": "EqualEqual"
+              },
+              {
+                "token": "ExclamationEqual"
+              },
+              {
+                "token": "Less"
+              },
+              {
+                "token": "LessEqual"
+              },
+              {
+                "token": "Greater"
+              },
+              {
+                "token": "GreaterEqual"
+              },
+              {
+                "token": "AmpAmp"
+              },
+              {
+                "token": "PipePipe"
+              },
+              {
+                "token": "Amp"
+              },
+              {
+                "token": "Pipe"
+              },
+              {
+                "token": "Caret"
+              },
+              {
+                "token": "Tilde"
+              },
+              {
+                "token": "Exclamation"
+              },
+              {
+                "token": "ShiftLeft"
+              },
+              {
+                "token": "ShiftRight"
+              },
+              {
+                "token": "ShiftLeft3"
+              },
+              {
+                "token": "ShiftRight3"
+              },
+              {
+                "token": "PlusEqual"
+              },
+              {
+                "token": "MinusEqual"
+              },
+              {
+                "token": "StarEqual"
+              },
+              {
+                "token": "SlashEqual"
+              },
+              {
+                "token": "PercentEqual"
+              },
+              {
+                "token": "AmpEqual"
+              },
+              {
+                "token": "PipeEqual"
+              },
+              {
+                "token": "CaretEqual"
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "LBracket"
+                  },
+                  {
+                    "token": "RBracket"
+                  },
+                  {
+                    "optional": {
+                      "token": "Equal"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "DeclarationDirective": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "AlignDirective"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "ElsewhereDirective"
+              },
+              {
+                "optional": {
+                  "token": "Identifier"
+                }
+              },
+              {
+                "optional": {
+                  "token": "StringLiteral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "UsingClause": {
+        "sequence": [
+          {
+            "token": "UsingKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "UsingModifierList"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "UsingModifierList": {
+        "sequence": [
+          {
+            "ref": "UsingModifier"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "UsingModifier"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "UsingModifier": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "Identifier"
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "LParen"
+                    },
+                    {
+                      "optional": {
+                        "ref": "ExpressionList"
+                      }
+                    },
+                    {
+                      "token": "RParen"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "UsingStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "UsingClause"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "IfStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "IfKeyword"
+              },
+              {
+                "token": "HashIfDirective"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "token": "ThenKeyword"
+            }
+          },
+          {
+            "ref": "Statement"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "ElseKeyword"
+                },
+                {
+                  "ref": "Statement"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "IfCaseStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "IfKeyword"
+              },
+              {
+                "token": "HashIfDirective"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "token": "CompleteDirective"
+            }
+          },
+          {
+            "pratt": {
+              "primary": {
+                "ref": "UnaryExpression"
+              },
+              "minimumPrecedence": 9
+            }
+          },
+          {
+            "token": "EqualEqual"
+          },
+          {
+            "token": "LBrace"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "CaseClause"
+                },
+                {
+                  "ref": "RecoverableStatement"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "CaseClause": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "CaseKeyword"
+          },
+          {
+            "optional": {
+              "ref": "ExpressionList"
+            }
+          },
+          {
+            "token": "Semicolon"
+          }
+        ]
+      },
+      "WhileStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "WhileKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Identifier"
+                },
+                {
+                  "token": "ColonEqual"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "ref": "Statement"
+          }
+        ]
+      },
+      "ForStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ForKeyword"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "ref": "ForModifier"
+                },
+                {
+                  "optional": {
+                    "token": "Comma"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "ref": "DeclarationNameList"
+                },
+                {
+                  "token": "Colon"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "NoAbcDirective"
+                },
+                {
+                  "token": "NoAocDirective"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "Statement"
+          }
+        ]
+      },
+      "ForModifier": {
+        "choice": [
+          {
+            "token": "Less"
+          },
+          {
+            "token": "Star"
+          },
+          {
+            "sequence": [
+              {
+                "token": "LessEqual"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "StarEqual"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "Colon"
+              },
+              {
+                "token": "Identifier"
+              }
+            ]
+          }
+        ]
+      },
+      "ReturnStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "ReturnKeyword"
+              },
+              {
+                "token": "BacktickIdentifier"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "ExpressionList"
+            }
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "BreakStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "BreakKeyword"
+          },
+          {
+            "optional": {
+              "token": "Identifier"
+            }
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "ContinueStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ContinueKeyword"
+          },
+          {
+            "optional": {
+              "token": "Identifier"
+            }
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "RemoveStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "RemoveKeyword"
+          },
+          {
+            "optional": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "DeferStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "DeferKeyword"
+              },
+              {
+                "token": "BacktickIdentifier"
+              }
+            ]
+          },
+          {
+            "ref": "Statement"
+          }
+        ]
+      },
+      "PushContextStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "PushContextKeyword"
+              },
+              {
+                "token": "BacktickIdentifier"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "choice": [
+              {
+                "ref": "BlockStatement"
+              },
+              {
+                "optional": {
+                  "token": "Semicolon"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "ImportStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ImportDirective"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "Identifier"
+                }
+              ]
+            }
+          },
+          {
+            "token": "StringLiteral"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "LParen"
+                },
+                {
+                  "optional": {
+                    "ref": "ArgumentList"
+                  }
+                },
+                {
+                  "token": "RParen"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "LoadStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "LoadDirective"
+          },
+          {
+            "token": "StringLiteral"
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "RunStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "RunDirective"
+          },
+          {
+            "choice": [
+              {
+                "ref": "BlockStatement"
+              },
+              {
+                "sequence": [
+                  {
+                    "ref": "Expression"
+                  },
+                  {
+                    "optional": {
+                      "token": "Semicolon"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "AssertStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "AssertDirective"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "StringLiteral"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "ScopeDirectiveStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "ScopeFileDirective"
+              },
+              {
+                "token": "ScopeExportDirective"
+              },
+              {
+                "token": "ScopeModuleDirective"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "PlaceholderStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "PlaceholderDirective"
+          },
+          {
+            "token": "Identifier"
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "AddContextStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "AddContextDirective"
+          },
+          {
+            "ref": "Statement"
+          }
+        ]
+      },
+      "ModuleParametersStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "ModuleParametersDirective"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "ParameterList"
+            }
+          },
+          {
+            "token": "RParen"
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "AsmStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "token": "AsmDirective"
+          },
+          {
+            "optional": {
+              "ref": "DeclarationNameList"
+            }
+          },
+          {
+            "token": "LBrace"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "Identifier"
+                },
+                {
+                  "token": "DecNumber"
+                },
+                {
+                  "token": "HexNumber"
+                },
+                {
+                  "token": "FloatNumber"
+                },
+                {
+                  "token": "StringLiteral"
+                },
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "Semicolon"
+                },
+                {
+                  "token": "Colon"
+                },
+                {
+                  "token": "LBracket"
+                },
+                {
+                  "token": "RBracket"
+                },
+                {
+                  "token": "LParen"
+                },
+                {
+                  "token": "RParen"
+                },
+                {
+                  "token": "Plus"
+                },
+                {
+                  "token": "Minus"
+                },
+                {
+                  "token": "Star"
+                },
+                {
+                  "token": "Slash"
+                },
+                {
+                  "token": "Equal"
+                },
+                {
+                  "token": "Dollar"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "ExpressionStatement": {
+        "category": "statement",
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "ExpressionList": {
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Expression": {
+        "category": "expression",
+        "pratt": {
+          "primary": {
+            "ref": "UnaryExpression"
+          },
+          "minimumPrecedence": 1
+        }
+      },
+      "UnaryExpression": {
+        "category": "expression",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "ref": "PrefixUnaryOperator"
+              },
+              {
+                "ref": "UnaryExpression"
+              }
+            ]
+          },
+          {
+            "ref": "CastExpression"
+          },
+          {
+            "ref": "AutoCastExpression"
+          },
+          {
+            "ref": "InlineExpression"
+          },
+          {
+            "ref": "PrefixDereference"
+          },
+          {
+            "ref": "PostfixExpression"
+          }
+        ]
+      },
+      "PrefixUnaryOperator": {
+        "choice": [
+          {
+            "token": "Minus"
+          },
+          {
+            "token": "Plus"
+          },
+          {
+            "token": "Exclamation"
+          },
+          {
+            "token": "Tilde"
+          },
+          {
+            "token": "Star"
+          },
+          {
+            "token": "ShiftLeft"
+          },
+          {
+            "token": "DoubleDollar"
+          },
+          {
+            "token": "Dollar"
+          }
+        ]
+      },
+      "CastExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "CastKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "Identifier"
+                }
+              ]
+            }
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "Type"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "Comma"
+                  },
+                  {
+                    "ref": "Expression"
+                  },
+                  {
+                    "optional": {
+                      "sequence": [
+                        {
+                          "token": "Comma"
+                        },
+                        {
+                          "token": "Identifier"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "RParen"
+                  },
+                  {
+                    "ref": "UnaryExpression"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "AutoCastExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "XxKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "Identifier"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "UnaryExpression"
+          }
+        ]
+      },
+      "InlineExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "InlineKeyword"
+              },
+              {
+                "token": "NoInlineKeyword"
+              }
+            ]
+          },
+          {
+            "ref": "UnaryExpression"
+          }
+        ]
+      },
+      "PrefixDereference": {
+        "category": "expression",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "token": "Dot"
+          },
+          {
+            "token": "Star"
+          },
+          {
+            "token": "RParen"
+          },
+          {
+            "ref": "UnaryExpression"
+          }
+        ]
+      },
+      "PostfixExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "ref": "PrimaryExpression"
+          },
+          {
+            "repeat": {
+              "ref": "PostfixSuffix"
+            }
+          }
+        ]
+      },
+      "PostfixSuffix": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "Dot"
+              },
+              {
+                "choice": [
+                  {
+                    "token": "Star"
+                  },
+                  {
+                    "token": "Identifier"
+                  },
+                  {
+                    "token": "BacktickIdentifier"
+                  },
+                  {
+                    "token": "DecNumber"
+                  },
+                  {
+                    "ref": "OperatorName"
+                  },
+                  {
+                    "sequence": [
+                      {
+                        "token": "LParen"
+                      },
+                      {
+                        "ref": "Type"
+                      },
+                      {
+                        "token": "RParen"
+                      }
+                    ]
+                  },
+                  {
+                    "sequence": [
+                      {
+                        "token": "LBrace"
+                      },
+                      {
+                        "optional": {
+                          "ref": "StructLiteralMemberList"
+                        }
+                      },
+                      {
+                        "token": "RBrace"
+                      }
+                    ]
+                  },
+                  {
+                    "sequence": [
+                      {
+                        "token": "LBracket"
+                      },
+                      {
+                        "optional": {
+                          "ref": "ExpressionList"
+                        }
+                      },
+                      {
+                        "token": "RBracket"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "LParen"
+              },
+              {
+                "optional": {
+                  "ref": "ArgumentList"
+                }
+              },
+              {
+                "token": "RParen"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "LBracket"
+              },
+              {
+                "optional": {
+                  "choice": [
+                    {
+                      "token": "DotDot"
+                    },
+                    {
+                      "ref": "Expression"
+                    }
+                  ]
+                }
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "DotDot"
+                    },
+                    {
+                      "optional": {
+                        "ref": "Expression"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "token": "RBracket"
+              }
+            ]
+          }
+        ]
+      },
+      "ArgumentList": {
+        "sequence": [
+          {
+            "optional": {
+              "token": "DoubleComma"
+            }
+          },
+          {
+            "ref": "Argument"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "choice": [
+                    {
+                      "token": "Comma"
+                    },
+                    {
+                      "token": "DoubleComma"
+                    }
+                  ]
+                },
+                {
+                  "ref": "Argument"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "DoubleComma"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Argument": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "Identifier"
+              },
+              {
+                "token": "Equal"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "PrimaryExpression": {
+        "category": "expression",
+        "choice": [
+          {
+            "ref": "PrimitiveType"
+          },
+          {
+            "ref": "Literal"
+          },
+          {
+            "ref": "LambdaExpression"
+          },
+          {
+            "ref": "ProcedureDefinition"
+          },
+          {
+            "ref": "StructDefinition"
+          },
+          {
+            "ref": "UnionDefinition"
+          },
+          {
+            "ref": "EnumDefinition"
+          },
+          {
+            "ref": "IfxExpression"
+          },
+          {
+            "ref": "DirectiveExpression"
+          },
+          {
+            "ref": "AnonymousCompositeLiteral"
+          },
+          {
+            "ref": "ParenthesizedExpression"
+          },
+          {
+            "token": "Identifier"
+          },
+          {
+            "token": "BacktickIdentifier"
+          }
+        ]
+      },
+      "Literal": {
+        "category": "expression",
+        "choice": [
+          {
+            "token": "HereString"
+          },
+          {
+            "token": "StringLiteral"
+          },
+          {
+            "token": "CharLiteral"
+          },
+          {
+            "token": "HexNumber"
+          },
+          {
+            "token": "HexFloat"
+          },
+          {
+            "token": "BinNumber"
+          },
+          {
+            "token": "FloatNumber"
+          },
+          {
+            "token": "DecNumber"
+          },
+          {
+            "token": "UninitializedLiteral"
+          },
+          {
+            "token": "TrueKeyword"
+          },
+          {
+            "token": "FalseKeyword"
+          },
+          {
+            "token": "NullKeyword"
+          }
+        ]
+      },
+      "AnonymousCompositeLiteral": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "Dot"
+              },
+              {
+                "token": "LBrace"
+              },
+              {
+                "optional": {
+                  "ref": "StructLiteralMemberList"
+                }
+              },
+              {
+                "token": "RBrace"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "Dot"
+              },
+              {
+                "token": "LBracket"
+              },
+              {
+                "optional": {
+                  "ref": "ExpressionList"
+                }
+              },
+              {
+                "token": "RBracket"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "Dot"
+              },
+              {
+                "token": "Identifier"
+              }
+            ]
+          }
+        ]
+      },
+      "StructLiteralMemberList": {
+        "sequence": [
+          {
+            "ref": "StructLiteralMember"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "StructLiteralMember"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "StructLiteralMember": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "Identifier"
+              },
+              {
+                "token": "Equal"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "ParenthesizedExpression": {
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "LambdaExpression": {
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "Identifier"
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "LParen"
+                  },
+                  {
+                    "optional": {
+                      "ref": "ParameterList"
+                    }
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "token": "FatArrow"
+          },
+          {
+            "choice": [
+              {
+                "ref": "BlockStatement"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          }
+        ]
+      },
+      "IfxExpression": {
+        "category": "expression",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "IfxKeyword"
+              },
+              {
+                "token": "HashIfxDirective"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "token": "ThenKeyword"
+            }
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "ElseKeyword"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "DirectiveExpression": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "token": "CharDirective"
+              },
+              {
+                "token": "StringLiteral"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "CodeDirective"
+              },
+              {
+                "optional": {
+                  "choice": [
+                    {
+                      "ref": "BlockStatement"
+                    },
+                    {
+                      "ref": "Expression"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "InsertDirective"
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "choice": [
+                  {
+                    "token": "BakeArgumentsDirective"
+                  },
+                  {
+                    "token": "BakeConstantsDirective"
+                  }
+                ]
+              },
+              {
+                "ref": "Expression"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "TypeDirective"
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "Comma"
+                    },
+                    {
+                      "token": "Identifier"
+                    }
+                  ]
+                }
+              },
+              {
+                "ref": "Type"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "choice": [
+                  {
+                    "token": "LocationDirective"
+                  },
+                  {
+                    "token": "ExistsDirective"
+                  },
+                  {
+                    "token": "ProcedureOfCallDirective"
+                  },
+                  {
+                    "token": "ProcedureNameDirective"
+                  }
+                ]
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "LParen"
+                    },
+                    {
+                      "optional": {
+                        "ref": "ArgumentList"
+                      }
+                    },
+                    {
+                      "token": "RParen"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "token": "CallerLocationDirective"
+          },
+          {
+            "token": "CallerCodeDirective"
+          },
+          {
+            "token": "FilepathDirective"
+          },
+          {
+            "token": "FileDirective"
+          },
+          {
+            "token": "LineDirective"
+          },
+          {
+            "token": "ThisDirective"
+          }
+        ]
+      },
+      "ProcedureDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "ParameterList"
+            }
+          },
+          {
+            "token": "RParen"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "optional": {
+                      "ref": "ReturnClause"
+                    }
+                  },
+                  {
+                    "repeat": {
+                      "ref": "ProcedureModifier"
+                    }
+                  },
+                  {
+                    "ref": "BlockStatement"
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "optional": {
+                      "ref": "ReturnClause"
+                    }
+                  },
+                  {
+                    "oneOrMore": {
+                      "ref": "ProcedureModifier"
+                    }
+                  }
+                ]
+              },
+              {
+                "ref": "ReturnClause"
+              }
+            ]
+          }
+        ]
+      },
+      "ParameterList": {
+        "sequence": [
+          {
+            "ref": "Parameter"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "Parameter"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          }
+        ]
+      },
+      "Parameter": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "Note"
+                },
+                {
+                  "ref": "UsingClause"
+                },
+                {
+                  "token": "AsDirective"
+                }
+              ]
+            }
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "ref": "ParameterName"
+                  },
+                  {
+                    "token": "Colon"
+                  },
+                  {
+                    "optional": {
+                      "token": "DotDot"
+                    }
+                  },
+                  {
+                    "ref": "Type"
+                  },
+                  {
+                    "optional": {
+                      "sequence": [
+                        {
+                          "token": "Equal"
+                        },
+                        {
+                          "ref": "Expression"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "ref": "ParameterName"
+                  },
+                  {
+                    "token": "ColonEqual"
+                  },
+                  {
+                    "ref": "Expression"
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "optional": {
+                      "token": "DotDot"
+                    }
+                  },
+                  {
+                    "ref": "Type"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ParameterName": {
+        "category": "other",
+        "sequence": [
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "DoubleDollar"
+                },
+                {
+                  "token": "Dollar"
+                }
+              ]
+            }
+          },
+          {
+            "choice": [
+              {
+                "token": "Identifier"
+              },
+              {
+                "token": "BacktickIdentifier"
+              }
+            ]
+          }
+        ]
+      },
+      "ReturnClause": {
+        "sequence": [
+          {
+            "token": "Arrow"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "LParen"
+                  },
+                  {
+                    "ref": "ReturnItemList"
+                  },
+                  {
+                    "optional": {
+                      "token": "Comma"
+                    }
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              },
+              {
+                "ref": "ReturnItemList"
+              }
+            ]
+          }
+        ]
+      },
+      "ReturnItemList": {
+        "sequence": [
+          {
+            "ref": "ReturnItem"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "ref": "ReturnItem"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ReturnItem": {
+        "choice": [
+          {
+            "sequence": [
+              {
+                "optional": {
+                  "token": "MustDirective"
+                }
+              },
+              {
+                "token": "Identifier"
+              },
+              {
+                "choice": [
+                  {
+                    "sequence": [
+                      {
+                        "token": "Colon"
+                      },
+                      {
+                        "ref": "Type"
+                      },
+                      {
+                        "optional": {
+                          "sequence": [
+                            {
+                              "token": "Equal"
+                            },
+                            {
+                              "ref": "Expression"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "sequence": [
+                      {
+                        "token": "ColonEqual"
+                      },
+                      {
+                        "ref": "Expression"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "optional": {
+                  "token": "MustDirective"
+                }
+              },
+              {
+                "ref": "Type"
+              }
+            ]
+          }
+        ]
+      },
+      "ProcedureModifier": {
+        "choice": [
+          {
+            "token": "CCallDirective"
+          },
+          {
+            "token": "NoContextDirective"
+          },
+          {
+            "token": "CompilerDirective"
+          },
+          {
+            "token": "CompileTimeDirective"
+          },
+          {
+            "token": "InlineDirective"
+          },
+          {
+            "token": "NoInlineDirective"
+          },
+          {
+            "token": "ExpandDirective"
+          },
+          {
+            "token": "DumpDirective"
+          },
+          {
+            "token": "EntryPointDirective"
+          },
+          {
+            "token": "NoAbcDirective"
+          },
+          {
+            "token": "NoAocDirective"
+          },
+          {
+            "token": "NoAliasDirective"
+          },
+          {
+            "token": "NoDebugDirective"
+          },
+          {
+            "token": "SymmetricDirective"
+          },
+          {
+            "token": "MustDirective"
+          },
+          {
+            "sequence": [
+              {
+                "token": "ForeignDirective"
+              },
+              {
+                "optional": {
+                  "token": "Identifier"
+                }
+              },
+              {
+                "optional": {
+                  "token": "StringLiteral"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "IntrinsicDirective"
+              },
+              {
+                "optional": {
+                  "token": "StringLiteral"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "DeprecatedDirective"
+              },
+              {
+                "optional": {
+                  "token": "StringLiteral"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "ProgramExportDirective"
+              },
+              {
+                "optional": {
+                  "token": "StringLiteral"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "ModifyDirective"
+              },
+              {
+                "ref": "BlockStatement"
+              }
+            ]
+          }
+        ]
+      },
+      "StructDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "StructKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Identifier"
+                },
+                {
+                  "token": "Colon"
+                },
+                {
+                  "ref": "Type"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "LParen"
+                },
+                {
+                  "optional": {
+                    "ref": "ParameterList"
+                  }
+                },
+                {
+                  "token": "RParen"
+                }
+              ]
+            }
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "NoPaddingDirective"
+                },
+                {
+                  "token": "TypeInfoDirective"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "StructBody"
+          }
+        ]
+      },
+      "UnionDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "UnionKeyword"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Identifier"
+                },
+                {
+                  "token": "Colon"
+                },
+                {
+                  "ref": "Type"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "LParen"
+                },
+                {
+                  "optional": {
+                    "ref": "ParameterList"
+                  }
+                },
+                {
+                  "token": "RParen"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "StructBody"
+          }
+        ]
+      },
+      "StructBody": {
+        "sequence": [
+          {
+            "token": "LBrace"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "OverlayMember"
+                },
+                {
+                  "ref": "UnionBinding"
+                },
+                {
+                  "ref": "Statement"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "OverlayMember": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "OverlayDirective"
+          },
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "RParen"
+          },
+          {
+            "ref": "Declaration"
+          }
+        ]
+      },
+      "UnionBinding": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "token": "Dot"
+          },
+          {
+            "token": "DoubleComma"
+          },
+          {
+            "token": "Identifier"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "token": "Colon"
+                  },
+                  {
+                    "ref": "Type"
+                  }
+                ]
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "ColonEqual"
+                  },
+                  {
+                    "ref": "Expression"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "optional": {
+              "token": "Semicolon"
+            }
+          }
+        ]
+      },
+      "EnumDefinition": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "EnumKeyword"
+              },
+              {
+                "token": "EnumFlagsKeyword"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "Type"
+            }
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "SpecifiedDirective"
+                },
+                {
+                  "token": "CompleteDirective"
+                }
+              ]
+            }
+          },
+          {
+            "token": "LBrace"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "ref": "EnumMember"
+                },
+                {
+                  "ref": "Statement"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "EnumMember": {
+        "category": "declaration",
+        "sequence": [
+          {
+            "repeat": {
+              "token": "Note"
+            }
+          },
+          {
+            "token": "Identifier"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "token": "ColonColon"
+                    },
+                    {
+                      "ref": "Expression"
+                    }
+                  ]
+                },
+                {
+                  "sequence": [
+                    {
+                      "token": "Equal"
+                    },
+                    {
+                      "ref": "Expression"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "Semicolon"
+                },
+                {
+                  "token": "Comma"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Type": {
+        "category": "type",
+        "choice": [
+          {
+            "ref": "PointerType"
+          },
+          {
+            "ref": "ArrayType"
+          },
+          {
+            "ref": "ProcedureType"
+          },
+          {
+            "ref": "PolymorphicType"
+          },
+          {
+            "ref": "PrimitiveType"
+          },
+          {
+            "ref": "TypeDirectiveType"
+          },
+          {
+            "ref": "NamedType"
+          }
+        ]
+      },
+      "PointerType": {
+        "category": "type",
+        "sequence": [
+          {
+            "token": "Star"
+          },
+          {
+            "ref": "Type"
+          }
+        ]
+      },
+      "ArrayType": {
+        "category": "type",
+        "sequence": [
+          {
+            "token": "LBracket"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "token": "DotDot"
+                },
+                {
+                  "ref": "Expression"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RBracket"
+          },
+          {
+            "ref": "Type"
+          }
+        ]
+      },
+      "ProcedureType": {
+        "category": "type",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "ParameterList"
+            }
+          },
+          {
+            "token": "RParen"
+          },
+          {
+            "ref": "ReturnClause"
+          }
+        ]
+      },
+      "PolymorphicType": {
+        "category": "type",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "DoubleDollar"
+              },
+              {
+                "token": "Dollar"
+              }
+            ]
+          },
+          {
+            "token": "Identifier"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Slash"
+                },
+                {
+                  "ref": "NamedType"
+                },
+                {
+                  "optional": {
+                    "ref": "NamedType"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "PrimitiveType": {
+        "category": "type",
+        "choice": [
+          {
+            "token": "IntKeyword"
+          },
+          {
+            "token": "U8Keyword"
+          },
+          {
+            "token": "U16Keyword"
+          },
+          {
+            "token": "U32Keyword"
+          },
+          {
+            "token": "U64Keyword"
+          },
+          {
+            "token": "S8Keyword"
+          },
+          {
+            "token": "S16Keyword"
+          },
+          {
+            "token": "S32Keyword"
+          },
+          {
+            "token": "S64Keyword"
+          },
+          {
+            "token": "FloatKeyword"
+          },
+          {
+            "token": "Float32Keyword"
+          },
+          {
+            "token": "Float64Keyword"
+          },
+          {
+            "token": "BoolKeyword"
+          },
+          {
+            "token": "StringKeyword"
+          },
+          {
+            "token": "VoidKeyword"
+          },
+          {
+            "token": "TypeKeyword"
+          },
+          {
+            "token": "CodeKeyword"
+          },
+          {
+            "token": "AnyKeyword"
+          },
+          {
+            "token": "ContextTypeDirective"
+          }
+        ]
+      },
+      "TypeDirectiveType": {
+        "category": "type",
+        "sequence": [
+          {
+            "token": "TypeDirective"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "Identifier"
+                }
+              ]
+            }
+          },
+          {
+            "ref": "Type"
+          }
+        ]
+      },
+      "NamedType": {
+        "category": "type",
+        "sequence": [
+          {
+            "token": "Identifier"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "token": "Dot"
+                    },
+                    {
+                      "token": "Identifier"
+                    }
+                  ]
+                },
+                {
+                  "sequence": [
+                    {
+                      "token": "LParen"
+                    },
+                    {
+                      "optional": {
+                        "ref": "ArgumentList"
+                      }
+                    },
+                    {
+                      "token": "RParen"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "RecoverableStatement": {
+        "ref": "Statement",
+        "recoverUntil": [
+          "Semicolon",
+          "RBrace"
+        ],
+        "category": "statement"
+      }
+    }
+  },
+  "operators": [
+    {
+      "token": "Equal",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "PlusEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "MinusEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "StarEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "SlashEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "PercentEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "AmpEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "PipeEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "CaretEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "ShiftLeftEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "ShiftRightEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "ShiftLeft3Equal",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "ShiftRight3Equal",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "AmpAmpEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "PipePipeEqual",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "right"
+    },
+    {
+      "token": "DotDot",
+      "role": "infix",
+      "precedence": 2,
+      "associativity": "left"
+    },
+    {
+      "token": "PipePipe",
+      "role": "infix",
+      "precedence": 3,
+      "associativity": "left"
+    },
+    {
+      "token": "AmpAmp",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "Pipe",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "left"
+    },
+    {
+      "token": "Caret",
+      "role": "infix",
+      "precedence": 6,
+      "associativity": "left"
+    },
+    {
+      "token": "Amp",
+      "role": "infix",
+      "precedence": 7,
+      "associativity": "left"
+    },
+    {
+      "token": "EqualEqual",
+      "role": "infix",
+      "precedence": 8,
+      "associativity": "left"
+    },
+    {
+      "token": "ExclamationEqual",
+      "role": "infix",
+      "precedence": 8,
+      "associativity": "left"
+    },
+    {
+      "token": "Less",
+      "role": "infix",
+      "precedence": 9,
+      "associativity": "left"
+    },
+    {
+      "token": "LessEqual",
+      "role": "infix",
+      "precedence": 9,
+      "associativity": "left"
+    },
+    {
+      "token": "Greater",
+      "role": "infix",
+      "precedence": 9,
+      "associativity": "left"
+    },
+    {
+      "token": "GreaterEqual",
+      "role": "infix",
+      "precedence": 9,
+      "associativity": "left"
+    },
+    {
+      "token": "ShiftLeft",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "ShiftRight",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "ShiftLeft3",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "ShiftRight3",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "Plus",
+      "role": "infix",
+      "precedence": 11,
+      "associativity": "left"
+    },
+    {
+      "token": "Minus",
+      "role": "infix",
+      "precedence": 11,
+      "associativity": "left"
+    },
+    {
+      "token": "Star",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Slash",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Percent",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    }
+  ]
 }
