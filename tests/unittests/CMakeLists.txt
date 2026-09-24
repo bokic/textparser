@@ -76,6 +76,7 @@ add_executable( unittests
   md_tests.cpp
   vb_tests.cpp
   r_tests.cpp
+  r_v2_grammar_tests.cpp
   scratch_tests.cpp
   scratch_v2_grammar_tests.cpp
   python_tests.cpp
