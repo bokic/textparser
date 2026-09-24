@@ -71,6 +71,7 @@ add_executable( unittests
   swift_tests.cpp
   ada_tests.cpp
   matlab_tests.cpp
+  matlab_v2_grammar_tests.cpp
   md_tests.cpp
   vb_tests.cpp
   r_tests.cpp

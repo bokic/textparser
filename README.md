@@ -160,7 +160,7 @@ from the core parser into pluggable validators and language validation modules:
 
 * **System & General:** C, C++, C#, Java, Go, Rust, Swift, Zig, C3, Jai, V, Ada, Assembly (x86/ARM), Pascal, Visual Basic, Fortran
 * **Web & Data:** HTML, CSS, JavaScript, TypeScript, JSON, XML, SQL, Markdown
-* **Scripting:** Python, PHP, Bash/Shell, Perl
+* **Scripting:** Python, PHP, Bash/Shell, Perl, MATLAB
 
 The C3 schema-v2 migration targets **C3 0.8.4**, the
 [latest stable release](https://github.com/c3lang/c3c/releases/tag/v0.8.4)
