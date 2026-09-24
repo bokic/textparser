@@ -1,208 +1,757 @@
 {
-  "name": "md",
-  "version": 1.0,
-  "caseSensitivity": true,
-  "defaultFileExtensions": [
-    "md",
-    "markdown"
-  ],
-  "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "HtmlComment",
-    "FencedCodeBlock",
-    "Heading",
-    "HorizontalRule",
-    "Blockquote",
-    "HtmlTag",
-    "UnorderedList",
-    "OrderedList",
-    "TaskCheckbox",
-    "Footnote",
-    "Image",
-    "Link",
-    "InlineCode",
-    "Bold",
-    "Italic",
-    "Strikethrough",
-    "TablePipe",
-    "BackslashEscape"
-  ],
-  "otherTextInside": true,
-  "tokens": {
-    "HtmlComment": {
-      "type": "StartStop",
-      "startRegex": "<!--",
-      "endRegex": "-->",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+    "$schema": "../schema/textparser-schema.json",
+    "formatVersion": 2,
+    "name": "md",
+    "version": 2.0,
+    "caseSensitivity": true,
+    "defaultFileExtensions": [
+        "md",
+        "markdown"
+    ],
+    "defaultTextEncoding": "utf-8",
+    "supportedBom": [
+        "utf-8"
+    ],
+    "otherTextInside": false,
+    "diagnostics": {
+        "expected": {
+            "code": "MD1001",
+            "message": "Expected %s."
+        },
+        "tokenExpected": {
+            "code": "MD1002",
+            "message": "'%s' expected."
+        },
+        "recovered": {
+            "code": "MD1003",
+            "message": "Syntax error: unexpected token, recovering."
+        }
     },
-    "FencedCodeBlock": {
-      "type": "StartStop",
-      "startRegex": "```|~~~",
-      "endRegex": "```|~~~",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "delimiterTextColor": "0x9e6a57"
+    "recovery": {
+        "maximumDiagnostics": 100,
+        "maximumSkippedTokens": 50,
+        "maximumRecoveryAttempts": 30,
+        "synchronizationTokens": [
+            "Heading",
+            "HorizontalRule",
+            "FencedCodeBlock",
+            "HtmlComment",
+            "Blockquote",
+            "UnorderedList",
+            "OrderedList",
+            "TableDelimiter"
+        ]
     },
-    "Heading": {
-      "type": "SimpleToken",
-      "startRegex": "#{1,6}[ \\t]+[^\\r\\n]*",
-      "textColor": "0x569cd6"
+    "lexer": {
+        "initialMode": "default",
+        "trivia": {
+            "Whitespace": {
+                "regex": "[ \\t\\r\\n]+",
+                "priority": 1,
+                "textColor": "0xd4d4d4"
+            }
+        },
+        "tokens": {
+            "HtmlComment": {
+                "regex": "<!--(?:[^-]|-(?!->)|--(?!>))*-->",
+                "priority": 35,
+                "textColor": "0x6a9955"
+            },
+            "FencedCodeBlock": {
+                "regex": "(?:```|~~~)[^\\r\\n]*(?:(?:\\r?\\n[\\s\\S]*?)?\\r?\\n[ \\t]*(?:```|~~~)|(?:```|~~~))",
+                "priority": 32,
+                "textColor": "0xce9178"
+            },
+            "Heading": {
+                "regex": "[ \\t]*#{1,6}[ \\t]+[^\\r\\n]+",
+                "priority": 30,
+                "lineStart": true,
+                "textColor": "0x569cd6"
+            },
+            "HorizontalRule": {
+                "regex": "[ \\t]*(?:---|\\*\\*\\*|___)[ \\t]*",
+                "priority": 29,
+                "lineStart": true,
+                "textColor": "0x808080"
+            },
+            "Blockquote": {
+                "regex": "[ \\t]*>[ \\t]*[^\\r\\n]+",
+                "priority": 28,
+                "lineStart": true,
+                "textColor": "0x6a9955"
+            },
+            "TableDelimiter": {
+                "regex": "[ \\t]*\\|?[ \\t]*:?-+:?[ \\t]*(?:\\|[ \\t]*:?-+:?[ \\t]*)+\\|?",
+                "priority": 27,
+                "lineStart": true,
+                "textColor": "0xd4d4d4"
+            },
+            "TaskCheckbox": {
+                "regex": "\\[[ xX]\\]",
+                "priority": 35,
+                "textColor": "0x4ec9b0"
+            },
+            "Footnote": {
+                "regex": "\\[\\^[a-zA-Z0-9_-]+\\]",
+                "priority": 35,
+                "textColor": "0xd7ba7d"
+            },
+            "Image_Start": {
+                "regex": "!\\[",
+                "priority": 25,
+                "textColor": "0x4ec9b0"
+            },
+            "Link_Start": {
+                "regex": "\\[",
+                "priority": 20,
+                "textColor": "0x9cdcfe"
+            },
+            "Link_End": {
+                "regex": "\\](?:\\([^)\\r\\n]*\\)|\\[[^\\]\\r\\n]*\\])?",
+                "priority": 20,
+                "textColor": "0x9cdcfe"
+            },
+            "BackslashEscape": {
+                "regex": "\\\\[\\\\`*_{}\\[\\]()#+\\-.!|~>\"'\\$]",
+                "priority": 35,
+                "textColor": "0xd7ba7d"
+            },
+            "InlineCode": {
+                "regex": "``[^\\r\\n]+?``|`[^`\\r\\n]+`",
+                "priority": 26,
+                "textColor": "0xce9178"
+            },
+            "BoldItalicDelimiter": {
+                "regex": "\\*\\*\\*|___",
+                "priority": 30,
+                "textColor": "0xffd700"
+            },
+            "BoldDelimiter": {
+                "regex": "\\*\\*|__",
+                "priority": 28,
+                "textColor": "0xffd700"
+            },
+            "ItalicDelimiter": {
+                "regex": "\\*|_",
+                "priority": 22,
+                "textColor": "0xc586c0"
+            },
+            "StrikethroughDelimiter": {
+                "regex": "~~",
+                "priority": 28,
+                "textColor": "0x808080"
+            },
+            "UnorderedList": {
+                "regex": "[ \\t]*[-*+][ \\t]+",
+                "priority": 26,
+                "lineStart": true,
+                "textColor": "0xd7ba7d"
+            },
+            "OrderedList": {
+                "regex": "[ \\t]*[0-9]+[.)][ \\t]+",
+                "priority": 26,
+                "lineStart": true,
+                "textColor": "0xb5cea8"
+            },
+            "TablePipe": {
+                "regex": "\\|",
+                "priority": 22,
+                "textColor": "0xd4d4d4"
+            },
+            "HtmlTag_Start": {
+                "regex": "<\\/?[a-zA-Z0-9:-]+",
+                "priority": 25,
+                "pushMode": "HtmlTag",
+                "textColor": "0x569cd6"
+            },
+            "HtmlTag_End": {
+                "regex": "\\/?>",
+                "priority": 25,
+                "popMode": true,
+                "textColor": "0x569cd6"
+            },
+            "DoubleString": {
+                "regex": "\"(?:[^\"\\\\\\r\\n]|\\\\.)*\"",
+                "priority": 25,
+                "textColor": "0xce9178"
+            },
+            "SingleString": {
+                "regex": "'(?:[^'\\\\\\r\\n]|\\\\.)*'",
+                "priority": 25,
+                "textColor": "0xce9178"
+            },
+            "Equal": {
+                "regex": "=",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "AttributeName": {
+                "regex": "[a-zA-Z0-9:-]+",
+                "priority": 18,
+                "textColor": "0x9cdcfe"
+            },
+            "Text": {
+                "regex": "[^#*_~`\\[\\]!<>|\\\\ \\t\\r\\n]+",
+                "priority": 10,
+                "textColor": "0xd4d4d4"
+            },
+            "Punctuation": {
+                "regex": "[!#\\[\\]<>|\\\\]",
+                "priority": 2,
+                "textColor": "0xd4d4d4"
+            }
+        },
+        "modes": {
+            "default": {
+                "tokens": [
+                    "HtmlComment",
+                    "FencedCodeBlock",
+                    "Heading",
+                    "HorizontalRule",
+                    "Blockquote",
+                    "TableDelimiter",
+                    "TaskCheckbox",
+                    "Footnote",
+                    "Image_Start",
+                    "Link_Start",
+                    "Link_End",
+                    "BackslashEscape",
+                    "InlineCode",
+                    "BoldItalicDelimiter",
+                    "BoldDelimiter",
+                    "ItalicDelimiter",
+                    "StrikethroughDelimiter",
+                    "UnorderedList",
+                    "OrderedList",
+                    "TablePipe",
+                    "HtmlTag_Start",
+                    "Text",
+                    "Punctuation"
+                ],
+                "trivia": [
+                    "Whitespace"
+                ]
+            },
+            "HtmlTag": {
+                "tokens": [
+                    "HtmlTag_End",
+                    "DoubleString",
+                    "SingleString",
+                    "Equal",
+                    "AttributeName"
+                ],
+                "trivia": [
+                    "Whitespace"
+                ]
+            }
+        }
     },
-    "HorizontalRule": {
-      "type": "SimpleToken",
-      "startRegex": "---[ \\t]*|\\*\\*\\*[ \\t]*|___[ \\t]*",
-      "textColor": "0x808080"
-    },
-    "Blockquote": {
-      "type": "SimpleToken",
-      "startRegex": ">[ \\t]*[^\\r\\n]*",
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
-    },
-    "HtmlTag": {
-      "type": "StartStop",
-      "startRegex": "<\\/?[a-zA-Z0-9:-]+",
-      "endRegex": "\\/?>",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x569cd6",
-      "nestedTokens": [
-        "DoubleString",
-        "SingleString",
-        "Equal",
-        "AttributeName"
-      ]
-    },
-    "DoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "SingleString": {
-      "type": "StartStop",
-      "startRegex": "'",
-      "endRegex": "'",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "Equal": {
-      "type": "SimpleToken",
-      "startRegex": "=",
-      "textColor": "0xd4d4d4"
-    },
-    "AttributeName": {
-      "type": "SimpleToken",
-      "startRegex": "[a-zA-Z0-9:-]+",
-      "textColor": "0x9cdcfe"
-    },
-    "TaskCheckbox": {
-      "type": "SimpleToken",
-      "startRegex": "\\[[ xX]\\]",
-      "textColor": "0x4ec9b0"
-    },
-    "Footnote": {
-      "type": "SimpleToken",
-      "startRegex": "\\[\\^[a-zA-Z0-9_-]+\\]",
-      "textColor": "0xd7ba7d"
-    },
-    "Image": {
-      "type": "StartStop",
-      "startRegex": "!\\[",
-      "endRegex": "\\](?:\\([^)]*\\)|\\[[^\\]]*\\])?",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x4ec9b0",
-      "nestedTokens": [
-        "InlineCode",
-        "Bold",
-        "Italic"
-      ]
-    },
-    "Link": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\](?:\\([^)]*\\)|\\[[^\\]]*\\])?",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x9cdcfe",
-      "nestedTokens": [
-        "InlineCode",
-        "Bold",
-        "Italic",
-        "Strikethrough"
-      ]
-    },
-    "InlineCode": {
-      "type": "StartStop",
-      "startRegex": "`",
-      "endRegex": "`",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "Bold": {
-      "type": "StartStop",
-      "startRegex": "\\*\\*|__",
-      "endRegex": "\\*\\*|__",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "Italic",
-        "InlineCode",
-        "Strikethrough"
-      ]
-    },
-    "Italic": {
-      "type": "StartStop",
-      "startRegex": "\\*|_",
-      "endRegex": "\\*|_",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xc586c0",
-      "nestedTokens": [
-        "Bold",
-        "InlineCode",
-        "Strikethrough"
-      ]
-    },
-    "Strikethrough": {
-      "type": "StartStop",
-      "startRegex": "~~",
-      "endRegex": "~~",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x808080"
-    },
-    "UnorderedList": {
-      "type": "SimpleToken",
-      "startRegex": "[-*+][ \\t]+",
-      "textColor": "0xd7ba7d"
-    },
-    "OrderedList": {
-      "type": "SimpleToken",
-      "startRegex": "[0-9]+[.)][ \\t]+",
-      "textColor": "0xb5cea8"
-    },
-    "TablePipe": {
-      "type": "SimpleToken",
-      "startRegex": "\\|",
-      "textColor": "0xd4d4d4"
-    },
-    "BackslashEscape": {
-      "type": "SimpleToken",
-      "startRegex": "\\\\[\\\\`*_{}\\[\\]()#+\\-.!|~>\"']",
-      "textColor": "0xd7ba7d"
+    "grammar": {
+        "start": "SourceFile",
+        "productions": {
+            "SourceFile": {
+                "category": "source_file",
+                "repeat": {
+                    "ref": "BlockItem"
+                }
+            },
+            "BlockItem": {
+                "category": "statement",
+                "choice": [
+                    {
+                        "ref": "HtmlComment"
+                    },
+                    {
+                        "ref": "FencedCodeBlock"
+                    },
+                    {
+                        "ref": "Heading"
+                    },
+                    {
+                        "ref": "HorizontalRule"
+                    },
+                    {
+                        "ref": "Blockquote"
+                    },
+                    {
+                        "ref": "Table"
+                    },
+                    {
+                        "ref": "UnorderedList"
+                    },
+                    {
+                        "ref": "OrderedList"
+                    },
+                    {
+                        "ref": "HtmlTag"
+                    },
+                    {
+                        "ref": "Paragraph"
+                    },
+                    {
+                        "ref": "InvalidBlock"
+                    }
+                ]
+            },
+            "InvalidBlock": {
+                "category": "statement",
+                "ref": "Paragraph",
+                "recoverUntil": [
+                    "Heading",
+                    "HorizontalRule",
+                    "FencedCodeBlock",
+                    "HtmlComment",
+                    "Blockquote",
+                    "UnorderedList",
+                    "OrderedList"
+                ]
+            },
+            "HtmlComment": {
+                "astKind": "HtmlComment",
+                "token": "HtmlComment"
+            },
+            "FencedCodeBlock": {
+                "astKind": "FencedCodeBlock",
+                "token": "FencedCodeBlock"
+            },
+            "Heading": {
+                "astKind": "Heading",
+                "token": "Heading"
+            },
+            "HorizontalRule": {
+                "astKind": "HorizontalRule",
+                "token": "HorizontalRule"
+            },
+            "Blockquote": {
+                "astKind": "Blockquote",
+                "token": "Blockquote"
+            },
+            "UnorderedList": {
+                "astKind": "UnorderedList",
+                "sequence": [
+                    {
+                        "token": "UnorderedList"
+                    },
+                    {
+                        "optional": {
+                            "token": "TaskCheckbox"
+                        }
+                    },
+                    {
+                        "repeat": {
+                            "ref": "Inline"
+                        }
+                    }
+                ]
+            },
+            "OrderedList": {
+                "astKind": "OrderedList",
+                "sequence": [
+                    {
+                        "token": "OrderedList"
+                    },
+                    {
+                        "optional": {
+                            "token": "TaskCheckbox"
+                        }
+                    },
+                    {
+                        "repeat": {
+                            "ref": "Inline"
+                        }
+                    }
+                ]
+            },
+            "Table": {
+                "astKind": "Table",
+                "sequence": [
+                    {
+                        "ref": "TableRow"
+                    },
+                    {
+                        "token": "TableDelimiter"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "TableRow"
+                        }
+                    }
+                ]
+            },
+            "TableRow": {
+                "astKind": "TableRow",
+                "sequence": [
+                    {
+                        "token": "TablePipe"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "repeat": {
+                                        "ref": "Inline"
+                                    }
+                                },
+                                {
+                                    "token": "TablePipe"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "HtmlTag": {
+                "astKind": "HtmlTag",
+                "sequence": [
+                    {
+                        "token": "HtmlTag_Start"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "token": "AttributeName"
+                                },
+                                {
+                                    "token": "Equal"
+                                },
+                                {
+                                    "token": "DoubleString"
+                                },
+                                {
+                                    "token": "SingleString"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "HtmlTag_End"
+                    }
+                ]
+            },
+            "Paragraph": {
+                "astKind": "Paragraph",
+                "sequence": [
+                    {
+                        "ref": "Inline"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "Inline"
+                        }
+                    }
+                ]
+            },
+            "Inline": {
+                "choice": [
+                    {
+                        "ref": "BoldItalic"
+                    },
+                    {
+                        "ref": "Bold"
+                    },
+                    {
+                        "ref": "Italic"
+                    },
+                    {
+                        "ref": "Strikethrough"
+                    },
+                    {
+                        "ref": "InlineCode"
+                    },
+                    {
+                        "ref": "Image"
+                    },
+                    {
+                        "ref": "Link"
+                    },
+                    {
+                        "ref": "Footnote"
+                    },
+                    {
+                        "ref": "TaskCheckbox"
+                    },
+                    {
+                        "ref": "BackslashEscape"
+                    },
+                    {
+                        "ref": "HtmlTag"
+                    },
+                    {
+                        "ref": "HtmlComment"
+                    },
+                    {
+                        "ref": "TextItem"
+                    }
+                ]
+            },
+            "BoldItalic": {
+                "astKind": "BoldItalic",
+                "sequence": [
+                    {
+                        "token": "BoldItalicDelimiter"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "BoldItalicContent"
+                        }
+                    },
+                    {
+                        "token": "BoldItalicDelimiter"
+                    }
+                ]
+            },
+            "BoldItalicContent": {
+                "choice": [
+                    {
+                        "ref": "Strikethrough"
+                    },
+                    {
+                        "ref": "InlineCode"
+                    },
+                    {
+                        "ref": "Image"
+                    },
+                    {
+                        "ref": "Link"
+                    },
+                    {
+                        "ref": "Footnote"
+                    },
+                    {
+                        "ref": "TaskCheckbox"
+                    },
+                    {
+                        "ref": "BackslashEscape"
+                    },
+                    {
+                        "ref": "HtmlTag"
+                    },
+                    {
+                        "ref": "HtmlComment"
+                    },
+                    {
+                        "ref": "TextItem"
+                    }
+                ]
+            },
+            "Bold": {
+                "astKind": "Bold",
+                "sequence": [
+                    {
+                        "token": "BoldDelimiter"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "BoldContent"
+                        }
+                    },
+                    {
+                        "token": "BoldDelimiter"
+                    }
+                ]
+            },
+            "BoldContent": {
+                "choice": [
+                    {
+                        "ref": "Italic"
+                    },
+                    {
+                        "ref": "Strikethrough"
+                    },
+                    {
+                        "ref": "InlineCode"
+                    },
+                    {
+                        "ref": "Image"
+                    },
+                    {
+                        "ref": "Link"
+                    },
+                    {
+                        "ref": "Footnote"
+                    },
+                    {
+                        "ref": "TaskCheckbox"
+                    },
+                    {
+                        "ref": "BackslashEscape"
+                    },
+                    {
+                        "ref": "HtmlTag"
+                    },
+                    {
+                        "ref": "HtmlComment"
+                    },
+                    {
+                        "ref": "TextItem"
+                    }
+                ]
+            },
+            "Italic": {
+                "astKind": "Italic",
+                "sequence": [
+                    {
+                        "token": "ItalicDelimiter"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "ItalicContent"
+                        }
+                    },
+                    {
+                        "token": "ItalicDelimiter"
+                    }
+                ]
+            },
+            "ItalicContent": {
+                "choice": [
+                    {
+                        "ref": "Bold"
+                    },
+                    {
+                        "ref": "Strikethrough"
+                    },
+                    {
+                        "ref": "InlineCode"
+                    },
+                    {
+                        "ref": "Image"
+                    },
+                    {
+                        "ref": "Link"
+                    },
+                    {
+                        "ref": "Footnote"
+                    },
+                    {
+                        "ref": "TaskCheckbox"
+                    },
+                    {
+                        "ref": "BackslashEscape"
+                    },
+                    {
+                        "ref": "HtmlTag"
+                    },
+                    {
+                        "ref": "HtmlComment"
+                    },
+                    {
+                        "ref": "TextItem"
+                    }
+                ]
+            },
+            "Strikethrough": {
+                "astKind": "Strikethrough",
+                "sequence": [
+                    {
+                        "token": "StrikethroughDelimiter"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StrikethroughContent"
+                        }
+                    },
+                    {
+                        "token": "StrikethroughDelimiter"
+                    }
+                ]
+            },
+            "StrikethroughContent": {
+                "choice": [
+                    {
+                        "ref": "Bold"
+                    },
+                    {
+                        "ref": "Italic"
+                    },
+                    {
+                        "ref": "InlineCode"
+                    },
+                    {
+                        "ref": "Image"
+                    },
+                    {
+                        "ref": "Link"
+                    },
+                    {
+                        "ref": "Footnote"
+                    },
+                    {
+                        "ref": "TaskCheckbox"
+                    },
+                    {
+                        "ref": "BackslashEscape"
+                    },
+                    {
+                        "ref": "HtmlTag"
+                    },
+                    {
+                        "ref": "HtmlComment"
+                    },
+                    {
+                        "ref": "TextItem"
+                    }
+                ]
+            },
+            "InlineCode": {
+                "astKind": "InlineCode",
+                "token": "InlineCode"
+            },
+            "Image": {
+                "astKind": "Image",
+                "sequence": [
+                    {
+                        "token": "Image_Start"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "Inline"
+                        }
+                    },
+                    {
+                        "token": "Link_End"
+                    }
+                ]
+            },
+            "Link": {
+                "astKind": "Link",
+                "sequence": [
+                    {
+                        "token": "Link_Start"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "Inline"
+                        }
+                    },
+                    {
+                        "token": "Link_End"
+                    }
+                ]
+            },
+            "Footnote": {
+                "astKind": "Footnote",
+                "token": "Footnote"
+            },
+            "TaskCheckbox": {
+                "astKind": "TaskCheckbox",
+                "token": "TaskCheckbox"
+            },
+            "BackslashEscape": {
+                "astKind": "BackslashEscape",
+                "token": "BackslashEscape"
+            },
+            "TextItem": {
+                "choice": [
+                    {
+                        "token": "Text"
+                    },
+                    {
+                        "token": "Punctuation"
+                    }
+                ]
+            }
+        }
     }
-  }
 }

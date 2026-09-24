@@ -7465,8 +7465,13 @@ static bool textparser_contextual_match(
     const textparser_contextual_lexer_rule *lexer_rule = handle->language->lexer_rules != nullptr
         ? &handle->language->lexer_rules[token_id] : nullptr;
     if (lexer_rule != nullptr && lexer_rule->line_start && offset > 0) {
-        uint32_t previous = textparser_get_unit_at(handle, offset - 1);
-        if (previous != '\r' && previous != '\n') return false;
+        size_t p = offset;
+        while (p > 0) {
+            uint32_t ch = textparser_get_unit_at(handle, p - 1);
+            if (ch == '\r' || ch == '\n') break;
+            if (ch != ' ' && ch != '\t') return false;
+            p--;
+        }
     }
     if (lexer_rule != nullptr && lexer_rule->unless_dynamic > 0) {
         int slot = lexer_rule->unless_dynamic;

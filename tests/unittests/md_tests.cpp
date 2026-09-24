@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include <md_definition.json.h>
+#include <md_legacy_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {

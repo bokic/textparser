@@ -74,6 +74,7 @@ add_executable( unittests
   matlab_tests.cpp
   matlab_v2_grammar_tests.cpp
   md_tests.cpp
+  md_v2_grammar_tests.cpp
   vb_tests.cpp
   r_tests.cpp
   r_v2_grammar_tests.cpp
