@@ -1,179 +1,4257 @@
 {
-  "name": "ada",
-  "version": 1.0,
-  "caseSensitivity": false,
-  "defaultFileExtensions": [
-    "ada"
-  ],
-  "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "LineComment",
-    "Keyword",
-    "DataType",
-    "Boolean",
-    "CharLiteral",
-    "SingleString",
-    "Number",
-    "Variable",
-    "Attribute",
-    "Operator",
-    "Parenthesis",
-    "ArrayIndex",
-    "CodeBlock"
-  ],
-  "otherTextInside": true,
-  "tokens": {
-    "LineComment": {
-      "type": "SimpleToken",
-      "startRegex": "--[^\\r\\n]*",
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+    "$schema": "../schema/textparser-schema.json",
+    "formatVersion": 2,
+    "name": "ada",
+    "version": 2.0,
+    "caseSensitivity": false,
+    "defaultFileExtensions": [
+        "ada",
+        "adb",
+        "ads"
+    ],
+    "defaultTextEncoding": "utf-8",
+    "supportedBom": [
+        "utf-8"
+    ],
+    "otherTextInside": false,
+    "diagnostics": {
+        "expected": {
+            "code": "ADA1001",
+            "message": "Expected %s."
+        },
+        "tokenExpected": {
+            "code": "ADA1002",
+            "message": "'%s' expected."
+        },
+        "recovered": {
+            "code": "ADA1003",
+            "message": "Syntax error: unexpected token, recovering."
+        }
     },
-    "Keyword": {
-      "type": "SimpleToken",
-      "startRegex": "abort\\b|abs\\b|abstract\\b|accept\\b|access\\b|aliased\\b|all\\b|and\\b|array\\b|at\\b|begin\\b|body\\b|case\\b|constant\\b|declare\\b|delay\\b|delta\\b|digits\\b|do\\b|else\\b|elsif\\b|end\\b|entry\\b|exception\\b|exit\\b|for\\b|function\\b|generic\\b|goto\\b|if\\b|in\\b|interface\\b|is\\b|limited\\b|loop\\b|mod\\b|new\\b|not\\b|null\\b|of\\b|or\\b|others\\b|out\\b|overriding\\b|package\\b|pragma\\b|private\\b|procedure\\b|protected\\b|raise\\b|range\\b|record\\b|rem\\b|renames\\b|requeue\\b|return\\b|reverse\\b|select\\b|separate\\b|some\\b|subtype\\b|synchronized\\b|tagged\\b|task\\b|terminate\\b|then\\b|type\\b|until\\b|use\\b|when\\b|while\\b|with\\b|xor\\b",
-      "textColor": "0xc586c0"
+    "recovery": {
+        "maximumDiagnostics": 100,
+        "maximumSkippedTokens": 50,
+        "maximumRecoveryAttempts": 30,
+        "synchronizationTokens": [
+            "KwEnd",
+            "KwBegin",
+            "KwIs",
+            "KwPackage",
+            "KwProcedure",
+            "KwFunction",
+            "KwType",
+            "KwSubtype",
+            "KwIf",
+            "KwLoop",
+            "KwCase",
+            "KwSelect",
+            "KwWhen",
+            "KwElse",
+            "KwElsif",
+            "KwDeclare",
+            "KwException",
+            "Semicolon"
+        ]
     },
-    "DataType": {
-      "type": "SimpleToken",
-      "startRegex": "integer\\b|float\\b|character\\b|boolean\\b|string\\b|natural\\b|positive\\b|long_integer\\b|long_float\\b|short_integer\\b|short_float\\b|wide_character\\b|wide_string\\b|duration\\b|address\\b|count\\b",
-      "textColor": "0x4ec9b0"
+    "lexer": {
+        "initialMode": "default",
+        "trivia": {
+            "Whitespace": {
+                "regex": "[ \\t\\r\\n]+",
+                "priority": 1,
+                "textColor": "0xd4d4d4"
+            },
+            "LineComment": {
+                "regex": "--[^\\r\\n]*",
+                "priority": 10,
+                "textColor": "0x6a9955"
+            }
+        },
+        "tokens": {
+            "KwAbort": {
+                "regex": "abort\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwAbs": {
+                "regex": "abs\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwAbstract": {
+                "regex": "abstract\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwAccept": {
+                "regex": "accept\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwAccess": {
+                "regex": "access\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwAliased": {
+                "regex": "aliased\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwAll": {
+                "regex": "all\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwAndThen": {
+                "regex": "and[ \\t\\r\\n]+then\\b",
+                "priority": 30,
+                "textColor": "0x569cd6"
+            },
+            "KwAnd": {
+                "regex": "and\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwArray": {
+                "regex": "array\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwAt": {
+                "regex": "at\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "At": {
+                "regex": "@",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "KwBegin": {
+                "regex": "begin\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwBody": {
+                "regex": "body\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwCase": {
+                "regex": "case\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwConstant": {
+                "regex": "constant\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwDeclare": {
+                "regex": "declare\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwDelay": {
+                "regex": "delay\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwDelta": {
+                "regex": "delta\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwDigits": {
+                "regex": "digits\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwDo": {
+                "regex": "do\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwElse": {
+                "regex": "else\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwElsif": {
+                "regex": "elsif\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwEnd": {
+                "regex": "end\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwEntry": {
+                "regex": "entry\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwException": {
+                "regex": "exception\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwExit": {
+                "regex": "exit\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwFor": {
+                "regex": "for\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwFunction": {
+                "regex": "function\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwGeneric": {
+                "regex": "generic\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwGoto": {
+                "regex": "goto\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwIf": {
+                "regex": "if\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwNotIn": {
+                "regex": "not[ \\t\\r\\n]+in\\b",
+                "priority": 30,
+                "textColor": "0x569cd6"
+            },
+            "KwIn": {
+                "regex": "in\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwInterface": {
+                "regex": "interface\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwIs": {
+                "regex": "is\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwLimited": {
+                "regex": "limited\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwLoop": {
+                "regex": "loop\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwMod": {
+                "regex": "mod\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwNew": {
+                "regex": "new\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwNot": {
+                "regex": "not\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwNull": {
+                "regex": "null\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwOf": {
+                "regex": "of\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwOrElse": {
+                "regex": "or[ \\t\\r\\n]+else\\b",
+                "priority": 30,
+                "textColor": "0x569cd6"
+            },
+            "KwOr": {
+                "regex": "or\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwOthers": {
+                "regex": "others\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwOut": {
+                "regex": "out\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwOverriding": {
+                "regex": "overriding\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwPackage": {
+                "regex": "package\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwPragma": {
+                "regex": "pragma\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwPrivate": {
+                "regex": "private\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwProcedure": {
+                "regex": "procedure\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwProtected": {
+                "regex": "protected\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwRaise": {
+                "regex": "raise\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwRange": {
+                "regex": "range\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwRecord": {
+                "regex": "record\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwRem": {
+                "regex": "rem\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwRenames": {
+                "regex": "renames\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwRequeue": {
+                "regex": "requeue\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwReturn": {
+                "regex": "return\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwReverse": {
+                "regex": "reverse\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwSelect": {
+                "regex": "select\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwSeparate": {
+                "regex": "separate\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwSome": {
+                "regex": "some\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwSubtype": {
+                "regex": "subtype\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwSynchronized": {
+                "regex": "synchronized\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwTagged": {
+                "regex": "tagged\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwTask": {
+                "regex": "task\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwTerminate": {
+                "regex": "terminate\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwThen": {
+                "regex": "then\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwType": {
+                "regex": "type\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwUntil": {
+                "regex": "until\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwUse": {
+                "regex": "use\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwWhen": {
+                "regex": "when\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwWhile": {
+                "regex": "while\\b",
+                "priority": 20,
+                "textColor": "0xc586c0"
+            },
+            "KwWith": {
+                "regex": "with\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "KwXor": {
+                "regex": "xor\\b",
+                "priority": 20,
+                "textColor": "0x569cd6"
+            },
+            "DataType": {
+                "regex": "integer\\b|float\\b|character\\b|boolean\\b|string\\b|natural\\b|positive\\b|long_integer\\b|long_float\\b|short_integer\\b|short_float\\b|wide_character\\b|wide_string\\b|duration\\b|address\\b|count\\b",
+                "priority": 25,
+                "textColor": "0x4ec9b0"
+            },
+            "Boolean": {
+                "regex": "true\\b|false\\b",
+                "priority": 30,
+                "textColor": "0x569cd6"
+            },
+            "BasedNumber": {
+                "regex": "[0-9]+#[0-9a-zA-Z_]+(?:\\.[0-9a-zA-Z_]+)?#(?:[eE][-+]?[0-9]+)?",
+                "priority": 30,
+                "textColor": "0xb5cea8"
+            },
+            "FloatNumber": {
+                "regex": "[0-9][0-9_]*\\.[0-9][0-9_]*(?:[eE][-+]?[0-9][0-9_]*)?\\b|[0-9][0-9_]*[eE][-+]?[0-9][0-9_]*\\b",
+                "priority": 25,
+                "textColor": "0xb5cea8"
+            },
+            "DecNumber": {
+                "regex": "[0-9][0-9_]*\\b",
+                "priority": 20,
+                "textColor": "0xb5cea8"
+            },
+            "DoubleString": {
+                "regex": "\"(?:[^\"\\r\\n]|\"\")*\"",
+                "priority": 25,
+                "textColor": "0xce9178"
+            },
+            "CharLiteral": {
+                "regex": "'(?:[^'\\r\\n]|'')'",
+                "priority": 25,
+                "textColor": "0xd7ba7d"
+            },
+            "Assign": {
+                "regex": ":=",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Arrow": {
+                "regex": "=>",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "DoubleDot": {
+                "regex": "\\.\\.",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Power": {
+                "regex": "\\*\\*",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Ne": {
+                "regex": "/=",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Ge": {
+                "regex": ">=",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Le": {
+                "regex": "<=",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Box": {
+                "regex": "<>",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "LabelStart": {
+                "regex": "<<",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "LabelEnd": {
+                "regex": ">>",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Eq": {
+                "regex": "=",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Lt": {
+                "regex": "<",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Gt": {
+                "regex": ">",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Plus": {
+                "regex": "\\+",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Minus": {
+                "regex": "-",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Star": {
+                "regex": "\\*",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Slash": {
+                "regex": "\\/",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Ampersand": {
+                "regex": "&",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Pipe": {
+                "regex": "\\|",
+                "priority": 20,
+                "textColor": "0xd4d4d4"
+            },
+            "Dot": {
+                "regex": "\\.",
+                "priority": 10,
+                "textColor": "0xd4d4d4"
+            },
+            "Comma": {
+                "regex": ",",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Semicolon": {
+                "regex": ";",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Colon": {
+                "regex": ":",
+                "priority": 15,
+                "textColor": "0xd4d4d4"
+            },
+            "Tick": {
+                "regex": "'",
+                "priority": 1,
+                "textColor": "0xd4d4d4"
+            },
+            "LParen": {
+                "regex": "\\(",
+                "priority": 20,
+                "textColor": "0xffd700"
+            },
+            "RParen": {
+                "regex": "\\)",
+                "priority": 20,
+                "textColor": "0xffd700"
+            },
+            "LBracket": {
+                "regex": "\\[",
+                "priority": 20,
+                "textColor": "0xffd700"
+            },
+            "RBracket": {
+                "regex": "\\]",
+                "priority": 20,
+                "textColor": "0xffd700"
+            },
+            "Ident": {
+                "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+                "priority": 10,
+                "textColor": "0x9cdcfe"
+            }
+        }
     },
-    "Boolean": {
-      "type": "SimpleToken",
-      "startRegex": "true\\b|false\\b",
-      "textColor": "0x569cd6"
-    },
-    "CharLiteral": {
-      "type": "SimpleToken",
-      "startRegex": "'.'",
-      "textColor": "0xce9178"
-    },
-    "SingleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "searchParentEndTokenLast": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "EscapedQuote"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "EscapedQuote": {
-      "type": "SimpleToken",
-      "startRegex": "\"\"",
-      "textColor": "0xd7ba7d"
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "[0-9]+(?:#[0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?#)?(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?\\b",
-      "textColor": "0xb5cea8"
-    },
-    "Attribute": {
-      "type": "SimpleToken",
-      "startRegex": "'[a-zA-Z_][a-zA-Z0-9_]*",
-      "textColor": "0x9cdcfe"
-    },
-    "Variable": {
-      "type": "SimpleToken",
-      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*",
-      "textColor": "0x9cdcfe"
-    },
-    "Operator": {
-      "type": "SimpleToken",
-      "startRegex": ":=|=>|\\.\\.|<>|>=|<=|\\*\\*|/=|[=<>+\\-*/&.,;:]",
-      "textColor": "0xd4d4d4"
-    },
-    "Parenthesis": {
-      "type": "StartStop",
-      "startRegex": "\\(",
-      "endRegex": "\\)",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "Keyword",
-        "DataType",
-        "Boolean",
-        "CharLiteral",
-        "SingleString",
-        "Number",
-        "Variable",
-        "Attribute",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "ArrayIndex": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "Keyword",
-        "DataType",
-        "Boolean",
-        "CharLiteral",
-        "SingleString",
-        "Number",
-        "Variable",
-        "Attribute",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "CodeBlock": {
-      "type": "StartStop",
-      "startRegex": "\\{",
-      "endRegex": "\\}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "Keyword",
-        "DataType",
-        "Boolean",
-        "CharLiteral",
-        "SingleString",
-        "Number",
-        "Variable",
-        "Attribute",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
+    "operators": [
+        {
+            "token": "Power",
+            "role": "infix",
+            "precedence": 7,
+            "associativity": "right"
+        },
+        {
+            "token": "Star",
+            "role": "infix",
+            "precedence": 6,
+            "associativity": "left"
+        },
+        {
+            "token": "Slash",
+            "role": "infix",
+            "precedence": 6,
+            "associativity": "left"
+        },
+        {
+            "token": "KwMod",
+            "role": "infix",
+            "precedence": 6,
+            "associativity": "left"
+        },
+        {
+            "token": "KwRem",
+            "role": "infix",
+            "precedence": 6,
+            "associativity": "left"
+        },
+        {
+            "token": "Plus",
+            "role": "infix",
+            "precedence": 5,
+            "associativity": "left"
+        },
+        {
+            "token": "Minus",
+            "role": "infix",
+            "precedence": 5,
+            "associativity": "left"
+        },
+        {
+            "token": "Ampersand",
+            "role": "infix",
+            "precedence": 5,
+            "associativity": "left"
+        },
+        {
+            "token": "DoubleDot",
+            "role": "infix",
+            "precedence": 4,
+            "associativity": "left"
+        },
+        {
+            "token": "Eq",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "Ne",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "Lt",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "Le",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "Gt",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "Ge",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "KwIn",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "KwNotIn",
+            "role": "infix",
+            "precedence": 3,
+            "associativity": "left"
+        },
+        {
+            "token": "KwAndThen",
+            "role": "infix",
+            "precedence": 2,
+            "associativity": "left"
+        },
+        {
+            "token": "KwOrElse",
+            "role": "infix",
+            "precedence": 2,
+            "associativity": "left"
+        },
+        {
+            "token": "KwAnd",
+            "role": "infix",
+            "precedence": 2,
+            "associativity": "left"
+        },
+        {
+            "token": "KwOr",
+            "role": "infix",
+            "precedence": 2,
+            "associativity": "left"
+        },
+        {
+            "token": "KwXor",
+            "role": "infix",
+            "precedence": 2,
+            "associativity": "left"
+        }
+    ],
+    "grammar": {
+        "start": "SourceFile",
+        "productions": {
+            "SourceFile": {
+                "category": "source_file",
+                "repeat": {
+                    "choice": [
+                        {
+                            "ref": "ContextClauseItem"
+                        },
+                        {
+                            "ref": "CompilationUnit"
+                        },
+                        {
+                            "ref": "BasicDeclaration"
+                        },
+                        {
+                            "ref": "Statement"
+                        },
+                        {
+                            "ref": "InvalidStatement"
+                        }
+                    ]
+                }
+            },
+            "ContextClauseItem": {
+                "category": "declaration",
+                "choice": [
+                    {
+                        "ref": "WithClause"
+                    },
+                    {
+                        "ref": "UseClause"
+                    },
+                    {
+                        "ref": "PragmaDeclaration"
+                    }
+                ]
+            },
+            "WithClause": {
+                "category": "declaration",
+                "astKind": "WithClause",
+                "sequence": [
+                    {
+                        "token": "KwWith"
+                    },
+                    {
+                        "ref": "TypePathList"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "UseClause": {
+                "category": "declaration",
+                "astKind": "UseClause",
+                "sequence": [
+                    {
+                        "token": "KwUse"
+                    },
+                    {
+                        "optional": {
+                            "choice": [
+                                {
+                                    "token": "KwAll"
+                                },
+                                {
+                                    "token": "KwType"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "ref": "TypePathList"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "CompilationUnit": {
+                "category": "declaration",
+                "choice": [
+                    {
+                        "ref": "PackageBody"
+                    },
+                    {
+                        "ref": "PackageDeclaration"
+                    },
+                    {
+                        "ref": "PackageInstantiation"
+                    },
+                    {
+                        "ref": "SubprogramBody"
+                    },
+                    {
+                        "ref": "SubprogramDeclaration"
+                    },
+                    {
+                        "ref": "SubprogramInstantiation"
+                    },
+                    {
+                        "ref": "GenericDeclaration"
+                    },
+                    {
+                        "ref": "TaskBody"
+                    },
+                    {
+                        "ref": "TaskDeclaration"
+                    },
+                    {
+                        "ref": "ProtectedBody"
+                    },
+                    {
+                        "ref": "ProtectedDeclaration"
+                    }
+                ]
+            },
+            "PackageDeclaration": {
+                "category": "declaration",
+                "astKind": "PackageDeclaration",
+                "sequence": [
+                    {
+                        "token": "KwPackage"
+                    },
+                    {
+                        "ref": "TypePath"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "BasicDeclaration"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                },
+                                {
+                                    "ref": "InvalidDeclaration"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwPrivate"
+                                },
+                                {
+                                    "repeat": {
+                                        "choice": [
+                                            {
+                                                "ref": "BasicDeclaration"
+                                            },
+                                            {
+                                                "ref": "PragmaDeclaration"
+                                            },
+                                            {
+                                                "ref": "UseClause"
+                                            },
+                                            {
+                                                "ref": "InvalidDeclaration"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "TypePath"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "PackageBody": {
+                "category": "declaration",
+                "astKind": "PackageBody",
+                "sequence": [
+                    {
+                        "token": "KwPackage"
+                    },
+                    {
+                        "token": "KwBody"
+                    },
+                    {
+                        "ref": "TypePath"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "BasicDeclaration"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                },
+                                {
+                                    "ref": "InvalidDeclaration"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwBegin"
+                                },
+                                {
+                                    "repeat": {
+                                        "choice": [
+                                            {
+                                                "ref": "Statement"
+                                            },
+                                            {
+                                                "ref": "InvalidStatement"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "optional": {
+                                        "ref": "ExceptionHandlerPart"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "TypePath"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "PackageInstantiation": {
+                "category": "declaration",
+                "astKind": "PackageInstantiation",
+                "sequence": [
+                    {
+                        "token": "KwPackage"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "token": "KwNew"
+                    },
+                    {
+                        "ref": "TypePath"
+                    },
+                    {
+                        "optional": {
+                            "ref": "ParenthesizedOrAggregate"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "SubprogramDeclaration": {
+                "category": "declaration",
+                "astKind": "SubprogramDeclaration",
+                "sequence": [
+                    {
+                        "optional": {
+                            "choice": [
+                                {
+                                    "token": "KwOverriding"
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwNot"
+                                        },
+                                        {
+                                            "token": "KwOverriding"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "ref": "SubprogramSpecification"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "choice": [
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwIs"
+                                        },
+                                        {
+                                            "token": "KwAbstract"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwIs"
+                                        },
+                                        {
+                                            "token": "KwNull"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwRenames"
+                                        },
+                                        {
+                                            "ref": "TypePath"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwIs"
+                                        },
+                                        {
+                                            "token": "KwSeparate"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "SubprogramBody": {
+                "category": "declaration",
+                "astKind": "SubprogramBody",
+                "sequence": [
+                    {
+                        "optional": {
+                            "choice": [
+                                {
+                                    "token": "KwOverriding"
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwNot"
+                                        },
+                                        {
+                                            "token": "KwOverriding"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "ref": "SubprogramSpecification"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "BasicDeclaration"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                },
+                                {
+                                    "ref": "InvalidDeclaration"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwBegin"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "ExceptionHandlerPart"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "SubprogramName"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "SubprogramInstantiation": {
+                "category": "declaration",
+                "astKind": "SubprogramInstantiation",
+                "sequence": [
+                    {
+                        "optional": {
+                            "choice": [
+                                {
+                                    "token": "KwOverriding"
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwNot"
+                                        },
+                                        {
+                                            "token": "KwOverriding"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwProcedure"
+                            },
+                            {
+                                "token": "KwFunction"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "SubprogramName"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "token": "KwNew"
+                    },
+                    {
+                        "ref": "TypePath"
+                    },
+                    {
+                        "optional": {
+                            "ref": "ParenthesizedOrAggregate"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "SubprogramSpecification": {
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwProcedure"
+                            },
+                            {
+                                "ref": "SubprogramName"
+                            },
+                            {
+                                "optional": {
+                                    "ref": "FormalParameterPart"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwFunction"
+                            },
+                            {
+                                "ref": "SubprogramName"
+                            },
+                            {
+                                "optional": {
+                                    "ref": "FormalParameterPart"
+                                }
+                            },
+                            {
+                                "token": "KwReturn"
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwNot"
+                                }
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwNull"
+                                }
+                            },
+                            {
+                                "ref": "TypePath"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "SubprogramName": {
+                "choice": [
+                    {
+                        "token": "DoubleString"
+                    },
+                    {
+                        "ref": "TypePath"
+                    }
+                ]
+            },
+            "FormalParameterPart": {
+                "sequence": [
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "ref": "ParameterSpecificationList"
+                    },
+                    {
+                        "token": "RParen"
+                    }
+                ]
+            },
+            "ParameterSpecificationList": {
+                "sequence": [
+                    {
+                        "ref": "ParameterSpecification"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Semicolon"
+                                },
+                                {
+                                    "ref": "ParameterSpecification"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ParameterSpecification": {
+                "sequence": [
+                    {
+                        "ref": "IdentList"
+                    },
+                    {
+                        "token": "Colon"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwAliased"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "ParameterMode"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwNot"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwNull"
+                        }
+                    },
+                    {
+                        "ref": "SubtypeIndication"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "Assign"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ParameterMode": {
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwIn"
+                            },
+                            {
+                                "token": "KwOut"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "KwIn"
+                    },
+                    {
+                        "token": "KwOut"
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwAccess"
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwConstant"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "GenericDeclaration": {
+                "category": "declaration",
+                "astKind": "GenericDeclaration",
+                "sequence": [
+                    {
+                        "token": "KwGeneric"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "GenericFormalParameter"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "choice": [
+                            {
+                                "ref": "PackageDeclaration"
+                            },
+                            {
+                                "ref": "SubprogramDeclaration"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "GenericFormalParameter": {
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwType"
+                            },
+                            {
+                                "ref": "IdentRef"
+                            },
+                            {
+                                "optional": {
+                                    "ref": "DiscriminantPart"
+                                }
+                            },
+                            {
+                                "token": "KwIs"
+                            },
+                            {
+                                "ref": "TypeDefinition"
+                            },
+                            {
+                                "token": "Semicolon"
+                            }
+                        ]
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwWith"
+                            },
+                            {
+                                "choice": [
+                                    {
+                                        "ref": "SubprogramSpecification"
+                                    },
+                                    {
+                                        "ref": "PackageDeclaration"
+                                    }
+                                ]
+                            },
+                            {
+                                "optional": {
+                                    "choice": [
+                                        {
+                                            "sequence": [
+                                                {
+                                                    "token": "KwIs"
+                                                },
+                                                {
+                                                    "token": "Box"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "sequence": [
+                                                {
+                                                    "token": "KwIs"
+                                                },
+                                                {
+                                                    "token": "KwNull"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "sequence": [
+                                                {
+                                                    "token": "KwIs"
+                                                },
+                                                {
+                                                    "ref": "SubprogramName"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "token": "Semicolon"
+                            }
+                        ]
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "ref": "IdentList"
+                            },
+                            {
+                                "token": "Colon"
+                            },
+                            {
+                                "optional": {
+                                    "ref": "ParameterMode"
+                                }
+                            },
+                            {
+                                "ref": "SubtypeIndication"
+                            },
+                            {
+                                "optional": {
+                                    "sequence": [
+                                        {
+                                            "token": "Assign"
+                                        },
+                                        {
+                                            "ref": "Expression"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "token": "Semicolon"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "ObjectDeclaration"
+                    }
+                ]
+            },
+            "TaskDeclaration": {
+                "category": "declaration",
+                "astKind": "TaskDeclaration",
+                "sequence": [
+                    {
+                        "token": "KwTask"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwType"
+                        }
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "DiscriminantPart"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwIs"
+                                },
+                                {
+                                    "repeat": {
+                                        "choice": [
+                                            {
+                                                "ref": "EntryDeclaration"
+                                            },
+                                            {
+                                                "ref": "PragmaDeclaration"
+                                            },
+                                            {
+                                                "ref": "UseClause"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "optional": {
+                                        "sequence": [
+                                            {
+                                                "token": "KwPrivate"
+                                            },
+                                            {
+                                                "repeat": {
+                                                    "choice": [
+                                                        {
+                                                            "ref": "EntryDeclaration"
+                                                        },
+                                                        {
+                                                            "ref": "PragmaDeclaration"
+                                                        },
+                                                        {
+                                                            "ref": "UseClause"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "token": "KwEnd"
+                                },
+                                {
+                                    "optional": {
+                                        "ref": "IdentRef"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "TaskBody": {
+                "category": "declaration",
+                "astKind": "TaskBody",
+                "sequence": [
+                    {
+                        "token": "KwTask"
+                    },
+                    {
+                        "token": "KwBody"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "BasicDeclaration"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                },
+                                {
+                                    "ref": "InvalidDeclaration"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwBegin"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "ExceptionHandlerPart"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "ProtectedDeclaration": {
+                "category": "declaration",
+                "astKind": "ProtectedDeclaration",
+                "sequence": [
+                    {
+                        "token": "KwProtected"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwType"
+                        }
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "DiscriminantPart"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "SubprogramDeclaration"
+                                },
+                                {
+                                    "ref": "EntryDeclaration"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwPrivate"
+                                },
+                                {
+                                    "repeat": {
+                                        "choice": [
+                                            {
+                                                "ref": "SubprogramDeclaration"
+                                            },
+                                            {
+                                                "ref": "EntryDeclaration"
+                                            },
+                                            {
+                                                "ref": "ObjectDeclaration"
+                                            },
+                                            {
+                                                "ref": "PragmaDeclaration"
+                                            },
+                                            {
+                                                "ref": "UseClause"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "ProtectedBody": {
+                "category": "declaration",
+                "astKind": "ProtectedBody",
+                "sequence": [
+                    {
+                        "token": "KwProtected"
+                    },
+                    {
+                        "token": "KwBody"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "SubprogramBody"
+                                },
+                                {
+                                    "ref": "EntryBody"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                },
+                                {
+                                    "ref": "InvalidDeclaration"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "EntryDeclaration": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "token": "KwOverriding"
+                        }
+                    },
+                    {
+                        "token": "KwEntry"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "FormalParameterPart"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "EntryBody": {
+                "sequence": [
+                    {
+                        "token": "KwEntry"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "FormalParameterPart"
+                        }
+                    },
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "BasicDeclaration"
+                                },
+                                {
+                                    "ref": "PragmaDeclaration"
+                                },
+                                {
+                                    "ref": "UseClause"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwBegin"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "ExceptionHandlerPart"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "BasicDeclaration": {
+                "category": "declaration",
+                "choice": [
+                    {
+                        "ref": "PackageBody"
+                    },
+                    {
+                        "ref": "PackageDeclaration"
+                    },
+                    {
+                        "ref": "PackageInstantiation"
+                    },
+                    {
+                        "ref": "SubprogramBody"
+                    },
+                    {
+                        "ref": "SubprogramDeclaration"
+                    },
+                    {
+                        "ref": "SubprogramInstantiation"
+                    },
+                    {
+                        "ref": "TypeDeclaration"
+                    },
+                    {
+                        "ref": "SubtypeDeclaration"
+                    },
+                    {
+                        "ref": "ObjectDeclaration"
+                    },
+                    {
+                        "ref": "ExceptionDeclaration"
+                    },
+                    {
+                        "ref": "RenamingDeclaration"
+                    },
+                    {
+                        "ref": "TaskBody"
+                    },
+                    {
+                        "ref": "TaskDeclaration"
+                    },
+                    {
+                        "ref": "ProtectedBody"
+                    },
+                    {
+                        "ref": "ProtectedDeclaration"
+                    },
+                    {
+                        "ref": "GenericDeclaration"
+                    }
+                ]
+            },
+            "RecoverableDeclaration": {
+                "category": "declaration",
+                "ref": "BasicDeclaration",
+                "recoverUntil": [
+                    "Semicolon",
+                    "KwBegin",
+                    "KwEnd",
+                    "KwIs",
+                    "KwPackage",
+                    "KwProcedure",
+                    "KwFunction",
+                    "KwType",
+                    "KwSubtype"
+                ]
+            },
+            "InvalidDeclaration": {
+                "category": "declaration",
+                "sequence": [
+                    {
+                        "ref": "RecoverableDeclaration"
+                    },
+                    {
+                        "optional": {
+                            "token": "Semicolon"
+                        }
+                    }
+                ]
+            },
+            "TypeDeclaration": {
+                "category": "declaration",
+                "astKind": "TypeDeclaration",
+                "sequence": [
+                    {
+                        "token": "KwType"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "DiscriminantPart"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwIs"
+                                },
+                                {
+                                    "ref": "TypeDefinition"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "DiscriminantPart": {
+                "sequence": [
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "Box"
+                            },
+                            {
+                                "ref": "DiscriminantSpecificationList"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "RParen"
+                    }
+                ]
+            },
+            "DiscriminantSpecificationList": {
+                "sequence": [
+                    {
+                        "ref": "DiscriminantSpecification"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Semicolon"
+                                },
+                                {
+                                    "ref": "DiscriminantSpecification"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "DiscriminantSpecification": {
+                "sequence": [
+                    {
+                        "ref": "IdentList"
+                    },
+                    {
+                        "token": "Colon"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwAccess"
+                        }
+                    },
+                    {
+                        "ref": "SubtypeIndication"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "Assign"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "TypeDefinition": {
+                "choice": [
+                    {
+                        "ref": "RecordTypeDefinition"
+                    },
+                    {
+                        "ref": "ArrayTypeDefinition"
+                    },
+                    {
+                        "ref": "AccessTypeDefinition"
+                    },
+                    {
+                        "ref": "DerivedTypeDefinition"
+                    },
+                    {
+                        "ref": "InterfaceTypeDefinition"
+                    },
+                    {
+                        "ref": "EnumerationTypeDefinition"
+                    },
+                    {
+                        "ref": "RangeTypeDefinition"
+                    },
+                    {
+                        "ref": "ModularTypeDefinition"
+                    },
+                    {
+                        "ref": "DigitsTypeDefinition"
+                    },
+                    {
+                        "ref": "DeltaTypeDefinition"
+                    },
+                    {
+                        "ref": "PrivateTypeDefinition"
+                    }
+                ]
+            },
+            "RecordTypeDefinition": {
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "optional": {
+                                    "token": "KwAbstract"
+                                }
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwTagged"
+                                }
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwLimited"
+                                }
+                            },
+                            {
+                                "token": "KwRecord"
+                            },
+                            {
+                                "repeat": {
+                                    "choice": [
+                                        {
+                                            "ref": "ComponentDeclaration"
+                                        },
+                                        {
+                                            "ref": "PragmaDeclaration"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "token": "KwEnd"
+                            },
+                            {
+                                "token": "KwRecord"
+                            }
+                        ]
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "optional": {
+                                    "token": "KwAbstract"
+                                }
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwTagged"
+                                }
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwLimited"
+                                }
+                            },
+                            {
+                                "token": "KwNull"
+                            },
+                            {
+                                "token": "KwRecord"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "ComponentDeclaration": {
+                "sequence": [
+                    {
+                        "ref": "IdentList"
+                    },
+                    {
+                        "token": "Colon"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwAliased"
+                        }
+                    },
+                    {
+                        "choice": [
+                            {
+                                "ref": "SubtypeIndication"
+                            },
+                            {
+                                "ref": "ArrayTypeDefinition"
+                            }
+                        ]
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "Assign"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "ArrayTypeDefinition": {
+                "sequence": [
+                    {
+                        "token": "KwArray"
+                    },
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "ref": "ArrayIndexList"
+                    },
+                    {
+                        "token": "RParen"
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwAliased"
+                        }
+                    },
+                    {
+                        "ref": "SubtypeIndication"
+                    }
+                ]
+            },
+            "ArrayIndexList": {
+                "sequence": [
+                    {
+                        "ref": "ArrayIndexRange"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "ArrayIndexRange"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ArrayIndexRange": {
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "ref": "TypePath"
+                            },
+                            {
+                                "token": "KwRange"
+                            },
+                            {
+                                "token": "Box"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "AccessTypeDefinition": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "token": "KwNot"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwNull"
+                        }
+                    },
+                    {
+                        "token": "KwAccess"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwAll"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwConstant"
+                        }
+                    },
+                    {
+                        "ref": "SubtypeIndication"
+                    }
+                ]
+            },
+            "DerivedTypeDefinition": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "token": "KwAbstract"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwLimited"
+                        }
+                    },
+                    {
+                        "token": "KwNew"
+                    },
+                    {
+                        "ref": "SubtypeIndication"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwWith"
+                                },
+                                {
+                                    "choice": [
+                                        {
+                                            "token": "KwPrivate"
+                                        },
+                                        {
+                                            "ref": "RecordTypeDefinition"
+                                        },
+                                        {
+                                            "ref": "TypePathList"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "InterfaceTypeDefinition": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "token": "KwLimited"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwTask"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwProtected"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwSynchronized"
+                        }
+                    },
+                    {
+                        "token": "KwInterface"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwAnd"
+                                },
+                                {
+                                    "ref": "TypePathList"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "EnumerationTypeDefinition": {
+                "sequence": [
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "ref": "EnumLiteralList"
+                    },
+                    {
+                        "token": "RParen"
+                    }
+                ]
+            },
+            "EnumLiteralList": {
+                "sequence": [
+                    {
+                        "ref": "EnumLiteral"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "EnumLiteral"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "EnumLiteral": {
+                "choice": [
+                    {
+                        "token": "CharLiteral"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    }
+                ]
+            },
+            "RangeTypeDefinition": {
+                "sequence": [
+                    {
+                        "token": "KwRange"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "ModularTypeDefinition": {
+                "sequence": [
+                    {
+                        "token": "KwMod"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "DigitsTypeDefinition": {
+                "sequence": [
+                    {
+                        "token": "KwDigits"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwRange"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "DeltaTypeDefinition": {
+                "sequence": [
+                    {
+                        "token": "KwDelta"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwDigits"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwRange"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "PrivateTypeDefinition": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "token": "KwAbstract"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwTagged"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwLimited"
+                        }
+                    },
+                    {
+                        "token": "KwPrivate"
+                    }
+                ]
+            },
+            "SubtypeDeclaration": {
+                "category": "declaration",
+                "astKind": "SubtypeDeclaration",
+                "sequence": [
+                    {
+                        "token": "KwSubtype"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "ref": "SubtypeIndication"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "SubtypeIndication": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "token": "KwNot"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwNull"
+                        }
+                    },
+                    {
+                        "ref": "TypePath"
+                    },
+                    {
+                        "optional": {
+                            "ref": "Constraint"
+                        }
+                    }
+                ]
+            },
+            "Constraint": {
+                "choice": [
+                    {
+                        "ref": "RangeConstraint"
+                    },
+                    {
+                        "ref": "IndexOrDiscriminantConstraint"
+                    }
+                ]
+            },
+            "RangeConstraint": {
+                "sequence": [
+                    {
+                        "token": "KwRange"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "IndexOrDiscriminantConstraint": {
+                "sequence": [
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "ref": "ArgumentList"
+                    },
+                    {
+                        "token": "RParen"
+                    }
+                ]
+            },
+            "ObjectDeclaration": {
+                "category": "declaration",
+                "astKind": "ObjectDeclaration",
+                "sequence": [
+                    {
+                        "ref": "IdentList"
+                    },
+                    {
+                        "token": "Colon"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwConstant"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwAliased"
+                        }
+                    },
+                    {
+                        "choice": [
+                            {
+                                "ref": "ArrayTypeDefinition"
+                            },
+                            {
+                                "ref": "SubtypeIndication"
+                            }
+                        ]
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "Assign"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "ExceptionDeclaration": {
+                "category": "declaration",
+                "astKind": "ExceptionDeclaration",
+                "sequence": [
+                    {
+                        "ref": "IdentList"
+                    },
+                    {
+                        "token": "Colon"
+                    },
+                    {
+                        "token": "KwException"
+                    },
+                    {
+                        "optional": {
+                            "ref": "AspectSpecification"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "RenamingDeclaration": {
+                "category": "declaration",
+                "astKind": "RenamingDeclaration",
+                "sequence": [
+                    {
+                        "ref": "IdentList"
+                    },
+                    {
+                        "token": "Colon"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwException"
+                            },
+                            {
+                                "ref": "SubtypeIndication"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "KwRenames"
+                    },
+                    {
+                        "ref": "TypePath"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "AspectSpecification": {
+                "category": "declaration",
+                "astKind": "AspectSpecification",
+                "sequence": [
+                    {
+                        "token": "KwWith"
+                    },
+                    {
+                        "ref": "AspectMarkList"
+                    }
+                ]
+            },
+            "AspectMarkList": {
+                "sequence": [
+                    {
+                        "ref": "AspectMark"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "AspectMark"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "AspectMark": {
+                "sequence": [
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "Arrow"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ExceptionHandlerPart": {
+                "sequence": [
+                    {
+                        "token": "KwException"
+                    },
+                    {
+                        "ref": "ExceptionHandler"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "ExceptionHandler"
+                        }
+                    }
+                ]
+            },
+            "ExceptionHandler": {
+                "category": "statement",
+                "astKind": "ExceptionHandler",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "ref": "IdentRef"
+                                },
+                                {
+                                    "token": "Colon"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "ref": "ExceptionChoiceList"
+                    },
+                    {
+                        "token": "Arrow"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ExceptionChoiceList": {
+                "choice": [
+                    {
+                        "token": "KwOthers"
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "ref": "TypePath"
+                            },
+                            {
+                                "repeat": {
+                                    "sequence": [
+                                        {
+                                            "token": "Pipe"
+                                        },
+                                        {
+                                            "ref": "TypePath"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "Statement": {
+                "category": "statement",
+                "choice": [
+                    {
+                        "ref": "NullStatement"
+                    },
+                    {
+                        "ref": "IfStatement"
+                    },
+                    {
+                        "ref": "CaseStatement"
+                    },
+                    {
+                        "ref": "LoopStatement"
+                    },
+                    {
+                        "ref": "BlockStatement"
+                    },
+                    {
+                        "ref": "ExitStatement"
+                    },
+                    {
+                        "ref": "ReturnStatement"
+                    },
+                    {
+                        "ref": "GotoStatement"
+                    },
+                    {
+                        "ref": "RaiseStatement"
+                    },
+                    {
+                        "ref": "DelayStatement"
+                    },
+                    {
+                        "ref": "SelectStatement"
+                    },
+                    {
+                        "ref": "AcceptStatement"
+                    },
+                    {
+                        "ref": "TerminateStatement"
+                    },
+                    {
+                        "ref": "PragmaDeclaration"
+                    },
+                    {
+                        "ref": "Label"
+                    },
+                    {
+                        "ref": "AssignmentStatement"
+                    },
+                    {
+                        "ref": "CallStatement"
+                    }
+                ]
+            },
+            "RecoverableStatement": {
+                "category": "statement",
+                "ref": "Statement",
+                "recoverUntil": [
+                    "Semicolon",
+                    "KwEnd",
+                    "KwBegin",
+                    "KwIs",
+                    "KwPackage",
+                    "KwProcedure",
+                    "KwFunction",
+                    "KwIf",
+                    "KwLoop",
+                    "KwCase",
+                    "KwWhen",
+                    "KwElse",
+                    "KwElsif",
+                    "KwException",
+                    "KwSelect",
+                    "KwOr"
+                ]
+            },
+            "InvalidStatement": {
+                "category": "statement",
+                "sequence": [
+                    {
+                        "ref": "RecoverableStatement"
+                    },
+                    {
+                        "optional": {
+                            "token": "Semicolon"
+                        }
+                    }
+                ]
+            },
+            "NullStatement": {
+                "category": "statement",
+                "astKind": "NullStatement",
+                "sequence": [
+                    {
+                        "token": "KwNull"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "AssignmentStatement": {
+                "category": "statement",
+                "astKind": "AssignmentStatement",
+                "sequence": [
+                    {
+                        "ref": "PostfixExpression"
+                    },
+                    {
+                        "token": "Assign"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "CallStatement": {
+                "category": "statement",
+                "astKind": "CallStatement",
+                "sequence": [
+                    {
+                        "ref": "PostfixExpression"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "IfStatement": {
+                "category": "statement",
+                "astKind": "IfStatement",
+                "sequence": [
+                    {
+                        "token": "KwIf"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwThen"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "repeat": {
+                            "ref": "ElsifClause"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "ElseClause"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "token": "KwIf"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "ElsifClause": {
+                "sequence": [
+                    {
+                        "token": "KwElsif"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwThen"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ElseClause": {
+                "sequence": [
+                    {
+                        "token": "KwElse"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "CaseStatement": {
+                "category": "statement",
+                "astKind": "CaseStatement",
+                "sequence": [
+                    {
+                        "token": "KwCase"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwIs"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "CaseWhenClause"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "token": "KwCase"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "CaseWhenClause": {
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "ref": "DiscreteChoiceList"
+                    },
+                    {
+                        "token": "Arrow"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "LoopStatement": {
+                "category": "statement",
+                "astKind": "LoopStatement",
+                "sequence": [
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "ref": "IdentRef"
+                                },
+                                {
+                                    "token": "Colon"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "IterationScheme"
+                        }
+                    },
+                    {
+                        "token": "KwLoop"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "token": "KwLoop"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "IterationScheme": {
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwWhile"
+                            },
+                            {
+                                "ref": "Expression"
+                            }
+                        ]
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwFor"
+                            },
+                            {
+                                "ref": "IdentRef"
+                            },
+                            {
+                                "token": "KwIn"
+                            },
+                            {
+                                "optional": {
+                                    "token": "KwReverse"
+                                }
+                            },
+                            {
+                                "ref": "DiscreteSubtypeDefinition"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "DiscreteSubtypeDefinition": {
+                "category": "expression",
+                "ref": "Expression"
+            },
+            "BlockStatement": {
+                "category": "statement",
+                "astKind": "BlockStatement",
+                "sequence": [
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "ref": "IdentRef"
+                                },
+                                {
+                                    "token": "Colon"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwDeclare"
+                                },
+                                {
+                                    "repeat": {
+                                        "choice": [
+                                            {
+                                                "ref": "BasicDeclaration"
+                                            },
+                                            {
+                                                "ref": "PragmaDeclaration"
+                                            },
+                                            {
+                                                "ref": "UseClause"
+                                            },
+                                            {
+                                                "ref": "InvalidDeclaration"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwBegin"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "ref": "ExceptionHandlerPart"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "ExitStatement": {
+                "category": "statement",
+                "astKind": "ExitStatement",
+                "sequence": [
+                    {
+                        "token": "KwExit"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwWhen"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "ReturnStatement": {
+                "category": "statement",
+                "astKind": "ReturnStatement",
+                "sequence": [
+                    {
+                        "token": "KwReturn"
+                    },
+                    {
+                        "optional": {
+                            "ref": "Expression"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "GotoStatement": {
+                "category": "statement",
+                "astKind": "GotoStatement",
+                "sequence": [
+                    {
+                        "token": "KwGoto"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "RaiseStatement": {
+                "category": "statement",
+                "astKind": "RaiseStatement",
+                "sequence": [
+                    {
+                        "token": "KwRaise"
+                    },
+                    {
+                        "optional": {
+                            "ref": "TypePath"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwWith"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "DelayStatement": {
+                "category": "statement",
+                "astKind": "DelayStatement",
+                "sequence": [
+                    {
+                        "token": "KwDelay"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwUntil"
+                        }
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "SelectStatement": {
+                "category": "statement",
+                "astKind": "SelectStatement",
+                "sequence": [
+                    {
+                        "token": "KwSelect"
+                    },
+                    {
+                        "ref": "SelectAlternative"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "KwOr"
+                                },
+                                {
+                                    "ref": "SelectAlternative"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwElse"
+                                },
+                                {
+                                    "repeat": {
+                                        "choice": [
+                                            {
+                                                "ref": "Statement"
+                                            },
+                                            {
+                                                "ref": "InvalidStatement"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    },
+                    {
+                        "token": "KwSelect"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "SelectAlternative": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwWhen"
+                                },
+                                {
+                                    "ref": "Expression"
+                                },
+                                {
+                                    "token": "Arrow"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "choice": [
+                            {
+                                "ref": "AcceptStatement"
+                            },
+                            {
+                                "ref": "DelayStatement"
+                            },
+                            {
+                                "ref": "TerminateStatement"
+                            }
+                        ]
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "Statement"
+                                },
+                                {
+                                    "ref": "InvalidStatement"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "AcceptStatement": {
+                "category": "statement",
+                "astKind": "AcceptStatement",
+                "sequence": [
+                    {
+                        "token": "KwAccept"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "FormalParameterPart"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwDo"
+                                },
+                                {
+                                    "repeat": {
+                                        "choice": [
+                                            {
+                                                "ref": "Statement"
+                                            },
+                                            {
+                                                "ref": "InvalidStatement"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "optional": {
+                                        "ref": "ExceptionHandlerPart"
+                                    }
+                                },
+                                {
+                                    "token": "KwEnd"
+                                },
+                                {
+                                    "optional": {
+                                        "ref": "IdentRef"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "TerminateStatement": {
+                "category": "statement",
+                "sequence": [
+                    {
+                        "token": "KwTerminate"
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "PragmaDeclaration": {
+                "category": "declaration",
+                "astKind": "PragmaDeclaration",
+                "sequence": [
+                    {
+                        "token": "KwPragma"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "optional": {
+                            "ref": "ParenthesizedOrAggregate"
+                        }
+                    },
+                    {
+                        "token": "Semicolon"
+                    }
+                ]
+            },
+            "Label": {
+                "category": "statement",
+                "astKind": "Label",
+                "sequence": [
+                    {
+                        "token": "LabelStart"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "token": "LabelEnd"
+                    }
+                ]
+            },
+            "Expression": {
+                "category": "expression",
+                "pratt": {
+                    "primary": {
+                        "ref": "UnaryExpression"
+                    },
+                    "minimumPrecedence": 1
+                }
+            },
+            "UnaryExpression": {
+                "category": "expression",
+                "astKind": "UnaryExpression",
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "choice": [
+                                    {
+                                        "token": "Plus"
+                                    },
+                                    {
+                                        "token": "Minus"
+                                    },
+                                    {
+                                        "token": "KwNot"
+                                    },
+                                    {
+                                        "token": "KwAbs"
+                                    }
+                                ]
+                            },
+                            {
+                                "ref": "UnaryExpression"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "PostfixExpression"
+                    }
+                ]
+            },
+            "PostfixExpression": {
+                "category": "expression",
+                "sequence": [
+                    {
+                        "ref": "PrimaryExpression"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "LParen"
+                                        },
+                                        {
+                                            "optional": {
+                                                "ref": "ArgumentList"
+                                            }
+                                        },
+                                        {
+                                            "token": "RParen"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "LBracket"
+                                        },
+                                        {
+                                            "optional": {
+                                                "ref": "ArgumentList"
+                                            }
+                                        },
+                                        {
+                                            "token": "RBracket"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "Dot"
+                                        },
+                                        {
+                                            "choice": [
+                                                {
+                                                    "token": "KwAll"
+                                                },
+                                                {
+                                                    "ref": "IdentRef"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "astKind": "AttributeReference",
+                                    "sequence": [
+                                        {
+                                            "token": "Tick"
+                                        },
+                                        {
+                                            "choice": [
+                                                {
+                                                    "token": "KwRange"
+                                                },
+                                                {
+                                                    "token": "KwDigits"
+                                                },
+                                                {
+                                                    "token": "KwDelta"
+                                                },
+                                                {
+                                                    "token": "KwAccess"
+                                                },
+                                                {
+                                                    "token": "KwMod"
+                                                },
+                                                {
+                                                    "ref": "IdentRef"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "optional": {
+                                                "sequence": [
+                                                    {
+                                                        "token": "LParen"
+                                                    },
+                                                    {
+                                                        "optional": {
+                                                            "ref": "ArgumentList"
+                                                        }
+                                                    },
+                                                    {
+                                                        "token": "RParen"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "astKind": "QualifiedExpression",
+                                    "sequence": [
+                                        {
+                                            "token": "Tick"
+                                        },
+                                        {
+                                            "choice": [
+                                                {
+                                                    "sequence": [
+                                                        {
+                                                            "token": "LParen"
+                                                        },
+                                                        {
+                                                            "ref": "Expression"
+                                                        },
+                                                        {
+                                                            "token": "RParen"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "sequence": [
+                                                        {
+                                                            "token": "LBracket"
+                                                        },
+                                                        {
+                                                            "ref": "Expression"
+                                                        },
+                                                        {
+                                                            "token": "RBracket"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "PrimaryExpression": {
+                "category": "expression",
+                "choice": [
+                    {
+                        "ref": "RecordAggregate"
+                    },
+                    {
+                        "ref": "PositionalAggregate"
+                    },
+                    {
+                        "ref": "ParenthesizedOrAggregate"
+                    },
+                    {
+                        "ref": "AllocatorExpression"
+                    },
+                    {
+                        "token": "BasedNumber"
+                    },
+                    {
+                        "token": "FloatNumber"
+                    },
+                    {
+                        "token": "DecNumber"
+                    },
+                    {
+                        "token": "DoubleString"
+                    },
+                    {
+                        "token": "CharLiteral"
+                    },
+                    {
+                        "token": "Boolean"
+                    },
+                    {
+                        "token": "KwNull"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    }
+                ]
+            },
+            "RecordAggregate": {
+                "category": "expression",
+                "astKind": "RecordAggregate",
+                "sequence": [
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "ref": "RecordComponentAssociationList"
+                    },
+                    {
+                        "token": "RParen"
+                    }
+                ]
+            },
+            "RecordComponentAssociationList": {
+                "sequence": [
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "ref": "PositionalComponentList"
+                                },
+                                {
+                                    "token": "Comma"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "ref": "NamedComponentAssociation"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "NamedComponentAssociation"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "PositionalComponentList": {
+                "sequence": [
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "Expression"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "NamedComponentAssociation": {
+                "sequence": [
+                    {
+                        "ref": "DiscreteChoiceList"
+                    },
+                    {
+                        "token": "Arrow"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "Box"
+                            },
+                            {
+                                "ref": "Expression"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "PositionalAggregate": {
+                "category": "expression",
+                "astKind": "PositionalAggregate",
+                "sequence": [
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "Comma"
+                    },
+                    {
+                        "ref": "ArgumentList"
+                    },
+                    {
+                        "token": "RParen"
+                    }
+                ]
+            },
+            "ParenthesizedOrAggregate": {
+                "sequence": [
+                    {
+                        "token": "LParen"
+                    },
+                    {
+                        "ref": "ArgumentList"
+                    },
+                    {
+                        "token": "RParen"
+                    }
+                ]
+            },
+            "AllocatorExpression": {
+                "sequence": [
+                    {
+                        "token": "KwNew"
+                    },
+                    {
+                        "ref": "SubtypeIndication"
+                    }
+                ]
+            },
+            "ArgumentList": {
+                "sequence": [
+                    {
+                        "ref": "AggregateItem"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "AggregateItem"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "AggregateItem": {
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "ref": "DiscreteChoiceList"
+                            },
+                            {
+                                "token": "Arrow"
+                            },
+                            {
+                                "choice": [
+                                    {
+                                        "token": "Box"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "DiscreteChoiceList": {
+                "sequence": [
+                    {
+                        "ref": "DiscreteChoice"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Pipe"
+                                },
+                                {
+                                    "ref": "DiscreteChoice"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "DiscreteChoice": {
+                "choice": [
+                    {
+                        "token": "KwOthers"
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "ref": "Expression"
+                            },
+                            {
+                                "token": "DoubleDot"
+                            },
+                            {
+                                "ref": "Expression"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "IdentList": {
+                "sequence": [
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "IdentRef"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "TypePathList": {
+                "sequence": [
+                    {
+                        "ref": "TypePath"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Comma"
+                                },
+                                {
+                                    "ref": "TypePath"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "TypePath": {
+                "sequence": [
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "repeat": {
+                            "sequence": [
+                                {
+                                    "token": "Dot"
+                                },
+                                {
+                                    "ref": "IdentRef"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "IdentRef": {
+                "choice": [
+                    {
+                        "token": "DataType"
+                    },
+                    {
+                        "token": "Ident"
+                    }
+                ]
+            }
+        }
     }
-  },
-  "mergeSignIntoNumber": {
-    "signTokens": [
-      "Operator"
-    ],
-    "numberTokens": [
-      "Number"
-    ],
-    "operandTokens": [
-      "Number",
-      "Variable",
-      "Boolean",
-      "CharLiteral",
-      "SingleString",
-      "Attribute",
-      "Parenthesis",
-      "ArrayIndex",
-      "CodeBlock"
-    ]
-  }
 }

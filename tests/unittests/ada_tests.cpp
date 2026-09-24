@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <ada_definition.json.h>
+#include <ada_legacy_definition.json.h>
 
 #include <iostream>
 
