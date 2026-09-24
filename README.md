@@ -158,7 +158,7 @@ from the core parser into pluggable validators and language validation modules:
 
 ## 📚 Supported Languages
 
-* **System & General:** C, C++, C#, Java, Go, Rust, Swift, Zig, C3, Jai, V, Ada, Assembly (x86/ARM), Pascal, Visual Basic
+* **System & General:** C, C++, C#, Java, Go, Rust, Swift, Zig, C3, Jai, V, Ada, Assembly (x86/ARM), Pascal, Visual Basic, Fortran
 * **Web & Data:** HTML, CSS, JavaScript, TypeScript, JSON, XML, SQL, Markdown
 * **Scripting:** Python, PHP, Bash/Shell, Perl
 
