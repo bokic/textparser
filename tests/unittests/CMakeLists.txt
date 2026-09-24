@@ -64,6 +64,7 @@ add_executable( unittests
   typescript_tests.cpp
   fortran_tests.cpp
   perl_tests.cpp
+  perl_v2_grammar_tests.cpp
   go_tests.cpp
   asm_tests.cpp
   swift_tests.cpp

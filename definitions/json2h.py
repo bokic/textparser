@@ -209,7 +209,7 @@ class GrammarBuilder:
         keys = [
             "token", "ref", "sequence", "choice", "optional", "repeat",
             "lookahead", "not", "when", "withContext", "commit", "pratt", "withGoal",
-            "capture", "matchCapture", "oneOrMore"
+            "capture", "matchCapture", "oneOrMore", "defineSymbol", "whenSymbol", "withSymbolScope"
         ]
         present = [k for k in keys if k in construct]
         if len(present) != 1:
@@ -299,6 +299,14 @@ class GrammarBuilder:
                 child_ids.append(cid1)
                 self.parse_construct(postfix, cid1)
             prod["children"] = child_ids
+        elif key == "withSymbolScope":
+            if not isinstance(val, dict) or set(val) != {"name", "production"} or not isinstance(val["name"], str) or not val["name"]:
+                raise ValueError("Invalid symbol scope")
+            child_id = self.append_anonymous()
+            prod["kind"] = "TEXTPARSER_PROD_CONTEXT"
+            prod["capture_name"] = val["name"]
+            prod["children"] = [child_id]
+            self.parse_construct(val["production"], child_id)
         elif key == "withGoal":
             if not isinstance(val, dict) or len(val) != 2:
                 raise ValueError("withGoal must have exactly name and production")
@@ -311,6 +319,33 @@ class GrammarBuilder:
             prod["lexical_goal"] = name
             prod["children"] = [child_id]
             self.parse_construct(inner, child_id)
+        elif key in ("defineSymbol", "whenSymbol"):
+            expected = {"name", "value", "production", "then"} if key == "defineSymbol" else {"name", "value"}
+            if not isinstance(val, dict) or not expected <= set(val) or set(val) - expected - {"scope", "separator", "defaultScope", "replace", "scoped"} or not isinstance(val["name"], str) or not val["name"] or type(val["value"]) is not int:
+                raise ValueError("Invalid symbol construct")
+            prod["kind"] = "TEXTPARSER_PROD_DEFINE_SYMBOL" if key == "defineSymbol" else "TEXTPARSER_PROD_SYMBOL_GUARD"
+            prod["capture_name"] = val["name"]
+            prod["context_value"] = val["value"]
+            for field in ("scope", "separator", "defaultScope"):
+                if field in val and (not isinstance(val[field], str) or not val[field]):
+                    raise ValueError("Invalid symbol scope")
+            for field in ("replace", "scoped"):
+                if field in val and (key != "defineSymbol" or type(val[field]) is not bool):
+                    raise ValueError("Invalid symbol replacement")
+            if "scope" in val and "separator" not in val:
+                raise ValueError("Symbol scope requires separator")
+            if val.get("scoped") and not val.get("replace"):
+                raise ValueError("Scoped symbol requires replace")
+            prod["context_name"] = val.get("scope")
+            prod["lexical_goal"] = val.get("separator")
+            prod["predicate_name"] = val.get("defaultScope")
+            prod["minimum_precedence"] = 2 if val.get("scoped") else int(val.get("replace", False))
+
+            if key == "defineSymbol":
+                for field in ("production", "then"):
+                    child_id = self.append_anonymous()
+                    prod["children"].append(child_id)
+                    self.parse_construct(val[field], child_id)
         elif key in ("capture", "matchCapture"):
             if not isinstance(val, dict):
                 raise ValueError(f"{key} must be dict")
@@ -491,11 +526,11 @@ def validate_grammar(builder):
                     val = val or nullable[c]
             elif kind in ("TEXTPARSER_PROD_OPTIONAL", "TEXTPARSER_PROD_REPEAT",
                           "TEXTPARSER_PROD_LOOKAHEAD", "TEXTPARSER_PROD_NOT",
-                          "TEXTPARSER_PROD_PREDICATE", "TEXTPARSER_PROD_COMMIT"):
+                          "TEXTPARSER_PROD_PREDICATE", "TEXTPARSER_PROD_COMMIT", "TEXTPARSER_PROD_SYMBOL_GUARD"):
                 val = True
             elif kind in ("TEXTPARSER_PROD_CONTEXT", "TEXTPARSER_PROD_LEXICAL_GOAL", "TEXTPARSER_PROD_MATCH_CAPTURE"):
                 val = len(p["children"]) == 1 and nullable[p["children"][0]]
-            elif kind == "TEXTPARSER_PROD_CAPTURE":
+            elif kind in ("TEXTPARSER_PROD_CAPTURE", "TEXTPARSER_PROD_DEFINE_SYMBOL"):
                 val = len(p["children"]) == 2 and nullable[p["children"][0]] and nullable[p["children"][1]]
             elif kind == "TEXTPARSER_PROD_PRATT":
                 val = len(p["children"]) >= 1 and nullable[p["children"][0]]
@@ -539,7 +574,7 @@ def validate_grammar(builder):
                       "TEXTPARSER_PROD_CONTEXT", "TEXTPARSER_PROD_LEXICAL_GOAL",
                       "TEXTPARSER_PROD_PRATT", "TEXTPARSER_PROD_MATCH_CAPTURE"):
             cycle = visit(p["children"][0])
-        elif kind == "TEXTPARSER_PROD_CAPTURE":
+        elif kind in ("TEXTPARSER_PROD_CAPTURE", "TEXTPARSER_PROD_DEFINE_SYMBOL"):
             cycle = visit(p["children"][0])
             if not cycle and nullable[p["children"][0]]:
                 cycle = visit(p["children"][1])
@@ -730,7 +765,7 @@ def generate_header(in_file, out_file, skip_native_regex=False):
         tokens_dict = lexer_obj.get("tokens", {})
         for t in token_list:
             is_triv = t in trivia_dict
-            t_info = tokens_dict.get(t, {})
+            t_info = tokens_dict.get(t, trivia_dict.get(t, {}))
             prio = t_info.get("priority", 0)
             push = t_info.get("pushMode")
             pop = t_info.get("popMode", False)
@@ -743,6 +778,9 @@ def generate_header(in_file, out_file, skip_native_regex=False):
                 "validator": val,
                 "capture": t_info.get("capture", 0),
                 "capture_flag": t_info.get("captureFlag", 0),
+                "capture_indent_flag": t_info.get("captureIndentFlag", 0),
+                "unless_dynamic": t_info.get("unlessDynamic", 0),
+                "line_start": t_info.get("lineStart", False),
                 "dynamic": t_info.get("dynamic", 0),
                 "dynamic_trigger": t_info.get("dynamicTrigger", 0),
             })
@@ -877,7 +915,7 @@ def generate_header(in_file, out_file, skip_native_regex=False):
         for rule in lexer_rules:
             push_str = c_string_literal(rule["push_mode"])
             val_str = c_string_literal(rule["validator"])
-            text += f"    {{ .priority = {rule['priority']}, .is_trivia = {python_bool_to_c_string(rule['is_trivia'])}, .push_mode = {push_str}, .pop_mode = {python_bool_to_c_string(rule['pop_mode'])}, .validator = {val_str}, .capture = {rule['capture']}, .capture_flag = {rule['capture_flag']}, .dynamic = {rule['dynamic']}, .dynamic_trigger = {rule['dynamic_trigger']} }}," + os.linesep
+            text += f"    {{ .priority = {rule['priority']}, .is_trivia = {python_bool_to_c_string(rule['is_trivia'])}, .push_mode = {push_str}, .pop_mode = {python_bool_to_c_string(rule['pop_mode'])}, .validator = {val_str}, .capture = {rule['capture']}, .capture_flag = {rule['capture_flag']}, .dynamic = {rule['dynamic']}, .dynamic_trigger = {rule['dynamic_trigger']}, .capture_indent_flag = {rule['capture_indent_flag']}, .unless_dynamic = {rule['unless_dynamic']}, .line_start = {python_bool_to_c_string(rule['line_start'])} }}," + os.linesep
         text += "};" + os.linesep + os.linesep
 
         if lexer_modes:

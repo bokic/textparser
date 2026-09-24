@@ -1,0 +1,6 @@
+{
+ "textparser_distinct_kinds": 128,
+ "treesitter_distinct_kinds": 126,
+ "construct_count": 77,
+ "mismatch_count": 5
+}

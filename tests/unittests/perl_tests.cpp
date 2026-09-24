@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <perl_definition.json.h>
+#include <perl_legacy_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {

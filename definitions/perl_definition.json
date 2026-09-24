@@ -1,174 +1,3721 @@
 {
+  "$schema": "../schema/textparser-schema.json",
+  "formatVersion": 2,
   "name": "perl",
-  "version": 1.0,
+  "version": 2.0,
   "caseSensitivity": true,
   "defaultFileExtensions": [
-    "pl"
+    "pl",
+    "pm",
+    "t",
+    "psgi"
   ],
-  "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "LineComment",
-    "PODBlock",
-    "Boolean",
-    "Keyword",
-    "SingleString",
-    "DoubleString",
-    "Number",
-    "Variable",
-    "Operator",
-    "Parenthesis",
-    "ArrayIndex",
-    "CodeBlock"
+  "defaultTextEncoding": "utf-8",
+  "supportedBom": [
+    "utf-8"
   ],
-  "otherTextInside": true,
-  "tokens": {
-    "LineComment": {
-      "type": "SimpleToken",
-      "startRegex": "#[^\\r\\n]*",
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+  "otherTextInside": false,
+  "diagnostics": {
+    "expected": {
+      "code": "PERL1001",
+      "message": "Expected %s."
     },
-    "PODBlock": {
-      "type": "StartStop",
-      "startRegex": "^=\\w+",
-      "endRegex": "^=cut",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+    "tokenExpected": {
+      "code": "PERL1002",
+      "message": "Expected '%s'."
     },
-    "Keyword": {
-      "type": "SimpleToken",
-      "startRegex": "package\\b|use\\b|require\\b|sub\\b|my\\b|our\\b|local\\b|state\\b|if\\b|unless\\b|else\\b|elsif\\b|given\\b|when\\b|default\\b|for\\b|foreach\\b|while\\b|until\\b|do\\b|continue\\b|last\\b|next\\b|redo\\b|goto\\b|return\\b|die\\b|warn\\b|exit\\b|eval\\b|try\\b|catch\\b|finally\\b|throw\\b|bless\\b|ref\\b|tie\\b|untie\\b|defined\\b|exists\\b|delete\\b|shift\\b|unshift\\b|push\\b|pop\\b|splice\\b|split\\b|join\\b|keys\\b|values\\b|each\\b|map\\b|grep\\b|sort\\b|print\\b|say\\b|printf\\b|sprintf\\b|open\\b|close\\b|read\\b|write\\b|sysopen\\b|sysread\\b|syswrite\\b|seek\\b|tell\\b|truncate\\b|flock\\b|chdir\\b|mkdir\\b|rmdir\\b|opendir\\b|closedir\\b|readdir\\b|glob\\b|unlink\\b|rename\\b|chmod\\b|chown\\b|umask\\b|link\\b|symlink\\b|readlink\\b|stat\\b|lstat\\b|fcntl\\b|ioctl\\b|select\\b|socket\\b|connect\\b|bind\\b|listen\\b|accept\\b|send\\b|recv\\b|shutdown\\b|setsockopt\\b|getsockopt\\b|fork\\b|exec\\b|system\\b|qx\\b|pipe\\b|wait\\b|waitpid\\b|times\\b|alarm\\b|sleep\\b|gmtime\\b|localtime\\b|time\\b|caller\\b|wantarray\\b|prototype\\b|__FILE__\\b|__LINE__\\b|__PACKAGE__\\b",
-      "textColor": "0xc586c0"
-    },
-    "Boolean": {
-      "type": "SimpleToken",
-      "startRegex": "\\b(?:undef)\\b",
-      "textColor": "0x569cd6"
-    },
-    "SingleString": {
-      "type": "StartStop",
-      "startRegex": "'",
-      "endRegex": "'",
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "DoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "nestedTokens": [
-        "StringEscape"
-      ],
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "StringEscape": {
-      "type": "SimpleToken",
-      "startRegex": "\\\\[\\\\\\\"'nrtfeab]|\\\\x[0-9a-fA-F]{1,2}|\\\\[0-7]{1,3}|\\\\c.",
-      "textColor": "0xd7ba7d"
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?",
-      "textColor": "0xb5cea8"
-    },
-    "Variable": {
-      "type": "SimpleToken",
-      "startRegex": "[$@%*][a-zA-Z_][a-zA-Z0-9_]*|[$@%*]\\^[a-zA-Z]|[$@%*]\\$|[$@%*]\\d+|[$@%*][:]{2}[a-zA-Z_][a-zA-Z0-9_]*",
-      "textColor": "0x9cdcfe"
-    },
-    "Operator": {
-      "type": "SimpleToken",
-      "startRegex": "\\.\\.\\.|<=>|\\|\\||=|\\|\\||=>|->|==|!=|<=|>=|=~|!~|&&|//|\\.\\.|\\+\\+|\\-\\-|\\*\\*|\\+=|\\-=|\\*=|\\/=|%=|&=|\\^=|<<|>>|=|<|>|!|\\||\\^|&|\\*|/|%|\\+|-|\\.|~|,|;",
-      "textColor": "0xd4d4d4"
-    },
-    "Parenthesis": {
-      "type": "StartStop",
-      "startRegex": "\\(",
-      "endRegex": "\\)",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "PODBlock",
-        "Boolean",
-        "Keyword",
-        "SingleString",
-        "DoubleString",
-        "Number",
-        "Variable",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "ArrayIndex": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "PODBlock",
-        "Boolean",
-        "Keyword",
-        "SingleString",
-        "DoubleString",
-        "Number",
-        "Variable",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "CodeBlock": {
-      "type": "StartStop",
-      "startRegex": "\\{",
-      "endRegex": "\\}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "PODBlock",
-        "Boolean",
-        "Keyword",
-        "SingleString",
-        "DoubleString",
-        "Number",
-        "Variable",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
+    "recovered": {
+      "code": "PERL1003",
+      "message": "Unexpected Perl syntax."
     }
   },
-  "mergeSignIntoNumber": {
-    "signTokens": [
-      "Operator"
-    ],
-    "numberTokens": [
-      "Number"
-    ],
-    "operandTokens": [
-      "Number",
-      "Variable",
-      "Boolean",
-      "SingleString",
-      "DoubleString",
-      "Parenthesis",
-      "ArrayIndex",
-      "CodeBlock"
-    ]
-  }
+  "lexer": {
+    "initialMode": "default",
+    "tokens": {
+      "KwPackage": {
+        "regex": "package\\b",
+        "priority": 30
+      },
+      "KwUse": {
+        "regex": "use\\b",
+        "priority": 30
+      },
+      "KwNo": {
+        "regex": "no\\b",
+        "priority": 30
+      },
+      "KwRequire": {
+        "regex": "require\\b",
+        "priority": 30
+      },
+      "KwSub": {
+        "regex": "sub\\b",
+        "priority": 30
+      },
+      "KwMy": {
+        "regex": "my\\b",
+        "priority": 30
+      },
+      "KwOur": {
+        "regex": "our\\b",
+        "priority": 30
+      },
+      "KwLocal": {
+        "regex": "local\\b",
+        "priority": 30
+      },
+      "KwState": {
+        "regex": "state\\b",
+        "priority": 30
+      },
+      "KwIf": {
+        "regex": "if\\b",
+        "priority": 30
+      },
+      "KwUnless": {
+        "regex": "unless\\b",
+        "priority": 30
+      },
+      "KwElse": {
+        "regex": "else\\b",
+        "priority": 30
+      },
+      "KwElsif": {
+        "regex": "elsif\\b",
+        "priority": 30
+      },
+      "KwFor": {
+        "regex": "for\\b",
+        "priority": 30
+      },
+      "KwForeach": {
+        "regex": "foreach\\b",
+        "priority": 30
+      },
+      "KwWhile": {
+        "regex": "while\\b",
+        "priority": 30
+      },
+      "KwUntil": {
+        "regex": "until\\b",
+        "priority": 30
+      },
+      "KwContinue": {
+        "regex": "continue\\b",
+        "priority": 30
+      },
+      "KwDo": {
+        "regex": "do\\b",
+        "priority": 30
+      },
+      "KwEval": {
+        "regex": "eval\\b",
+        "priority": 30
+      },
+      "KwGiven": {
+        "regex": "given\\b",
+        "priority": 30
+      },
+      "KwWhen": {
+        "regex": "when\\b",
+        "priority": 30
+      },
+      "KwDefault": {
+        "regex": "default\\b",
+        "priority": 30
+      },
+      "KwTry": {
+        "regex": "try\\b",
+        "priority": 30
+      },
+      "KwCatch": {
+        "regex": "catch\\b",
+        "priority": 30
+      },
+      "KwFinally": {
+        "regex": "finally\\b",
+        "priority": 30
+      },
+      "KwDefer": {
+        "regex": "defer\\b",
+        "priority": 30
+      },
+      "KwReturn": {
+        "regex": "return\\b",
+        "priority": 30
+      },
+      "KwLast": {
+        "regex": "last\\b",
+        "priority": 30
+      },
+      "KwNext": {
+        "regex": "next\\b",
+        "priority": 30
+      },
+      "KwRedo": {
+        "regex": "redo\\b",
+        "priority": 30
+      },
+      "KwGoto": {
+        "regex": "goto\\b",
+        "priority": 30
+      },
+      "KwDie": {
+        "regex": "die\\b",
+        "priority": 30
+      },
+      "KwWarn": {
+        "regex": "warn\\b",
+        "priority": 30
+      },
+      "KwExit": {
+        "regex": "exit\\b",
+        "priority": 30
+      },
+      "KwClass": {
+        "regex": "class\\b",
+        "priority": 30
+      },
+      "KwField": {
+        "regex": "field\\b",
+        "priority": 30
+      },
+      "KwMethod": {
+        "regex": "method\\b",
+        "priority": 30
+      },
+      "KwADJUST": {
+        "regex": "ADJUST\\b",
+        "priority": 30
+      },
+      "KwBEGIN": {
+        "regex": "BEGIN\\b",
+        "priority": 30
+      },
+      "KwCHECK": {
+        "regex": "CHECK\\b",
+        "priority": 30
+      },
+      "KwINIT": {
+        "regex": "INIT\\b",
+        "priority": 30
+      },
+      "KwUNITCHECK": {
+        "regex": "UNITCHECK\\b",
+        "priority": 30
+      },
+      "KwEND": {
+        "regex": "END\\b",
+        "priority": 30
+      },
+      "Kw__SUB__": {
+        "regex": "__SUB__\\b",
+        "priority": 30
+      },
+      "Kw__FILE__": {
+        "regex": "__FILE__\\b",
+        "priority": 30
+      },
+      "Kw__LINE__": {
+        "regex": "__LINE__\\b",
+        "priority": 30
+      },
+      "Kw__PACKAGE__": {
+        "regex": "__PACKAGE__\\b",
+        "priority": 30
+      },
+      "KwUndef": {
+        "regex": "undef\\b",
+        "priority": 30
+      },
+      "KwTrue": {
+        "regex": "true\\b",
+        "priority": 30
+      },
+      "KwFalse": {
+        "regex": "false\\b",
+        "priority": 30
+      },
+      "OrWord": {
+        "regex": "or\\b",
+        "priority": 20
+      },
+      "XorWord": {
+        "regex": "xor\\b",
+        "priority": 20
+      },
+      "AndWord": {
+        "regex": "and\\b",
+        "priority": 20
+      },
+      "Comma": {
+        "regex": ",",
+        "priority": 20
+      },
+      "FatComma": {
+        "regex": "=>",
+        "priority": 20
+      },
+      "Assign": {
+        "regex": "=",
+        "priority": 20
+      },
+      "AddAssign": {
+        "regex": "\\+=",
+        "priority": 20
+      },
+      "SubAssign": {
+        "regex": "\\-=",
+        "priority": 20
+      },
+      "MulAssign": {
+        "regex": "\\*=",
+        "priority": 20
+      },
+      "DivAssign": {
+        "regex": "/=",
+        "priority": 20
+      },
+      "ModAssign": {
+        "regex": "%=",
+        "priority": 20
+      },
+      "PowAssign": {
+        "regex": "\\*\\*=",
+        "priority": 20
+      },
+      "ConcatAssign": {
+        "regex": "\\.=",
+        "priority": 20
+      },
+      "RepeatAssign": {
+        "regex": "x=",
+        "priority": 20
+      },
+      "AndAssign": {
+        "regex": "\\&\\&=",
+        "priority": 20
+      },
+      "OrAssign": {
+        "regex": "\\|\\|=",
+        "priority": 20
+      },
+      "DefinedAssign": {
+        "regex": "//=",
+        "priority": 20
+      },
+      "BitAndAssign": {
+        "regex": "\\&=",
+        "priority": 20
+      },
+      "BitOrAssign": {
+        "regex": "\\|=",
+        "priority": 20
+      },
+      "BitXorAssign": {
+        "regex": "\\^=",
+        "priority": 20
+      },
+      "ShiftLeftAssign": {
+        "regex": "<<=",
+        "priority": 20
+      },
+      "ShiftRightAssign": {
+        "regex": ">>=",
+        "priority": 20
+      },
+      "Range": {
+        "regex": "\\.\\.",
+        "priority": 20
+      },
+      "RangeExclusive": {
+        "regex": "\\.\\.\\.",
+        "priority": 20
+      },
+      "LogicalOr": {
+        "regex": "\\|\\|",
+        "priority": 20
+      },
+      "DefinedOr": {
+        "regex": "//",
+        "priority": 20
+      },
+      "LogicalAnd": {
+        "regex": "\\&\\&",
+        "priority": 20
+      },
+      "BitOr": {
+        "regex": "\\|",
+        "priority": 20
+      },
+      "BitXor": {
+        "regex": "\\^",
+        "priority": 20
+      },
+      "BitAnd": {
+        "regex": "\\&",
+        "priority": 20
+      },
+      "Equal": {
+        "regex": "==",
+        "priority": 20
+      },
+      "NotEqual": {
+        "regex": "!=",
+        "priority": 20
+      },
+      "Compare": {
+        "regex": "<=>",
+        "priority": 20
+      },
+      "Eq": {
+        "regex": "eq\\b",
+        "priority": 20
+      },
+      "Ne": {
+        "regex": "ne\\b",
+        "priority": 20
+      },
+      "Cmp": {
+        "regex": "cmp\\b",
+        "priority": 20
+      },
+      "SmartMatch": {
+        "regex": "\\~\\~",
+        "priority": 20
+      },
+      "Less": {
+        "regex": "<",
+        "priority": 20
+      },
+      "LessEqual": {
+        "regex": "<=",
+        "priority": 20
+      },
+      "Greater": {
+        "regex": ">",
+        "priority": 20
+      },
+      "GreaterEqual": {
+        "regex": ">=",
+        "priority": 20
+      },
+      "Lt": {
+        "regex": "lt\\b",
+        "priority": 20
+      },
+      "Le": {
+        "regex": "le\\b",
+        "priority": 20
+      },
+      "Gt": {
+        "regex": "gt\\b",
+        "priority": 20
+      },
+      "Ge": {
+        "regex": "ge\\b",
+        "priority": 20
+      },
+      "Isa": {
+        "regex": "isa\\b",
+        "priority": 20
+      },
+      "ShiftLeft": {
+        "regex": "<<",
+        "priority": 20
+      },
+      "ShiftRight": {
+        "regex": ">>",
+        "priority": 20
+      },
+      "Plus": {
+        "regex": "\\+",
+        "priority": 20
+      },
+      "Minus": {
+        "regex": "\\-",
+        "priority": 20
+      },
+      "Concat": {
+        "regex": "\\.",
+        "priority": 20
+      },
+      "Star": {
+        "regex": "\\*",
+        "priority": 20
+      },
+      "Slash": {
+        "regex": "/",
+        "priority": 20
+      },
+      "Percent": {
+        "regex": "%",
+        "priority": 20
+      },
+      "Repeat": {
+        "regex": "x\\b",
+        "priority": 20
+      },
+      "Match": {
+        "regex": "=\\~",
+        "priority": 20
+      },
+      "NotMatch": {
+        "regex": "!\\~",
+        "priority": 20
+      },
+      "Power": {
+        "regex": "\\*\\*",
+        "priority": 20
+      },
+      "NotWord": {
+        "regex": "not\\b",
+        "priority": 20
+      },
+      "Not": {
+        "regex": "!",
+        "priority": 20
+      },
+      "Tilde": {
+        "regex": "\\~",
+        "priority": 20
+      },
+      "Reference": {
+        "regex": "\\\\",
+        "priority": 20
+      },
+      "Increment": {
+        "regex": "\\+\\+",
+        "priority": 20
+      },
+      "Decrement": {
+        "regex": "\\-\\-",
+        "priority": 20
+      },
+      "LParen": {
+        "regex": "\\(",
+        "priority": 20
+      },
+      "RParen": {
+        "regex": "\\)",
+        "priority": 20
+      },
+      "LBracket": {
+        "regex": "\\[",
+        "priority": 20
+      },
+      "RBracket": {
+        "regex": "\\]",
+        "priority": 20
+      },
+      "LBrace": {
+        "regex": "\\{",
+        "priority": 20
+      },
+      "RBrace": {
+        "regex": "\\}",
+        "priority": 20
+      },
+      "Semicolon": {
+        "regex": ";",
+        "priority": 20
+      },
+      "Colon": {
+        "regex": ":",
+        "priority": 20
+      },
+      "Question": {
+        "regex": "\\?",
+        "priority": 20
+      },
+      "Arrow": {
+        "regex": "\\->",
+        "priority": 20
+      },
+      "Dollar": {
+        "regex": "\\$#|\\$",
+        "priority": 20
+      },
+      "At": {
+        "regex": "@",
+        "priority": 20
+      },
+      "Identifier": {
+        "regex": "(?:::)?(?:[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)(?:(?:::|\\x27)[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)*",
+        "priority": 5
+      },
+      "Variable": {
+        "regex": "(?:\\$\\#|\\$|@)(?:::)?(?:[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)(?:(?:::|\\x27)[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)*|\\$(?:\\^[A-Za-z]|\\d+|[!\"#%&\\x27()*+,./:;<=>?@\\[\\]\\\\^`|~_-]|\\$(?![\\w{]))|@[+-]",
+        "priority": 40
+      },
+      "HashVariable": {
+        "regex": "%(?:::)?(?:[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)(?:(?:::|\\x27)[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)*",
+        "priority": 40
+      },
+      "GlobVariable": {
+        "regex": "\\*(?:::)?(?:[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)(?:(?:::|\\x27)[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)*",
+        "priority": 40
+      },
+      "Number": {
+        "regex": "(?:0[xX][0-9A-Fa-f_]+(?:\\.[0-9A-Fa-f_]*)?(?:[pP][+-]?[0-9_]+)?|0[bB][01_]+|0[oO][0-7_]+|[0-9][0-9_]*(?:\\.(?!\\.)[0-9_]*)?(?:[eE][+-]?[0-9_]+)?|\\.[0-9][0-9_]*(?:[eE][+-]?[0-9_]+)?)",
+        "priority": 35
+      },
+      "Version": {
+        "regex": "v[0-9]+(?:\\.[0-9]+)+|[0-9]+(?:\\.[0-9]+){2,}",
+        "priority": 40
+      },
+      "SingleString": {
+        "regex": "'(?:\\\\[\\s\\S]|[^'\\\\])*'",
+        "priority": 50
+      },
+      "DoubleString": {
+        "regex": "\"(?:\\\\[\\s\\S]|[^\"\\\\])*\"",
+        "priority": 50
+      },
+      "BacktickString": {
+        "regex": "`(?:\\\\[\\s\\S]|[^`\\\\])*`",
+        "priority": 50
+      },
+      "QuoteLiteral": {
+        "regex": "(?:q|qq|qw|qx)\\b[ \\t]*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<D>[^\\s({\\[<])(?:\\\\[\\s\\S]|(?!\\k<D>)[\\s\\S])*\\k<D>)(?(DEFINE)(?<Qbrace>\\{(?:\\\\[\\s\\S]|[^\\{\\}\\\\]|(?&Qbrace))*\\})(?<Qparen>\\((?:\\\\[\\s\\S]|[^\\(\\)\\\\]|(?&Qparen))*\\))(?<Qbracket>\\[(?:\\\\[\\s\\S]|[^\\[\\]\\\\]|(?&Qbracket))*\\])(?<Qangle><(?:\\\\[\\s\\S]|[^<>\\\\]|(?&Qangle))*>))",
+        "priority": 55
+      },
+      "RegexLiteral": {
+        "regex": "(?:m|qr)\\b[ \\t]*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<D>[^\\s({\\[<])(?:\\\\[\\s\\S]|(?!\\k<D>)[\\s\\S])*\\k<D>)[msixpodualngc]*(?(DEFINE)(?<Qbrace>\\{(?:\\\\[\\s\\S]|[^\\{\\}\\\\]|(?&Qbrace))*\\})(?<Qparen>\\((?:\\\\[\\s\\S]|[^\\(\\)\\\\]|(?&Qparen))*\\))(?<Qbracket>\\[(?:\\\\[\\s\\S]|[^\\[\\]\\\\]|(?&Qbracket))*\\])(?<Qangle><(?:\\\\[\\s\\S]|[^<>\\\\]|(?&Qangle))*>))",
+        "priority": 55
+      },
+      "Substitution": {
+        "regex": "s\\b[ \\t]*(?:(?&Qbrace)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dbrace>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dbrace>)[\\s\\S])*\\k<Dbrace>)|(?&Qparen)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dparen>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dparen>)[\\s\\S])*\\k<Dparen>)|(?&Qbracket)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dbracket>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dbracket>)[\\s\\S])*\\k<Dbracket>)|(?&Qangle)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dangle>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dangle>)[\\s\\S])*\\k<Dangle>)|(?<D>[^\\s({\\[<])(?:\\\\[\\s\\S]|(?!\\k<D>)[\\s\\S])*\\k<D>(?:\\\\[\\s\\S]|(?!\\k<D>)[\\s\\S])*\\k<D>)[msixpodualngcer]*(?(DEFINE)(?<Qbrace>\\{(?:\\\\[\\s\\S]|[^\\{\\}\\\\]|(?&Qbrace))*\\})(?<Qparen>\\((?:\\\\[\\s\\S]|[^\\(\\)\\\\]|(?&Qparen))*\\))(?<Qbracket>\\[(?:\\\\[\\s\\S]|[^\\[\\]\\\\]|(?&Qbracket))*\\])(?<Qangle><(?:\\\\[\\s\\S]|[^<>\\\\]|(?&Qangle))*>))",
+        "priority": 55
+      },
+      "Transliteration": {
+        "regex": "(?:tr|y)\\b[ \\t]*(?:(?&Qbrace)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dbrace>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dbrace>)[\\s\\S])*\\k<Dbrace>)|(?&Qparen)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dparen>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dparen>)[\\s\\S])*\\k<Dparen>)|(?&Qbracket)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dbracket>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dbracket>)[\\s\\S])*\\k<Dbracket>)|(?&Qangle)\\s*(?:(?&Qbrace)|(?&Qparen)|(?&Qbracket)|(?&Qangle)|(?<Dangle>[^\\w\\s])(?:\\\\[\\s\\S]|(?!\\k<Dangle>)[\\s\\S])*\\k<Dangle>)|(?<D>[^\\s({\\[<])(?:\\\\[\\s\\S]|(?!\\k<D>)[\\s\\S])*\\k<D>(?:\\\\[\\s\\S]|(?!\\k<D>)[\\s\\S])*\\k<D>)[cdsr]*(?(DEFINE)(?<Qbrace>\\{(?:\\\\[\\s\\S]|[^\\{\\}\\\\]|(?&Qbrace))*\\})(?<Qparen>\\((?:\\\\[\\s\\S]|[^\\(\\)\\\\]|(?&Qparen))*\\))(?<Qbracket>\\[(?:\\\\[\\s\\S]|[^\\[\\]\\\\]|(?&Qbracket))*\\])(?<Qangle><(?:\\\\[\\s\\S]|[^<>\\\\]|(?&Qangle))*>))",
+        "priority": 55
+      },
+      "BareRegex": {
+        "regex": "/(?:\\\\[\\s\\S]|\\[(?:\\\\[\\s\\S]|[^\\]\\\\])*\\]|[^/\\\\\\[])*?/[msixpodualngc]*",
+        "priority": 50
+      },
+      "Readline": {
+        "regex": "<(?:\\$?[A-Za-z_][\\w:]*)?>",
+        "priority": 50
+      },
+      "FileTest": {
+        "regex": "-[rwxoRWXOezsfdlpSbctugkTBMAC](?!\\w)",
+        "priority": 40
+      },
+      "HereStart": {
+        "regex": "<<([~]?)[ \\t]*(?|([\\x27\"`])([^\\r\\n]*?)\\2|()([A-Za-z_][A-Za-z_0-9]*))",
+        "priority": 60,
+        "capture": 3,
+        "captureIndentFlag": 1
+      },
+      "HereTrigger": {
+        "regex": "\\r\\n|\\n|\\r",
+        "priority": 50,
+        "dynamicTrigger": 3,
+        "pushMode": "Here"
+      },
+      "HereEnd": {
+        "regex": ".",
+        "priority": 50,
+        "dynamic": 3,
+        "popMode": true
+      },
+      "HereBody": {
+        "regex": "[^\\r\\n]*(?:\\r\\n|\\r|\\n)|[^\\r\\n]+",
+        "priority": 1
+      },
+      "DataSection": {
+        "regex": "__(?:DATA|END)__\\b[^\\r\\n]*(?:\\r\\n|\\r|\\n|$)[\\s\\S]*",
+        "priority": 60,
+        "lineStart": false
+      },
+      "FormatDeclaration": {
+        "regex": "format\\b[^\\r\\n=]*=[^\\r\\n]*(?:\\r\\n|\\r|\\n)(?:(?!\\.[ \\t]*(?:\\r\\n|\\r|\\n|$))[^\\r\\n]*(?:\\r\\n|\\r|\\n))*\\.[ \\t]*(?:\\r\\n|\\r|\\n|$)",
+        "priority": 60
+      },
+      "Invalid": {
+        "regex": "[\\s\\S]",
+        "priority": -100
+      },
+      "UnaryBuiltin": {
+        "regex": "(?:defined|exists|delete|scalar|ref|blessed|chomp|chop|chr|ord|length|lc|lcfirst|uc|ucfirst|quotemeta|int|abs|sqrt|exp|log|sin|cos|rand|srand|hex|oct|reverse|reset|pos|study|prototype|caller|wantarray|readlink|readpipe|evalbytes)\\b",
+        "priority": 30
+      },
+      "ListBuiltin": {
+        "regex": "(?:print|printf|say|sprintf|push|pop|shift|unshift|splice|split|join|keys|values|each|map|grep|sort|open|close|read|write|sysopen|sysread|syswrite|seek|tell|truncate|flock|chdir|mkdir|rmdir|opendir|closedir|readdir|glob|unlink|rename|chmod|chown|umask|link|symlink|stat|lstat|fcntl|ioctl|select|socket|socketpair|connect|bind|listen|accept|send|recv|shutdown|setsockopt|getsockopt|fork|exec|system|pipe|wait|waitpid|times|alarm|sleep|gmtime|localtime|time|bless|tie|untie|pack|unpack|vec|substr|index|rindex|atan2|crypt|formline|dbmopen|dbmclose|getc|binmode|eof|fileno|readline|readseek|telldir|seekdir|rewinddir|getpwnam|getpwuid|getpwent|getgrnam|getgrgid|getgrent|gethostbyname|gethostbyaddr|gethostent|getnetbyname|getnetbyaddr|getnetent|getprotobyname|getprotobynumber|getprotoent|getservbyname|getservbyport|getservent|setpwent|setgrent|sethostent|setnetent|setprotoent|setservent|endpwent|endgrent|endhostent|endnetent|endprotoent|endservent|getlogin|getpriority|setpriority|kill|localtime|gmtime|time|lock|dump)\\b",
+        "priority": 30
+      },
+      "PercentSigil": {
+        "regex": "%",
+        "priority": 20
+      },
+      "StarSigil": {
+        "regex": "\\*",
+        "priority": 20
+      },
+      "AutoquotedWord": {
+        "regex": "[A-Za-z_]\\w*(?=[ \\t]*(?:=>|}))",
+        "priority": 60
+      },
+      "BracedVariable": {
+        "regex": "[$@%*]\\{(?:(?:[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)(?:(?:::|\\x27)[A-Za-z_\\x{80}-\\x{10ffff}][\\w\\x{80}-\\x{10ffff}]*)*|\\^[A-Z_]+|[0-9]+|[!@#$%&*?])\\}",
+        "priority": 50
+      },
+      "UnaryPrototype": {
+        "regex": "\\([ \\t]*\\$[ \\t]*\\)|:prototype[ \\t]*\\(\\$\\)",
+        "priority": 65
+      },
+      "NullaryPrototype": {
+        "regex": "\\([ \\t]*\\)|:prototype[ \\t]*\\(\\)",
+        "priority": 65
+      },
+      "TrailingComma": {
+        "regex": ",(?=[ \\t\\r\\n]*[)\\]}])",
+        "priority": 30
+      },
+      "PrintBuiltin": {
+        "regex": "(?:print|printf|say)\\b",
+        "priority": 40
+      },
+      "HereCandidate": {
+        "regex": "(?!)",
+        "priority": 0
+      }
+    },
+    "trivia": {
+      "Whitespace": {
+        "regex": "[ \\t\\f]+"
+      },
+      "NewlineWhitespace": {
+        "regex": "\\r\\n|\\r|\\n",
+        "unlessDynamic": 3
+      },
+      "LineComment": {
+        "regex": "#[^\\r\\n]*"
+      },
+      "PODBlock": {
+        "regex": "=[A-Za-z][^\\r\\n]*(?:\\r\\n|\\r|\\n)(?:(?!=cut\\b)[^\\r\\n]*(?:\\r\\n|\\r|\\n))*(?:=cut\\b[^\\r\\n]*(?:\\r\\n|\\r|\\n|$)|[^\\r\\n]*\\z)",
+        "lineStart": true
+      }
+    },
+    "modes": {
+      "default": {
+        "tokens": [
+          "KwPackage",
+          "KwUse",
+          "KwNo",
+          "KwRequire",
+          "KwSub",
+          "KwMy",
+          "KwOur",
+          "KwLocal",
+          "KwState",
+          "KwIf",
+          "KwUnless",
+          "KwElse",
+          "KwElsif",
+          "KwFor",
+          "KwForeach",
+          "KwWhile",
+          "KwUntil",
+          "KwContinue",
+          "KwDo",
+          "KwEval",
+          "KwGiven",
+          "KwWhen",
+          "KwDefault",
+          "KwTry",
+          "KwCatch",
+          "KwFinally",
+          "KwDefer",
+          "KwReturn",
+          "KwLast",
+          "KwNext",
+          "KwRedo",
+          "KwGoto",
+          "KwDie",
+          "KwWarn",
+          "KwExit",
+          "KwClass",
+          "KwField",
+          "KwMethod",
+          "KwADJUST",
+          "KwBEGIN",
+          "KwCHECK",
+          "KwINIT",
+          "KwUNITCHECK",
+          "KwEND",
+          "Kw__SUB__",
+          "Kw__FILE__",
+          "Kw__LINE__",
+          "Kw__PACKAGE__",
+          "KwUndef",
+          "KwTrue",
+          "KwFalse",
+          "OrWord",
+          "XorWord",
+          "AndWord",
+          "Comma",
+          "FatComma",
+          "Assign",
+          "AddAssign",
+          "SubAssign",
+          "MulAssign",
+          "DivAssign",
+          "ModAssign",
+          "PowAssign",
+          "ConcatAssign",
+          "RepeatAssign",
+          "AndAssign",
+          "OrAssign",
+          "DefinedAssign",
+          "BitAndAssign",
+          "BitOrAssign",
+          "BitXorAssign",
+          "ShiftLeftAssign",
+          "ShiftRightAssign",
+          "Range",
+          "RangeExclusive",
+          "LogicalOr",
+          "DefinedOr",
+          "LogicalAnd",
+          "BitOr",
+          "BitXor",
+          "BitAnd",
+          "Equal",
+          "NotEqual",
+          "Compare",
+          "Eq",
+          "Ne",
+          "Cmp",
+          "SmartMatch",
+          "Less",
+          "LessEqual",
+          "Greater",
+          "GreaterEqual",
+          "Lt",
+          "Le",
+          "Gt",
+          "Ge",
+          "Isa",
+          "ShiftLeft",
+          "ShiftRight",
+          "Plus",
+          "Minus",
+          "Concat",
+          "Star",
+          "Slash",
+          "Percent",
+          "Repeat",
+          "Match",
+          "NotMatch",
+          "Power",
+          "NotWord",
+          "Not",
+          "Tilde",
+          "Reference",
+          "Increment",
+          "Decrement",
+          "LParen",
+          "RParen",
+          "LBracket",
+          "RBracket",
+          "LBrace",
+          "RBrace",
+          "Semicolon",
+          "Colon",
+          "Question",
+          "Arrow",
+          "Dollar",
+          "At",
+          "Identifier",
+          "Variable",
+          "Number",
+          "Version",
+          "SingleString",
+          "DoubleString",
+          "BacktickString",
+          "QuoteLiteral",
+          "RegexLiteral",
+          "Substitution",
+          "Transliteration",
+          "Readline",
+          "FileTest",
+          "HereTrigger",
+          "DataSection",
+          "FormatDeclaration",
+          "Invalid",
+          "UnaryBuiltin",
+          "ListBuiltin",
+          "PercentSigil",
+          "StarSigil",
+          "AutoquotedWord",
+          "BracedVariable",
+          "TrailingComma",
+          "PrintBuiltin",
+          "HereCandidate"
+        ],
+        "trivia": [
+          "Whitespace",
+          "NewlineWhitespace",
+          "LineComment",
+          "PODBlock"
+        ]
+      },
+      "Here": {
+        "tokens": [
+          "HereEnd",
+          "HereBody"
+        ],
+        "trivia": []
+      }
+    },
+    "goals": {
+      "ExpressionStart": {
+        "Slash": "BareRegex",
+        "Percent": "HashVariable",
+        "Star": "GlobVariable",
+        "HereCandidate": "HereStart"
+      },
+      "ExpressionContinuation": {
+        "Slash": "Slash"
+      },
+      "Name": {
+        "KwPackage": "Identifier",
+        "KwUse": "Identifier",
+        "KwNo": "Identifier",
+        "KwRequire": "Identifier",
+        "KwSub": "Identifier",
+        "KwMy": "Identifier",
+        "KwOur": "Identifier",
+        "KwLocal": "Identifier",
+        "KwState": "Identifier",
+        "KwIf": "Identifier",
+        "KwUnless": "Identifier",
+        "KwElse": "Identifier",
+        "KwElsif": "Identifier",
+        "KwFor": "Identifier",
+        "KwForeach": "Identifier",
+        "KwWhile": "Identifier",
+        "KwUntil": "Identifier",
+        "KwContinue": "Identifier",
+        "KwDo": "Identifier",
+        "KwEval": "Identifier",
+        "KwGiven": "Identifier",
+        "KwWhen": "Identifier",
+        "KwDefault": "Identifier",
+        "KwTry": "Identifier",
+        "KwCatch": "Identifier",
+        "KwFinally": "Identifier",
+        "KwDefer": "Identifier",
+        "KwReturn": "Identifier",
+        "KwLast": "Identifier",
+        "KwNext": "Identifier",
+        "KwRedo": "Identifier",
+        "KwGoto": "Identifier",
+        "KwDie": "Identifier",
+        "KwWarn": "Identifier",
+        "KwExit": "Identifier",
+        "KwClass": "Identifier",
+        "KwField": "Identifier",
+        "KwMethod": "Identifier",
+        "KwADJUST": "Identifier",
+        "KwBEGIN": "Identifier",
+        "KwCHECK": "Identifier",
+        "KwINIT": "Identifier",
+        "KwUNITCHECK": "Identifier",
+        "KwEND": "Identifier",
+        "Kw__SUB__": "Identifier",
+        "Kw__FILE__": "Identifier",
+        "Kw__LINE__": "Identifier",
+        "Kw__PACKAGE__": "Identifier",
+        "KwUndef": "Identifier",
+        "KwTrue": "Identifier",
+        "KwFalse": "Identifier",
+        "OrWord": "Identifier",
+        "XorWord": "Identifier",
+        "AndWord": "Identifier",
+        "Eq": "Identifier",
+        "Ne": "Identifier",
+        "Cmp": "Identifier",
+        "Lt": "Identifier",
+        "Le": "Identifier",
+        "Gt": "Identifier",
+        "Ge": "Identifier",
+        "Isa": "Identifier",
+        "Repeat": "Identifier",
+        "NotWord": "Identifier",
+        "UnaryBuiltin": "Identifier",
+        "ListBuiltin": "Identifier",
+        "AutoquotedWord": "Identifier"
+      },
+      "Prototype": {
+        "LParen": "UnaryPrototype",
+        "Colon": "NullaryPrototype"
+      },
+      "UnaryPrototype": {
+        "LParen": "UnaryPrototype",
+        "Colon": "UnaryPrototype"
+      },
+      "NullaryPrototype": {
+        "LParen": "NullaryPrototype",
+        "Colon": "NullaryPrototype"
+      }
+    }
+  },
+  "grammar": {
+    "start": "SourceFile",
+    "productions": {
+      "SourceFile": {
+        "astKind": "SourceFile",
+        "sequence": [
+          {
+            "repeat": {
+              "ref": "RecoverableStatement"
+            }
+          },
+          {
+            "optional": {
+              "token": "DataSection"
+            }
+          }
+        ],
+        "category": "source_file"
+      },
+      "HereTail": {
+        "astKind": "HereTail",
+        "sequence": [
+          {
+            "token": "HereTrigger"
+          },
+          {
+            "oneOrMore": {
+              "ref": "HereDocument"
+            }
+          }
+        ]
+      },
+      "HereDocument": {
+        "astKind": "HereDocument",
+        "sequence": [
+          {
+            "repeat": {
+              "token": "HereBody"
+            }
+          },
+          {
+            "token": "HereEnd"
+          }
+        ]
+      },
+      "Statement": {
+        "astKind": "Statement",
+        "choice": [
+          {
+            "ref": "LexicalSubDeclaration"
+          },
+          {
+            "ref": "HereTail"
+          },
+          {
+            "token": "Semicolon"
+          },
+          {
+            "ref": "PackageDeclaration"
+          },
+          {
+            "ref": "UseDeclaration"
+          },
+          {
+            "ref": "SubDeclaration"
+          },
+          {
+            "ref": "ClassDeclaration"
+          },
+          {
+            "ref": "PhaseBlock"
+          },
+          {
+            "token": "FormatDeclaration"
+          },
+          {
+            "ref": "IfStatement"
+          },
+          {
+            "ref": "LoopStatement"
+          },
+          {
+            "ref": "GivenStatement"
+          },
+          {
+            "ref": "TryStatement"
+          },
+          {
+            "ref": "LabeledStatement"
+          },
+          {
+            "ref": "BlockStatement"
+          },
+          {
+            "ref": "SimpleStatement"
+          }
+        ],
+        "category": "statement"
+      },
+      "Block": {
+        "astKind": "Block",
+        "withSymbolScope": {
+          "name": "PerlLexicalSub",
+          "production": {
+            "withSymbolScope": {
+              "name": "PerlPackage",
+              "production": {
+                "astKind": "Block",
+                "sequence": [
+                  {
+                    "token": "LBrace"
+                  },
+                  {
+                    "repeat": {
+                      "ref": "RecoverableStatement"
+                    }
+                  },
+                  {
+                    "token": "RBrace"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "BlockStatement": {
+        "astKind": "BlockStatement",
+        "sequence": [
+          {
+            "ref": "Block"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "KwContinue"
+                },
+                {
+                  "ref": "Block"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "LabeledStatement": {
+        "astKind": "LabeledStatement",
+        "sequence": [
+          {
+            "token": "Identifier"
+          },
+          {
+            "token": "Colon"
+          },
+          {
+            "ref": "Statement"
+          }
+        ]
+      },
+      "EndStatement": {
+        "astKind": "EndStatement",
+        "sequence": [
+          {
+            "optional": {
+              "ref": "HereTail"
+            }
+          },
+          {
+            "choice": [
+              {
+                "token": "Semicolon"
+              },
+              {
+                "when": {
+                  "nextToken": "RBrace",
+                  "allowEOF": true
+                }
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "HereTail"
+            }
+          }
+        ]
+      },
+      "SimpleStatement": {
+        "astKind": "SimpleStatement",
+        "sequence": [
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "ref": "StatementModifier"
+            }
+          },
+          {
+            "ref": "EndStatement"
+          }
+        ]
+      },
+      "StatementModifier": {
+        "astKind": "StatementModifier",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwIf"
+              },
+              {
+                "token": "KwUnless"
+              },
+              {
+                "token": "KwWhile"
+              },
+              {
+                "token": "KwUntil"
+              },
+              {
+                "token": "KwFor"
+              },
+              {
+                "token": "KwForeach"
+              },
+              {
+                "token": "KwWhen"
+              }
+            ]
+          },
+          {
+            "ref": "Expression"
+          }
+        ]
+      },
+      "PackageDeclaration": {
+        "astKind": "PackageDeclaration",
+        "sequence": [
+          {
+            "token": "KwPackage"
+          },
+          {
+            "choice": [
+              {
+                "defineSymbol": {
+                  "name": "PerlPackage",
+                  "value": 1,
+                  "replace": true,
+                  "scoped": true,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "optional": {
+                          "choice": [
+                            {
+                              "token": "Number"
+                            },
+                            {
+                              "token": "Version"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "ref": "Block"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "defineSymbol": {
+                  "name": "PerlPackage",
+                  "value": 1,
+                  "replace": true,
+                  "scoped": false,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "optional": {
+                          "choice": [
+                            {
+                              "token": "Number"
+                            },
+                            {
+                              "token": "Version"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "token": "Semicolon"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "category": "declaration"
+      },
+      "UseDeclaration": {
+        "astKind": "UseDeclaration",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwUse"
+              },
+              {
+                "token": "KwNo"
+              }
+            ]
+          },
+          {
+            "choice": [
+              {
+                "token": "Identifier"
+              },
+              {
+                "token": "Version"
+              },
+              {
+                "token": "Number"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "ref": "EndStatement"
+          }
+        ],
+        "category": "declaration"
+      },
+      "PhaseBlock": {
+        "astKind": "PhaseBlock",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwBEGIN"
+              },
+              {
+                "token": "KwCHECK"
+              },
+              {
+                "token": "KwINIT"
+              },
+              {
+                "token": "KwUNITCHECK"
+              },
+              {
+                "token": "KwEND"
+              },
+              {
+                "token": "KwADJUST"
+              }
+            ]
+          },
+          {
+            "ref": "Block"
+          }
+        ]
+      },
+      "ClassDeclaration": {
+        "astKind": "ClassDeclaration",
+        "sequence": [
+          {
+            "token": "KwClass"
+          },
+          {
+            "token": "Identifier"
+          },
+          {
+            "optional": {
+              "token": "Version"
+            }
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "choice": [
+              {
+                "ref": "Block"
+              },
+              {
+                "token": "Semicolon"
+              }
+            ]
+          }
+        ],
+        "category": "declaration"
+      },
+      "Attribute": {
+        "astKind": "Attribute",
+        "sequence": [
+          {
+            "token": "Colon"
+          },
+          {
+            "oneOrMore": {
+              "sequence": [
+                {
+                  "token": "Identifier"
+                },
+                {
+                  "optional": {
+                    "ref": "AttributeArguments"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "AttributeArguments": {
+        "astKind": "AttributeArguments",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "Identifier"
+                },
+                {
+                  "token": "Variable"
+                },
+                {
+                  "token": "Number"
+                },
+                {
+                  "token": "SingleString"
+                },
+                {
+                  "token": "DoubleString"
+                },
+                {
+                  "token": "Colon"
+                },
+                {
+                  "token": "Comma"
+                },
+                {
+                  "token": "Dollar"
+                },
+                {
+                  "token": "At"
+                },
+                {
+                  "token": "Percent"
+                },
+                {
+                  "token": "Star"
+                },
+                {
+                  "token": "BitAnd"
+                },
+                {
+                  "token": "Semicolon"
+                },
+                {
+                  "token": "Plus"
+                },
+                {
+                  "token": "Reference"
+                },
+                {
+                  "ref": "AttributeArguments"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "SubDeclaration": {
+        "astKind": "SubDeclaration",
+        "sequence": [
+          {
+            "optional": {
+              "token": "KwOur"
+            }
+          },
+          {
+            "choice": [
+              {
+                "token": "KwSub"
+              },
+              {
+                "token": "KwMethod"
+              }
+            ]
+          },
+          {
+            "choice": [
+              {
+                "defineSymbol": {
+                  "name": "PerlSub",
+                  "value": 0,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "withGoal": {
+                          "name": "NullaryPrototype",
+                          "production": {
+                            "token": "NullaryPrototype"
+                          }
+                        }
+                      },
+                      {
+                        "repeat": {
+                          "ref": "Attribute"
+                        }
+                      },
+                      {
+                        "choice": [
+                          {
+                            "ref": "Block"
+                          },
+                          {
+                            "token": "Semicolon"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "scope": "PerlPackage",
+                  "separator": "::",
+                  "defaultScope": "main"
+                }
+              },
+              {
+                "defineSymbol": {
+                  "name": "PerlSub",
+                  "value": 1,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "withGoal": {
+                          "name": "UnaryPrototype",
+                          "production": {
+                            "token": "UnaryPrototype"
+                          }
+                        }
+                      },
+                      {
+                        "repeat": {
+                          "ref": "Attribute"
+                        }
+                      },
+                      {
+                        "choice": [
+                          {
+                            "ref": "Block"
+                          },
+                          {
+                            "token": "Semicolon"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "scope": "PerlPackage",
+                  "separator": "::",
+                  "defaultScope": "main"
+                }
+              },
+              {
+                "defineSymbol": {
+                  "name": "PerlSub",
+                  "value": 2,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "optional": {
+                          "ref": "SubParameters"
+                        }
+                      },
+                      {
+                        "repeat": {
+                          "ref": "Attribute"
+                        }
+                      },
+                      {
+                        "optional": {
+                          "ref": "SubParameters"
+                        }
+                      },
+                      {
+                        "choice": [
+                          {
+                            "ref": "Block"
+                          },
+                          {
+                            "token": "Semicolon"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "scope": "PerlPackage",
+                  "separator": "::",
+                  "defaultScope": "main"
+                }
+              }
+            ]
+          }
+        ],
+        "category": "declaration"
+      },
+      "SubParameters": {
+        "astKind": "SubParameters",
+        "choice": [
+          {
+            "ref": "Signature"
+          },
+          {
+            "ref": "Prototype"
+          }
+        ]
+      },
+      "Signature": {
+        "astKind": "Signature",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "sequence": [
+                    {
+                      "choice": [
+                        {
+                          "token": "Variable"
+                        },
+                        {
+                          "token": "HashVariable"
+                        },
+                        {
+                          "token": "Dollar"
+                        },
+                        {
+                          "token": "At"
+                        },
+                        {
+                          "token": "Percent"
+                        }
+                      ]
+                    },
+                    {
+                      "optional": {
+                        "sequence": [
+                          {
+                            "token": "Assign"
+                          },
+                          {
+                            "ref": "AssignmentExpression"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "repeat": {
+                    "sequence": [
+                      {
+                        "token": "Comma"
+                      },
+                      {
+                        "sequence": [
+                          {
+                            "choice": [
+                              {
+                                "token": "Variable"
+                              },
+                              {
+                                "token": "HashVariable"
+                              },
+                              {
+                                "token": "Dollar"
+                              },
+                              {
+                                "token": "At"
+                              },
+                              {
+                                "token": "Percent"
+                              }
+                            ]
+                          },
+                          {
+                            "optional": {
+                              "sequence": [
+                                {
+                                  "token": "Assign"
+                                },
+                                {
+                                  "ref": "AssignmentExpression"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "optional": {
+                    "token": "Comma"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "Prototype": {
+        "astKind": "Prototype",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "repeat": {
+              "choice": [
+                {
+                  "token": "Variable"
+                },
+                {
+                  "token": "Dollar"
+                },
+                {
+                  "token": "At"
+                },
+                {
+                  "token": "Percent"
+                },
+                {
+                  "token": "Star"
+                },
+                {
+                  "token": "BitAnd"
+                },
+                {
+                  "token": "Semicolon"
+                },
+                {
+                  "token": "Plus"
+                },
+                {
+                  "token": "Reference"
+                },
+                {
+                  "token": "LBracket"
+                },
+                {
+                  "token": "RBracket"
+                },
+                {
+                  "token": "Identifier"
+                }
+              ]
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "IfStatement": {
+        "astKind": "IfStatement",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwIf"
+              },
+              {
+                "token": "KwUnless"
+              }
+            ]
+          },
+          {
+            "ref": "Condition"
+          },
+          {
+            "ref": "Block"
+          },
+          {
+            "repeat": {
+              "sequence": [
+                {
+                  "token": "KwElsif"
+                },
+                {
+                  "ref": "Condition"
+                },
+                {
+                  "ref": "Block"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "KwElse"
+                },
+                {
+                  "ref": "Block"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Condition": {
+        "astKind": "Condition",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "LoopStatement": {
+        "astKind": "LoopStatement",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "choice": [
+                  {
+                    "token": "KwWhile"
+                  },
+                  {
+                    "token": "KwUntil"
+                  }
+                ]
+              },
+              {
+                "ref": "Condition"
+              },
+              {
+                "ref": "Block"
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "KwContinue"
+                    },
+                    {
+                      "ref": "Block"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "choice": [
+                  {
+                    "token": "KwFor"
+                  },
+                  {
+                    "token": "KwForeach"
+                  }
+                ]
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "optional": {
+                        "choice": [
+                          {
+                            "token": "KwMy"
+                          },
+                          {
+                            "token": "KwOur"
+                          },
+                          {
+                            "token": "KwState"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "token": "Variable"
+                    }
+                  ]
+                }
+              },
+              {
+                "token": "LParen"
+              },
+              {
+                "choice": [
+                  {
+                    "sequence": [
+                      {
+                        "optional": {
+                          "ref": "Expression"
+                        }
+                      },
+                      {
+                        "token": "Semicolon"
+                      },
+                      {
+                        "optional": {
+                          "ref": "Expression"
+                        }
+                      },
+                      {
+                        "token": "Semicolon"
+                      },
+                      {
+                        "optional": {
+                          "ref": "Expression"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "optional": {
+                      "ref": "Expression"
+                    }
+                  }
+                ]
+              },
+              {
+                "token": "RParen"
+              },
+              {
+                "ref": "Block"
+              },
+              {
+                "optional": {
+                  "sequence": [
+                    {
+                      "token": "KwContinue"
+                    },
+                    {
+                      "ref": "Block"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "GivenStatement": {
+        "astKind": "GivenStatement",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "choice": [
+                  {
+                    "token": "KwGiven"
+                  },
+                  {
+                    "token": "KwWhen"
+                  }
+                ]
+              },
+              {
+                "ref": "Condition"
+              },
+              {
+                "ref": "Block"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "token": "KwDefault"
+              },
+              {
+                "ref": "Block"
+              }
+            ]
+          }
+        ]
+      },
+      "TryStatement": {
+        "astKind": "TryStatement",
+        "sequence": [
+          {
+            "token": "KwTry"
+          },
+          {
+            "ref": "Block"
+          },
+          {
+            "oneOrMore": {
+              "sequence": [
+                {
+                  "token": "KwCatch"
+                },
+                {
+                  "optional": {
+                    "ref": "Condition"
+                  }
+                },
+                {
+                  "ref": "Block"
+                }
+              ]
+            }
+          },
+          {
+            "optional": {
+              "sequence": [
+                {
+                  "token": "KwFinally"
+                },
+                {
+                  "ref": "Block"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Expression": {
+        "astKind": "Expression",
+        "pratt": {
+          "primary": {
+            "ref": "PrimaryExpression"
+          },
+          "postfix": {
+            "ref": "PostfixSuffix"
+          },
+          "minimumPrecedence": 1
+        },
+        "category": "expression"
+      },
+      "ListExpression": {
+        "astKind": "ListExpression",
+        "pratt": {
+          "primary": {
+            "ref": "PrimaryExpression"
+          },
+          "postfix": {
+            "ref": "PostfixSuffix"
+          },
+          "minimumPrecedence": 4
+        },
+        "category": "expression"
+      },
+      "AssignmentExpression": {
+        "astKind": "AssignmentExpression",
+        "pratt": {
+          "primary": {
+            "ref": "PrimaryExpression"
+          },
+          "postfix": {
+            "ref": "PostfixSuffix"
+          },
+          "minimumPrecedence": 5
+        },
+        "category": "expression"
+      },
+      "UnaryArgument": {
+        "astKind": "UnaryArgument",
+        "pratt": {
+          "primary": {
+            "ref": "PrimaryExpression"
+          },
+          "postfix": {
+            "ref": "PostfixSuffix"
+          },
+          "minimumPrecedence": 14
+        },
+        "category": "expression"
+      },
+      "PrimaryExpression": {
+        "astKind": "PrimaryExpression",
+        "choice": [
+          {
+            "ref": "PrintCall"
+          },
+          {
+            "token": "BracedVariable"
+          },
+          {
+            "token": "AutoquotedWord"
+          },
+          {
+            "ref": "DeclarationExpression"
+          },
+          {
+            "ref": "BlockExpression"
+          },
+          {
+            "ref": "AnonymousSub"
+          },
+          {
+            "ref": "ListCall"
+          },
+          {
+            "ref": "UnaryCall"
+          },
+          {
+            "ref": "ControlExpression"
+          },
+          {
+            "ref": "Dereference"
+          },
+          {
+            "ref": "ParenthesizedExpression"
+          },
+          {
+            "ref": "ArrayReference"
+          },
+          {
+            "ref": "HashReference"
+          },
+          {
+            "token": "Variable"
+          },
+          {
+            "token": "HashVariable"
+          },
+          {
+            "token": "GlobVariable"
+          },
+          {
+            "token": "Number"
+          },
+          {
+            "token": "Version"
+          },
+          {
+            "token": "SingleString"
+          },
+          {
+            "token": "DoubleString"
+          },
+          {
+            "token": "BacktickString"
+          },
+          {
+            "token": "QuoteLiteral"
+          },
+          {
+            "token": "RegexLiteral"
+          },
+          {
+            "token": "BareRegex"
+          },
+          {
+            "token": "Substitution"
+          },
+          {
+            "token": "Transliteration"
+          },
+          {
+            "token": "HereStart"
+          },
+          {
+            "token": "Readline"
+          },
+          {
+            "token": "KwUndef"
+          },
+          {
+            "token": "KwTrue"
+          },
+          {
+            "token": "KwFalse"
+          },
+          {
+            "token": "Kw__FILE__"
+          },
+          {
+            "token": "Kw__LINE__"
+          },
+          {
+            "token": "Kw__PACKAGE__"
+          },
+          {
+            "token": "Kw__SUB__"
+          },
+          {
+            "ref": "NullaryCall"
+          },
+          {
+            "ref": "PrototypedUnaryCall"
+          },
+          {
+            "ref": "DeclaredListCall"
+          },
+          {
+            "ref": "BarewordCall"
+          }
+        ]
+      },
+      "DeclarationExpression": {
+        "astKind": "DeclarationExpression",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwMy"
+              },
+              {
+                "token": "KwOur"
+              },
+              {
+                "token": "KwLocal"
+              },
+              {
+                "token": "KwState"
+              },
+              {
+                "token": "KwField"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "token": "Identifier"
+            }
+          },
+          {
+            "choice": [
+              {
+                "token": "Variable"
+              },
+              {
+                "token": "HashVariable"
+              },
+              {
+                "token": "GlobVariable"
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "LParen"
+                  },
+                  {
+                    "sequence": [
+                      {
+                        "choice": [
+                          {
+                            "token": "Variable"
+                          },
+                          {
+                            "token": "HashVariable"
+                          },
+                          {
+                            "token": "GlobVariable"
+                          }
+                        ]
+                      },
+                      {
+                        "repeat": {
+                          "sequence": [
+                            {
+                              "token": "Comma"
+                            },
+                            {
+                              "choice": [
+                                {
+                                  "token": "Variable"
+                                },
+                                {
+                                  "token": "HashVariable"
+                                },
+                                {
+                                  "token": "GlobVariable"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "optional": {
+                          "token": "Comma"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "token": "RParen"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          }
+        ]
+      },
+      "ParenthesizedExpression": {
+        "astKind": "ParenthesizedExpression",
+        "sequence": [
+          {
+            "token": "LParen"
+          },
+          {
+            "optional": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "optional": {
+              "ref": "HereTail"
+            }
+          },
+          {
+            "token": "RParen"
+          }
+        ]
+      },
+      "ArrayReference": {
+        "astKind": "ArrayReference",
+        "sequence": [
+          {
+            "token": "LBracket"
+          },
+          {
+            "optional": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "optional": {
+              "ref": "HereTail"
+            }
+          },
+          {
+            "token": "RBracket"
+          }
+        ]
+      },
+      "HashReference": {
+        "astKind": "HashReference",
+        "sequence": [
+          {
+            "token": "LBrace"
+          },
+          {
+            "optional": {
+              "ref": "Expression"
+            }
+          },
+          {
+            "optional": {
+              "ref": "HereTail"
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "BlockExpression": {
+        "astKind": "BlockExpression",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwDo"
+              },
+              {
+                "token": "KwEval"
+              },
+              {
+                "token": "KwDefer"
+              }
+            ]
+          },
+          {
+            "choice": [
+              {
+                "ref": "Block"
+              },
+              {
+                "ref": "UnaryArgument"
+              }
+            ]
+          }
+        ]
+      },
+      "AnonymousSub": {
+        "astKind": "AnonymousSub",
+        "sequence": [
+          {
+            "token": "KwSub"
+          },
+          {
+            "optional": {
+              "ref": "SubParameters"
+            }
+          },
+          {
+            "repeat": {
+              "ref": "Attribute"
+            }
+          },
+          {
+            "ref": "Block"
+          }
+        ]
+      },
+      "UnaryCall": {
+        "astKind": "UnaryCall",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "UnaryBuiltin"
+              },
+              {
+                "token": "FileTest"
+              },
+              {
+                "token": "KwRequire"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "UnaryArgument"
+            }
+          }
+        ]
+      },
+      "ListCall": {
+        "astKind": "ListCall",
+        "sequence": [
+          {
+            "token": "ListBuiltin"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "ref": "Block"
+                    },
+                    {
+                      "optional": {
+                        "ref": "ListExpression"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "ref": "ListExpression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ControlExpression": {
+        "astKind": "ControlExpression",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwReturn"
+              },
+              {
+                "token": "KwLast"
+              },
+              {
+                "token": "KwNext"
+              },
+              {
+                "token": "KwRedo"
+              },
+              {
+                "token": "KwGoto"
+              },
+              {
+                "token": "KwDie"
+              },
+              {
+                "token": "KwWarn"
+              },
+              {
+                "token": "KwExit"
+              }
+            ]
+          },
+          {
+            "optional": {
+              "ref": "ListExpression"
+            }
+          }
+        ]
+      },
+      "BarewordCall": {
+        "astKind": "BarewordCall",
+        "sequence": [
+          {
+            "not": {
+              "choice": [
+                {
+                  "choice": [
+                    {
+                      "whenSymbol": {
+                        "name": "PerlLexicalSub",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "sequence": [
+                        {
+                          "not": {
+                            "choice": [
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 0
+                                }
+                              },
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 1
+                                }
+                              },
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 2
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlSub",
+                            "value": 0,
+                            "scope": "PerlPackage",
+                            "separator": "::",
+                            "defaultScope": "main"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "choice": [
+                    {
+                      "whenSymbol": {
+                        "name": "PerlLexicalSub",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "sequence": [
+                        {
+                          "not": {
+                            "choice": [
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 0
+                                }
+                              },
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 1
+                                }
+                              },
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 2
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlSub",
+                            "value": 1,
+                            "scope": "PerlPackage",
+                            "separator": "::",
+                            "defaultScope": "main"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "choice": [
+                    {
+                      "whenSymbol": {
+                        "name": "PerlLexicalSub",
+                        "value": 2
+                      }
+                    },
+                    {
+                      "sequence": [
+                        {
+                          "not": {
+                            "choice": [
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 0
+                                }
+                              },
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 1
+                                }
+                              },
+                              {
+                                "whenSymbol": {
+                                  "name": "PerlLexicalSub",
+                                  "value": 2
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlSub",
+                            "value": 2,
+                            "scope": "PerlPackage",
+                            "separator": "::",
+                            "defaultScope": "main"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "token": "Identifier"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "ref": "ParenthesizedExpression"
+                },
+                {
+                  "ref": "BareArguments"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "BareArguments": {
+        "astKind": "BareArguments",
+        "sequence": [
+          {
+            "when": {
+              "nextTokenIn": [
+                "Variable",
+                "HashVariable",
+                "GlobVariable",
+                "Number",
+                "SingleString",
+                "DoubleString",
+                "QuoteLiteral",
+                "RegexLiteral",
+                "Substitution",
+                "Transliteration",
+                "Identifier",
+                "AutoquotedWord",
+                "LBrace",
+                "HereStart"
+              ]
+            }
+          },
+          {
+            "ref": "ListExpression"
+          }
+        ]
+      },
+      "Dereference": {
+        "astKind": "Dereference",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "Dollar"
+              },
+              {
+                "token": "At"
+              },
+              {
+                "token": "Percent"
+              },
+              {
+                "token": "Star"
+              },
+              {
+                "token": "BitAnd"
+              },
+              {
+                "token": "PercentSigil"
+              },
+              {
+                "token": "StarSigil"
+              }
+            ]
+          },
+          {
+            "choice": [
+              {
+                "ref": "Dereference"
+              },
+              {
+                "token": "Variable"
+              },
+              {
+                "sequence": [
+                  {
+                    "token": "LBrace"
+                  },
+                  {
+                    "ref": "Expression"
+                  },
+                  {
+                    "token": "RBrace"
+                  }
+                ]
+              },
+              {
+                "token": "Identifier"
+              }
+            ]
+          }
+        ]
+      },
+      "PostfixSuffix": {
+        "astKind": "PostfixSuffix",
+        "choice": [
+          {
+            "ref": "CallSuffix"
+          },
+          {
+            "ref": "IndexSuffix"
+          },
+          {
+            "ref": "HashSuffix"
+          },
+          {
+            "ref": "ArrowSuffix"
+          }
+        ]
+      },
+      "CallSuffix": {
+        "astKind": "CallSuffix",
+        "ref": "ParenthesizedExpression"
+      },
+      "IndexSuffix": {
+        "astKind": "IndexSuffix",
+        "sequence": [
+          {
+            "token": "LBracket"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "ref": "HereTail"
+            }
+          },
+          {
+            "token": "RBracket"
+          }
+        ]
+      },
+      "HashSuffix": {
+        "astKind": "HashSuffix",
+        "sequence": [
+          {
+            "token": "LBrace"
+          },
+          {
+            "ref": "Expression"
+          },
+          {
+            "optional": {
+              "ref": "HereTail"
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "ArrowSuffix": {
+        "astKind": "ArrowSuffix",
+        "sequence": [
+          {
+            "token": "Arrow"
+          },
+          {
+            "choice": [
+              {
+                "sequence": [
+                  {
+                    "choice": [
+                      {
+                        "ref": "Name"
+                      },
+                      {
+                        "token": "Variable"
+                      }
+                    ]
+                  },
+                  {
+                    "optional": {
+                      "ref": "ParenthesizedExpression"
+                    }
+                  }
+                ]
+              },
+              {
+                "ref": "CallSuffix"
+              },
+              {
+                "ref": "IndexSuffix"
+              },
+              {
+                "ref": "HashSuffix"
+              },
+              {
+                "sequence": [
+                  {
+                    "choice": [
+                      {
+                        "token": "Dollar"
+                      },
+                      {
+                        "token": "At"
+                      },
+                      {
+                        "token": "Percent"
+                      },
+                      {
+                        "token": "Star"
+                      },
+                      {
+                        "token": "BitAnd"
+                      }
+                    ]
+                  },
+                  {
+                    "choice": [
+                      {
+                        "token": "Star"
+                      },
+                      {
+                        "ref": "IndexSuffix"
+                      },
+                      {
+                        "ref": "HashSuffix"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Name": {
+        "astKind": "Name",
+        "withGoal": {
+          "name": "Name",
+          "production": {
+            "token": "Identifier"
+          }
+        }
+      },
+      "NullaryCall": {
+        "astKind": "NullaryCall",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "whenSymbol": {
+                  "name": "PerlLexicalSub",
+                  "value": 0
+                }
+              },
+              {
+                "sequence": [
+                  {
+                    "not": {
+                      "choice": [
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 1
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 2
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "whenSymbol": {
+                      "name": "PerlSub",
+                      "value": 0,
+                      "scope": "PerlPackage",
+                      "separator": "::",
+                      "defaultScope": "main"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ref": "Name"
+          },
+          {
+            "optional": {
+              "ref": "ParenthesizedExpression"
+            }
+          }
+        ]
+      },
+      "PrototypedUnaryCall": {
+        "astKind": "PrototypedUnaryCall",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "whenSymbol": {
+                  "name": "PerlLexicalSub",
+                  "value": 1
+                }
+              },
+              {
+                "sequence": [
+                  {
+                    "not": {
+                      "choice": [
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 1
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 2
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "whenSymbol": {
+                      "name": "PerlSub",
+                      "value": 1,
+                      "scope": "PerlPackage",
+                      "separator": "::",
+                      "defaultScope": "main"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ref": "Name"
+          },
+          {
+            "ref": "UnaryArgument"
+          }
+        ]
+      },
+      "DeclaredListCall": {
+        "astKind": "DeclaredListCall",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "whenSymbol": {
+                  "name": "PerlLexicalSub",
+                  "value": 2
+                }
+              },
+              {
+                "sequence": [
+                  {
+                    "not": {
+                      "choice": [
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 0
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 1
+                          }
+                        },
+                        {
+                          "whenSymbol": {
+                            "name": "PerlLexicalSub",
+                            "value": 2
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "whenSymbol": {
+                      "name": "PerlSub",
+                      "value": 2,
+                      "scope": "PerlPackage",
+                      "separator": "::",
+                      "defaultScope": "main"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ref": "Name"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "ref": "Block"
+                    },
+                    {
+                      "optional": {
+                        "ref": "ListExpression"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "ref": "ListExpression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "PrintCall": {
+        "astKind": "PrintCall",
+        "sequence": [
+          {
+            "token": "PrintBuiltin"
+          },
+          {
+            "optional": {
+              "choice": [
+                {
+                  "sequence": [
+                    {
+                      "choice": [
+                        {
+                          "token": "Variable"
+                        },
+                        {
+                          "token": "Identifier"
+                        },
+                        {
+                          "ref": "Block"
+                        }
+                      ]
+                    },
+                    {
+                      "when": {
+                        "nextTokenIn": [
+                          "Variable",
+                          "Number",
+                          "SingleString",
+                          "DoubleString",
+                          "QuoteLiteral",
+                          "LParen",
+                          "HereStart"
+                        ]
+                      }
+                    },
+                    {
+                      "ref": "ListExpression"
+                    }
+                  ]
+                },
+                {
+                  "ref": "ListExpression"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "RecoverableStatement": {
+        "astKind": "RecoverableStatement",
+        "ref": "Statement",
+        "recoverUntil": [
+          "Semicolon",
+          "RBrace"
+        ]
+      },
+      "LexicalSubDeclaration": {
+        "astKind": "LexicalSubDeclaration",
+        "sequence": [
+          {
+            "choice": [
+              {
+                "token": "KwMy"
+              },
+              {
+                "token": "KwState"
+              }
+            ]
+          },
+          {
+            "token": "KwSub"
+          },
+          {
+            "choice": [
+              {
+                "defineSymbol": {
+                  "name": "PerlLexicalSub",
+                  "value": 0,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "withGoal": {
+                          "name": "NullaryPrototype",
+                          "production": {
+                            "token": "NullaryPrototype"
+                          }
+                        }
+                      },
+                      {
+                        "repeat": {
+                          "ref": "Attribute"
+                        }
+                      },
+                      {
+                        "choice": [
+                          {
+                            "ref": "Block"
+                          },
+                          {
+                            "token": "Semicolon"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "defineSymbol": {
+                  "name": "PerlLexicalSub",
+                  "value": 1,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "withGoal": {
+                          "name": "UnaryPrototype",
+                          "production": {
+                            "token": "UnaryPrototype"
+                          }
+                        }
+                      },
+                      {
+                        "repeat": {
+                          "ref": "Attribute"
+                        }
+                      },
+                      {
+                        "choice": [
+                          {
+                            "ref": "Block"
+                          },
+                          {
+                            "token": "Semicolon"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "defineSymbol": {
+                  "name": "PerlLexicalSub",
+                  "value": 2,
+                  "production": {
+                    "ref": "Name"
+                  },
+                  "then": {
+                    "sequence": [
+                      {
+                        "optional": {
+                          "ref": "SubParameters"
+                        }
+                      },
+                      {
+                        "repeat": {
+                          "ref": "Attribute"
+                        }
+                      },
+                      {
+                        "optional": {
+                          "ref": "SubParameters"
+                        }
+                      },
+                      {
+                        "choice": [
+                          {
+                            "ref": "Block"
+                          },
+                          {
+                            "token": "Semicolon"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "operators": [
+    {
+      "token": "OrWord",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "left"
+    },
+    {
+      "token": "XorWord",
+      "role": "infix",
+      "precedence": 1,
+      "associativity": "left"
+    },
+    {
+      "token": "AndWord",
+      "role": "infix",
+      "precedence": 2,
+      "associativity": "left"
+    },
+    {
+      "token": "Comma",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "FatComma",
+      "role": "infix",
+      "precedence": 4,
+      "associativity": "left"
+    },
+    {
+      "token": "Assign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "AddAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "SubAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "MulAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "DivAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "ModAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "PowAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "ConcatAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "RepeatAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "AndAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "OrAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "DefinedAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "BitAndAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "BitOrAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "BitXorAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "ShiftLeftAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "ShiftRightAssign",
+      "role": "infix",
+      "precedence": 5,
+      "associativity": "right"
+    },
+    {
+      "token": "Range",
+      "role": "infix",
+      "precedence": 7,
+      "associativity": "left"
+    },
+    {
+      "token": "RangeExclusive",
+      "role": "infix",
+      "precedence": 7,
+      "associativity": "left"
+    },
+    {
+      "token": "LogicalOr",
+      "role": "infix",
+      "precedence": 8,
+      "associativity": "left"
+    },
+    {
+      "token": "DefinedOr",
+      "role": "infix",
+      "precedence": 8,
+      "associativity": "left"
+    },
+    {
+      "token": "LogicalAnd",
+      "role": "infix",
+      "precedence": 9,
+      "associativity": "left"
+    },
+    {
+      "token": "BitOr",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "BitXor",
+      "role": "infix",
+      "precedence": 10,
+      "associativity": "left"
+    },
+    {
+      "token": "BitAnd",
+      "role": "infix",
+      "precedence": 11,
+      "associativity": "left"
+    },
+    {
+      "token": "Equal",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "NotEqual",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Compare",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Eq",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Ne",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Cmp",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "SmartMatch",
+      "role": "infix",
+      "precedence": 12,
+      "associativity": "left"
+    },
+    {
+      "token": "Less",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "LessEqual",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "Greater",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "GreaterEqual",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "Lt",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "Le",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "Gt",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "Ge",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "Isa",
+      "role": "infix",
+      "precedence": 13,
+      "associativity": "left"
+    },
+    {
+      "token": "ShiftLeft",
+      "role": "infix",
+      "precedence": 14,
+      "associativity": "left"
+    },
+    {
+      "token": "ShiftRight",
+      "role": "infix",
+      "precedence": 14,
+      "associativity": "left"
+    },
+    {
+      "token": "Plus",
+      "role": "infix",
+      "precedence": 15,
+      "associativity": "left"
+    },
+    {
+      "token": "Minus",
+      "role": "infix",
+      "precedence": 15,
+      "associativity": "left"
+    },
+    {
+      "token": "Concat",
+      "role": "infix",
+      "precedence": 15,
+      "associativity": "left"
+    },
+    {
+      "token": "Star",
+      "role": "infix",
+      "precedence": 16,
+      "associativity": "left"
+    },
+    {
+      "token": "Slash",
+      "role": "infix",
+      "precedence": 16,
+      "associativity": "left"
+    },
+    {
+      "token": "Percent",
+      "role": "infix",
+      "precedence": 16,
+      "associativity": "left"
+    },
+    {
+      "token": "Repeat",
+      "role": "infix",
+      "precedence": 16,
+      "associativity": "left"
+    },
+    {
+      "token": "Match",
+      "role": "infix",
+      "precedence": 17,
+      "associativity": "left"
+    },
+    {
+      "token": "NotMatch",
+      "role": "infix",
+      "precedence": 17,
+      "associativity": "left"
+    },
+    {
+      "token": "Power",
+      "role": "infix",
+      "precedence": 19,
+      "associativity": "right"
+    },
+    {
+      "token": "NotWord",
+      "role": "prefix",
+      "precedence": 3,
+      "associativity": "right"
+    },
+    {
+      "token": "Plus",
+      "role": "prefix",
+      "precedence": 18,
+      "associativity": "right"
+    },
+    {
+      "token": "Minus",
+      "role": "prefix",
+      "precedence": 18,
+      "associativity": "right"
+    },
+    {
+      "token": "Not",
+      "role": "prefix",
+      "precedence": 18,
+      "associativity": "right"
+    },
+    {
+      "token": "Tilde",
+      "role": "prefix",
+      "precedence": 18,
+      "associativity": "right"
+    },
+    {
+      "token": "Reference",
+      "role": "prefix",
+      "precedence": 18,
+      "associativity": "right"
+    },
+    {
+      "token": "Increment",
+      "role": "prefix",
+      "precedence": 20,
+      "associativity": "right"
+    },
+    {
+      "token": "Decrement",
+      "role": "prefix",
+      "precedence": 20,
+      "associativity": "right"
+    },
+    {
+      "token": "Increment",
+      "role": "postfix",
+      "precedence": 20,
+      "associativity": "left"
+    },
+    {
+      "token": "Decrement",
+      "role": "postfix",
+      "precedence": 20,
+      "associativity": "left"
+    },
+    {
+      "token": "Question",
+      "role": "ternary",
+      "precedence": 6,
+      "associativity": "right",
+      "middleTerminator": "Colon"
+    },
+    {
+      "token": "TrailingComma",
+      "role": "postfix",
+      "precedence": 4,
+      "associativity": "left"
+    }
+  ]
 }

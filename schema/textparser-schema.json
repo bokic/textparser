@@ -170,6 +170,9 @@
         "pushMode": { "type": "string" },
         "popMode": { "type": "boolean" },
         "capture": { "type": "integer", "minimum": 0, "description": "1-based regex capture group stored for dynamic matching." },
+        "captureIndentFlag": { "type": "integer", "minimum": 0, "description": "Capture group enabling space/tab-indented dynamic terminators." },
+        "lineStart": { "type": "boolean", "default": false },
+        "unlessDynamic": { "type": "integer", "minimum": 0, "description": "Disable this token while the capture queue is nonempty." },
         "captureFlag": { "type": "integer", "minimum": 0, "description": "1-based regex capture group whose non-empty match sets strip-leading-tabs on the stored capture." },
         "dynamic": { "type": "integer", "minimum": 0, "description": "1-based capture slot matched literally at a line boundary (here-doc delimiter)." },
         "dynamicTrigger": { "type": "integer", "minimum": 0, "description": "1-based capture slot; the token only matches while that capture queue is non-empty." },
@@ -184,6 +187,8 @@
     "triviaToken": {
       "type": "object",
       "properties": {
+        "lineStart": { "type": "boolean", "default": false },
+        "unlessDynamic": { "type": "integer", "minimum": 0 },
         "diagnostics": { "$ref": "#/$defs/tokenDiagnostics" },
         "spelling": { "type": "string", "minLength": 1 },
         "regex": { "type": "string" },
@@ -251,6 +256,9 @@
         "pratt": { "$ref": "#/$defs/prattConstruct" },
         "commit": { "type": "boolean" },
         "when": { "$ref": "#/$defs/guardCondition" },
+        "defineSymbol": { "$ref": "#/$defs/defineSymbolConstruct" },
+        "whenSymbol": { "$ref": "#/$defs/symbolGuardConstruct" },
+        "withSymbolScope": { "$ref": "#/$defs/symbolScopeConstruct" },
         "withContext": { "$ref": "#/$defs/withContextConstruct" },
         "speculate": { "$ref": "#/$defs/speculateConstruct" },
         "events": { "$ref": "#/$defs/productionEvents" },
@@ -289,6 +297,9 @@
         "commit": { "type": "boolean" },
         "priority": { "type": "integer" },
         "when": { "$ref": "#/$defs/guardCondition" },
+        "defineSymbol": { "$ref": "#/$defs/defineSymbolConstruct" },
+        "whenSymbol": { "$ref": "#/$defs/symbolGuardConstruct" },
+        "withSymbolScope": { "$ref": "#/$defs/symbolScopeConstruct" },
         "withContext": { "$ref": "#/$defs/withContextConstruct" },
         "speculate": { "$ref": "#/$defs/speculateConstruct" },
         "lineTerminatorBefore": { "type": "boolean" },
@@ -325,6 +336,37 @@
         "minimumPrecedence": { "type": "integer", "default": 0 }
       },
       "additionalProperties": false
+    },
+    "defineSymbolConstruct": {
+      "type": "object", "required": ["name", "value", "production", "then"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "scope": { "type": "string", "minLength": 1 },
+        "separator": { "type": "string", "minLength": 1 },
+        "defaultScope": { "type": "string", "minLength": 1 },
+        "value": { "type": "integer" },
+        "production": { "$ref": "#/$defs/construct" },
+        "then": { "$ref": "#/$defs/construct" },
+        "replace": { "type": "boolean" },
+        "scoped": { "type": "boolean" }
+      }, "additionalProperties": false
+    },
+    "symbolScopeConstruct": {
+      "type": "object", "required": ["name", "production"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "production": { "$ref": "#/$defs/construct" }
+      }, "additionalProperties": false
+    },
+    "symbolGuardConstruct": {
+      "type": "object", "required": ["name", "value"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "scope": { "type": "string", "minLength": 1 },
+        "separator": { "type": "string", "minLength": 1 },
+        "defaultScope": { "type": "string", "minLength": 1 },
+        "value": { "type": "integer" }
+      }, "additionalProperties": false
     },
     "withContextConstruct": {
       "type": "object",

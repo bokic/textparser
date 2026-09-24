@@ -379,12 +379,12 @@ static int json_parse_grammar_construct_core(
     const char *keys[] = {
         "token", "ref", "sequence", "choice", "optional", "repeat",
         "lookahead", "not", "when", "withContext", "commit", "pratt", "withGoal",
-        "capture", "matchCapture", "oneOrMore"
+        "capture", "matchCapture", "oneOrMore", "defineSymbol", "whenSymbol", "withSymbolScope"
     };
-    json_object *values[16] = {0};
+    json_object *values[19] = {0};
     size_t present = 0;
     int selected = -1;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 19; i++) {
         if (json_object_object_get_ex(construct, keys[i], &values[i])) {
             present++;
             selected = i;
@@ -397,7 +397,7 @@ static int json_parse_grammar_construct_core(
         if (supported && !json_object_is_type(member.val, json_type_string)) {
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
         }
-        for (int i = 0; i < 16 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
+        for (int i = 0; i < 19 && !supported; i++) supported = strcmp(member.key, keys[i]) == 0;
         if (!supported) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
     }
 
@@ -518,7 +518,7 @@ static int json_parse_grammar_construct_core(
         return 0;
     }
 
-    if (selected == 12) {
+    if (selected == 12 || selected == 18) {
         if (!json_object_is_type(values[selected], json_type_object) ||
             json_object_object_length(values[selected]) != 2)
             return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
@@ -536,13 +536,71 @@ static int json_parse_grammar_construct_core(
         if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
         children[0] = child_id;
         production = &builder->items[production_id];
-        production->kind = TEXTPARSER_PROD_LEXICAL_GOAL;
+        production->kind = selected == 12 ? TEXTPARSER_PROD_LEXICAL_GOAL : TEXTPARSER_PROD_CONTEXT;
         production->children = children;
         production->child_count = 1;
-        production->lexical_goal = textparser_string_pool_strdup(
-            builder->pool, json_object_get_string(name));
-        if (production->lexical_goal == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        const char *copied = textparser_string_pool_strdup(builder->pool, json_object_get_string(name));
+        if (copied == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        if (selected == 12) production->lexical_goal = copied;
+        else production->capture_name = copied;
         return json_parse_grammar_construct(builder, inner, child_id);
+    }
+
+    if (selected == 16 || selected == 17) {
+        json_object *object = values[selected], *name = nullptr, *value = nullptr;
+        json_object *inner = nullptr, *then = nullptr;
+        bool define = selected == 16;
+        if (!json_object_is_type(object, json_type_object) ||
+            !json_object_object_get_ex(object, "name", &name) ||
+            !json_object_is_type(name, json_type_string) || json_object_get_string_len(name) == 0 ||
+            !json_object_object_get_ex(object, "value", &value) ||
+            !json_object_is_type(value, json_type_int) ||
+            (define && (!json_object_object_get_ex(object, "production", &inner) ||
+                        !json_object_object_get_ex(object, "then", &then))))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        production->kind = define ? TEXTPARSER_PROD_DEFINE_SYMBOL : TEXTPARSER_PROD_SYMBOL_GUARD;
+        production->capture_name = textparser_string_pool_strdup(builder->pool, json_object_get_string(name));
+        if (production->capture_name == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        production->context_value = json_object_get_int64(value);
+        json_object_iter member;
+        json_object_object_foreachC(object, member) {
+            if (strcmp(member.key, "name") == 0 || strcmp(member.key, "value") == 0 ||
+                (define && (strcmp(member.key, "production") == 0 || strcmp(member.key, "then") == 0))) continue;
+            const char **target = nullptr;
+            if (strcmp(member.key, "scope") == 0) target = &production->context_name;
+            else if (strcmp(member.key, "separator") == 0) target = &production->lexical_goal;
+            else if (strcmp(member.key, "defaultScope") == 0) target = &production->predicate_name;
+            if (target != nullptr) {
+                if (!json_object_is_type(member.val, json_type_string) || json_object_get_string_len(member.val) == 0)
+                    return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+                *target = textparser_string_pool_strdup(builder->pool, json_object_get_string(member.val));
+                if (*target == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+                continue;
+            }
+            if (!define || (strcmp(member.key, "replace") != 0 && strcmp(member.key, "scoped") != 0) ||
+                !json_object_is_type(member.val, json_type_boolean)) return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        }
+        json_object *replace = nullptr, *scoped = nullptr;
+        json_object_object_get_ex(object, "replace", &replace);
+        json_object_object_get_ex(object, "scoped", &scoped);
+        if ((production->context_name != nullptr && production->lexical_goal == nullptr) ||
+            (json_object_get_boolean(scoped) && !json_object_get_boolean(replace)))
+            return TEXTPARSER_JSON_GRAMMAR_INVALID_PRODUCTION;
+        production->minimum_precedence = json_object_get_boolean(scoped) ? 2 : json_object_get_boolean(replace);
+        if (!define) return 0;
+        int *children = calloc(2, sizeof(*children));
+        if (children == nullptr) return TEXTPARSER_JSON_OUT_OF_MEMORY;
+        production->children = children;
+        production->child_count = 2;
+        for (int i = 0; i < 2; i++) {
+            int child_id = -1;
+            int ret = json_grammar_append_anonymous(builder, &child_id);
+            if (ret != 0) return ret;
+            children[i] = child_id;
+            ret = json_parse_grammar_construct(builder, i ? then : inner, child_id);
+            if (ret != 0) return ret;
+        }
+        return 0;
     }
 
     if (selected == 13 || selected == 14) {
@@ -961,6 +1019,7 @@ static void json_grammar_compute_nullable(const json_grammar_builder *builder, b
             case TEXTPARSER_PROD_NOT:
             case TEXTPARSER_PROD_PREDICATE:
             case TEXTPARSER_PROD_COMMIT:
+            case TEXTPARSER_PROD_SYMBOL_GUARD:
                 value = true;
                 break;
             case TEXTPARSER_PROD_CONTEXT:
@@ -968,7 +1027,8 @@ static void json_grammar_compute_nullable(const json_grammar_builder *builder, b
             case TEXTPARSER_PROD_MATCH_CAPTURE:
                 value = p->child_count == 1 && nullable[p->children[0]];
                 break;
-            case TEXTPARSER_PROD_CAPTURE:
+            case TEXTPARSER_PROD_DEFINE_SYMBOL:
+    case TEXTPARSER_PROD_CAPTURE:
                 value = p->child_count == 2 && nullable[p->children[0]] && nullable[p->children[1]];
                 break;
             case TEXTPARSER_PROD_PRATT:
@@ -1062,6 +1122,7 @@ static bool json_grammar_left_recursive_visit(
     case TEXTPARSER_PROD_MATCH_CAPTURE:
         cycle = json_grammar_visit_leading_child(builder, p->children[0], nullable, colors);
         break;
+    case TEXTPARSER_PROD_DEFINE_SYMBOL:
     case TEXTPARSER_PROD_CAPTURE:
         cycle = json_grammar_visit_leading_child(builder, p->children[0], nullable, colors);
         if (!cycle && nullable[p->children[0]])
@@ -1070,6 +1131,7 @@ static bool json_grammar_left_recursive_visit(
     case TEXTPARSER_PROD_TOKEN:
     case TEXTPARSER_PROD_PREDICATE:
     case TEXTPARSER_PROD_COMMIT:
+    case TEXTPARSER_PROD_SYMBOL_GUARD:
         break;
     }
     colors[production_id] = 2;
@@ -1322,8 +1384,9 @@ static int json_parse_contextual_lexer(
             definition->lexer_rules[id].is_trivia = true;
         }
     }
+    for (int group = 0; group < 2; group++) {
     json_object *tokens = nullptr;
-    if (json_object_object_get_ex(lexer, "tokens", &tokens) && json_object_is_type(tokens, json_type_object)) {
+    if (json_object_object_get_ex(lexer, group ? "trivia" : "tokens", &tokens) && json_object_is_type(tokens, json_type_object)) {
         json_object_iter item;
         json_object_object_foreachC(tokens, item) {
             int id = json_get_token_id_by_name(item.key, definition->tokens, token_count);
@@ -1345,6 +1408,14 @@ static int json_parse_contextual_lexer(
             }
             if (json_object_object_get_ex(item.val, "capture", &field))
                 definition->lexer_rules[id].capture = json_object_get_int(field);
+            if (json_object_object_get_ex(item.val, "captureIndentFlag", &field))
+                definition->lexer_rules[id].capture_indent_flag = json_object_get_int(field);
+            if (json_object_object_get_ex(item.val, "lineStart", &field)) {
+                if (!json_object_is_type(field, json_type_boolean)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;
+                definition->lexer_rules[id].line_start = json_object_get_boolean(field);
+            }
+            if (json_object_object_get_ex(item.val, "unlessDynamic", &field))
+                definition->lexer_rules[id].unless_dynamic = json_object_get_int(field);
             if (json_object_object_get_ex(item.val, "captureFlag", &field))
                 definition->lexer_rules[id].capture_flag = json_object_get_int(field);
             if (json_object_object_get_ex(item.val, "dynamic", &field))
@@ -1354,6 +1425,7 @@ static int json_parse_contextual_lexer(
         }
     }
 
+    }
     json_object *modes = nullptr;
     if (json_object_object_get_ex(lexer, "modes", &modes)) {
         if (!json_object_is_type(modes, json_type_object)) return TEXTPARSER_JSON_INVALID_TOKEN_TYPE;

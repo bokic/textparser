@@ -153,6 +153,7 @@ typedef struct {
 typedef struct textparser_lexer_cache_entry {
     size_t source_offset;
     int source_rule;
+    uint64_t capture_generation;
     char *mode;
     char *goal;
     textparser_lex_token token;
@@ -166,6 +167,8 @@ typedef struct {
     size_t byte_length;
     size_t unit_length;
     bool strip_tabs;
+    bool strip_indent;
+    size_t body_start;
 } textparser_lexer_capture;
 
 /* FIFO of captures for one slot (bash reads queued here-docs in order). */
@@ -262,6 +265,7 @@ struct textparser_handle {
     size_t lexer_trivia_count;
     size_t lexer_trivia_capacity;
     textparser_lexer_cache_entry *lexer_cache;
+    uint64_t capture_generation;
     /* Dynamic lexer captures (here-doc delimiters). Slot 0 is unused; slots are
      * 1-based to match the JSON `capture`/`dynamic` fields. */
     textparser_lexer_capture_queue lexer_captures[TEXTPARSER_MAX_LEXER_CAPTURES];
@@ -325,6 +329,17 @@ static void textparser_memo_shift_and_invalidate(
  *
  * @param handle Pointer to the textparser handle whose lexer cache will be cleared.
  */
+static void textparser_free_capture_queues(textparser_lexer_capture_queue *queues) {
+    for (int i = 0; i < TEXTPARSER_MAX_LEXER_CAPTURES; i++) {
+        textparser_lexer_capture_queue *queue = &queues[i];
+        for (size_t j = 0; j < queue->count; j++) free(queue->items[j].bytes);
+        free(queue->items);
+        queue->items = nullptr;
+        queue->count = 0;
+        queue->capacity = 0;
+    }
+}
+
 static void textparser_clear_lexer_cache(struct textparser_handle *handle)
 {
     if (handle == nullptr) return;
@@ -337,14 +352,8 @@ static void textparser_clear_lexer_cache(struct textparser_handle *handle)
         entry = next;
     }
     handle->lexer_cache = nullptr;
-    for (int i = 0; i < TEXTPARSER_MAX_LEXER_CAPTURES; i++) {
-        textparser_lexer_capture_queue *queue = &handle->lexer_captures[i];
-        for (size_t j = 0; j < queue->count; j++) free(queue->items[j].bytes);
-        free(queue->items);
-        queue->items = nullptr;
-        queue->count = 0;
-        queue->capacity = 0;
-    }
+    textparser_free_capture_queues(handle->lexer_captures);
+    handle->capture_generation++;
 }
 
 /* ---- Phase 3: snapshot position-bias accessor macros --------------------
@@ -7455,6 +7464,15 @@ static bool textparser_contextual_match(
 {
     const textparser_contextual_lexer_rule *lexer_rule = handle->language->lexer_rules != nullptr
         ? &handle->language->lexer_rules[token_id] : nullptr;
+    if (lexer_rule != nullptr && lexer_rule->line_start && offset > 0) {
+        uint32_t previous = textparser_get_unit_at(handle, offset - 1);
+        if (previous != '\r' && previous != '\n') return false;
+    }
+    if (lexer_rule != nullptr && lexer_rule->unless_dynamic > 0) {
+        int slot = lexer_rule->unless_dynamic;
+        if (slot < TEXTPARSER_MAX_LEXER_CAPTURES &&
+            handle->lexer_captures[slot].count != 0) return false;
+    }
     if (lexer_rule != nullptr && lexer_rule->dynamic_trigger > 0) {
         int slot = lexer_rule->dynamic_trigger;
         if (slot >= TEXTPARSER_MAX_LEXER_CAPTURES ||
@@ -7467,12 +7485,14 @@ static bool textparser_contextual_match(
         const textparser_lexer_capture_queue *queue = &handle->lexer_captures[slot];
         if (queue->count == 0) return false;
         const textparser_lexer_capture *capture = &queue->items[0];
-        if (capture->bytes == nullptr || capture->unit_length == 0) return false;
+        if (capture->bytes == nullptr) return false;
         size_t total = textparser_get_total_units(handle);
         if (offset >= total) return false;
         size_t start = offset;
-        if (capture->strip_tabs) {
-            while (start < total && textparser_get_unit_at(handle, start) == '\t') start++;
+        if (capture->strip_tabs || capture->strip_indent) {
+            while (start < total &&
+                   (textparser_get_unit_at(handle, start) == '\t' ||
+                    (capture->strip_indent && textparser_get_unit_at(handle, start) == ' '))) start++;
         }
         if (capture->unit_length > total - start) return false;
         size_t byte_offset = textparser_get_byte_offset(handle, start);
@@ -7491,8 +7511,23 @@ static bool textparser_contextual_match(
             if (ch == '\r' && after < total && textparser_get_unit_at(handle, after) == '\n')
                 match_length++;
         }
+        if (capture->strip_indent) {
+            size_t indent = start - offset;
+            for (size_t line = capture->body_start; line < offset;) {
+                uint32_t first = textparser_get_unit_at(handle, line);
+                if (first != '\r' && first != '\n') {
+                    for (size_t i = 0; i < indent; i++)
+                        if (line + i >= offset || textparser_get_unit_at(handle, line + i) !=
+                            textparser_get_unit_at(handle, offset + i)) return false;
+                }
+                while (line < offset && textparser_get_unit_at(handle, line) != '\n' &&
+                       textparser_get_unit_at(handle, line) != '\r') line++;
+                if (line < offset && textparser_get_unit_at(handle, line++) == '\r' &&
+                    line < offset && textparser_get_unit_at(handle, line) == '\n') line++;
+            }
+        }
         *length = match_length;
-        return true;
+        return match_length != 0;
     }
     const textparser_token *rule = &handle->language->tokens[token_id];
     if (rule->name != nullptr && strcmp(rule->name, "Hashbang") == 0 && offset != 0)
@@ -7545,8 +7580,7 @@ static void textparser_contextual_capture(
             (void **)handle->start_regex + token_id, handle->text_format,
             handle->text_addr + textparser_get_byte_offset(handle, offset), total - offset,
             &found_at, &found_len, !handle->language->case_sensitivity, true, true,
-            slot, &capture_at, &capture_len) ||
-        capture_len == 0) {
+            slot, &capture_at, &capture_len)) {
         return;
     }
     bool strip_tabs = false;
@@ -7560,6 +7594,16 @@ static void textparser_contextual_capture(
                 lexer_rule->capture_flag, &flag_at, &flag_len) && flag_len > 0) {
             strip_tabs = true;
         }
+    }
+    bool strip_indent = false;
+    if (lexer_rule->capture_indent_flag > 0) {
+        size_t flag_at = 0, flag_len = 0;
+        strip_indent = adv_regex_find_pattern_capture_ctx(
+            handle->regex_ctx, token_def->start_regex,
+            (void **)handle->start_regex + token_id, handle->text_format,
+            handle->text_addr + textparser_get_byte_offset(handle, offset), total - offset,
+            &found_at, &found_len, !handle->language->case_sensitivity, true, true,
+            lexer_rule->capture_indent_flag, &flag_at, &flag_len) && flag_len > 0;
     }
     size_t byte_start = textparser_get_byte_offset(handle, offset + capture_at);
     size_t byte_end = textparser_get_byte_offset(handle, offset + capture_at + capture_len);
@@ -7577,12 +7621,18 @@ static void textparser_contextual_capture(
         queue->items = items;
         queue->capacity = capacity;
     }
+    size_t body_start = offset + found_len;
+    while (body_start < total && textparser_get_unit_at(handle, body_start) != '\n' &&
+           textparser_get_unit_at(handle, body_start) != '\r') body_start++;
+    if (body_start < total && textparser_get_unit_at(handle, body_start++) == '\r' &&
+        body_start < total && textparser_get_unit_at(handle, body_start) == '\n') body_start++;
     queue->items[queue->count++] = (textparser_lexer_capture){
-        bytes, byte_length, capture_len, strip_tabs};
+        bytes, byte_length, capture_len, strip_tabs, strip_indent, body_start};
+    handle->capture_generation++;
 }
 
 /* Consume the front of a dynamic capture queue once its token is selected. */
-static void textparser_contextual_consume_capture(struct textparser_handle *handle, int token_id) {
+static void textparser_contextual_consume_capture(struct textparser_handle *handle, int token_id, size_t end) {
     if (handle->language->lexer_rules == nullptr) return;
     int slot = handle->language->lexer_rules[token_id].dynamic;
     if (slot <= 0 || slot >= TEXTPARSER_MAX_LEXER_CAPTURES) return;
@@ -7591,6 +7641,8 @@ static void textparser_contextual_consume_capture(struct textparser_handle *hand
     free(queue->items[0].bytes);
     memmove(&queue->items[0], &queue->items[1], (queue->count - 1) * sizeof(*queue->items));
     queue->count--;
+    if (queue->count) queue->items[0].body_start = end;
+    handle->capture_generation++;
 }
 
 /* A dynamic token keeps its mode while more queued captures remain (bash reads
@@ -7633,7 +7685,8 @@ static int textparser_contextual_scan_one(
     const char *goal = goal_name ? goal_name : "";
     for (textparser_lexer_cache_entry *cached = handle->lexer_cache;
          cached != nullptr; cached = cached->next) {
-        if (cached->source_offset == source_offset && strcmp(cached->mode, mode) == 0 &&
+        if (cached->capture_generation == handle->capture_generation &&
+            cached->source_offset == source_offset && strcmp(cached->mode, mode) == 0 &&
             strcmp(cached->goal, goal) == 0) {
             *out_token = &cached->token;
             if (out_source_rule != nullptr) *out_source_rule = cached->source_rule;
@@ -7703,11 +7756,6 @@ static int textparser_contextual_scan_one(
     }
     if (best < 0) return 1;
 
-    /* Store any dynamic capture (e.g. a here-doc delimiter) declared by the rule.
-     * Capture from the token start (after leading trivia). */
-    textparser_contextual_capture(handle, best_source, offset);
-    textparser_contextual_consume_capture(handle, best_source);
-
     textparser_lexer_cache_entry *entry = calloc(1, sizeof(*entry));
     if (entry == nullptr) return -1;
     entry->mode = strdup(mode);
@@ -7717,6 +7765,7 @@ static int textparser_contextual_scan_one(
     }
     entry->source_offset = source_offset;
     entry->source_rule = best_source;
+    entry->capture_generation = handle->capture_generation;
     entry->token.kind = best;
     entry->token.start = offset;
     entry->token.end = offset + best_len;
@@ -7737,30 +7786,20 @@ EXPORT_TEXTPARSER int textparser_lexer_peek(
     const textparser_lex_token **out_token)
 {
     if (handle == nullptr || handle->language == nullptr || out_token == nullptr) return -1;
-    const char *modes[TEXTPARSER_MAX_MODE_STACK] = {0};
-    size_t depth = handle->mode_stack_depth;
-    for (size_t i = 0; i < depth; i++) modes[i] = handle->mode_stack[i];
-    size_t offset = handle->parser.source_offset;
-    const textparser_lex_token *token = nullptr;
-    int source_rule = -1;
-    for (size_t i = 0; i <= lookahead; i++) {
-        const char *mode = depth ? modes[depth - 1] :
-            (handle->language->initial_lexer_mode ? handle->language->initial_lexer_mode : "default");
-        int ret = textparser_contextual_scan_one(
-            handle, offset, mode, goal_name, &token, &source_rule, nullptr, nullptr);
-        if (ret != 0) { *out_token = nullptr; return ret; }
-        if (i == lookahead) break;
-        const textparser_contextual_lexer_rule *source = source_rule >= 0
-            ? &handle->language->lexer_rules[source_rule] : nullptr;
-        const textparser_contextual_lexer_rule *rule = source != nullptr &&
-            (source->pop_mode || source->push_mode != nullptr)
-            ? source : &handle->language->lexer_rules[token->kind];
-        if (rule->pop_mode && depth > 0) depth--;
-        if (rule->push_mode != nullptr && depth < TEXTPARSER_MAX_MODE_STACK) modes[depth++] = rule->push_mode;
-        offset = token->end;
+    if (lookahead == 0) {
+        return textparser_contextual_scan_one(handle, handle->parser.source_offset,
+            textparser_get_current_mode(handle), goal_name, out_token, nullptr, nullptr, nullptr);
     }
-    *out_token = token;
-    return 0;
+    void *checkpoint = nullptr;
+    textparser_speculate_begin(handle, &checkpoint);
+    if (checkpoint == nullptr) return -1;
+    int result = 0;
+    for (size_t i = 0; i < lookahead && result == 0; i++)
+        result = textparser_lexer_consume(handle, goal_name, out_token);
+    if (result == 0) result = textparser_lexer_peek(handle, 0, goal_name, out_token);
+    textparser_speculate_rollback(handle, checkpoint);
+    if (result != 0) *out_token = nullptr;
+    return result;
 }
 
 EXPORT_TEXTPARSER int textparser_lexer_consume(
@@ -7773,6 +7812,8 @@ EXPORT_TEXTPARSER int textparser_lexer_consume(
     if (textparser_contextual_scan_one(
             handle, handle->parser.source_offset, mode, goal_name, out_token, &source_rule, nullptr, nullptr) != 0)
         return -1;
+    textparser_contextual_capture(handle, (*out_token)->kind, (*out_token)->start);
+    textparser_contextual_consume_capture(handle, (*out_token)->kind, (*out_token)->end);
     const textparser_contextual_lexer_rule *source = source_rule >= 0
         ? &handle->language->lexer_rules[source_rule] : nullptr;
     const textparser_contextual_lexer_rule *rule = source != nullptr &&
@@ -7871,6 +7912,8 @@ static int textparser_parse_contextual(struct textparser_handle *handle,
         if (node == nullptr) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
         textparser_contextual_append(&first, &last, node);
 
+        textparser_contextual_capture(handle, token->kind, token->start);
+        textparser_contextual_consume_capture(handle, token->kind, token->end);
         const textparser_contextual_lexer_rule *source = source_rule >= 0
             ? &definition->lexer_rules[source_rule] : nullptr;
         const textparser_contextual_lexer_rule *rule = source != nullptr &&
@@ -8125,6 +8168,8 @@ typedef struct {
     textparser_diagnostic *diagnostics;
     size_t diagnostic_count;
     uint64_t memo_seq;
+    uint64_t capture_generation;
+    textparser_lexer_capture_queue captures[TEXTPARSER_MAX_LEXER_CAPTURES];
 } textparser_parser_checkpoint;
 
 /**
@@ -8229,6 +8274,7 @@ static void textparser_checkpoint_free(textparser_parser_checkpoint *checkpoint)
     free(checkpoint->lexical_goal);
     textparser_free_context_list(checkpoint->contexts);
     textparser_free_diagnostic_snapshot(checkpoint->diagnostics, checkpoint->diagnostic_count);
+    textparser_free_capture_queues(checkpoint->captures);
     checkpoint->magic = 0;
     free(checkpoint);
 }
@@ -8465,6 +8511,23 @@ EXPORT_TEXTPARSER void textparser_speculate_begin(
     cp->diagnostics = textparser_clone_diagnostics(handle->diagnostics, cp->diagnostic_count);
     if (cp->diagnostic_count != 0 && cp->diagnostics == nullptr) goto fail;
     cp->memo_seq = handle->next_memo_seq;
+    cp->capture_generation = handle->capture_generation;
+    for (int slot = 0; slot < TEXTPARSER_MAX_LEXER_CAPTURES; slot++) {
+        const textparser_lexer_capture_queue *src = &handle->lexer_captures[slot];
+        textparser_lexer_capture_queue *dst = &cp->captures[slot];
+        if (!src->count) continue;
+        dst->items = calloc(src->count, sizeof(*dst->items));
+        if (dst->items == nullptr) goto fail;
+        dst->capacity = src->count;
+        for (size_t j = 0; j < src->count; j++) {
+            dst->items[j] = src->items[j];
+            dst->items[j].bytes = malloc(src->items[j].byte_length + 1);
+            if (dst->items[j].bytes == nullptr) goto fail;
+            memcpy(dst->items[j].bytes, src->items[j].bytes, src->items[j].byte_length + 1);
+            dst->count++;
+        }
+    }
+
 
     handle->parser.speculation_depth++;
     *out_checkpoint = cp;
@@ -8511,6 +8574,12 @@ EXPORT_TEXTPARSER void textparser_speculate_rollback(
     handle->lexical_goal = cp->lexical_goal;
     cp->lexical_goal = nullptr;
 
+    if (cp->capture_generation != handle->capture_generation) {
+        textparser_free_capture_queues(handle->lexer_captures);
+        memcpy(handle->lexer_captures, cp->captures, sizeof(cp->captures));
+        memset(cp->captures, 0, sizeof(cp->captures));
+        handle->capture_generation++;
+    }
     textparser_free_context_list(handle->contexts);
     handle->contexts = cp->contexts;
     cp->contexts = nullptr;
@@ -8548,6 +8617,7 @@ typedef struct {
     size_t validator_diagnostic_length;
     size_t initial_diagnostic_count;
     textparser_capture_entry *captures;
+    bool has_dynamic_state;
 } textparser_grammar_executor;
 
 /**
@@ -9784,6 +9854,132 @@ static textparser_match_result textparser_parse_lexical_goal(
  * @param production CAPTURE production definition.
  * @return textparser_match_result of captured production execution.
  */
+/* Symbols share the checkpointed context store. Namespace spellings are
+ * encoded as source units; this also works with UTF-16/32 source buffers. */
+static char *textparser_symbol_prefix(const char *name) {
+    if (name == nullptr) return nullptr;
+    size_t size = strlen(name) + 40;
+    char *prefix = malloc(size);
+    if (prefix) snprintf(prefix, size, "@symbol:%zu:%s:", strlen(name), name);
+    return prefix;
+}
+
+static textparser_context_entry *textparser_find_symbol_namespace(textparser_t handle, const char *name) {
+    char *prefix = textparser_symbol_prefix(name);
+    if (prefix == nullptr) return nullptr;
+    size_t length = strlen(prefix);
+    textparser_context_entry *found = handle->contexts;
+    while (found && strncmp(found->name, prefix, length) != 0) found = found->next;
+    free(prefix);
+    return found;
+}
+
+static void textparser_clear_symbol_namespace(textparser_t handle, const char *name) {
+    char *prefix = textparser_symbol_prefix(name);
+    if (prefix == nullptr) return;
+    size_t length = strlen(prefix);
+    textparser_context_entry **entry = &handle->contexts;
+    while (*entry) {
+        textparser_context_entry *current = *entry;
+        if (strncmp(current->name, prefix, length) == 0) {
+            *entry = current->next;
+            free(current->name);
+            free(current);
+        } else entry = &current->next;
+    }
+    free(prefix);
+}
+
+static textparser_match_result textparser_parse_symbol_scope(
+    textparser_grammar_executor *executor, const textparser_production *production) {
+    textparser_t handle = executor->handle;
+    if (production->child_count != 1 || production->children == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
+    textparser_context_entry *saved = textparser_clone_context_list(handle->contexts);
+    if (saved == nullptr && handle->contexts != nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    char *prefix = textparser_symbol_prefix(production->capture_name);
+    if (prefix == nullptr) {
+        textparser_free_context_list(saved);
+        return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    }
+    textparser_match_result result = textparser_parse_production(executor, production->children[0]);
+    textparser_clear_symbol_namespace(handle, production->capture_name);
+    for (textparser_context_entry *entry = saved; entry; entry = entry->next)
+        if (strncmp(entry->name, prefix, strlen(prefix)) == 0 &&
+            textparser_context_set(handle, entry->name, entry->value) != 0)
+            result.status = TEXTPARSER_MATCH_ABORT;
+    free(prefix);
+    textparser_free_context_list(saved);
+    return result;
+}
+
+static char *textparser_symbol_key(textparser_t handle, const textparser_production *production,
+                                  size_t start, size_t end) {
+    if (end < start || end > textparser_get_total_units(handle)) return nullptr;
+    char *prefix = textparser_symbol_prefix(production->capture_name);
+    if (prefix == nullptr) return nullptr;
+    const char *separator = production->lexical_goal;
+    const char *default_scope = production->predicate_name;
+    const char *scope_hex = nullptr;
+    bool qualified = false;
+    if (separator != nullptr) {
+        size_t length = strlen(separator);
+        for (size_t i = start; i + length <= end && !qualified; i++) {
+            qualified = true;
+            for (size_t j = 0; j < length; j++)
+                if (textparser_get_unit_at(handle, i + j) != (unsigned char)separator[j]) qualified = false;
+        }
+    }
+    if (!qualified && production->context_name != nullptr) {
+        textparser_context_entry *scope = textparser_find_symbol_namespace(handle, production->context_name);
+        if (scope != nullptr) {
+            char *scope_prefix = textparser_symbol_prefix(production->context_name);
+            if (scope_prefix == nullptr) { free(prefix); return nullptr; }
+            scope_hex = scope->name + strlen(scope_prefix);
+            free(scope_prefix);
+        }
+    }
+    size_t extra = !qualified ? (scope_hex ? strlen(scope_hex) : (default_scope ? strlen(default_scope) * 8 : 0)) : 0;
+    size_t sep_len = extra && separator ? strlen(separator) : 0;
+    size_t prefix_len = strlen(prefix);
+    if (end - start > (SIZE_MAX - prefix_len - extra - 1) / 8 - sep_len) { free(prefix); return nullptr; }
+    char *key = malloc(prefix_len + extra + 8 * (sep_len + end - start) + 1);
+    if (key == nullptr) { free(prefix); return nullptr; }
+    memcpy(key, prefix, prefix_len);
+    free(prefix);
+    size_t at = prefix_len;
+    if (extra) {
+        if (scope_hex) { memcpy(key + at, scope_hex, extra); at += extra; }
+        else for (const unsigned char *p = (const unsigned char *)default_scope; *p; p++) {
+            snprintf(key + at, 9, "%08x", (unsigned)*p); at += 8;
+        }
+        for (size_t i = 0; i < sep_len; i++) {
+            snprintf(key + at, 9, "%08x", (unsigned char)separator[i]); at += 8;
+        }
+    }
+    for (size_t i = start; i < end; i++) {
+        snprintf(key + at, 9, "%08x", (unsigned)textparser_get_unit_at(handle, i)); at += 8;
+    }
+    key[at] = 0;
+    return key;
+}
+
+static textparser_match_result textparser_parse_symbol_guard(
+    textparser_grammar_executor *executor, const textparser_production *production) {
+    const textparser_lex_token *token = nullptr;
+    if (textparser_grammar_peek_token(executor, &token) != 0 || token == nullptr)
+        return textparser_match_result_make(TEXTPARSER_MATCH_NO, nullptr, 0);
+    char *key = textparser_symbol_key(executor->handle, production,
+                                    token->start, token->end);
+    if (key == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+    int64_t value = 0;
+    bool found = textparser_context_get(executor->handle, key, &value) == 0 &&
+                 value == production->context_value;
+    free(key);
+    return textparser_match_result_make(found ? TEXTPARSER_MATCH_OK : TEXTPARSER_MATCH_NO, nullptr, 0);
+}
+
 static textparser_match_result textparser_parse_capture(
     textparser_grammar_executor *executor,
     const textparser_production *production)
@@ -9820,9 +10016,39 @@ static textparser_match_result textparser_parse_capture(
         .end = handle->parser.source_offset,
         .next = executor->captures,
     };
+    char *previous_symbol = nullptr;
+    int64_t previous_value = 0;
+    if (production->kind == TEXTPARSER_PROD_DEFINE_SYMBOL && production->minimum_precedence > 0) {
+        textparser_context_entry *previous = textparser_find_symbol_namespace(handle, production->capture_name);
+        if (previous && production->minimum_precedence == 2) {
+            previous_symbol = strdup(previous->name);
+            previous_value = previous->value;
+            if (previous_symbol == nullptr) {
+                textparser_speculate_rollback(handle, checkpoint);
+                return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+            }
+        }
+        textparser_clear_symbol_namespace(handle, production->capture_name);
+    }
+    if (production->kind == TEXTPARSER_PROD_DEFINE_SYMBOL) {
+        char *key = textparser_symbol_key(handle, production, entry.start, entry.end);
+        int stored = key != nullptr ? textparser_context_set(handle, key, production->context_value) : -1;
+        free(key);
+        if (stored != 0) {
+            free(previous_symbol);
+            textparser_speculate_rollback(handle, checkpoint);
+            return textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
+        }
+    }
     executor->captures = &entry;
     textparser_match_result remainder = textparser_parse_production(executor, production->children[1]);
     executor->captures = entry.next;
+    if (production->kind == TEXTPARSER_PROD_DEFINE_SYMBOL && production->minimum_precedence == 2) {
+        textparser_clear_symbol_namespace(handle, production->capture_name);
+        if (previous_symbol && textparser_context_set(handle, previous_symbol, previous_value) != 0)
+            remainder.status = TEXTPARSER_MATCH_ABORT;
+    }
+    free(previous_symbol);
     if (remainder.status != TEXTPARSER_MATCH_OK) {
         textparser_match_status status = remainder.status;
         bool committed = captured.committed || remainder.committed;
@@ -9928,7 +10154,7 @@ static textparser_match_result textparser_parse_production(
     const textparser_production *production = textparser_find_production(executor, production_id);
     if (production == nullptr) return textparser_match_result_make(TEXTPARSER_MATCH_ERROR, nullptr, 0);
 
-    bool can_memoize = textparser_is_memoizable_production(production);
+    bool can_memoize = !executor->has_dynamic_state && textparser_is_memoizable_production(production);
     uint32_t ctx_hash = 0;
     size_t start_token_idx = executor->handle->parser.token_index;
     if (can_memoize) {
@@ -10034,11 +10260,17 @@ static textparser_match_result textparser_parse_production(
         result = textparser_parse_predicate(executor, production);
         break;
     case TEXTPARSER_PROD_CONTEXT:
-        result = textparser_parse_context(executor, production);
+        result = production->capture_name != nullptr
+            ? textparser_parse_symbol_scope(executor, production)
+            : textparser_parse_context(executor, production);
         break;
     case TEXTPARSER_PROD_LEXICAL_GOAL:
         result = textparser_parse_lexical_goal(executor, production);
         break;
+    case TEXTPARSER_PROD_SYMBOL_GUARD:
+        result = textparser_parse_symbol_guard(executor, production);
+        break;
+    case TEXTPARSER_PROD_DEFINE_SYMBOL:
     case TEXTPARSER_PROD_CAPTURE:
         result = textparser_parse_capture(executor, production);
         break;
@@ -10143,6 +10375,24 @@ EXPORT_TEXTPARSER int textparser_execute_production(
         .production_count = production_count,
         .initial_diagnostic_count = handle->diagnostic_count,
     };
+    /* Source declarations are rebuilt on each grammar execution. Keep caller
+     * contexts, but never reuse symbol definitions from a previous parse. */
+    textparser_context_entry **entry = &handle->contexts;
+    while (*entry != nullptr) {
+        textparser_context_entry *current = *entry;
+        if (strncmp(current->name, "@symbol:", 8) == 0) {
+            *entry = current->next;
+            free(current->name);
+            free(current);
+        } else entry = &current->next;
+    }
+    for (size_t i = 0; i < production_count; i++)
+        if (productions[i].kind == TEXTPARSER_PROD_DEFINE_SYMBOL)
+            executor.has_dynamic_state = true;
+    if (handle->language != nullptr && handle->language->lexer_rules != nullptr)
+        for (size_t i = 0; i < handle->token_count; i++)
+            if (handle->language->lexer_rules[i].capture > 0)
+                executor.has_dynamic_state = true;
     void *checkpoint = nullptr;
     textparser_speculate_begin(handle, &checkpoint);
     if (checkpoint == nullptr) return -1;
@@ -10235,6 +10485,15 @@ EXPORT_TEXTPARSER int textparser_execute_language_grammar(
     if (peek < 0) {
         *out_result = textparser_match_result_make(TEXTPARSER_MATCH_ABORT, nullptr, 0);
         return status;
+    }
+    for (int slot = 1; slot < TEXTPARSER_MAX_LEXER_CAPTURES; slot++) {
+        if (handle->lexer_captures[slot].count != 0) {
+            textparser_report_diagnostic(handle, TEXTPARSER_SEVERITY_ERROR,
+                "TEXTPARSER_UNTERMINATED", "Unterminated dynamic literal.",
+                handle->parser.source_offset, 0);
+            out_result->status = TEXTPARSER_MATCH_ERROR;
+            return status;
+        }
     }
     textparser_event event = {0};
     event.type = TEXTPARSER_EVENT_SOURCE_COMPLETE;

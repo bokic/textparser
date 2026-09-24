@@ -222,6 +222,8 @@ typedef enum {
     TEXTPARSER_PROD_LEXICAL_GOAL,
     TEXTPARSER_PROD_CAPTURE,
     TEXTPARSER_PROD_MATCH_CAPTURE,
+    TEXTPARSER_PROD_DEFINE_SYMBOL,
+    TEXTPARSER_PROD_SYMBOL_GUARD,
 } textparser_production_kind;
 
 /** Stable language-independent CST families. */
@@ -456,6 +458,12 @@ typedef struct {
     /* 1-based capture slot. When > 0, this token only matches while the capture
      * queue for that slot is non-empty (bash newline that opens a here-doc body). */
     int dynamic_trigger;
+    /* Capture group enabling space/tab-indented dynamic terminators. */
+    int capture_indent_flag;
+    /* Disable this rule while a dynamic capture queue is nonempty. */
+    int unless_dynamic;
+    /* Only match at the beginning of a physical source line. */
+    bool line_start;
 } textparser_contextual_lexer_rule;
 
 #define TEXTPARSER_MAX_LEXER_CAPTURES 8

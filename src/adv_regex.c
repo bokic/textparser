@@ -383,7 +383,7 @@ static bool adv_regex_find_pattern_impl(
         }
         if (ret && capture_group > 0 && capture_offset && capture_length) {
             size_t group = (size_t)capture_group;
-            if (ov[group * 2] != PCRE2_UNSET && ov[group * 2 + 1] != PCRE2_UNSET &&
+            if (group < (size_t)rc && ov[group * 2] != PCRE2_UNSET && ov[group * 2 + 1] != PCRE2_UNSET &&
                 ov[group * 2 + 1] >= ov[group * 2]) {
                 *capture_offset = ov[group * 2];
                 *capture_length = ov[group * 2 + 1] - ov[group * 2];
@@ -406,7 +406,7 @@ static bool adv_regex_find_pattern_impl(
         }
         if (ret && capture_group > 0 && capture_offset && capture_length) {
             size_t group = (size_t)capture_group;
-            if (ov[group * 2] != PCRE2_UNSET && ov[group * 2 + 1] != PCRE2_UNSET &&
+            if (group < (size_t)rc && ov[group * 2] != PCRE2_UNSET && ov[group * 2 + 1] != PCRE2_UNSET &&
                 ov[group * 2 + 1] >= ov[group * 2]) {
                 *capture_offset = ov[group * 2];
                 *capture_length = ov[group * 2 + 1] - ov[group * 2];
