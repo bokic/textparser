@@ -1,141 +1,3308 @@
 {
-  "name": "scratch",
-  "version": 1.0,
-  "caseSensitivity": true,
-  "defaultFileExtensions": [
-    "sb3"
-  ],
-  "defaultTextEncoding": "latin1",
-  "startTokens": [
-    "LineComment",
-    "Boolean",
-    "Keyword",
-    "DoubleString",
-    "Number",
-    "Variable",
-    "Operator",
-    "Parenthesis",
-    "ArrayIndex",
-    "CodeBlock"
-  ],
-  "otherTextInside": true,
-  "tokens": {
-    "LineComment": {
-      "type": "SimpleToken",
-      "startRegex": "#[^\\r\\n]*|\\/\\/[^\\r\\n]*",
-      "otherTextInside": true,
-      "textColor": "0x6a9955"
+    "$schema": "../schema/textparser-schema.json",
+    "formatVersion": 2,
+    "name": "scratch",
+    "version": 2.0,
+    "caseSensitivity": false,
+    "defaultFileExtensions": [
+        "sb",
+        "sb2",
+        "sb3"
+    ],
+    "defaultTextEncoding": "utf-8",
+    "supportedBom": [
+        "utf-8"
+    ],
+    "otherTextInside": false,
+    "diagnostics": {
+        "expected": {
+            "code": "SCR1001",
+            "message": "Expected %s."
+        },
+        "tokenExpected": {
+            "code": "SCR1002",
+            "message": "'%s' expected."
+        },
+        "recovered": {
+            "code": "SCR1003",
+            "message": "Syntax error: unexpected token, recovering."
+        }
     },
-    "Keyword": {
-      "type": "SimpleToken",
-      "startRegex": "when\\b|green\\b|flag\\b|clicked\\b|key\\b|pressed\\b|space\\b|any\\b|move\\b|steps\\b|turn\\b|cw\\b|ccw\\b|degrees\\b|go\\b|to\\b|glide\\b|secs\\b|point\\b|towards\\b|direction\\b|change\\b|set\\b|effect\\b|size\\b|graphic\\b|clear\\b|show\\b|hide\\b|say\\b|think\\b|seconds\\b|wait\\b|costume\\b|backdrop\\b|switch\\b|next\\b|sound\\b|play\\b|until\\b|stop\\b|all\\b|this\\b|sprite\\b|script\\b|create\\b|clone\\b|delete\\b|forever\\b|repeat\\b|if\\b|then\\b|else\\b|end\\b|for\\b|broadcast\\b|message\\b|message1\\b|new\\b|ask\\b|answer\\b|mouse\\b|x\\b|y\\b|down\\b|loudness\\b|timer\\b|reset\\b|random\\b|pick\\b|between\\b|join\\b|letter\\b|of\\b|length\\b|contains\\b|round\\b|sqrt\\b|abs\\b|and\\b|or\\b|not\\b|touching\\b|color\\b|distance\\b|item\\b|list\\b|add\\b|insert\\b|replace\\b|counter\\b|mod\\b",
-      "textColor": "0xc586c0"
+    "recovery": {
+        "maximumDiagnostics": 100,
+        "maximumSkippedTokens": 50,
+        "maximumRecoveryAttempts": 30,
+        "synchronizationTokens": [
+            "KwWhen",
+            "KwDefine",
+            "KwEnd",
+            "KwElse",
+            "KwForever",
+            "KwRepeat",
+            "KwIf",
+            "KwMove",
+            "KwTurn",
+            "KwPoint",
+            "KwGo",
+            "KwGlide",
+            "KwChange",
+            "KwSet",
+            "KwSay",
+            "KwThink",
+            "KwSwitch",
+            "KwNext",
+            "KwShow",
+            "KwHide",
+            "KwPlay",
+            "KwStop",
+            "KwBroadcast",
+            "KwWait",
+            "KwAsk",
+            "KwReset",
+            "Semicolon"
+        ]
     },
-    "Boolean": {
-      "type": "SimpleToken",
-      "startRegex": "true\\b|false\\b",
-      "textColor": "0x569cd6"
+    "lexer": {
+        "initialMode": "default",
+        "trivia": {
+            "Whitespace": {
+                "regex": "[ \\t\\r\\n]+",
+                "priority": 1,
+                "textColor": "0xd4d4d4"
+            },
+            "LineComment": {
+                "regex": "(?:#|\\/\\/)[^\\r\\n]*",
+                "priority": 2,
+                "textColor": "0x6a9955"
+            },
+            "BlockComment": {
+                "regex": "\\/\\*[\\s\\S]*?\\*\\/",
+                "priority": 3,
+                "textColor": "0x6a9955"
+            }
+        },
+        "tokens": {
+            "DoubleString": {
+                "regex": "\"(?:[^\"\\\\\\r\\n]|\\\\.)*\"",
+                "priority": 50,
+                "textColor": "0xce9178"
+            },
+            "ColorLiteral": {
+                "regex": "#[0-9a-fA-F]{6}\\b|#[0-9a-fA-F]{3}\\b",
+                "priority": 45,
+                "textColor": "0xb5cea8"
+            },
+            "FloatNumber": {
+                "regex": "\\b[0-9]+\\.[0-9]+\\b|\\b\\.[0-9]+\\b",
+                "priority": 42,
+                "textColor": "0xb5cea8"
+            },
+            "DecNumber": {
+                "regex": "\\b[0-9]+\\b",
+                "priority": 40,
+                "textColor": "0xb5cea8"
+            },
+            "KwTrue": {
+                "regex": "true\\b",
+                "priority": 38,
+                "textColor": "0x569cd6"
+            },
+            "KwFalse": {
+                "regex": "false\\b",
+                "priority": 38,
+                "textColor": "0x569cd6"
+            },
+            "KwMousePointer": {
+                "regex": "mouse-pointer\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwRandomPosition": {
+                "regex": "random[ \\t]+position\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwDontRotate": {
+                "regex": "don't[ \\t]+rotate\\b|dont[ \\t]+rotate\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwAllAround": {
+                "regex": "all[ \\t]+around\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwLeftRight": {
+                "regex": "left-right\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwUpArrow": {
+                "regex": "up[ \\t]+arrow\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwDownArrow": {
+                "regex": "down[ \\t]+arrow\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwLeftArrow": {
+                "regex": "left[ \\t]+arrow\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwRightArrow": {
+                "regex": "right[ \\t]+arrow\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwSpaceKey": {
+                "regex": "space\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwAnyKey": {
+                "regex": "any\\b",
+                "priority": 38,
+                "textColor": "0x9cdcfe"
+            },
+            "KwWhen": {
+                "regex": "when\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwFlag": {
+                "regex": "flag\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwGreen": {
+                "regex": "green\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwClicked": {
+                "regex": "clicked\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSprite": {
+                "regex": "sprite\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwStage": {
+                "regex": "stage\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwPressed": {
+                "regex": "pressed\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwKey": {
+                "regex": "key\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwReceive": {
+                "regex": "receive\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwStart": {
+                "regex": "start\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAs": {
+                "regex": "as\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwClone": {
+                "regex": "clone\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSwitches": {
+                "regex": "switches\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDefine": {
+                "regex": "define\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwMove": {
+                "regex": "move\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSteps": {
+                "regex": "steps\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwTurn": {
+                "regex": "turn\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwCw": {
+                "regex": "cw\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwCcw": {
+                "regex": "ccw\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLeft": {
+                "regex": "left\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwRight": {
+                "regex": "right\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDegrees": {
+                "regex": "degrees\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwPoint": {
+                "regex": "point\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwTowards": {
+                "regex": "towards\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDirection": {
+                "regex": "direction\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwGo": {
+                "regex": "go\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwGlide": {
+                "regex": "glide\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSecs": {
+                "regex": "secs\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSeconds": {
+                "regex": "seconds\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwX": {
+                "regex": "x\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwY": {
+                "regex": "y\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwOn": {
+                "regex": "on\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwEdge": {
+                "regex": "edge\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwBounce": {
+                "regex": "bounce\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwRotation": {
+                "regex": "rotation\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwStyle": {
+                "regex": "style\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSay": {
+                "regex": "say\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwThink": {
+                "regex": "think\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwCostume": {
+                "regex": "costume\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwBackdrop": {
+                "regex": "backdrop\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSwitch": {
+                "regex": "switch\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwNext": {
+                "regex": "next\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwEffect": {
+                "regex": "effect\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwGraphic": {
+                "regex": "graphic\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwEffects": {
+                "regex": "effects\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwClear": {
+                "regex": "clear\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSize": {
+                "regex": "size\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwShow": {
+                "regex": "show\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwHide": {
+                "regex": "hide\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwFront": {
+                "regex": "front\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwBack": {
+                "regex": "back\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwForward": {
+                "regex": "forward\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwBackward": {
+                "regex": "backward\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLayer": {
+                "regex": "layer\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLayers": {
+                "regex": "layers\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSound": {
+                "regex": "sound\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSounds": {
+                "regex": "sounds\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwPlay": {
+                "regex": "play\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwVolume": {
+                "regex": "volume\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDone": {
+                "regex": "done\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwBroadcast": {
+                "regex": "broadcast\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwWait": {
+                "regex": "wait\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwForever": {
+                "regex": "forever\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwRepeat": {
+                "regex": "repeat\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwIf": {
+                "regex": "if\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwThen": {
+                "regex": "then\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwElse": {
+                "regex": "else\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwEnd": {
+                "regex": "end\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwStop": {
+                "regex": "stop\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAll": {
+                "regex": "all\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwThis": {
+                "regex": "this\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwScript": {
+                "regex": "script\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwScripts": {
+                "regex": "scripts\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwOther": {
+                "regex": "other\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwCreate": {
+                "regex": "create\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDelete": {
+                "regex": "delete\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAsk": {
+                "regex": "ask\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAnswer": {
+                "regex": "answer\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwTouching": {
+                "regex": "touching\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwColor": {
+                "regex": "color\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDistance": {
+                "regex": "distance\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwReset": {
+                "regex": "reset\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwTimer": {
+                "regex": "timer\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwMouse": {
+                "regex": "mouse\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDown": {
+                "regex": "down\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLoudness": {
+                "regex": "loudness\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwDrag": {
+                "regex": "drag\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwMode": {
+                "regex": "mode\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSet": {
+                "regex": "set\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwChange": {
+                "regex": "change\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwVariable": {
+                "regex": "variable\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwList": {
+                "regex": "list\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAdd": {
+                "regex": "add\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwInsert": {
+                "regex": "insert\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwReplace": {
+                "regex": "replace\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwItem": {
+                "regex": "item\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwWith": {
+                "regex": "with\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAt": {
+                "regex": "at\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwPick": {
+                "regex": "pick\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwRandom": {
+                "regex": "random\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwJoin": {
+                "regex": "join\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLetter": {
+                "regex": "letter\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLength": {
+                "regex": "length\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwRound": {
+                "regex": "round\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwMod": {
+                "regex": "mod\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAnd": {
+                "regex": "and\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwOr": {
+                "regex": "or\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwNot": {
+                "regex": "not\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSqrt": {
+                "regex": "sqrt\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAbs": {
+                "regex": "abs\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwFloor": {
+                "regex": "floor\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwCeiling": {
+                "regex": "ceiling\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwSin": {
+                "regex": "sin\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwCos": {
+                "regex": "cos\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwTan": {
+                "regex": "tan\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAsin": {
+                "regex": "asin\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAcos": {
+                "regex": "acos\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwAtan": {
+                "regex": "atan\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLn": {
+                "regex": "ln\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwLog": {
+                "regex": "log\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwTo": {
+                "regex": "to\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwBy": {
+                "regex": "by\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwFor": {
+                "regex": "for\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwOf": {
+                "regex": "of\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwIn": {
+                "regex": "in\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "KwUntil": {
+                "regex": "until\\b",
+                "priority": 35,
+                "textColor": "0xc586c0"
+            },
+            "NotEqual": {
+                "regex": "!=|<>",
+                "priority": 32,
+                "textColor": "0xd4d4d4"
+            },
+            "LessEqual": {
+                "regex": "<=",
+                "priority": 32,
+                "textColor": "0xd4d4d4"
+            },
+            "GreaterEqual": {
+                "regex": ">=",
+                "priority": 32,
+                "textColor": "0xd4d4d4"
+            },
+            "Minus": {
+                "regex": "-",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Plus": {
+                "regex": "\\+",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Star": {
+                "regex": "\\*",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Slash": {
+                "regex": "\\/",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Equal": {
+                "regex": "=",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Less": {
+                "regex": "<",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Greater": {
+                "regex": ">",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "OpenParen": {
+                "regex": "\\(",
+                "priority": 30,
+                "textColor": "0xffd700"
+            },
+            "CloseParen": {
+                "regex": "\\)",
+                "priority": 30,
+                "textColor": "0xffd700"
+            },
+            "OpenBracket": {
+                "regex": "\\[",
+                "priority": 30,
+                "textColor": "0xffd700"
+            },
+            "CloseBracket": {
+                "regex": "\\]",
+                "priority": 30,
+                "textColor": "0xffd700"
+            },
+            "OpenBrace": {
+                "regex": "\\{",
+                "priority": 30,
+                "textColor": "0xffd700"
+            },
+            "CloseBrace": {
+                "regex": "\\}",
+                "priority": 30,
+                "textColor": "0xffd700"
+            },
+            "Comma": {
+                "regex": ",",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Colon": {
+                "regex": ":",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Semicolon": {
+                "regex": ";",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Percent": {
+                "regex": "%",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Hash": {
+                "regex": "#",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "At": {
+                "regex": "@",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Exclamation": {
+                "regex": "!",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Question": {
+                "regex": "\\?",
+                "priority": 30,
+                "textColor": "0xd4d4d4"
+            },
+            "Ellipsis": {
+                "regex": "\\.\\.\\.",
+                "priority": 32,
+                "textColor": "0xd4d4d4"
+            },
+            "Dot": {
+                "regex": "\\.",
+                "priority": 25,
+                "textColor": "0xd4d4d4"
+            },
+            "Identifier": {
+                "regex": "[a-zA-Z_][a-zA-Z0-9_]*",
+                "priority": 20,
+                "textColor": "0x9cdcfe"
+            }
+        }
     },
-    "DoubleString": {
-      "type": "StartStop",
-      "startRegex": "\"",
-      "endRegex": "\"",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xce9178",
-      "delimiterTextColor": "0x9e6a57"
-    },
-    "Number": {
-      "type": "SimpleToken",
-      "startRegex": "[0-9]*\\.?[0-9]+",
-      "textColor": "0xb5cea8"
-    },
-    "Variable": {
-      "type": "SimpleToken",
-      "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*|\\[[a-zA-Z_][a-zA-Z0-9_]*\\]",
-      "textColor": "0x9cdcfe"
-    },
-    "Operator": {
-      "type": "SimpleToken",
-      "startRegex": "[=<>+\\-*/]",
-      "textColor": "0xd4d4d4"
-    },
-    "Parenthesis": {
-      "type": "StartStop",
-      "startRegex": "\\(",
-      "endRegex": "\\)",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "Boolean",
-        "Keyword",
-        "DoubleString",
-        "Number",
-        "Variable",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "ArrayIndex": {
-      "type": "StartStop",
-      "startRegex": "\\[",
-      "endRegex": "\\]",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "Boolean",
-        "Keyword",
-        "DoubleString",
-        "Number",
-        "Variable",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
-    },
-    "CodeBlock": {
-      "type": "StartStop",
-      "startRegex": "\\{",
-      "endRegex": "\\}",
-      "multiLine": true,
-      "otherTextInside": true,
-      "textColor": "0xffd700",
-      "nestedTokens": [
-        "LineComment",
-        "Boolean",
-        "Keyword",
-        "DoubleString",
-        "Number",
-        "Variable",
-        "Operator",
-        "Parenthesis",
-        "ArrayIndex",
-        "CodeBlock"
-      ]
+    "operators": [
+        {
+            "token": "Star",
+            "role": "infix",
+            "precedence": 5,
+            "associativity": "left"
+        },
+        {
+            "token": "Slash",
+            "role": "infix",
+            "precedence": 5,
+            "associativity": "left"
+        },
+        {
+            "token": "KwMod",
+            "role": "infix",
+            "precedence": 5,
+            "associativity": "left"
+        },
+        {
+            "token": "Plus",
+            "role": "infix",
+            "precedence": 4,
+            "associativity": "left"
+        },
+        {
+            "token": "Minus",
+            "role": "infix",
+            "precedence": 4,
+            "associativity": "left"
+        }
+    ],
+    "grammar": {
+        "start": "Root",
+        "productions": {
+            "Root": {
+                "category": "source_file",
+                "sequence": [
+                    {
+                        "repeat": {
+                            "ref": "RootItem"
+                        }
+                    }
+                ]
+            },
+            "RootItem": {
+                "choice": [
+                    {
+                        "ref": "HatBlock"
+                    },
+                    {
+                        "ref": "StatementItem"
+                    }
+                ]
+            },
+            "HatBlock": {
+                "category": "declaration",
+                "choice": [
+                    {
+                        "ref": "WhenFlagBlock"
+                    },
+                    {
+                        "ref": "WhenSpriteOrStageClickedBlock"
+                    },
+                    {
+                        "ref": "WhenBackdropSwitchedBlock"
+                    },
+                    {
+                        "ref": "WhenGreaterThanBlock"
+                    },
+                    {
+                        "ref": "WhenIReceiveBlock"
+                    },
+                    {
+                        "ref": "WhenIStartAsCloneBlock"
+                    },
+                    {
+                        "ref": "WhenKeyPressedBlock"
+                    },
+                    {
+                        "ref": "DefineBlock"
+                    }
+                ]
+            },
+            "WhenFlagBlock": {
+                "category": "declaration",
+                "astKind": "WhenFlagBlock",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwGreen"
+                        }
+                    },
+                    {
+                        "token": "KwFlag"
+                    },
+                    {
+                        "token": "KwClicked"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "WhenSpriteOrStageClickedBlock": {
+                "category": "declaration",
+                "astKind": "WhenSpriteOrStageClickedBlock",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwThis"
+                        }
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwSprite"
+                            },
+                            {
+                                "token": "KwStage"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "KwClicked"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "WhenKeyPressedBlock": {
+                "category": "declaration",
+                "astKind": "WhenKeyPressedBlock",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwKey"
+                        }
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwKey"
+                        }
+                    },
+                    {
+                        "token": "KwPressed"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "WhenBackdropSwitchedBlock": {
+                "category": "declaration",
+                "astKind": "WhenBackdropSwitchedBlock",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "token": "KwBackdrop"
+                    },
+                    {
+                        "token": "KwSwitches"
+                    },
+                    {
+                        "token": "KwTo"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "WhenGreaterThanBlock": {
+                "category": "declaration",
+                "astKind": "WhenGreaterThanBlock",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwLoudness"
+                            },
+                            {
+                                "token": "KwTimer"
+                            }
+                        ]
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "Greater"
+                            },
+                            {
+                                "token": "GreaterEqual"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "WhenIReceiveBlock": {
+                "category": "declaration",
+                "astKind": "WhenIReceiveBlock",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "KwReceive"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "WhenIStartAsCloneBlock": {
+                "category": "declaration",
+                "astKind": "WhenIStartAsCloneBlock",
+                "sequence": [
+                    {
+                        "token": "KwWhen"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "KwStart"
+                    },
+                    {
+                        "token": "KwAs"
+                    },
+                    {
+                        "optional": {
+                            "ref": "IdentRef"
+                        }
+                    },
+                    {
+                        "token": "KwClone"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "DefineBlock": {
+                "category": "declaration",
+                "astKind": "DefineBlock",
+                "sequence": [
+                    {
+                        "token": "KwDefine"
+                    },
+                    {
+                        "ref": "CustomBlockSignature"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    }
+                ]
+            },
+            "CustomBlockSignature": {
+                "sequence": [
+                    {
+                        "ref": "IdentRef"
+                    },
+                    {
+                        "repeat": {
+                            "choice": [
+                                {
+                                    "ref": "ParenthesizedExpression"
+                                },
+                                {
+                                    "ref": "AngleBracketExpression"
+                                },
+                                {
+                                    "ref": "BracketedExpression"
+                                },
+                                {
+                                    "ref": "IdentRef"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "StatementItem": {
+                "category": "statement",
+                "choice": [
+                    {
+                        "ref": "ValidStatement"
+                    },
+                    {
+                        "ref": "InvalidStatement"
+                    }
+                ]
+            },
+            "ValidStatement": {
+                "category": "statement",
+                "sequence": [
+                    {
+                        "ref": "Statement"
+                    },
+                    {
+                        "optional": {
+                            "token": "Semicolon"
+                        }
+                    }
+                ]
+            },
+            "InvalidStatement": {
+                "category": "statement",
+                "sequence": [
+                    {
+                        "ref": "RecoverableStatement"
+                    },
+                    {
+                        "optional": {
+                            "token": "Semicolon"
+                        }
+                    }
+                ]
+            },
+            "RecoverableStatement": {
+                "category": "statement",
+                "ref": "Statement",
+                "recoverUntil": [
+                    "KwWhen",
+                    "KwDefine",
+                    "KwEnd",
+                    "KwElse",
+                    "KwForever",
+                    "KwRepeat",
+                    "KwIf",
+                    "KwMove",
+                    "KwTurn",
+                    "KwPoint",
+                    "KwGo",
+                    "KwGlide",
+                    "KwChange",
+                    "KwSet",
+                    "KwSay",
+                    "KwThink",
+                    "KwSwitch",
+                    "KwNext",
+                    "KwShow",
+                    "KwHide",
+                    "KwPlay",
+                    "KwStop",
+                    "KwBroadcast",
+                    "KwWait",
+                    "KwAsk",
+                    "KwReset",
+                    "Semicolon"
+                ]
+            },
+            "Statement": {
+                "category": "statement",
+                "choice": [
+                    {
+                        "ref": "MoveBlock"
+                    },
+                    {
+                        "ref": "TurnBlock"
+                    },
+                    {
+                        "ref": "PointBlock"
+                    },
+                    {
+                        "ref": "GoBlock"
+                    },
+                    {
+                        "ref": "GlideBlock"
+                    },
+                    {
+                        "ref": "IfOnEdgeBounceBlock"
+                    },
+                    {
+                        "ref": "SayBlock"
+                    },
+                    {
+                        "ref": "ThinkBlock"
+                    },
+                    {
+                        "ref": "SwitchCostumeBlock"
+                    },
+                    {
+                        "ref": "NextCostumeBlock"
+                    },
+                    {
+                        "ref": "SwitchBackdropBlock"
+                    },
+                    {
+                        "ref": "NextBackdropBlock"
+                    },
+                    {
+                        "ref": "ShowBlock"
+                    },
+                    {
+                        "ref": "HideBlock"
+                    },
+                    {
+                        "ref": "PlaySoundBlock"
+                    },
+                    {
+                        "ref": "StopAllSoundsBlock"
+                    },
+                    {
+                        "ref": "ClearSoundEffectsBlock"
+                    },
+                    {
+                        "ref": "ClearGraphicEffectsBlock"
+                    },
+                    {
+                        "ref": "BroadcastBlock"
+                    },
+                    {
+                        "ref": "WaitBlock"
+                    },
+                    {
+                        "ref": "ForeverBlock"
+                    },
+                    {
+                        "ref": "RepeatUntilBlock"
+                    },
+                    {
+                        "ref": "RepeatBlock"
+                    },
+                    {
+                        "ref": "IfBlock"
+                    },
+                    {
+                        "ref": "StopBlock"
+                    },
+                    {
+                        "ref": "CreateCloneBlock"
+                    },
+                    {
+                        "ref": "DeleteCloneBlock"
+                    },
+                    {
+                        "ref": "AskAndWaitBlock"
+                    },
+                    {
+                        "ref": "ResetTimerBlock"
+                    },
+                    {
+                        "ref": "SetBlock"
+                    },
+                    {
+                        "ref": "ChangeBlock"
+                    },
+                    {
+                        "ref": "AddToListBlock"
+                    },
+                    {
+                        "ref": "DeleteListBlock"
+                    },
+                    {
+                        "ref": "InsertAtListBlock"
+                    },
+                    {
+                        "ref": "ReplaceItemBlock"
+                    },
+                    {
+                        "ref": "AssignmentStatement"
+                    },
+                    {
+                        "ref": "CodeBlockStatement"
+                    },
+                    {
+                        "ref": "ExpressionStatement"
+                    }
+                ]
+            },
+            "MoveBlock": {
+                "category": "statement",
+                "astKind": "MoveBlock",
+                "sequence": [
+                    {
+                        "token": "KwMove"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwSteps"
+                    }
+                ]
+            },
+            "TurnBlock": {
+                "category": "statement",
+                "astKind": "TurnBlock",
+                "sequence": [
+                    {
+                        "token": "KwTurn"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwCw"
+                            },
+                            {
+                                "token": "KwCcw"
+                            },
+                            {
+                                "token": "KwRight"
+                            },
+                            {
+                                "token": "KwLeft"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwDegrees"
+                    }
+                ]
+            },
+            "PointBlock": {
+                "category": "statement",
+                "astKind": "PointBlock",
+                "sequence": [
+                    {
+                        "token": "KwPoint"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwTowards"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwIn"
+                                    },
+                                    {
+                                        "token": "KwDirection"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "GoBlock": {
+                "category": "statement",
+                "astKind": "GoBlock",
+                "sequence": [
+                    {
+                        "token": "KwGo"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwTo"
+                                    },
+                                    {
+                                        "choice": [
+                                            {
+                                                "sequence": [
+                                                    {
+                                                        "token": "KwX"
+                                                    },
+                                                    {
+                                                        "optional": {
+                                                            "token": "Colon"
+                                                        }
+                                                    },
+                                                    {
+                                                        "ref": "Expression"
+                                                    },
+                                                    {
+                                                        "token": "KwY"
+                                                    },
+                                                    {
+                                                        "optional": {
+                                                            "token": "Colon"
+                                                        }
+                                                    },
+                                                    {
+                                                        "ref": "Expression"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "sequence": [
+                                                    {
+                                                        "choice": [
+                                                            {
+                                                                "ref": "BracketedExpression"
+                                                            },
+                                                            {
+                                                                "token": "KwFront"
+                                                            },
+                                                            {
+                                                                "token": "KwBack"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "token": "KwLayer"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "ref": "Expression"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "choice": [
+                                            {
+                                                "token": "KwForward"
+                                            },
+                                            {
+                                                "token": "KwBackward"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    },
+                                    {
+                                        "token": "KwLayers"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "GlideBlock": {
+                "category": "statement",
+                "astKind": "GlideBlock",
+                "sequence": [
+                    {
+                        "token": "KwGlide"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwSecs"
+                            },
+                            {
+                                "token": "KwSeconds"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "KwTo"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwX"
+                                    },
+                                    {
+                                        "optional": {
+                                            "token": "Colon"
+                                        }
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    },
+                                    {
+                                        "token": "KwY"
+                                    },
+                                    {
+                                        "optional": {
+                                            "token": "Colon"
+                                        }
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "ref": "Expression"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "IfOnEdgeBounceBlock": {
+                "category": "statement",
+                "astKind": "IfOnEdgeBounceBlock",
+                "sequence": [
+                    {
+                        "token": "KwIf"
+                    },
+                    {
+                        "token": "KwOn"
+                    },
+                    {
+                        "token": "KwEdge"
+                    },
+                    {
+                        "optional": {
+                            "token": "Comma"
+                        }
+                    },
+                    {
+                        "token": "KwBounce"
+                    }
+                ]
+            },
+            "SayBlock": {
+                "category": "statement",
+                "astKind": "SayBlock",
+                "sequence": [
+                    {
+                        "token": "KwSay"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwFor"
+                                },
+                                {
+                                    "ref": "Expression"
+                                },
+                                {
+                                    "choice": [
+                                        {
+                                            "token": "KwSeconds"
+                                        },
+                                        {
+                                            "token": "KwSecs"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ThinkBlock": {
+                "category": "statement",
+                "astKind": "ThinkBlock",
+                "sequence": [
+                    {
+                        "token": "KwThink"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwFor"
+                                },
+                                {
+                                    "ref": "Expression"
+                                },
+                                {
+                                    "choice": [
+                                        {
+                                            "token": "KwSeconds"
+                                        },
+                                        {
+                                            "token": "KwSecs"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "SwitchCostumeBlock": {
+                "category": "statement",
+                "astKind": "SwitchCostumeBlock",
+                "sequence": [
+                    {
+                        "token": "KwSwitch"
+                    },
+                    {
+                        "token": "KwCostume"
+                    },
+                    {
+                        "token": "KwTo"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "NextCostumeBlock": {
+                "category": "statement",
+                "astKind": "NextCostumeBlock",
+                "sequence": [
+                    {
+                        "token": "KwNext"
+                    },
+                    {
+                        "token": "KwCostume"
+                    }
+                ]
+            },
+            "SwitchBackdropBlock": {
+                "category": "statement",
+                "astKind": "SwitchBackdropBlock",
+                "sequence": [
+                    {
+                        "token": "KwSwitch"
+                    },
+                    {
+                        "token": "KwBackdrop"
+                    },
+                    {
+                        "token": "KwTo"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "NextBackdropBlock": {
+                "category": "statement",
+                "astKind": "NextBackdropBlock",
+                "sequence": [
+                    {
+                        "token": "KwNext"
+                    },
+                    {
+                        "token": "KwBackdrop"
+                    }
+                ]
+            },
+            "ShowBlock": {
+                "category": "statement",
+                "astKind": "ShowBlock",
+                "sequence": [
+                    {
+                        "token": "KwShow"
+                    },
+                    {
+                        "optional": {
+                            "choice": [
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwVariable"
+                                        },
+                                        {
+                                            "ref": "Expression"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwList"
+                                        },
+                                        {
+                                            "ref": "Expression"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "HideBlock": {
+                "category": "statement",
+                "astKind": "HideBlock",
+                "sequence": [
+                    {
+                        "token": "KwHide"
+                    },
+                    {
+                        "optional": {
+                            "choice": [
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwVariable"
+                                        },
+                                        {
+                                            "ref": "Expression"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "sequence": [
+                                        {
+                                            "token": "KwList"
+                                        },
+                                        {
+                                            "ref": "Expression"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "PlaySoundBlock": {
+                "category": "statement",
+                "astKind": "PlaySoundBlock",
+                "sequence": [
+                    {
+                        "choice": [
+                            {
+                                "token": "KwPlay"
+                            },
+                            {
+                                "token": "KwStart"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "KwSound"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwUntil"
+                                },
+                                {
+                                    "token": "KwDone"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "StopAllSoundsBlock": {
+                "category": "statement",
+                "astKind": "StopAllSoundsBlock",
+                "sequence": [
+                    {
+                        "token": "KwStop"
+                    },
+                    {
+                        "token": "KwAll"
+                    },
+                    {
+                        "token": "KwSounds"
+                    }
+                ]
+            },
+            "ClearSoundEffectsBlock": {
+                "category": "statement",
+                "astKind": "ClearSoundEffectsBlock",
+                "sequence": [
+                    {
+                        "token": "KwClear"
+                    },
+                    {
+                        "token": "KwSound"
+                    },
+                    {
+                        "token": "KwEffects"
+                    }
+                ]
+            },
+            "ClearGraphicEffectsBlock": {
+                "category": "statement",
+                "astKind": "ClearGraphicEffectsBlock",
+                "sequence": [
+                    {
+                        "token": "KwClear"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwGraphic"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "token": "KwEffects"
+                        }
+                    }
+                ]
+            },
+            "BroadcastBlock": {
+                "category": "statement",
+                "astKind": "BroadcastBlock",
+                "sequence": [
+                    {
+                        "token": "KwBroadcast"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwAnd"
+                                },
+                                {
+                                    "token": "KwWait"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "WaitBlock": {
+                "category": "statement",
+                "astKind": "WaitBlock",
+                "sequence": [
+                    {
+                        "token": "KwWait"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwUntil"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "ref": "Expression"
+                                    },
+                                    {
+                                        "optional": {
+                                            "choice": [
+                                                {
+                                                    "token": "KwSeconds"
+                                                },
+                                                {
+                                                    "token": "KwSecs"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "ForeverBlock": {
+                "category": "statement",
+                "astKind": "ForeverBlock",
+                "sequence": [
+                    {
+                        "token": "KwForever"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    }
+                ]
+            },
+            "RepeatUntilBlock": {
+                "category": "statement",
+                "astKind": "RepeatUntilBlock",
+                "sequence": [
+                    {
+                        "token": "KwRepeat"
+                    },
+                    {
+                        "token": "KwUntil"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    }
+                ]
+            },
+            "RepeatBlock": {
+                "category": "statement",
+                "astKind": "RepeatBlock",
+                "sequence": [
+                    {
+                        "token": "KwRepeat"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    }
+                ]
+            },
+            "IfBlock": {
+                "category": "statement",
+                "astKind": "IfBlock",
+                "sequence": [
+                    {
+                        "token": "KwIf"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwThen"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    },
+                    {
+                        "optional": {
+                            "sequence": [
+                                {
+                                    "token": "KwElse"
+                                },
+                                {
+                                    "repeat": {
+                                        "ref": "StatementItem"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "token": "KwEnd"
+                    }
+                ]
+            },
+            "StopBlock": {
+                "category": "statement",
+                "astKind": "StopBlock",
+                "sequence": [
+                    {
+                        "token": "KwStop"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwAll"
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwThis"
+                                    },
+                                    {
+                                        "choice": [
+                                            {
+                                                "token": "KwScript"
+                                            },
+                                            {
+                                                "token": "KwSprite"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwOther"
+                                    },
+                                    {
+                                        "token": "KwScripts"
+                                    },
+                                    {
+                                        "optional": {
+                                            "sequence": [
+                                                {
+                                                    "token": "KwIn"
+                                                },
+                                                {
+                                                    "token": "KwSprite"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "ref": "Expression"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "CreateCloneBlock": {
+                "category": "statement",
+                "astKind": "CreateCloneBlock",
+                "sequence": [
+                    {
+                        "token": "KwCreate"
+                    },
+                    {
+                        "token": "KwClone"
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "DeleteCloneBlock": {
+                "category": "statement",
+                "astKind": "DeleteCloneBlock",
+                "sequence": [
+                    {
+                        "token": "KwDelete"
+                    },
+                    {
+                        "token": "KwThis"
+                    },
+                    {
+                        "token": "KwClone"
+                    }
+                ]
+            },
+            "AskAndWaitBlock": {
+                "category": "statement",
+                "astKind": "AskAndWaitBlock",
+                "sequence": [
+                    {
+                        "token": "KwAsk"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwAnd"
+                    },
+                    {
+                        "token": "KwWait"
+                    }
+                ]
+            },
+            "ResetTimerBlock": {
+                "category": "statement",
+                "astKind": "ResetTimerBlock",
+                "sequence": [
+                    {
+                        "token": "KwReset"
+                    },
+                    {
+                        "token": "KwTimer"
+                    }
+                ]
+            },
+            "SetBlock": {
+                "category": "statement",
+                "astKind": "SetBlock",
+                "sequence": [
+                    {
+                        "token": "KwSet"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwX"
+                                    },
+                                    {
+                                        "token": "KwTo"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwY"
+                                    },
+                                    {
+                                        "token": "KwTo"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwSize"
+                                    },
+                                    {
+                                        "token": "KwTo"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwVolume"
+                                    },
+                                    {
+                                        "token": "KwTo"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwRotation"
+                                    },
+                                    {
+                                        "token": "KwStyle"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwDrag"
+                                    },
+                                    {
+                                        "token": "KwMode"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "ref": "VariableTarget"
+                                    },
+                                    {
+                                        "choice": [
+                                            {
+                                                "sequence": [
+                                                    {
+                                                        "token": "KwEffect"
+                                                    },
+                                                    {
+                                                        "token": "KwTo"
+                                                    },
+                                                    {
+                                                        "ref": "Expression"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "sequence": [
+                                                    {
+                                                        "token": "KwTo"
+                                                    },
+                                                    {
+                                                        "ref": "Expression"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "ChangeBlock": {
+                "category": "statement",
+                "astKind": "ChangeBlock",
+                "sequence": [
+                    {
+                        "token": "KwChange"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwX"
+                                    },
+                                    {
+                                        "token": "KwBy"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwY"
+                                    },
+                                    {
+                                        "token": "KwBy"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwSize"
+                                    },
+                                    {
+                                        "token": "KwBy"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "token": "KwVolume"
+                                    },
+                                    {
+                                        "token": "KwBy"
+                                    },
+                                    {
+                                        "ref": "Expression"
+                                    }
+                                ]
+                            },
+                            {
+                                "sequence": [
+                                    {
+                                        "ref": "VariableTarget"
+                                    },
+                                    {
+                                        "choice": [
+                                            {
+                                                "sequence": [
+                                                    {
+                                                        "token": "KwEffect"
+                                                    },
+                                                    {
+                                                        "token": "KwBy"
+                                                    },
+                                                    {
+                                                        "ref": "Expression"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "sequence": [
+                                                    {
+                                                        "token": "KwBy"
+                                                    },
+                                                    {
+                                                        "ref": "Expression"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "AddToListBlock": {
+                "category": "statement",
+                "astKind": "AddToListBlock",
+                "sequence": [
+                    {
+                        "token": "KwAdd"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwTo"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "DeleteListBlock": {
+                "category": "statement",
+                "astKind": "DeleteListBlock",
+                "sequence": [
+                    {
+                        "token": "KwDelete"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwAll"
+                            },
+                            {
+                                "ref": "Expression"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "InsertAtListBlock": {
+                "category": "statement",
+                "astKind": "InsertAtListBlock",
+                "sequence": [
+                    {
+                        "token": "KwInsert"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwAt"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "ReplaceItemBlock": {
+                "category": "statement",
+                "astKind": "ReplaceItemBlock",
+                "sequence": [
+                    {
+                        "token": "KwReplace"
+                    },
+                    {
+                        "optional": {
+                            "token": "KwItem"
+                        }
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwWith"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "AssignmentStatement": {
+                "category": "statement",
+                "astKind": "AssignmentStatement",
+                "sequence": [
+                    {
+                        "ref": "VariableTarget"
+                    },
+                    {
+                        "token": "Equal"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "CodeBlockStatement": {
+                "category": "statement",
+                "astKind": "CodeBlockStatement",
+                "sequence": [
+                    {
+                        "token": "OpenBrace"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "StatementItem"
+                        }
+                    },
+                    {
+                        "token": "CloseBrace"
+                    }
+                ]
+            },
+            "ExpressionStatement": {
+                "category": "statement",
+                "astKind": "ExpressionStatement",
+                "sequence": [
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "VariableTarget": {
+                "choice": [
+                    {
+                        "ref": "BracketedExpression"
+                    },
+                    {
+                        "ref": "ParenthesizedExpression"
+                    },
+                    {
+                        "token": "KwX"
+                    },
+                    {
+                        "token": "KwY"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    }
+                ]
+            },
+            "Expression": {
+                "category": "expression",
+                "pratt": {
+                    "primary": {
+                        "ref": "UnaryExpression"
+                    },
+                    "minimumPrecedence": 1
+                }
+            },
+            "UnaryExpression": {
+                "category": "expression",
+                "choice": [
+                    {
+                        "sequence": [
+                            {
+                                "choice": [
+                                    {
+                                        "token": "Plus"
+                                    },
+                                    {
+                                        "token": "Minus"
+                                    },
+                                    {
+                                        "token": "KwNot"
+                                    }
+                                ]
+                            },
+                            {
+                                "ref": "UnaryExpression"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "PrimaryExpression"
+                    }
+                ]
+            },
+            "PrimaryExpression": {
+                "category": "expression",
+                "choice": [
+                    {
+                        "ref": "ParenthesizedExpression"
+                    },
+                    {
+                        "ref": "AngleBracketExpression"
+                    },
+                    {
+                        "ref": "BracketedExpression"
+                    },
+                    {
+                        "ref": "ReporterExpression"
+                    },
+                    {
+                        "token": "FloatNumber"
+                    },
+                    {
+                        "token": "DecNumber"
+                    },
+                    {
+                        "token": "DoubleString"
+                    },
+                    {
+                        "token": "ColorLiteral"
+                    },
+                    {
+                        "token": "KwTrue"
+                    },
+                    {
+                        "token": "KwFalse"
+                    },
+                    {
+                        "token": "KwMousePointer"
+                    },
+                    {
+                        "token": "KwRandomPosition"
+                    },
+                    {
+                        "token": "KwDontRotate"
+                    },
+                    {
+                        "token": "KwAllAround"
+                    },
+                    {
+                        "token": "KwLeftRight"
+                    },
+                    {
+                        "token": "KwUpArrow"
+                    },
+                    {
+                        "token": "KwDownArrow"
+                    },
+                    {
+                        "token": "KwLeftArrow"
+                    },
+                    {
+                        "token": "KwRightArrow"
+                    },
+                    {
+                        "token": "KwSpaceKey"
+                    },
+                    {
+                        "token": "KwAnyKey"
+                    },
+                    {
+                        "token": "KwX"
+                    },
+                    {
+                        "token": "KwY"
+                    },
+                    {
+                        "token": "KwSize"
+                    },
+                    {
+                        "token": "KwDirection"
+                    },
+                    {
+                        "token": "KwCostume"
+                    },
+                    {
+                        "token": "KwVolume"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    }
+                ]
+            },
+            "ReporterExpression": {
+                "category": "expression",
+                "choice": [
+                    {
+                        "ref": "PickRandomReporter"
+                    },
+                    {
+                        "ref": "JoinReporter"
+                    },
+                    {
+                        "ref": "LetterOfReporter"
+                    },
+                    {
+                        "ref": "LengthOfReporter"
+                    },
+                    {
+                        "ref": "RoundReporter"
+                    },
+                    {
+                        "ref": "MathFuncReporter"
+                    },
+                    {
+                        "ref": "TouchingReporter"
+                    },
+                    {
+                        "ref": "DistanceToReporter"
+                    },
+                    {
+                        "ref": "ItemOfReporter"
+                    },
+                    {
+                        "ref": "BuiltinSensorReporter"
+                    }
+                ]
+            },
+            "PickRandomReporter": {
+                "category": "expression",
+                "astKind": "PickRandomReporter",
+                "sequence": [
+                    {
+                        "token": "KwPick"
+                    },
+                    {
+                        "token": "KwRandom"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwTo"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "JoinReporter": {
+                "category": "expression",
+                "astKind": "JoinReporter",
+                "sequence": [
+                    {
+                        "token": "KwJoin"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "LetterOfReporter": {
+                "category": "expression",
+                "astKind": "LetterOfReporter",
+                "sequence": [
+                    {
+                        "token": "KwLetter"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "LengthOfReporter": {
+                "category": "expression",
+                "astKind": "LengthOfReporter",
+                "sequence": [
+                    {
+                        "token": "KwLength"
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "RoundReporter": {
+                "category": "expression",
+                "astKind": "RoundReporter",
+                "sequence": [
+                    {
+                        "token": "KwRound"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "MathFuncReporter": {
+                "category": "expression",
+                "astKind": "MathFuncReporter",
+                "sequence": [
+                    {
+                        "choice": [
+                            {
+                                "token": "KwSqrt"
+                            },
+                            {
+                                "token": "KwAbs"
+                            },
+                            {
+                                "token": "KwFloor"
+                            },
+                            {
+                                "token": "KwCeiling"
+                            },
+                            {
+                                "token": "KwSin"
+                            },
+                            {
+                                "token": "KwCos"
+                            },
+                            {
+                                "token": "KwTan"
+                            },
+                            {
+                                "token": "KwAsin"
+                            },
+                            {
+                                "token": "KwAcos"
+                            },
+                            {
+                                "token": "KwAtan"
+                            },
+                            {
+                                "token": "KwLn"
+                            },
+                            {
+                                "token": "KwLog"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "TouchingReporter": {
+                "category": "expression",
+                "astKind": "TouchingReporter",
+                "sequence": [
+                    {
+                        "token": "KwTouching"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "DistanceToReporter": {
+                "category": "expression",
+                "astKind": "DistanceToReporter",
+                "sequence": [
+                    {
+                        "token": "KwDistance"
+                    },
+                    {
+                        "token": "KwTo"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "ItemOfReporter": {
+                "category": "expression",
+                "astKind": "ItemOfReporter",
+                "sequence": [
+                    {
+                        "token": "KwItem"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "KwOf"
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "BuiltinSensorReporter": {
+                "category": "expression",
+                "choice": [
+                    {
+                        "token": "KwAnswer"
+                    },
+                    {
+                        "token": "KwTimer"
+                    },
+                    {
+                        "token": "KwLoudness"
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "token": "KwMouse"
+                            },
+                            {
+                                "choice": [
+                                    {
+                                        "token": "KwX"
+                                    },
+                                    {
+                                        "token": "KwY"
+                                    },
+                                    {
+                                        "token": "KwDown"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "ParenthesizedExpression": {
+                "category": "expression",
+                "astKind": "ParenthesizedExpression",
+                "sequence": [
+                    {
+                        "token": "OpenParen"
+                    },
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "token": "CloseParen"
+                    }
+                ]
+            },
+            "AngleBracketExpression": {
+                "category": "expression",
+                "astKind": "AngleBracketExpression",
+                "sequence": [
+                    {
+                        "token": "Less"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "ref": "ComparisonExpression"
+                            },
+                            {
+                                "ref": "LogicalExpression"
+                            },
+                            {
+                                "ref": "Expression"
+                            }
+                        ]
+                    },
+                    {
+                        "token": "Greater"
+                    }
+                ]
+            },
+            "ComparisonExpression": {
+                "category": "expression",
+                "astKind": "ComparisonExpression",
+                "sequence": [
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "Equal"
+                            },
+                            {
+                                "token": "NotEqual"
+                            },
+                            {
+                                "token": "LessEqual"
+                            },
+                            {
+                                "token": "GreaterEqual"
+                            },
+                            {
+                                "token": "Less"
+                            },
+                            {
+                                "token": "Greater"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "LogicalExpression": {
+                "category": "expression",
+                "astKind": "LogicalExpression",
+                "sequence": [
+                    {
+                        "ref": "PrimaryExpression"
+                    },
+                    {
+                        "choice": [
+                            {
+                                "token": "KwAnd"
+                            },
+                            {
+                                "token": "KwOr"
+                            }
+                        ]
+                    },
+                    {
+                        "ref": "Expression"
+                    }
+                ]
+            },
+            "BracketedExpression": {
+                "category": "expression",
+                "astKind": "BracketedExpression",
+                "sequence": [
+                    {
+                        "token": "OpenBracket"
+                    },
+                    {
+                        "repeat": {
+                            "ref": "BracketItem"
+                        }
+                    },
+                    {
+                        "token": "CloseBracket"
+                    }
+                ]
+            },
+            "BracketItem": {
+                "choice": [
+                    {
+                        "ref": "Expression"
+                    },
+                    {
+                        "ref": "BracketToken"
+                    }
+                ]
+            },
+            "BracketToken": {
+                "choice": [
+                    {
+                        "token": "KwColor"
+                    },
+                    {
+                        "token": "KwFront"
+                    },
+                    {
+                        "token": "KwBack"
+                    },
+                    {
+                        "token": "KwForward"
+                    },
+                    {
+                        "token": "KwBackward"
+                    },
+                    {
+                        "token": "KwList"
+                    },
+                    {
+                        "token": "KwCostume"
+                    },
+                    {
+                        "token": "KwBackdrop"
+                    },
+                    {
+                        "token": "KwSound"
+                    },
+                    {
+                        "token": "KwSprite"
+                    },
+                    {
+                        "token": "KwStage"
+                    },
+                    {
+                        "token": "KwAll"
+                    },
+                    {
+                        "token": "KwThis"
+                    },
+                    {
+                        "token": "KwScript"
+                    },
+                    {
+                        "token": "KwEdge"
+                    },
+                    {
+                        "token": "KwTimer"
+                    },
+                    {
+                        "token": "KwMousePointer"
+                    },
+                    {
+                        "token": "KwRandomPosition"
+                    },
+                    {
+                        "token": "KwDontRotate"
+                    },
+                    {
+                        "token": "KwAllAround"
+                    },
+                    {
+                        "token": "KwLeftRight"
+                    },
+                    {
+                        "token": "KwUpArrow"
+                    },
+                    {
+                        "token": "KwDownArrow"
+                    },
+                    {
+                        "token": "KwLeftArrow"
+                    },
+                    {
+                        "token": "KwRightArrow"
+                    },
+                    {
+                        "token": "KwSpaceKey"
+                    },
+                    {
+                        "token": "KwAnyKey"
+                    },
+                    {
+                        "token": "Exclamation"
+                    },
+                    {
+                        "token": "Question"
+                    },
+                    {
+                        "token": "Ellipsis"
+                    },
+                    {
+                        "token": "Dot"
+                    },
+                    {
+                        "token": "Minus"
+                    },
+                    {
+                        "token": "Plus"
+                    },
+                    {
+                        "token": "Star"
+                    },
+                    {
+                        "token": "Slash"
+                    },
+                    {
+                        "token": "Percent"
+                    },
+                    {
+                        "token": "Hash"
+                    },
+                    {
+                        "token": "At"
+                    },
+                    {
+                        "token": "Colon"
+                    },
+                    {
+                        "token": "Comma"
+                    },
+                    {
+                        "token": "Equal"
+                    },
+                    {
+                        "token": "NotEqual"
+                    },
+                    {
+                        "token": "Less"
+                    },
+                    {
+                        "token": "Greater"
+                    },
+                    {
+                        "token": "LessEqual"
+                    },
+                    {
+                        "token": "GreaterEqual"
+                    },
+                    {
+                        "ref": "IdentRef"
+                    }
+                ]
+            },
+            "IdentRef": {
+                "category": "expression",
+                "token": "Identifier"
+            }
+        }
     }
-  },
-  "mergeSignIntoNumber": {
-    "signTokens": [
-      "Operator"
-    ],
-    "numberTokens": [
-      "Number"
-    ],
-    "operandTokens": [
-      "Number",
-      "Variable",
-      "Boolean",
-      "DoubleString",
-      "Parenthesis",
-      "ArrayIndex",
-      "CodeBlock"
-    ]
-  }
 }

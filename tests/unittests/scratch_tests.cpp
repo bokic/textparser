@@ -7,7 +7,7 @@
 #include <vector>
 #include <cstring>
 
-#include <scratch_definition.json.h>
+#include <scratch_legacy_definition.json.h>
 #include <cfml_legacy_definition.json.h>
 #include <bash_legacy_definition.json.h>
 
