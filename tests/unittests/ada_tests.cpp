@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <ada_legacy_definition.json.h>
+#include <ada_definition.json.h>
 
 #include <iostream>
 
@@ -70,14 +70,17 @@ end Math_Utils;
     }
 
     EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("KwPackage"));
+    EXPECT_TRUE(found.contains("KwFunction"));
+    EXPECT_TRUE(found.contains("KwReturn"));
     EXPECT_TRUE(found.contains("DataType"));
     EXPECT_TRUE(found.contains("Boolean"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("FloatNumber"));
+    EXPECT_TRUE(found.contains("Ident"));
+    EXPECT_TRUE(found.contains("Assign"));
+    EXPECT_TRUE(found.contains("Plus"));
+    EXPECT_TRUE(found.contains("Star"));
     EXPECT_TRUE(found.contains("CharLiteral"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("EscapedQuote"));
-    EXPECT_TRUE(found.contains("Attribute"));
+    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("Tick"));
 }

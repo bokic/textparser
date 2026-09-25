@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <go_legacy_definition.json.h>
+#include <go_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -72,14 +72,20 @@ line two`
 
     EXPECT_TRUE(found.contains("LineComment"));
     EXPECT_TRUE(found.contains("BlockComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("PackageKeyword"));
+    EXPECT_TRUE(found.contains("ImportKeyword"));
+    EXPECT_TRUE(found.contains("TypeKeyword"));
+    EXPECT_TRUE(found.contains("StructKeyword"));
+    EXPECT_TRUE(found.contains("FuncKeyword"));
+    EXPECT_TRUE(found.contains("ReturnKeyword"));
+    EXPECT_TRUE(found.contains("VarKeyword"));
+    EXPECT_TRUE(found.contains("IfKeyword"));
     EXPECT_TRUE(found.contains("Boolean"));
     EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("BacktickString"));
-    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("StringLiteral"));
+    EXPECT_TRUE(found.contains("RawStringLiteral"));
+    EXPECT_TRUE(found.contains("RuneLiteral"));
+    EXPECT_TRUE(found.contains("Define"));
+    EXPECT_TRUE(found.contains("PlusPlus"));
 }

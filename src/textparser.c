@@ -4301,8 +4301,13 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
     // v2 definitions (contextual lexer) are tokenized by the mode/priority-aware
     // contextual lexer instead of the legacy scanner. The legacy scanner ignores
     // lexer modes and token priorities, so it mislabels mode-dependent trivia.
-    if (definition->lexer_rules != nullptr)
-        return textparser_parse_contextual(handle, definition);
+    if (definition->lexer_rules != nullptr) {
+        int res = textparser_parse_contextual(handle, definition);
+        if (res == 0 && was_post_processed && handle->first_item != nullptr) {
+            textparser_post_process(&handle->first_item, definition);
+        }
+        return res;
+    }
 
     // Resolve active token from existing AST
     const textparser_token_item *active_token = nullptr;
@@ -7862,8 +7867,9 @@ static void textparser_contextual_append(textparser_token_item **first,
  */
 static int textparser_parse_contextual(struct textparser_handle *handle,
                                        const textparser_language_definition *definition) {
+    bool was_post_processed = false;
     if (handle->first_item != nullptr) {
-        unwrap_post_processed_tokens(&handle->first_item);
+        was_post_processed = unwrap_post_processed_tokens(&handle->first_item);
         handle->first_item = nullptr;
         free_arena(handle);
     }
@@ -7915,7 +7921,14 @@ static int textparser_parse_contextual(struct textparser_handle *handle,
         textparser_token_item *node =
             textparser_alloc_token(handle, token->kind, token->end - token->start);
         if (node == nullptr) return TEXTPARSER_ERROR_OUT_OF_MEMORY;
+        if (token->kind >= 0 && definition->tokens != nullptr) {
+            node->text_color = definition->tokens[token->kind].text_color;
+            node->text_background = definition->tokens[token->kind].text_background;
+        }
         textparser_contextual_append(&first, &last, node);
+        if (handle->callback != nullptr) {
+            handle->callback(handle, node, TEXTPARSER_CALLBACK_TYPE_END, handle->user_data);
+        }
 
         textparser_contextual_capture(handle, token->kind, token->start);
         textparser_contextual_consume_capture(handle, token->kind, token->end);
@@ -7931,12 +7944,24 @@ static int textparser_parse_contextual(struct textparser_handle *handle,
     }
 
     handle->first_item = first;
+    if (handle->language != nullptr && handle->language->sign_merge != nullptr) {
+        for (textparser_token_item *t = handle->first_item; t != nullptr; t = t->next) {
+            maybe_merge_sign(handle, t);
+            if (t->prev == nullptr) {
+                handle->first_item = t;
+            }
+        }
+    }
     /* Leave the handle in the language's initial lexical state: the legacy
      * scanner never touched the mode stack, but this path does, and grammar
      * execution expects an empty stack. */
     textparser_reset_lexical_state(handle);
+    if (was_post_processed && handle->first_item != nullptr) {
+        textparser_post_process(&handle->first_item, definition);
+    }
     return textparser_rebuild_lexer_streams(handle);
 }
+
 
 EXPORT_TEXTPARSER bool textparser_has_line_terminator_between(textparser_t handle, size_t start_pos, size_t end_pos)
 {

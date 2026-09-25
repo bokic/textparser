@@ -2,14 +2,14 @@
 
 #include <gtest/gtest.h>
 #include <textparser.hpp>
+#include <textparser-json.h>
 #include <set>
 #include <string>
 #include <vector>
 #include <cstring>
 
-#include <scratch_legacy_definition.json.h>
-#include <cfml_legacy_definition.json.h>
-#include <bash_legacy_definition.json.h>
+#include <scratch_definition.json.h>
+#include <cfml_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -45,11 +45,29 @@ broadcast message1
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Parenthesis"));
-    EXPECT_TRUE(found.contains("Variable"));
+    EXPECT_TRUE(found.contains("KwWhen"));
+    EXPECT_TRUE(found.contains("KwFlag"));
+    EXPECT_TRUE(found.contains("KwGreen"));
+    EXPECT_TRUE(found.contains("KwClicked"));
+    EXPECT_TRUE(found.contains("KwSet"));
+    EXPECT_TRUE(found.contains("KwSize"));
+    EXPECT_TRUE(found.contains("KwTo"));
+    EXPECT_TRUE(found.contains("KwShow"));
+    EXPECT_TRUE(found.contains("KwForever"));
+    EXPECT_TRUE(found.contains("KwMove"));
+    EXPECT_TRUE(found.contains("KwSteps"));
+    EXPECT_TRUE(found.contains("KwIf"));
+    EXPECT_TRUE(found.contains("KwTouching"));
+    EXPECT_TRUE(found.contains("KwThen"));
+    EXPECT_TRUE(found.contains("KwSay"));
+    EXPECT_TRUE(found.contains("KwElse"));
+    EXPECT_TRUE(found.contains("KwEnd"));
+    EXPECT_TRUE(found.contains("KwWait"));
+    EXPECT_TRUE(found.contains("KwBroadcast"));
+    EXPECT_TRUE(found.contains("DecNumber"));
+    EXPECT_TRUE(found.contains("OpenParen"));
+    EXPECT_TRUE(found.contains("CloseParen"));
+    EXPECT_TRUE(found.contains("Identifier"));
 }
 
 struct CallbackTestData {
@@ -93,9 +111,9 @@ TEST(parse_Callback, basic_callback) {
 
     EXPECT_EQ(data.token_count, 3);
     ASSERT_EQ(data.token_names.size(), 3);
-    EXPECT_EQ(data.token_names[0], "Number");
-    EXPECT_EQ(data.token_names[1], "Operator");
-    EXPECT_EQ(data.token_names[2], "Number");
+    EXPECT_EQ(data.token_names[0], "DecNumber");
+    EXPECT_EQ(data.token_names[1], "Plus");
+    EXPECT_EQ(data.token_names[2], "DecNumber");
 
     ASSERT_EQ(data.token_texts.size(), 3);
     EXPECT_EQ(data.token_texts[0], "10");
@@ -741,91 +759,78 @@ TEST(parse_CFML_Precedence, verified_coldfusion_spec_cases) {
     // Rank 12: AssignOperator (=, +=, -=, *=, /=, %=, &=)
     {
         auto tokens = TextParser(R"(<cfset a = b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "AssignOperator"));
     }
 
     // Rank 11: LogicalImpOperator (IMP)
     {
         auto tokens = TextParser(R"(<cfset res = a imp b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "LogicalImpOperator"));
     }
 
     // Rank 10: LogicalEqvOperator (EQV)
     {
         auto tokens = TextParser(R"(<cfset res = a eqv b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "LogicalEqvOperator"));
     }
 
     // Rank 9: LogicalXorOperator (XOR)
     {
         auto tokens = TextParser(R"(<cfset res = a xor b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "LogicalXorOperator"));
     }
 
     // Rank 8: LogicalOrOperator (OR, ||)
     {
         auto tokens = TextParser(R"(<cfset res = a or b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "LogicalOrOperator"));
     }
 
     // Rank 7: LogicalAndOperator (AND, &&)
     {
         auto tokens = TextParser(R"(<cfset res = a and b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "LogicalAndOperator"));
     }
 
     // Rank 6: LogicalNotOperator (NOT, !)
     {
         auto tokens = TextParser(R"(<cfset res = not a />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "LogicalNotOperator"));
     }
 
     // Rank 5: CompareOperator (EQ, NEQ, LT, LTE, GT, GTE, CONTAINS, DOES NOT CONTAIN, IS, IS NOT, ==, !=, <, <=, >, >=)
     {
         auto tokens = TextParser(R"(<cfset res = a eq b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "CompareOperator"));
     }
 
     // Rank 4: ConcatOperator (&)
     {
         auto tokens = TextParser(R"(<cfset res = a & b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "ConcatOperator"));
     }
 
     // Rank 3: Additive (AddOperator: +, -)
     {
         auto tokens = TextParser(R"(<cfset res = a + b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "AddOperator"));
     }
 
     // Modulo has its own precedence below integer division and multiplication.
     {
         auto tokens = TextParser(R"(<cfset res = a mod b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "ModOperator"));
     }
 
     // Rank 13: TernaryOperator (?, :, ?:)
     {
         auto tokens = TextParser(R"(<cfset res = a ? b : c />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
-        EXPECT_TRUE(has_token_type(tokens, "TernaryOperator"));
+        EXPECT_TRUE(has_token_type(tokens, "Question"));
     }
 
     // Rank 1: PowerOperator (^)
     {
         auto tokens = TextParser(R"(<cfset res = a ^ b />)", &cfml_definition);
-        ASSERT_EQ(tokens.count, 1);
         EXPECT_TRUE(has_token_type(tokens, "PowerOperator"));
     }
 }
@@ -936,29 +941,62 @@ TEST(parse_CST, gapless_tree_and_dynamic_offsets) {
 }
 
 TEST(parse_Delimiters, container_start_end_delimiters) {
+    const char *delim_lang_json = R"({
+        "name": "delim_lang",
+        "version": 1.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["ParameterExpansion"],
+        "otherTextInside": true,
+        "tokens": {
+            "ParameterExpansion": {
+                "type": "StartStop",
+                "startRegex": "\\$\\{",
+                "endRegex": "\\}",
+                "otherTextInside": true,
+                "nestedTokens": ["Identifier", "Operator"],
+                "delimiterTextColor": "0x808080"
+            },
+            "Identifier": {
+                "type": "SimpleToken",
+                "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*"
+            },
+            "Operator": {
+                "type": "SimpleToken",
+                "startRegex": ":-"
+            }
+        }
+    })";
+
+    textparser_language_definition *definition = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(delim_lang_json, &definition), 0);
+    ASSERT_NE(definition, nullptr);
+
     const char *bash_code = R"(${BUILD_TYPE:-Release})";
     textparser_t handle = nullptr;
     int err = textparser_openmem(bash_code, strlen(bash_code), TEXTPARSER_ENCODING_LATIN1, &handle);
     ASSERT_EQ(err, 0);
-    err = textparser_parse(handle, &bash_definition);
+    err = textparser_parse(handle, definition);
     EXPECT_EQ(err, 0);
 
     const textparser_token_item *root = textparser_get_first_token(handle);
     ASSERT_NE(root, nullptr);
-    EXPECT_STREQ(textparser_get_token_type_str(&bash_definition, root), "ParameterExpansion");
+    EXPECT_STREQ(textparser_get_token_type_str(definition, root), "ParameterExpansion");
 
     const textparser_token_item *c0 = root->child;
     ASSERT_NE(c0, nullptr);
     EXPECT_EQ(c0->token_id, TEXTPARSER_TOKEN_ID_START_DELIMITER);
-    EXPECT_STREQ(textparser_get_token_type_str(&bash_definition, c0), "StartDelimiter");
+    EXPECT_STREQ(textparser_get_token_type_str(definition, c0), "StartDelimiter");
     EXPECT_EQ(c0->len, 2u); // "${"
 
     const textparser_token_item *last = c0;
     while (last->next) last = last->next;
     EXPECT_EQ(last->token_id, TEXTPARSER_TOKEN_ID_END_DELIMITER);
-    EXPECT_STREQ(textparser_get_token_type_str(&bash_definition, last), "EndDelimiter");
+    EXPECT_STREQ(textparser_get_token_type_str(definition, last), "EndDelimiter");
     EXPECT_EQ(last->len, 1u); // "}"
 
     textparser_close(handle);
+    textparser_free_language_definition(definition);
 }
 

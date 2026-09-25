@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
 
-#include <cfml_legacy_definition.json.h>
+#include <cfml_definition.json.h>
 
 #include <cstdio>
 #include <cstring>
@@ -267,7 +267,8 @@ TEST(openfile_bom_mask, empty_file_no_bom) {
 }
 
 TEST(supported_bom, cfml_definition_bitmask) {
-    int expected = TEXTPARSER_BOM_UTF_8 | TEXTPARSER_BOM_UTF_16_LE | TEXTPARSER_BOM_UTF_16_BE;
+    int expected = TEXTPARSER_BOM_UTF_8 | TEXTPARSER_BOM_UTF_16_LE | TEXTPARSER_BOM_UTF_16_BE |
+                   TEXTPARSER_BOM_UTF_32_LE | TEXTPARSER_BOM_UTF_32_BE;
     EXPECT_EQ(cfml_definition.supported_bom, expected);
 }
 

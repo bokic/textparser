@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <r_legacy_definition.json.h>
+#include <r_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -64,14 +64,16 @@ a %custom_op% b
     }
 
     EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("Boolean"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("KwFunction"));
+    EXPECT_TRUE(found.contains("KwIf"));
+    EXPECT_TRUE(found.contains("KwFalse"));
+    EXPECT_TRUE(found.contains("KwNull"));
+    EXPECT_TRUE(found.contains("DecNumber"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("BacktickIdentifier"));
+    EXPECT_TRUE(found.contains("LeftAssign"));
+    EXPECT_TRUE(found.contains("SpecialInfix"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("BacktickString"));
-    EXPECT_TRUE(found.contains("StringEscape"));
 }
 

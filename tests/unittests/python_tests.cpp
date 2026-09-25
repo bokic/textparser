@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <python_legacy_definition.json.h>
+#include <python_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -55,16 +55,17 @@ x = "hello"
     }
 
     EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("TripleSingleString"));
-    EXPECT_TRUE(found.contains("TripleDoubleString"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("TripleString"));
+    EXPECT_TRUE(found.contains("ClassKeyword"));
+    EXPECT_TRUE(found.contains("DefKeyword"));
+    EXPECT_TRUE(found.contains("FromKeyword"));
+    EXPECT_TRUE(found.contains("ImportKeyword"));
+    EXPECT_TRUE(found.contains("ReturnKeyword"));
     EXPECT_TRUE(found.contains("Boolean"));
     EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("FString"));
-    EXPECT_TRUE(found.contains("FStringInterpolation"));
-    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("StringLiteral"));
+    EXPECT_TRUE(found.contains("PlusEqual"));
+    EXPECT_TRUE(found.contains("Arrow"));
+    EXPECT_TRUE(found.contains("At"));
 }

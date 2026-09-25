@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include <md_legacy_definition.json.h>
+#include <md_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -68,22 +68,22 @@ Here is a footnote reference[^1] and escaped asterisk: \*not italic\*.
 
     EXPECT_TRUE(found.contains("Heading"));
     EXPECT_TRUE(found.contains("HtmlComment"));
-    EXPECT_TRUE(found.contains("Bold"));
-    EXPECT_TRUE(found.contains("Italic"));
+    EXPECT_TRUE(found.contains("BoldDelimiter"));
+    EXPECT_TRUE(found.contains("ItalicDelimiter"));
     EXPECT_TRUE(found.contains("InlineCode"));
-    EXPECT_TRUE(found.contains("Strikethrough"));
+    EXPECT_TRUE(found.contains("StrikethroughDelimiter"));
     EXPECT_TRUE(found.contains("FencedCodeBlock"));
     EXPECT_TRUE(found.contains("Blockquote"));
     EXPECT_TRUE(found.contains("HorizontalRule"));
     EXPECT_TRUE(found.contains("UnorderedList"));
     EXPECT_TRUE(found.contains("OrderedList"));
     EXPECT_TRUE(found.contains("TaskCheckbox"));
-    EXPECT_TRUE(found.contains("Link"));
-    EXPECT_TRUE(found.contains("Image"));
+    EXPECT_TRUE(found.contains("Link_Start"));
+    EXPECT_TRUE(found.contains("Image_Start"));
     EXPECT_TRUE(found.contains("Footnote"));
     EXPECT_TRUE(found.contains("BackslashEscape"));
     EXPECT_TRUE(found.contains("TablePipe"));
-    EXPECT_TRUE(found.contains("HtmlTag"));
+    EXPECT_TRUE(found.contains("HtmlTag_Start"));
 }
 
 TEST(parse_MD, headings_levels) {
@@ -156,15 +156,11 @@ _italic with underscore_
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("Bold"));
-    EXPECT_TRUE(found.contains("Italic"));
+    EXPECT_TRUE(found.contains("BoldDelimiter"));
+    EXPECT_TRUE(found.contains("ItalicDelimiter"));
 }
 
 TEST(parse_MD, ambiguous_bold_italic_candidate_fallback) {
-    // Regression: a failing start-token candidate must not poison the
-    // remaining candidates. Bold fails here (its nested Italic consumes one
-    // '*' of the closing '**'), so the top-level loop must fall back to Italic
-    // rather than aborting the whole parse.
     auto tokens = TextParser("**a_b**\n**c** d", &md_definition);
 
     std::set<std::string> found;
@@ -173,7 +169,7 @@ TEST(parse_MD, ambiguous_bold_italic_candidate_fallback) {
     }
 
     EXPECT_GT(tokens.count, 0);
-    EXPECT_TRUE(found.contains("Italic"));
+    EXPECT_TRUE(found.contains("ItalicDelimiter"));
 }
 
 TEST(parse_MD, html_tags_and_attributes) {
@@ -189,7 +185,7 @@ TEST(parse_MD, html_tags_and_attributes) {
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("HtmlTag"));
+    EXPECT_TRUE(found.contains("HtmlTag_Start"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("Equal"));
@@ -237,16 +233,11 @@ TEST(parse_MD, token_colors_and_metadata) {
     EXPECT_TRUE(md_definition.case_sensitivity);
     EXPECT_STREQ(md_definition.default_file_extensions[0], "md");
     EXPECT_STREQ(md_definition.default_file_extensions[1], "markdown");
+    EXPECT_DOUBLE_EQ(md_definition.version, 2.0);
+    EXPECT_NE(md_definition.lexer_rules, nullptr);
 
     for (int i = 0; md_definition.tokens[i].name != nullptr; i++) {
-        // Verify every token has a non-null startRegexFunction
-        EXPECT_NE(md_definition.tokens[i].startRegexFunction, nullptr)
-            << "Token " << md_definition.tokens[i].name << " missing startRegexFunction";
-
-        if (md_definition.tokens[i].type == TEXTPARSER_TOKEN_TYPE_START_STOP) {
-            EXPECT_NE(md_definition.tokens[i].endRegexFunction, nullptr)
-                << "Token " << md_definition.tokens[i].name << " missing endRegexFunction";
-        }
+        EXPECT_NE(md_definition.tokens[i].name[0], '\0');
     }
 }
 

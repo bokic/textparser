@@ -2,7 +2,7 @@
 #include <textparser.hpp>
 #include <textparser-json.h>
 
-#include <json_legacy_definition.json.h>
+#include <json_definition.json.h>
 
 TEST(pratt_precedence, register_and_query_operators) {
     textparser_t handle = nullptr;

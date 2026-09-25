@@ -1,11 +1,73 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
+#include <textparser-json.h>
 #include <string>
 #include <vector>
 
-#include <html_legacy_definition.json.h>
+namespace {
 
-TEST(native_query_engine, type_selector) {
+static const char *query_test_lang_json = R"({
+    "name": "html_query_test",
+    "version": 1.0,
+    "caseSensitivity": false,
+    "defaultFileExtensions": ["html"],
+    "defaultTextEncoding": "utf-8",
+    "startTokens": ["Tag", "ClosingTag"],
+    "otherTextInside": true,
+    "tokens": {
+        "Tag": {
+            "type": "StartStop",
+            "startRegex": "<[a-zA-Z0-9:-]+",
+            "endRegex": "\\/?>",
+            "otherTextInside": true,
+            "nestedTokens": ["DoubleString", "SingleString", "Equal", "AttributeName"]
+        },
+        "ClosingTag": {
+            "type": "SimpleToken",
+            "startRegex": "<\\/[a-zA-Z0-9:-]+\\s*>"
+        },
+        "AttributeName": {
+            "type": "SimpleToken",
+            "startRegex": "[a-zA-Z0-9:-]+"
+        },
+        "Equal": {
+            "type": "SimpleToken",
+            "startRegex": "="
+        },
+        "DoubleString": {
+            "type": "StartStop",
+            "startRegex": "\"",
+            "endRegex": "\"",
+            "otherTextInside": true
+        },
+        "SingleString": {
+            "type": "StartStop",
+            "startRegex": "'",
+            "endRegex": "'",
+            "otherTextInside": true
+        }
+    }
+})";
+
+struct QueryEngineTestFixture : ::testing::Test {
+    textparser_language_definition *def = nullptr;
+
+    void SetUp() override {
+        ASSERT_EQ(textparser_json_load_language_definition_from_string(query_test_lang_json, &def), 0);
+        ASSERT_NE(def, nullptr);
+    }
+
+    void TearDown() override {
+        if (def != nullptr) {
+            textparser_free_language_definition(def);
+            def = nullptr;
+        }
+    }
+};
+
+} // namespace
+
+TEST_F(QueryEngineTestFixture, type_selector) {
     const char *code = R"(
         <html>
             <head><title>Test</title></head>
@@ -22,7 +84,7 @@ TEST(native_query_engine, type_selector) {
     ASSERT_EQ(err, 0);
     ASSERT_NE(handle, (void*)0);
 
-    err = textparser_parse(handle, &html_definition);
+    err = textparser_parse(handle, def);
     ASSERT_EQ(err, 0);
 
     // Query for all Tag nodes
@@ -33,7 +95,7 @@ TEST(native_query_engine, type_selector) {
 
     if (results) {
         for (size_t i = 0; i < count; i++) {
-            const char *type_str = textparser_get_token_type_str(&html_definition, results[i]);
+            const char *type_str = textparser_get_token_type_str(def, results[i]);
             EXPECT_STREQ(type_str, "Tag");
         }
         textparser_free_query_result(results);
@@ -42,7 +104,7 @@ TEST(native_query_engine, type_selector) {
     textparser_close(handle);
 }
 
-TEST(native_query_engine, child_combinator) {
+TEST_F(QueryEngineTestFixture, child_combinator) {
     const char *code = R"(
         <div class="test">
             <h1>Header</h1>
@@ -51,7 +113,7 @@ TEST(native_query_engine, child_combinator) {
 
     textparser_t handle = NULL;
     textparser_openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8, &handle);
-    textparser_parse(handle, &html_definition);
+    textparser_parse(handle, def);
 
     size_t count = 0;
     // Tag > AttributeName (AttributeName inside Tag)
@@ -70,7 +132,7 @@ TEST(native_query_engine, child_combinator) {
     textparser_close(handle);
 }
 
-TEST(native_query_engine, descendant_combinator) {
+TEST_F(QueryEngineTestFixture, descendant_combinator) {
     const char *code = R"(
         <html>
             <body>
@@ -83,7 +145,7 @@ TEST(native_query_engine, descendant_combinator) {
 
     textparser_t handle = NULL;
     textparser_openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8, &handle);
-    textparser_parse(handle, &html_definition);
+    textparser_parse(handle, def);
 
     size_t count = 0;
     // AttributeName is descendant of Tag
@@ -96,7 +158,7 @@ TEST(native_query_engine, descendant_combinator) {
     textparser_close(handle);
 }
 
-TEST(native_query_engine, multi_query) {
+TEST_F(QueryEngineTestFixture, multi_query) {
     const char *code = R"(
         <div>
             <h1>Title</h1>
@@ -105,7 +167,7 @@ TEST(native_query_engine, multi_query) {
 
     textparser_t handle = NULL;
     textparser_openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8, &handle);
-    textparser_parse(handle, &html_definition);
+    textparser_parse(handle, def);
 
     size_t count = 0;
     const textparser_token_item **results = textparser_query(handle, NULL, "Tag, ClosingTag", &count);
@@ -117,7 +179,7 @@ TEST(native_query_engine, multi_query) {
     textparser_close(handle);
 }
 
-TEST(native_query_engine, scoped_root_search) {
+TEST_F(QueryEngineTestFixture, scoped_root_search) {
     const char *code = R"(
         <div class="box">
             <h1 id="t1">Title 1</h1>
@@ -129,7 +191,7 @@ TEST(native_query_engine, scoped_root_search) {
 
     textparser_t handle = NULL;
     textparser_openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8, &handle);
-    textparser_parse(handle, &html_definition);
+    textparser_parse(handle, def);
 
     // Find all Tag nodes first
     size_t tag_count = 0;
@@ -149,11 +211,11 @@ TEST(native_query_engine, scoped_root_search) {
     textparser_close(handle);
 }
 
-TEST(native_query_engine, edge_cases) {
+TEST_F(QueryEngineTestFixture, edge_cases) {
     const char *code = "<div></div>";
     textparser_t handle = NULL;
     textparser_openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8, &handle);
-    textparser_parse(handle, &html_definition);
+    textparser_parse(handle, def);
 
     size_t count = 100;
     // NULL handle

@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <css_legacy_definition.json.h>
+#include <css_definition.json.h>
 #include <css.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
@@ -42,23 +42,27 @@ TEST(parse_CSS, basic_css_program) {
     }
 
     EXPECT_TRUE(found.contains("BlockComment"));
-    EXPECT_TRUE(found.contains("AtRule"));
-    EXPECT_TRUE(found.contains("IdName"));
-    EXPECT_TRUE(found.contains("ClassName"));
-    EXPECT_TRUE(found.contains("PseudoClass"));
-    EXPECT_TRUE(found.contains("TagName"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
-    EXPECT_TRUE(found.contains("Declaration"));
-    EXPECT_TRUE(found.contains("HexColor"));
+    EXPECT_TRUE(found.contains("AtKeyword"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("Hash"));
+    EXPECT_TRUE(found.contains("ClassSelector"));
+    EXPECT_TRUE(found.contains("Combinator"));
+    EXPECT_TRUE(found.contains("Colon"));
     EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("FunctionCall"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("Slash"));
+    EXPECT_TRUE(found.contains("Minus"));
     EXPECT_TRUE(found.contains("Important"));
-    EXPECT_TRUE(found.contains("Value"));
-    EXPECT_TRUE(found.contains("DeclOperator"));
+    EXPECT_TRUE(found.contains("Comma"));
+    EXPECT_TRUE(found.contains("SingleString_Start"));
+    EXPECT_TRUE(found.contains("SingleString_End"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
+    EXPECT_TRUE(found.contains("DoubleString_End"));
+    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("LParen"));
+    EXPECT_TRUE(found.contains("RParen"));
+    EXPECT_TRUE(found.contains("LBrace"));
+    EXPECT_TRUE(found.contains("RBrace"));
+    EXPECT_TRUE(found.contains("Semicolon"));
 }
 
 TEST(validate_CSS, properties_and_rules) {
@@ -130,6 +134,92 @@ TEST(validate_CSS, properties_and_rules) {
         EXPECT_STREQ(validation->items[0]->text, "Unknown CSS At-Rule: [@invalidatrule]");
 
         textparser_validation_clear(validation);
+        textparser_close(handle);
+    }
+}
+
+TEST(validate_CSS, corner_cases_and_edge_conditions) {
+    // 1. Empty input
+    {
+        textparser_t handle = nullptr;
+        const char *code = "";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &css_definition), 0);
+        textparser_validation *val = textparser_validate_css(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 2. Only comments and whitespace
+    {
+        textparser_t handle = nullptr;
+        const char *code = "   /* comment 1 */ \n\t /* comment 2 */  ";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &css_definition), 0);
+        textparser_validation *val = textparser_validate_css(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 3. Vendor prefixed properties and custom properties
+    {
+        textparser_t handle = nullptr;
+        const char *code = "div { -moz-box-sizing: border-box; -ms-flex: 1; -o-transform: none; --theme-color: #333; }";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &css_definition), 0);
+        textparser_validation *val = textparser_validate_css(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 4. Valid pseudo-element with :: and vendor pseudo-classes
+    {
+        textparser_t handle = nullptr;
+        const char *code = "p::before { content: 'x'; } input::-webkit-input-placeholder { color: gray; } button:-moz-focusring { outline: none; }";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &css_definition), 0);
+        textparser_validation *val = textparser_validate_css(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 5. Unknown pseudo-element
+    {
+        textparser_t handle = nullptr;
+        const char *code = "div::unknownpseudoelement { display: block; }";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &css_definition), 0);
+        textparser_validation *val = textparser_validate_css(handle);
+        ASSERT_NE(val, nullptr);
+        EXPECT_EQ(val->len, 1);
+        EXPECT_EQ(val->items[0]->type, TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR);
+        EXPECT_STREQ(val->items[0]->text, "Unknown CSS pseudo-element: [::unknownpseudoelement]");
+        textparser_validation_clear(val);
+        textparser_close(handle);
+    }
+
+    // 6. Missing final semicolon in declaration block
+    {
+        textparser_t handle = nullptr;
+        const char *code = "span { color: red; font-size: 14px }";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &css_definition), 0);
+        textparser_validation *val = textparser_validate_css(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 7. Unknown property with missing final semicolon
+    {
+        textparser_t handle = nullptr;
+        const char *code = "span { badprop: 10px }";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &css_definition), 0);
+        textparser_validation *val = textparser_validate_css(handle);
+        ASSERT_NE(val, nullptr);
+        EXPECT_EQ(val->len, 1);
+        EXPECT_STREQ(val->items[0]->text, "Unknown CSS property: [badprop]");
+        textparser_validation_clear(val);
         textparser_close(handle);
     }
 }

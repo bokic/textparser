@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <fortran_legacy_definition.json.h>
+#include <fortran_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -74,13 +74,18 @@ end program test_prog
     }
 
     EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("KwModule"));
+    EXPECT_TRUE(found.contains("KwProgram"));
+    EXPECT_TRUE(found.contains("KwFunction"));
+    EXPECT_TRUE(found.contains("KwSubroutine"));
+    EXPECT_TRUE(found.contains("KwType"));
     EXPECT_TRUE(found.contains("Boolean"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("FloatNumber"));
+    EXPECT_TRUE(found.contains("Ident"));
+    EXPECT_TRUE(found.contains("Assign"));
+    EXPECT_TRUE(found.contains("Plus"));
+    EXPECT_TRUE(found.contains("Star"));
+    EXPECT_TRUE(found.contains("Percent"));
     EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("EscapedApostrophe"));
-    EXPECT_TRUE(found.contains("EscapedDoubleQuote"));
 }

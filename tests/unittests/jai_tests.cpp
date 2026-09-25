@@ -6,7 +6,7 @@
 #include <string>
 #include <iostream>
 
-#include <jai_legacy_definition.json.h>
+#include <jai_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -44,15 +44,16 @@ main :: () {
 
     EXPECT_TRUE(found.contains("LineComment"));
     EXPECT_TRUE(found.contains("BlockComment"));
-    EXPECT_TRUE(found.contains("Directive"));
-    EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("Boolean"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("StringEscape"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Parenthesis"));
-    EXPECT_TRUE(found.contains("ArrayIndex"));
+    EXPECT_TRUE(found.contains("ImportDirective"));
+    EXPECT_TRUE(found.contains("IfKeyword"));
+    EXPECT_TRUE(found.contains("DeferKeyword"));
+    EXPECT_TRUE(found.contains("IntKeyword"));
+    EXPECT_TRUE(found.contains("TrueKeyword"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("StringLiteral"));
+    EXPECT_TRUE(found.contains("DecNumber"));
+    EXPECT_TRUE(found.contains("HexNumber"));
+    EXPECT_TRUE(found.contains("ColonColon"));
+    EXPECT_TRUE(found.contains("ColonEqual"));
+    EXPECT_TRUE(found.contains("Plus"));
 }

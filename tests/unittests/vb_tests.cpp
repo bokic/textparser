@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <vb_legacy_definition.json.h>
+#include <vb_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -45,17 +45,27 @@ Module Program
         Console.WriteLine(g.Greet())
     End Sub
 End Module
-)", &vb_legacy_definition);
+)", &vb_definition);
 
     std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("DataType"));
+    EXPECT_TRUE(found.contains("KwPublic"));
+    EXPECT_TRUE(found.contains("KwPrivate"));
+    EXPECT_TRUE(found.contains("KwClass"));
+    EXPECT_TRUE(found.contains("KwSub"));
+    EXPECT_TRUE(found.contains("KwFunction"));
+    EXPECT_TRUE(found.contains("KwProperty"));
+    EXPECT_TRUE(found.contains("KwModule"));
+    EXPECT_TRUE(found.contains("KwDim"));
+    EXPECT_TRUE(found.contains("KwReturn"));
+    EXPECT_TRUE(found.contains("KwNew"));
+    EXPECT_TRUE(found.contains("KwReadOnly"));
+    EXPECT_TRUE(found.contains("KwGet"));
+    EXPECT_TRUE(found.contains("KwEnd"));
     EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("Ampersand"));
+    EXPECT_TRUE(found.contains("Ident"));
 }

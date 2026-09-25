@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <sql_legacy_definition.json.h>
+#include <sql_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -30,7 +30,7 @@ CREATE TABLE `users` (
 select u.id, u.[name], u.email
 from `users` as u
 where u.id > 100 AND u.is_active = true AND u.[name] = 'John' AND u.email != "john@example.com";
-)", &sql_legacy_definition);
+)", &sql_definition);
 
     std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {
@@ -39,15 +39,18 @@ where u.id > 100 AND u.is_active = true AND u.[name] = 'John' AND u.email != "jo
 
     EXPECT_TRUE(found.contains("LineComment"));
     EXPECT_TRUE(found.contains("BlockComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("DataType"));
-    EXPECT_TRUE(found.contains("Boolean"));
+    EXPECT_TRUE(found.contains("CreateKeyword"));
+    EXPECT_TRUE(found.contains("TableKeyword"));
+    EXPECT_TRUE(found.contains("SelectKeyword"));
+    EXPECT_TRUE(found.contains("TrueKeyword"));
+    EXPECT_TRUE(found.contains("IntKeyword"));
     EXPECT_TRUE(found.contains("BacktickIdentifier"));
     EXPECT_TRUE(found.contains("BracketIdentifier"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("Number"));
+    EXPECT_TRUE(found.contains("Greater"));
+    EXPECT_TRUE(found.contains("NotEqual"));
 }
 

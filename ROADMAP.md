@@ -1,17 +1,5 @@
 # Roadmap
 
-## 1.1 (Compiler-Grade Parser Architecture Overhaul - Breaking Clean Upgrade)
-
-> **Status**: The v2 compiler-grade parser engine (declarative EBNF runtime, Pratt precedence parsing, lexer modes, lexical goals, speculative checkpoints, structured trivia, AST lifecycle, and diagnostic recovery) is implemented in the C core runtime (`src/textparser.c`) and ported to Java (`com.textparser.*`). All 30 supported languages—TypeScript/TSX, PHP, CFML, JSON, Bash, C, C++, C#, Java, Rust, Python, HTML, CSS, JavaScript/JSX, Go, SQL, Swift, C3, Zig, Jai, Assembly (x86/ARM), Pascal, Visual Basic, Perl, Fortran, MATLAB, Ada, Scratch, R, and Markdown—now use primary schema-v2 definitions (`definitions/{typescript,php,cfml,json,bash,c,cpp,csharp,java,rust,python,html,css,javascript,go,sql,swift,c3,zig,jai,asm,pascal,vb,perl,fortran,matlab,ada,scratch,r,md}_definition.json`) with full EBNF grammars, stack-based lexer modes, and error recovery. Legacy scanners are temporarily retained as `*_legacy_definition.json` for tokenization regression test suites during the transition.
-
-- **Eliminate Legacy v1 Dual-Stack Burden**:
-  - Complete the clean, breaking upgrade replacing legacy v1 definitions with schema v2 entirely.
-  - Remove legacy v1 scanner files (`definitions/*_legacy_definition.json`) once legacy test suites are updated.
-  - Remove legacy v1 scanner generation paths (`src/search_function_gen.c`) and legacy tokenization fallbacks.
-  - Regenerate static C headers/parsers for all languages (`definitions/json2h.py`) and verify all static test suites.
-- **Documentation & Markdown Cleanup**:
-  - Audit and synchronize all `.md` files (`README.md`, `ARCHITECTURE.md`, `ROADMAP.md`, etc.) to remove obsolete v1 references, ensure consistent formatting, and document the complete 30-language v2 architecture.
-
 ## 1.2 (Validator/Tree-Sitter compatibility)
 
 - Implement code validator for each computer language.

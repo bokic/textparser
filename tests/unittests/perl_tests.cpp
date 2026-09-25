@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <perl_legacy_definition.json.h>
+#include <perl_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -51,10 +51,13 @@ sub format_message {
     }
 
     EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("KwPackage"));
+    EXPECT_TRUE(found.contains("KwSub"));
     EXPECT_TRUE(found.contains("SingleString"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("FatComma"));
+    EXPECT_TRUE(found.contains("Substitution"));
+    EXPECT_TRUE(found.contains("PrintBuiltin"));
 }

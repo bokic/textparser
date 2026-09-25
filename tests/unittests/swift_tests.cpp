@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <swift_legacy_definition.json.h>
+#include <swift_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -61,17 +61,18 @@ string with \n escape and \(greeter.greet()) interpolation.
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("BlockComment"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("ProtocolKeyword"));
+    EXPECT_TRUE(found.contains("StructKeyword"));
+    EXPECT_TRUE(found.contains("VarKeyword"));
+    EXPECT_TRUE(found.contains("FuncKeyword"));
+    EXPECT_TRUE(found.contains("InitKeyword"));
+    EXPECT_TRUE(found.contains("LetKeyword"));
+    EXPECT_TRUE(found.contains("ReturnKeyword"));
+    EXPECT_TRUE(found.contains("ExtensionKeyword"));
+    EXPECT_TRUE(found.contains("MutatingKeyword"));
     EXPECT_TRUE(found.contains("Boolean"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("MultiLineString"));
-    EXPECT_TRUE(found.contains("StringInterpolation"));
-    EXPECT_TRUE(found.contains("StringEscape"));
     EXPECT_TRUE(found.contains("Number"));
+    EXPECT_TRUE(found.contains("StringLiteral"));
+    EXPECT_TRUE(found.contains("MultiLineStringLiteral"));
 }
 

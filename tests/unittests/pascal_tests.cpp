@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <pascal_legacy_definition.json.h>
+#include <pascal_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -84,12 +84,14 @@ end.
     EXPECT_TRUE(found.contains("CompilerDirective"));
     EXPECT_TRUE(found.contains("BlockCommentCurly"));
     EXPECT_TRUE(found.contains("BlockCommentParen"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("KwUnit"));
+    EXPECT_TRUE(found.contains("KwClass"));
+    EXPECT_TRUE(found.contains("KwTrue"));
     EXPECT_TRUE(found.contains("DataType"));
-    EXPECT_TRUE(found.contains("Boolean"));
     EXPECT_TRUE(found.contains("CharLiteral"));
     EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("DecNumber"));
+    EXPECT_TRUE(found.contains("HexNumber"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("AssignOp"));
 }

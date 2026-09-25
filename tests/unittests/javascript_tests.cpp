@@ -2,9 +2,11 @@
 
 #include <gtest/gtest.h>
 #include <textparser.hpp>
+#include <set>
+#include <string>
+#include <cstring>
 
-#include <javascript_legacy_definition.json.h>
-
+#include <javascript_definition.json.h>
 
 TEST(parse_JavaScript, basic_js_program) {
     auto tokens = TextParser(R"(
@@ -24,122 +26,29 @@ export class Calculator {
 }
 )", &javascript_definition);
 
-    // Root should find: Keywords (import, from, export, class), Variable (helper, Calculator, utils), CodeBlock, Operator, etc.
-    bool found_import_keyword = false;
-    bool found_export_keyword = false;
-    bool found_code_block = false;
-
+    std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {
-        std::string type = tokens[i].type;
-        if (type == "Keyword") {
-            found_import_keyword = true;
-            found_export_keyword = true;
-        }
-        if (type == "CodeBlock") {
-            found_code_block = true;
+        if (tokens[i].type) {
+            found.insert(tokens[i].type);
         }
     }
 
-    EXPECT_TRUE(found_import_keyword);
-    EXPECT_TRUE(found_export_keyword);
-    EXPECT_TRUE(found_code_block);
-
-    // Get class CodeBlock (comes right after Calculator Variable)
-    int class_cb_idx = -1;
-    for (size_t i = 0; i < tokens.count; ++i) {
-        if (std::string(tokens[i].type) == "CodeBlock") {
-            if (i > 0 && std::string(tokens[i - 1].type) == "Variable") {
-                class_cb_idx = i;
-                break;
-            }
-        }
-    }
-    ASSERT_NE(class_cb_idx, -1);
-
-    auto class_cb = tokens[class_cb_idx];
-    bool found_async_keyword = false;
-    bool found_method_code_block = false;
-
-    for (size_t i = 0; i < class_cb.children; ++i) {
-        std::string type = class_cb[i].type;
-        if (type == "Keyword") {
-            found_async_keyword = true;
-        }
-        if (type == "CodeBlock") {
-            found_method_code_block = true;
-        }
-    }
-
-    EXPECT_TRUE(found_async_keyword);
-    EXPECT_TRUE(found_method_code_block);
-
-    // Inside method CodeBlock
-    int method_cb_idx = -1;
-    for (size_t i = 0; i < class_cb.children; ++i) {
-        if (std::string(class_cb[i].type) == "CodeBlock") {
-            method_cb_idx = i;
-            break;
-        }
-    }
-    ASSERT_NE(method_cb_idx, -1);
-
-    auto method_cb = class_cb[method_cb_idx];
-    bool found_line_comment = false;
-    bool found_await_keyword = false;
-    bool found_variable_with_dollar = false;
-    bool found_nullish_coalescing = false;
-    bool found_template_string = false;
-    bool found_boolean = false;
-    bool found_hex_number = false;
-
-    for (size_t i = 0; i < method_cb.children; ++i) {
-        std::string type = method_cb[i].type;
-        if (type == "LineComment") {
-            found_line_comment = true;
-        }
-        if (type == "Keyword") {
-            found_await_keyword = true;
-        }
-        if (type == "Variable") {
-            // In the code: const $element = null;
-            // Let's verify we parse $element as variable.
-            found_variable_with_dollar = true;
-        }
-        if (type == "Operator") {
-            found_nullish_coalescing = true;
-        }
-        if (type == "TemplateString") {
-            found_template_string = true;
-        }
-        if (type == "Boolean") {
-            found_boolean = true;
-        }
-        if (type == "Number") {
-            found_hex_number = true;
-        }
-    }
-
-    EXPECT_TRUE(found_line_comment);
-    EXPECT_TRUE(found_await_keyword);
-    EXPECT_TRUE(found_variable_with_dollar);
-    EXPECT_TRUE(found_nullish_coalescing);
-    EXPECT_TRUE(found_template_string);
-    EXPECT_TRUE(found_boolean);
-    EXPECT_TRUE(found_hex_number);
-
-    // Verify StringEscape inside TemplateString
-    int template_str_idx = -1;
-    for (size_t i = 0; i < method_cb.children; ++i) {
-        if (std::string(method_cb[i].type) == "TemplateString") {
-            template_str_idx = i;
-            break;
-        }
-    }
-    ASSERT_NE(template_str_idx, -1);
-
-    auto template_str = method_cb[template_str_idx];
-    ASSERT_GE(template_str.children, 1);
-    EXPECT_STREQ(template_str[0].type, "StringEscape");
+    EXPECT_TRUE(found.contains("ImportKeyword"));
+    EXPECT_TRUE(found.contains("FromKeyword"));
+    EXPECT_TRUE(found.contains("ExportKeyword"));
+    EXPECT_TRUE(found.contains("ClassKeyword"));
+    EXPECT_TRUE(found.contains("AsyncKeyword"));
+    EXPECT_TRUE(found.contains("AwaitKeyword"));
+    EXPECT_TRUE(found.contains("ConstKeyword"));
+    EXPECT_TRUE(found.contains("ReturnKeyword"));
+    EXPECT_TRUE(found.contains("TrueKeyword"));
+    EXPECT_TRUE(found.contains("NullKeyword"));
+    EXPECT_TRUE(found.contains("NumericLiteral"));
+    EXPECT_TRUE(found.contains("StringLiteral"));
+    EXPECT_TRUE(found.contains("TemplateHead"));
+    EXPECT_TRUE(found.contains("TemplateTail"));
+    EXPECT_TRUE(found.contains("NullishCoalesce"));
+    EXPECT_TRUE(found.contains("Identifier"));
 }
 
 TEST(parse_JavaScript, scientific_notation) {
@@ -149,7 +58,7 @@ TEST(parse_JavaScript, scientific_notation) {
     bool found_pos = false;
     bool found_upper = false;
     std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
-        if (item.type && strcmp(item.type, "Number") == 0) {
+        if (item.type && strcmp(item.type, "NumericLiteral") == 0) {
             if (item.value == "1e-9") found_neg = true;
             if (item.value == "2e+5") found_pos = true;
             if (item.value == "1.5E-3") found_upper = true;
@@ -166,104 +75,117 @@ TEST(parse_JavaScript, scientific_notation) {
     EXPECT_TRUE(found_upper);
 }
 
+static const textparser_node *find_node(textparser_t handle, const textparser_node *node, const char *kind) {
+    if (!node) return nullptr;
+    const char *name = textparser_grammar_node_name(handle, node);
+    if (name && std::strcmp(name, kind) == 0) return node;
+    const char *type_str = textparser_get_token_type_str(textparser_get_language(handle), node);
+    if (type_str && std::strcmp(type_str, kind) == 0) return node;
+    for (auto *child = node->child; child; child = child->next) {
+        if (auto *found = find_node(handle, child, kind)) return found;
+    }
+    return nullptr;
+}
+
+static int count_nodes(textparser_t handle, const textparser_node *node, const char *kind) {
+    if (!node) return 0;
+    int count = 0;
+    const char *name = textparser_grammar_node_name(handle, node);
+    if (name && std::strcmp(name, kind) == 0) count++;
+    else {
+        const char *type_str = textparser_get_token_type_str(textparser_get_language(handle), node);
+        if (type_str && std::strcmp(type_str, kind) == 0) count++;
+    }
+    for (auto *child = node->child; child; child = child->next) {
+        count += count_nodes(handle, child, kind);
+    }
+    return count;
+}
+
 TEST(parse_JavaScript, regex_vs_division_disambiguation) {
     // 1. Regex literal after assignment operator
     {
-        auto tokens = TextParser("const re = /abc[0-9]+/gi;", &javascript_definition);
-        bool found_regex = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
-                found_regex = true;
-                EXPECT_EQ(tokens[i].value, "/abc[0-9]+/gi");
-            }
-        }
-        EXPECT_TRUE(found_regex);
+        textparser::Parser parser;
+        ASSERT_EQ(parser.openmem("const re = /abc[0-9]+/gi;", (int)strlen("const re = /abc[0-9]+/gi;"), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&javascript_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&javascript_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_NE(find_node(parser.get(), result.node, "RegularExpressionLiteral"), nullptr);
     }
 
     // 2. Division expression (multiple slashes in operand context)
     {
-        auto tokens = TextParser("const result = a / b / c;", &javascript_definition);
-        int division_count = 0;
-        int var_count = 0;
-        bool found_regex = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
-                found_regex = true;
-            }
-            if (tokens[i].type && strcmp(tokens[i].type, "Operator") == 0 && tokens[i].value == "/") {
-                division_count++;
-            }
-            if (tokens[i].type && strcmp(tokens[i].type, "Variable") == 0) {
-                var_count++;
-            }
-        }
-        EXPECT_FALSE(found_regex);
-        EXPECT_EQ(division_count, 2);
-        EXPECT_EQ(var_count, 4); // result, a, b, c
+        textparser::Parser parser;
+        const char *code = "const result = a / b / c;";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&javascript_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&javascript_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(find_node(parser.get(), result.node, "RegularExpressionLiteral"), nullptr);
+        EXPECT_GE(count_nodes(parser.get(), result.node, "Slash"), 2);
     }
 
     // 3. Regex literal after return keyword
     {
-        auto tokens = TextParser("return /hello\\/world/i;", &javascript_definition);
-        bool found_regex = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
-                found_regex = true;
-                EXPECT_EQ(tokens[i].value, "/hello\\/world/i");
-            }
-        }
-        EXPECT_TRUE(found_regex);
+        textparser::Parser parser;
+        const char *code = "function f() { return /hello\\/world/i; }";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&javascript_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&javascript_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_NE(find_node(parser.get(), result.node, "RegularExpressionLiteral"), nullptr);
     }
 
     // 4. Division after parenthesized expression
     {
-        auto tokens = TextParser("const res = (x + y) / 2;", &javascript_definition);
-        bool found_div = false;
-        bool found_regex = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) found_regex = true;
-            if (tokens[i].type && strcmp(tokens[i].type, "Operator") == 0 && tokens[i].value == "/") found_div = true;
-        }
-        EXPECT_FALSE(found_regex);
-        EXPECT_TRUE(found_div);
+        textparser::Parser parser;
+        const char *code = "const res = (x + y) / 2;";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&javascript_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&javascript_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(find_node(parser.get(), result.node, "RegularExpressionLiteral"), nullptr);
+        EXPECT_NE(find_node(parser.get(), result.node, "Slash"), nullptr);
     }
 
     // 5. Regex after control statement condition (if)
     {
-        auto tokens = TextParser("if (flag) /foo/.test(str);", &javascript_definition);
-        bool found_regex = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) {
-                found_regex = true;
-                EXPECT_EQ(tokens[i].value, "/foo/");
-            }
-        }
-        EXPECT_TRUE(found_regex);
+        textparser::Parser parser;
+        const char *code = "if (flag) /foo/.test(str);";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&javascript_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&javascript_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_NE(find_node(parser.get(), result.node, "RegularExpressionLiteral"), nullptr);
     }
 
     // 6. Division after array index
     {
-        auto tokens = TextParser("const val = arr[0] / 4;", &javascript_definition);
-        bool found_div = false;
-        bool found_regex = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "Regex") == 0) found_regex = true;
-            if (tokens[i].type && strcmp(tokens[i].type, "Operator") == 0 && tokens[i].value == "/") found_div = true;
-        }
-        EXPECT_FALSE(found_regex);
-        EXPECT_TRUE(found_div);
+        textparser::Parser parser;
+        const char *code = "const val = arr[0] / 4;";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&javascript_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&javascript_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(find_node(parser.get(), result.node, "RegularExpressionLiteral"), nullptr);
+        EXPECT_NE(find_node(parser.get(), result.node, "Slash"), nullptr);
     }
 
     // 7. Regex inside array literal
     {
-        auto tokens = TextParser("const list = [/first/, /second/g];", &javascript_definition);
-        int regex_count = 0;
-        std::function<void(const TokenParserItem&)> count_regex = [&](const TokenParserItem &item) {
-            if (item.type && strcmp(item.type, "Regex") == 0) regex_count++;
-            for (size_t c = 0; c < item.children; ++c) count_regex(item[c]);
-        };
-        for (size_t i = 0; i < tokens.count; ++i) count_regex(tokens[i]);
-        EXPECT_EQ(regex_count, 2);
+        textparser::Parser parser;
+        const char *code = "const list = [/first/, /second/g];";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&javascript_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&javascript_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(count_nodes(parser.get(), result.node, "RegularExpressionLiteral"), 2);
     }
 }
-

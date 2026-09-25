@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
-#include <c_legacy_definition.json.h>
-#include <json_legacy_definition.json.h>
-#include <cfml_legacy_definition.json.h>
+#include <c_definition.json.h>
+#include <json_definition.json.h>
+#include <cfml_definition.json.h>
+#include <textparser-json.h>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -38,9 +39,31 @@ TEST(lexer_streams, separates_tokens_and_leading_trivia) {
 }
 
 TEST(lexer_streams, preserves_delimiters_and_trailing_trivia) {
+    const char *delim_lang = R"({
+        "name": "delim_test",
+        "version": 1.0,
+        "caseSensitivity": true,
+        "defaultFileExtensions": ["txt"],
+        "defaultTextEncoding": "utf-8",
+        "startTokens": ["StringLiteral"],
+        "otherTextInside": true,
+        "tokens": {
+            "StringLiteral": {
+                "type": "StartStop",
+                "startRegex": "\"",
+                "endRegex": "\"",
+                "otherTextInside": true,
+                "delimiterTextColor": "0x808080"
+            }
+        }
+    })";
+    textparser_language_definition *def = nullptr;
+    ASSERT_EQ(textparser_json_load_language_definition_from_string(delim_lang, &def), 0);
+    ASSERT_NE(def, nullptr);
+
     textparser::Parser parser;
     ASSERT_EQ(parser.openmem("\"\"  ", 4, TEXTPARSER_ENCODING_UTF_8), 0);
-    ASSERT_EQ(parser.parse(&c_definition), 0);
+    ASSERT_EQ(parser.parse(def), 0);
 
     size_t token_count = 0;
     const textparser_lex_token *tokens = parser.lexer_tokens(&token_count);
@@ -55,6 +78,8 @@ TEST(lexer_streams, preserves_delimiters_and_trailing_trivia) {
     ASSERT_EQ(trivia_count, 1u);
     EXPECT_EQ(trivia[0].start, 2u);
     EXPECT_EQ(trivia[0].end, 4u);
+
+    textparser_free_language_definition(def);
 }
 
 TEST(lexer_streams, empty_parse_and_invalid_queries) {
@@ -337,3 +362,28 @@ TEST(lexer_streams, consecutive_in_leaf_edits_accumulate_lazy_bias) {
 
     EXPECT_EQ(capture_snapshot(parser), capture_snapshot(full));
 }
+
+TEST(lexer_streams, corner_cases_and_edge_conditions) {
+    // 1. Multiple whitespace and newline trivia sequences
+    const char *text = "\r\n  \t  {\"a\":\r\n\t  1}  \r\n";
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(text, (int)strlen(text), TEXTPARSER_ENCODING_UTF_8), 0);
+    ASSERT_EQ(parser.parse(&json_definition), 0);
+
+    size_t token_count = 0;
+    const textparser_lex_token *tokens = parser.lexer_tokens(&token_count);
+    ASSERT_NE(tokens, nullptr);
+    EXPECT_GT(token_count, 0u);
+
+    size_t trivia_count = 0;
+    const textparser_lex_trivia *trivia = parser.lexer_trivia(&trivia_count);
+    ASSERT_NE(trivia, nullptr);
+    EXPECT_GT(trivia_count, 0u);
+
+    // 2. Incremental trivia expansion preserves snapshot consistency
+    expect_snapshot_matches_full("{\"key\": 1}", 7, 0, "   \t\n   ", 9, &json_definition);
+
+    // 3. Deletion of entire trivia block
+    expect_snapshot_matches_full("{\"key\":   \t\n   1}", 7, 9, nullptr, 0, &json_definition);
+}
+

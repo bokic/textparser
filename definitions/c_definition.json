@@ -2293,6 +2293,80 @@
           }
         ]
       },
+      "KnownTypeSpecifier": {
+        "category": "type",
+        "choice": [
+          {
+            "ref": "CombinableTypeSpecifier"
+          },
+          {
+            "ref": "StructOrUnionSpecifier"
+          },
+          {
+            "ref": "EnumSpecifier"
+          },
+          {
+            "ref": "AtomicTypeSpecifier"
+          },
+          {
+            "ref": "TypeofSpecifier"
+          }
+        ]
+      },
+      "CastTypeName": {
+        "category": "type",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "ref": "SpecifierQualifierList"
+              },
+              {
+                "ref": "AbstractDeclarator"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "repeat": {
+                  "choice": [
+                    {
+                      "ref": "TypeQualifier"
+                    },
+                    {
+                      "ref": "AlignmentSpecifier"
+                    }
+                  ]
+                }
+              },
+              {
+                "ref": "KnownTypeSpecifier"
+              },
+              {
+                "optional": {
+                  "ref": "AbstractDeclarator"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "ref": "TypeQualifier"
+              },
+              {
+                "ref": "SpecifierQualifierList"
+              },
+              {
+                "optional": {
+                  "ref": "AbstractDeclarator"
+                }
+              }
+            ]
+          }
+        ]
+      },
       "CastExpression": {
         "category": "expression",
         "sequence": [
@@ -2300,7 +2374,7 @@
             "token": "LParen"
           },
           {
-            "ref": "TypeName"
+            "ref": "CastTypeName"
           },
           {
             "token": "RParen"

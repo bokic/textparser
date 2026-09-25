@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <asm_legacy_definition.json.h>
+#include <asm_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -45,11 +45,15 @@ _start:
     }
 
     EXPECT_TRUE(found.contains("LineComment"));
-    EXPECT_TRUE(found.contains("Directive"));
-    EXPECT_TRUE(found.contains("Keyword"));
+    EXPECT_TRUE(found.contains("SectionDirective"));
+    EXPECT_TRUE(found.contains("DataDirective"));
+    EXPECT_TRUE(found.contains("EquDirective"));
+    EXPECT_TRUE(found.contains("SymbolDirective"));
+    EXPECT_TRUE(found.contains("InstructionMnemonic"));
     EXPECT_TRUE(found.contains("Register"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("DecNumber"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("Minus"));
+    EXPECT_TRUE(found.contains("Dollar"));
+    EXPECT_TRUE(found.contains("CharLiteral"));
 }

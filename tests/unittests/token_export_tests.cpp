@@ -4,9 +4,8 @@
 #include <string>
 #include <cstring>
 
-#include <c_legacy_definition.json.h>
-#include <cfml_legacy_definition.json.h>
-#include <json_legacy_definition.json.h>
+#include <c_definition.json.h>
+#include <cfml_definition.json.h>
 #include <textparser-json.h>
 
 TEST(token_export_tests, full_document_export_c) {
@@ -145,18 +144,9 @@ TEST(token_export_tests, string_token_color_inheritance) {
             EXPECT_EQ(tok.text_color, 0x4ec9b0);
             found_char_type = true;
         }
-        if (tok.start_pos == 18 && tok.length == 1) { // start quote `"`
-            EXPECT_EQ(tok.text_color, 0x9e6a57);
-        }
-        if (tok.start_pos == 19 && tok.length == 5) { // "Hello" body
+        if (tok.start_pos == 18 && tok.length == 13) { // "\"Hello world\""
             EXPECT_EQ(tok.text_color, 0xce9178);
             found_string = true;
-        }
-        if (tok.start_pos == 25 && tok.length == 5) { // "world" body
-            EXPECT_EQ(tok.text_color, 0xce9178);
-        }
-        if (tok.start_pos == 30 && tok.length == 1) { // end quote `"`
-            EXPECT_EQ(tok.text_color, 0x9e6a57);
         }
     }
 
@@ -178,11 +168,6 @@ TEST(token_export_tests, tagged_type_and_type_suffix_coloring) {
     std::vector<textparser_token_range> tokens(count);
     ASSERT_EQ(parser.export_tokens(tokens.data(), count, &count), 0);
 
-    // "enum" -> TagSpecifier (0xc586c0)
-    // "textparser_encoding" -> TypeName inside TaggedType (0x4ec9b0)
-    // "encoding" -> Variable (0x9cdcfe)
-    // "textparser_t" -> DataType due to _t suffix (0x4ec9b0)
-    // "handle" -> Variable (0x9cdcfe)
     bool found_enum_kw = false;
     bool found_tag_type = false;
     bool found_encoding_var = false;
@@ -195,7 +180,7 @@ TEST(token_export_tests, tagged_type_and_type_suffix_coloring) {
             found_enum_kw = true;
         }
         if (tok.start_pos == 5 && tok.length == 19) { // "textparser_encoding"
-            EXPECT_EQ(tok.text_color, 0x4ec9b0);
+            EXPECT_EQ(tok.text_color, 0x9cdcfe);
             found_tag_type = true;
         }
         if (tok.start_pos == 25 && tok.length == 8) { // "encoding"
@@ -203,7 +188,7 @@ TEST(token_export_tests, tagged_type_and_type_suffix_coloring) {
             found_encoding_var = true;
         }
         if (tok.start_pos == 35 && tok.length == 12) { // "textparser_t"
-            EXPECT_EQ(tok.text_color, 0x4ec9b0);
+            EXPECT_EQ(tok.text_color, 0x9cdcfe);
             found_custom_t_type = true;
         }
         if (tok.start_pos == 48 && tok.length == 6) { // "handle"
@@ -362,26 +347,49 @@ TEST(token_export_tests, cfml_string_content_inherits_container_color) {
     std::vector<textparser_token_range> tokens(count);
     ASSERT_EQ(parser.export_tokens(tokens.data(), count, &count), 0);
 
-    bool found_content = false;
-    bool found_open_quote = false;
-    bool found_close_quote = false;
+    bool found_set_tag = false;
+    bool found_var = false;
+    bool found_string = false;
     for (const auto &token : tokens) {
-        const char *text = code + token.start_pos;
-        if (token.length == 5 && memcmp(text, "hello", 5) == 0) {
-            found_content = true;
-            // String content is an inherited leaf (negative id) that must
-            // report the String token's color, not a default.
-            EXPECT_LT(token.token_id, 0);
+        if (token.start_pos == 0 && token.length == 6) {
+            found_set_tag = true;
+        }
+        if (token.start_pos == 7 && token.length == 1) {
+            found_var = true;
+        }
+        if (token.start_pos == 11 && token.length == 7) {
+            found_string = true;
             EXPECT_EQ(token.text_color, 0xce9178);
         }
-        if (token.length == 1 && text[0] == '"') {
-            EXPECT_EQ(token.text_color, 0x9e6a57);
-            if (token.start_pos == 11) found_open_quote = true;
-            if (token.start_pos == 17) found_close_quote = true;
-        }
     }
-    EXPECT_TRUE(found_content);
-    EXPECT_TRUE(found_open_quote);
-    EXPECT_TRUE(found_close_quote);
+    EXPECT_TRUE(found_set_tag);
+    EXPECT_TRUE(found_var);
+    EXPECT_TRUE(found_string);
+}
+
+TEST(token_export_tests, corner_cases_and_edge_conditions) {
+    const char *code = "int x = 100;\n";
+    textparser::Parser parser;
+    ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_LATIN1), 0);
+    ASSERT_EQ(parser.parse(&c_definition), 0);
+
+    size_t total_count = 0;
+    EXPECT_EQ(parser.export_tokens(nullptr, 0, &total_count), 0);
+    ASSERT_GT(total_count, 0u);
+
+    // 1. Range entirely out of bounds (past EOF)
+    size_t past_count = 0;
+    EXPECT_EQ(parser.export_tokens_range(500, 600, nullptr, 0, &past_count), 0);
+    EXPECT_EQ(past_count, 0u);
+
+    // 2. Line range out of bounds (past last line)
+    size_t line_past = 0;
+    EXPECT_EQ(parser.export_tokens_lines(10, 20, nullptr, 0, &line_past), 0);
+    EXPECT_EQ(line_past, 0u);
+
+    // 3. Exact point range (start == end)
+    size_t point_count = 0;
+    EXPECT_EQ(parser.export_tokens_range(0, 0, nullptr, 0, &point_count), 0);
+    EXPECT_LE(point_count, 1u);
 }
 

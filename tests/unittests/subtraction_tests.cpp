@@ -9,11 +9,11 @@
 #include <cfml_definition.json.h>
 #include <cpp_definition.json.h>
 #include <csharp_definition.json.h>
-#include <css_legacy_definition.json.h>
+#include <css_definition.json.h>
 #include <fortran_definition.json.h>
 #include <go_definition.json.h>
 #include <java_definition.json.h>
-#include <javascript_legacy_definition.json.h>
+#include <javascript_definition.json.h>
 #include <matlab_definition.json.h>
 #include <pascal_definition.json.h>
 #include <perl_definition.json.h>
@@ -120,10 +120,10 @@ static void verify_negative_number(const textparser_language_definition *definit
     for (size_t i = 0; i < tokens.count; ++i) {
         scan(tokens[i]);
     }
-    if (strcmp(lang_name, "TypeScript") == 0)
+    if (strcmp(lang_name, "TypeScript") == 0 || strcmp(lang_name, "JavaScript") == 0)
         found_neg_one = found_typescript_minus && found_typescript_one;
-    else if (strcmp(lang_name, "PHP") == 0 || strcmp(lang_name, "CFML") == 0)
-        // v2 PHP/CFML use the contextual lexer, which keeps the unary minus
+    else if (strcmp(lang_name, "PHP") == 0)
+        // v2 PHP uses the contextual lexer, which keeps the unary minus
         // separate from its Number operand (like TypeScript).
         found_neg_one = found_php_minus && found_php_one;
     else if (strcmp(lang_name, "C") == 0 || strcmp(lang_name, "C++") == 0 || strcmp(lang_name, "C#") == 0 || strcmp(lang_name, "Java") == 0 || strcmp(lang_name, "Python") == 0 || strcmp(lang_name, "Go") == 0 || strcmp(lang_name, "Swift") == 0 || strcmp(lang_name, "Pascal") == 0 || strcmp(lang_name, "VB") == 0 || strcmp(lang_name, "Perl") == 0 || strcmp(lang_name, "Fortran") == 0 || strcmp(lang_name, "Matlab") == 0 || strcmp(lang_name, "Ada") == 0 || strcmp(lang_name, "Scratch") == 0 || strcmp(lang_name, "R") == 0)

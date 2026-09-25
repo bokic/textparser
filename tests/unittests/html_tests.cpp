@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <html_legacy_definition.json.h>
+#include <html_definition.json.h>
 #include <html.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
@@ -42,12 +42,16 @@ TEST(parse_HTML, basic_html_program) {
 
     EXPECT_TRUE(found.contains("Doctype"));
     EXPECT_TRUE(found.contains("Comment"));
-    EXPECT_TRUE(found.contains("Tag"));
+    EXPECT_TRUE(found.contains("Tag_Start"));
+    EXPECT_TRUE(found.contains("VoidTag_Start"));
     EXPECT_TRUE(found.contains("ClosingTag"));
+    EXPECT_TRUE(found.contains("Tag_End"));
+    EXPECT_TRUE(found.contains("Tag_SelfClose"));
     EXPECT_TRUE(found.contains("AttributeName"));
     EXPECT_TRUE(found.contains("Equal"));
     EXPECT_TRUE(found.contains("DoubleString"));
     EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("Text"));
 }
 
 TEST(validate_HTML, tag_and_attributes) {
@@ -264,3 +268,65 @@ TEST(validate_HTML, oversized_attribute_name_skipped) {
     }
     textparser_close(handle);
 }
+
+TEST(validate_HTML, corner_cases_and_edge_conditions) {
+    // 1. Empty HTML
+    {
+        textparser_t handle = nullptr;
+        const char *code = "";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &html_definition), 0);
+        textparser_validation *val = textparser_validate_html(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 2. Only comments and whitespace
+    {
+        textparser_t handle = nullptr;
+        const char *code = "   <!-- comment 1 --> \n\t <!-- comment 2 -->  ";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &html_definition), 0);
+        textparser_validation *val = textparser_validate_html(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 3. Self-closing custom elements
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<my-custom-elem custom-attr='xyz' />";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &html_definition), 0);
+        textparser_validation *val = textparser_validate_html(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 4. Case-insensitivity in tag and attribute names
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<DIV CLASS=\"test\" ID=\"app\"></DIV>";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &html_definition), 0);
+        textparser_validation *val = textparser_validate_html(handle);
+        EXPECT_EQ(val, nullptr);
+        textparser_close(handle);
+    }
+
+    // 5. Unclosed tags at EOF
+    {
+        textparser_t handle = nullptr;
+        const char *code = "<div><p>Unclosed text";
+        ASSERT_EQ(textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
+        ASSERT_EQ(textparser_parse(handle, &html_definition), 0);
+        textparser_validation *val = textparser_validate_html(handle);
+        ASSERT_NE(val, nullptr);
+        EXPECT_EQ(val->len, 2);
+        EXPECT_STREQ(val->items[0]->text, "HTML tag [p] requires a closing tag </p>");
+        EXPECT_STREQ(val->items[1]->text, "HTML tag [div] requires a closing tag </div>");
+        textparser_validation_clear(val);
+        textparser_close(handle);
+    }
+}
+

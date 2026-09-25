@@ -3,7 +3,7 @@
 #include <textparser-json.h>
 #include "production_helpers.hpp"
 
-#include <json_legacy_definition.json.h>
+#include <json_definition.json.h>
 
 #include <cstring>
 

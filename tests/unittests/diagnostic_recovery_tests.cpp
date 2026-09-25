@@ -2,7 +2,7 @@
 #include <textparser.hpp>
 #include <textparser-json.h>
 
-#include <json_legacy_definition.json.h>
+#include <json_definition.json.h>
 #include <bash_definition.json.h>
 
 TEST(diagnostic_recovery, multi_diagnostic_reporting) {

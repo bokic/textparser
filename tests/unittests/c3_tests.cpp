@@ -6,7 +6,7 @@
 #include <string>
 #include <iostream>
 
-#include <c3_legacy_definition.json.h>
+#include <c3_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -52,17 +52,18 @@ fn int main() {
     EXPECT_TRUE(found.contains("LineComment"));
     EXPECT_TRUE(found.contains("BlockComment"));
     EXPECT_TRUE(found.contains("DocComment"));
-    EXPECT_TRUE(found.contains("Directive"));
     EXPECT_TRUE(found.contains("Annotation"));
-    EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("Boolean"));
-    EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("StringEscape"));
-    EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Parenthesis"));
-    EXPECT_TRUE(found.contains("ArrayIndex"));
+    EXPECT_TRUE(found.contains("CtAssert"));
+    EXPECT_TRUE(found.contains("ModuleKeyword"));
+    EXPECT_TRUE(found.contains("ImportKeyword"));
+    EXPECT_TRUE(found.contains("FnKeyword"));
+    EXPECT_TRUE(found.contains("IfKeyword"));
+    EXPECT_TRUE(found.contains("TrueKeyword"));
+    EXPECT_TRUE(found.contains("Identifier"));
+    EXPECT_TRUE(found.contains("StringLiteral"));
+    EXPECT_TRUE(found.contains("CharLiteral"));
+    EXPECT_TRUE(found.contains("Integer"));
+    EXPECT_TRUE(found.contains("HexNumber"));
+    EXPECT_TRUE(found.contains("ColonAssign"));
+    EXPECT_TRUE(found.contains("Plus"));
 }

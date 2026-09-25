@@ -73,31 +73,64 @@ static void resolve_cfml_token_ids(textparser_t handle, cfml_dynamic_token_ids *
     ids->Parenthesis = find_token_id_by_name(handle, "Parenthesis");
     ids->Expression = find_token_id_by_name(handle, "Expression");
     ids->ScriptExpression = find_token_id_by_name(handle, "ScriptExpression");
-    ids->OutputExpression = find_token_id_by_name(handle, "OutputExpression");
-    ids->SharpExpression = find_token_id_by_name(handle, "SharpExpression");
+    ids->SharpExpression = find_token_id_by_name(handle, "SharpExpression_Start");
+    if (ids->SharpExpression == TextParser_END) {
+        ids->SharpExpression = find_token_id_by_name(handle, "SharpExpression");
+    }
     ids->SharpQuoteError = find_token_id_by_name(handle, "SharpQuoteError");
     ids->Separator = find_token_id_by_name(handle, "Separator");
 }
 
-static bool is_start_tag_token(const cfml_dynamic_token_ids *ids, int token_id) {
-    return token_id != TextParser_END && (
-           token_id == ids->StartTag ||
-           token_id == ids->LoopStartTag ||
-           token_id == ids->QueryStartTag ||
-           token_id == ids->OutputStartTag ||
-           token_id == ids->ScriptStartTag);
+static bool is_start_tag_name(const char *name) {
+    if (name == nullptr) return false;
+    size_t len = strlen(name);
+    if (len >= 8 && strcmp(name + len - 8, "StartTag") == 0) return true;
+    if (len >= 14 && strcmp(name + len - 14, "StartTag_Start") == 0) return true;
+    return false;
 }
 
-static bool is_end_tag_token(const cfml_dynamic_token_ids *ids, int token_id) {
-    return token_id != TextParser_END && (
-           token_id == ids->EndTag ||
-           token_id == ids->LoopEndTag ||
-           token_id == ids->QueryEndTag ||
-           token_id == ids->OutputEndTag ||
-           token_id == ids->ScriptEndTag);
+static bool is_end_tag_name(const char *name) {
+    if (name == nullptr) return false;
+    size_t len = strlen(name);
+    if (len >= 6 && strcmp(name + len - 6, "EndTag") == 0) return true;
+    return false;
 }
 
-static bool is_token_self_closing(const char *text, textparser_token_item *token) {
+static const char *get_token_name_by_id(const textparser_language_definition *def, int token_id) {
+    if (def == nullptr || def->tokens == nullptr || token_id < 0) return nullptr;
+    int idx = 0;
+    while (def->tokens[idx].name != nullptr) {
+        if (idx == token_id) return def->tokens[idx].name;
+        idx++;
+    }
+    return nullptr;
+}
+
+static bool is_start_tag_token(textparser_t handle, const cfml_dynamic_token_ids *ids, int token_id) {
+    if (token_id == TextParser_END || token_id < 0) return false;
+    if (ids != nullptr && (
+        token_id == ids->StartTag ||
+        token_id == ids->LoopStartTag ||
+        token_id == ids->QueryStartTag ||
+        token_id == ids->OutputStartTag ||
+        token_id == ids->ScriptStartTag)) return true;
+    const textparser_language_definition *def = textparser_get_language(handle);
+    return is_start_tag_name(get_token_name_by_id(def, token_id));
+}
+
+static bool is_end_tag_token(textparser_t handle, const cfml_dynamic_token_ids *ids, int token_id) {
+    if (token_id == TextParser_END || token_id < 0) return false;
+    if (ids != nullptr && (
+        token_id == ids->EndTag ||
+        token_id == ids->LoopEndTag ||
+        token_id == ids->QueryEndTag ||
+        token_id == ids->OutputEndTag ||
+        token_id == ids->ScriptEndTag)) return true;
+    const textparser_language_definition *def = textparser_get_language(handle);
+    return is_end_tag_name(get_token_name_by_id(def, token_id));
+}
+
+static bool is_token_self_closing(textparser_t handle, const char *text, textparser_token_item *token) {
     if (token->len >= 2) {
         size_t token_pos = textparser_get_token_position(token);
         const char *end = text + token_pos + token->len;
@@ -107,6 +140,12 @@ static bool is_token_self_closing(const char *text, textparser_token_item *token
         if (end - (text + token_pos) >= 2 && end[-2] == '/' && end[-1] == '>') {
             return true;
         }
+    }
+    for (textparser_token_item *t = token->next; t != nullptr; t = t->next) {
+        size_t p = textparser_get_token_position(t);
+        if (t->len >= 2 && text[p] == '/' && text[p + 1] == '>') return true;
+        if (t->len >= 1 && text[p] == '>') break;
+        if (is_start_tag_token(handle, nullptr, t->token_id) || is_end_tag_token(handle, nullptr, t->token_id)) break;
     }
     return false;
 }
@@ -120,11 +159,11 @@ static const cfml_tag_info *find_tag_info(const char *tag_name, size_t tag_len) 
     return nullptr;
 }
 
-static bool has_matching_end_tag(const cfml_dynamic_token_ids *ids, const char *text, textparser_token_item *start_token, const char *tag_name, size_t tag_len) {
+static bool has_matching_end_tag(textparser_t handle, const cfml_dynamic_token_ids *ids, const char *text, textparser_token_item *start_token, const char *tag_name, size_t tag_len) {
     int nesting = 1;
     textparser_token_item *curr = start_token->next;
     while (curr != nullptr) {
-        if (is_start_tag_token(ids, curr->token_id)) {
+        if (is_start_tag_token(handle, ids, curr->token_id)) {
             size_t curr_pos = textparser_get_token_position(curr);
             const char *curr_name = text + curr_pos + 1;
             size_t max_len = curr->len > 1 ? curr->len - 1 : 0;
@@ -137,12 +176,12 @@ static bool has_matching_end_tag(const cfml_dynamic_token_ids *ids, const char *
                 curr_len++;
             }
             if (curr_len == tag_len && strncasecmp(curr_name, tag_name, tag_len) == 0) {
-                if (!is_token_self_closing(text, curr)) {
+                if (!is_token_self_closing(handle, text, curr)) {
                     nesting++;
                 }
             }
         }
-        else if (is_end_tag_token(ids, curr->token_id)) {
+        else if (is_end_tag_token(handle, ids, curr->token_id)) {
             size_t curr_pos = textparser_get_token_position(curr);
             const char *curr_name = text + curr_pos + 2;
             size_t max_len = curr->len > 2 ? curr->len - 2 : 0;
@@ -166,11 +205,11 @@ static bool has_matching_end_tag(const cfml_dynamic_token_ids *ids, const char *
     return false;
 }
 
-static bool has_matching_start_tag(const cfml_dynamic_token_ids *ids, const char *text, textparser_token_item *end_token, const char *tag_name, size_t tag_len) {
+static bool has_matching_start_tag(textparser_t handle, const cfml_dynamic_token_ids *ids, const char *text, textparser_token_item *end_token, const char *tag_name, size_t tag_len) {
     int nesting = 1;
     textparser_token_item *curr = end_token->prev;
     while (curr != nullptr) {
-        if (is_end_tag_token(ids, curr->token_id)) {
+        if (is_end_tag_token(handle, ids, curr->token_id)) {
             size_t curr_pos = textparser_get_token_position(curr);
             const char *curr_name = text + curr_pos + 2;
             size_t max_len = curr->len > 2 ? curr->len - 2 : 0;
@@ -186,7 +225,7 @@ static bool has_matching_start_tag(const cfml_dynamic_token_ids *ids, const char
                 nesting++;
             }
         }
-        else if (is_start_tag_token(ids, curr->token_id)) {
+        else if (is_start_tag_token(handle, ids, curr->token_id)) {
             size_t curr_pos = textparser_get_token_position(curr);
             const char *curr_name = text + curr_pos + 1;
             size_t max_len = curr->len > 1 ? curr->len - 1 : 0;
@@ -199,7 +238,7 @@ static bool has_matching_start_tag(const cfml_dynamic_token_ids *ids, const char
                 curr_len++;
             }
             if (curr_len == tag_len && strncasecmp(curr_name, tag_name, tag_len) == 0) {
-                if (!is_token_self_closing(text, curr)) {
+                if (!is_token_self_closing(handle, text, curr)) {
                     nesting--;
                     if (nesting == 0) {
                         return true;
@@ -226,7 +265,7 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
     const char *text = textparser_get_text(handle);
     size_t token_pos = textparser_get_token_position(token);
 
-    if (is_start_tag_token(ids, token->token_id)) {
+    if (is_start_tag_token(handle, ids, token->token_id)) {
         // Get tag name and length
         const char *tag_name = text + token_pos + 1;
         size_t max_len = token->len > 1 ? token->len - 1 : 0;
@@ -262,8 +301,8 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
 
         // Check if needs closing tag
         if (info->end_tag_type == CFML_END_TAG_REQUIRED) {
-            if (!is_token_self_closing(text, token)) {
-                if (!has_matching_end_tag(ids, text, token, tag_name, tag_len)) {
+            if (!is_token_self_closing(handle, text, token)) {
+                if (!has_matching_end_tag(handle, ids, text, token, tag_name, tag_len)) {
                     validation_string_defer(token_name);
                     token_name = (char *)malloc(tag_len + 1);
                     if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
@@ -275,7 +314,7 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
             }
         }
     }
-    else if (is_end_tag_token(ids, token->token_id)) {
+    else if (is_end_tag_token(handle, ids, token->token_id)) {
         // Get tag name and length (skipping </)
         const char *tag_name = text + token_pos + 2;
         size_t max_len = token->len > 2 ? token->len - 2 : 0;
@@ -311,7 +350,7 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
         }
 
         // Check if end tag has its own corresponding start tag
-        if (!has_matching_start_tag(ids, text, token, tag_name, tag_len)) {
+        if (!has_matching_start_tag(handle, ids, text, token, tag_name, tag_len)) {
             validation_string_defer(token_name);
             token_name = (char *)malloc(tag_len + 1);
             if (token_name == NULL) { fprintf(stderr, "CFML validation failed: memory allocation error\n"); exit(1); }
@@ -431,6 +470,13 @@ static void textparser_validate_cfml_token(const cfml_dynamic_token_ids *ids, te
                 textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token_pos + i, 2);
                 break;
             }
+        }
+    }
+    else if (token->token_id != TextParser_END && (token->token_id == ids->SharpExpression)) {
+        size_t total = strlen(text);
+        if (token_pos + 1 < total && text[token_pos] == '#' && text[token_pos + 1] == '"') {
+            char *str = dynamic_printf("Syntax error: malformed leading '#\"' expression in <cfoutput> body");
+            textparser_validation_item_add(TEXTPARSER_VALIDATION_ITEM_TYPE_ERROR, ret, str, token_pos, 2);
         }
     }
 }
@@ -558,8 +604,16 @@ static void textparser_validate_cfml_tree(const cfml_dynamic_token_ids *ids, tex
 textparser_validation *textparser_validate_cfml(textparser_t handle) {
     if (handle == nullptr) return nullptr;
     const textparser_language_definition *definition = textparser_get_language(handle);
+    textparser_validation *ret = nullptr;
     if (definition != nullptr && definition->grammar != nullptr) {
-        textparser_validation *ret = nullptr;
+        if (textparser_get_diagnostic_count(handle) == 0) {
+            textparser_cfml_register_validators(handle);
+            for (size_t i = 0; i < definition->operator_definition_count; i++) {
+                textparser_register_operator(handle, &definition->operator_definitions[i]);
+            }
+            textparser_match_result match = {0};
+            textparser_execute_language_grammar(handle, definition, &match);
+        }
         for (size_t i = 0; i < textparser_get_diagnostic_count(handle); ++i) {
             textparser_diagnostic diagnostic = {0};
             if (textparser_get_diagnostic(handle, i, &diagnostic) != 0) continue;
@@ -569,16 +623,16 @@ textparser_validation *textparser_validate_cfml(textparser_t handle) {
             else if (diagnostic.severity == TEXTPARSER_SEVERITY_WARNING)
                 type = TEXTPARSER_VALIDATION_ITEM_TYPE_WARNING;
             textparser_validation_item_add(type, &ret,
-                dynamic_printf("%s: %s", diagnostic.code ? diagnostic.code : "CFML",
-                               diagnostic.message ? diagnostic.message : ""),
+                dynamic_printf("%s", diagnostic.message ? diagnostic.message : ""),
                 diagnostic.start_pos, diagnostic.length);
         }
-        return ret;
+        if (ret != nullptr) {
+            return ret;
+        }
     }
     cfml_dynamic_token_ids ids;
     resolve_cfml_token_ids(handle, &ids);
 
-    textparser_validation *ret = nullptr;
     textparser_token_item *token = textparser_get_first_token(handle);
     textparser_validate_cfml_tree(&ids, &ret, handle, token, 0);
     return ret;

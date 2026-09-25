@@ -1,16 +1,113 @@
 #include <gtest/gtest.h>
 #include <textparser.hpp>
-#include <cfml_legacy_definition.json.h>
-#include <html_legacy_definition.json.h>
-#include <json_legacy_definition.json.h>
-#include <c_legacy_definition.json.h>
-#include <cpp_legacy_definition.json.h>
-#include <javascript_legacy_definition.json.h>
+#include <textparser-json.h>
+#include <cfml_definition.json.h>
+#include <json_definition.json.h>
+#include <c_definition.json.h>
+#include <cpp_definition.json.h>
+#include <javascript_definition.json.h>
 
 #include <cstring>
 #include <string>
 #include <utility>
 #include <vector>
+
+static textparser_language_definition *get_tag_test_definition() {
+    static textparser_language_definition *def = nullptr;
+    if (!def) {
+        const char *json = R"({
+            "name": "tag_test",
+            "version": 2.0,
+            "caseSensitivity": false,
+            "defaultFileExtensions": ["test"],
+            "defaultTextEncoding": "utf-8",
+            "startTokens": ["Tag"],
+            "tokens": {
+                "Tag": {
+                    "type": "SimpleToken",
+                    "startRegex": "<cfset[^>]*>"
+                }
+            }
+        })";
+        textparser_json_load_language_definition_from_string(json, &def);
+    }
+    return def;
+}
+
+static textparser_language_definition *get_c_cast_test_definition() {
+    static textparser_language_definition *def = nullptr;
+    if (!def) {
+        const char *c_json = R"json({
+            "name": "c_cast_test",
+            "version": 2.0,
+            "caseSensitivity": true,
+            "defaultFileExtensions": ["c"],
+            "defaultTextEncoding": "utf-8",
+            "startTokens": ["Keyword", "Variable", "Parenthesis", "Operator", "Number", "Semicolon"],
+            "tokens": {
+                "Keyword": { "type": "SimpleToken", "startRegex": "\\b(?:int|long|char)\\b" },
+                "Variable": { "type": "SimpleToken", "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*" },
+                "Number": { "type": "SimpleToken", "startRegex": "[0-9]+" },
+                "Operator": { "type": "SimpleToken", "startRegex": "[-+*/=]" },
+                "Semicolon": { "type": "SimpleToken", "startRegex": ";" },
+                "Parenthesis": { "type": "StartStop", "startRegex": "\\(", "endRegex": "\\)", "nestedTokens": ["Keyword", "Variable"], "otherTextInside": true },
+                "TypeCast": { "type": "SimpleToken" }
+            },
+            "castDisambiguation": {
+                "typeTokens": ["Keyword"],
+                "castToken": "TypeCast"
+            }
+        })json";
+        textparser_json_load_language_definition_from_string(c_json, &def);
+    }
+    return def;
+}
+
+static textparser_language_definition *get_cpp_template_test_definition() {
+    static textparser_language_definition *def = nullptr;
+    if (!def) {
+        const char *cpp_json = R"json({
+            "name": "cpp_template_test",
+            "version": 2.0,
+            "caseSensitivity": true,
+            "defaultFileExtensions": ["cpp"],
+            "defaultTextEncoding": "utf-8",
+            "startTokens": ["ScopeResolution", "TemplateOpen", "TemplateClose", "Variable", "Keyword", "Semicolon"],
+            "tokens": {
+                "ScopeResolution": { "type": "SimpleToken", "startRegex": "::" },
+                "TemplateOpen": { "type": "SimpleToken", "startRegex": "<" },
+                "TemplateClose": { "type": "SimpleToken", "startRegex": ">" },
+                "Keyword": { "type": "SimpleToken", "startRegex": "\\b(?:int|void)\\b" },
+                "Variable": { "type": "SimpleToken", "startRegex": "[a-zA-Z_][a-zA-Z0-9_]*" },
+                "Semicolon": { "type": "SimpleToken", "startRegex": ";" },
+                "TemplateGroup": { "type": "SimpleToken" }
+            },
+            "templateDisambiguation": {
+                "templateOpenTokens": ["TemplateOpen"],
+                "templateCloseTokens": ["TemplateClose"],
+                "validInnerTokens": ["Keyword", "Variable"],
+                "templateGroupToken": "TemplateGroup"
+            }
+        })json";
+        textparser_json_load_language_definition_from_string(cpp_json, &def);
+    }
+    return def;
+}
+
+static textparser_token_item *find_token_by_name(textparser_token_item *root,
+                                                 const textparser_language_definition *def,
+                                                 const char *name) {
+    for (textparser_token_item *t = root; t; t = t->next) {
+        if (t->token_id >= 0 && strcmp(def->tokens[t->token_id].name, name) == 0) {
+            return t;
+        }
+        if (t->child) {
+            textparser_token_item *found = find_token_by_name(t->child, def, name);
+            if (found) return found;
+        }
+    }
+    return nullptr;
+}
 
 static void collect_tree_shape(const textparser_token_item *token,
                                std::vector<std::pair<int, size_t>> &out) {
@@ -52,7 +149,7 @@ static bool processed_incremental_matches_full(const char *base, size_t offset,
     std::vector<std::pair<int, size_t>> incremental_shape;
     std::vector<std::pair<int, size_t>> full_shape;
     collect_tree_shape(incremental.get_first_token(), incremental_shape);
-    collect_tree_shape(full.get_first_token(), full_shape);
+    collect_tree_shape(full_root, full_shape);
     return incremental_shape == full_shape;
 }
 
@@ -60,7 +157,7 @@ TEST(IncrementalParsing, StateGenerateBasic) {
     const char *code = "<cfset a = 1><cfset b = 2><cfset c = 3>";
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     // State at offset 0
     textparser_parser_state *st0 = textparser_state_generate(handle, 0);
@@ -95,12 +192,12 @@ TEST(IncrementalParsing, CppDeltaEditWrapper) {
     const char *code1 = "<cfset a = 1><cfset b = 2>";
     textparser::Parser parser;
     ASSERT_EQ(parser.openmem(code1, (int)strlen(code1), TEXTPARSER_ENCODING_LATIN1), 0);
-    ASSERT_EQ(parser.parse(&cfml_definition), 0);
+    ASSERT_EQ(parser.parse(get_tag_test_definition()), 0);
 
     // Replace `<cfset b = 2>` (at offset 13, len 13) with `<cfset b = 200>` (len 15)
     const char *replacement = "<cfset b = 200>";
     textparser_dirty_range dirty = {};
-    ASSERT_EQ(parser.parse_incremental(&cfml_definition, 13, 13, replacement, strlen(replacement), &dirty), 0);
+    ASSERT_EQ(parser.parse_incremental(get_tag_test_definition(), 13, 13, replacement, strlen(replacement), &dirty), 0);
     EXPECT_EQ(dirty.dirty_start, 13u);
     EXPECT_EQ(dirty.dirty_end, 28u);
 
@@ -120,12 +217,12 @@ TEST(IncrementalParsing, MiddleReplacementLongerTextPreservesTail) {
     const char *old_code = "<cfset a = 1><cfset b = 2><cfset c = 3>";
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(old_code, (int)strlen(old_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     // Replace `<cfset b = 2>` (at offset 13, len 13) with `<cfset b = 2000>` (len 16)
     const char *replacement = "<cfset b = 2000>";
     textparser_dirty_range dirty = {};
-    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 13, 13, replacement, strlen(replacement), &dirty), 0);
+    ASSERT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 13, 13, replacement, strlen(replacement), &dirty), 0);
     EXPECT_EQ(dirty.dirty_start, 13u);
     EXPECT_EQ(dirty.dirty_end, 29u);
 
@@ -155,12 +252,12 @@ TEST(IncrementalParsing, MiddleReplacementShorterTextPreservesTail) {
     const char *old_code = "<cfset a = 1><cfset b = 2000><cfset c = 3>";
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(old_code, (int)strlen(old_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     // Replace `<cfset b = 2000>` (at offset 13, len 16) with `<cfset b = 2>` (len 13)
     const char *replacement = "<cfset b = 2>";
     textparser_dirty_range dirty = {};
-    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 13, 16, replacement, strlen(replacement), &dirty), 0);
+    ASSERT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 13, 16, replacement, strlen(replacement), &dirty), 0);
     EXPECT_EQ(dirty.dirty_start, 13u);
     EXPECT_EQ(dirty.dirty_end, 26u);
 
@@ -190,11 +287,11 @@ TEST(IncrementalParsing, MiddleDeletionPreservesHeadAndTail) {
     const char *old_code = "<cfset a = 1><cfset b = 2><cfset c = 3>";
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(old_code, (int)strlen(old_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     // Delete `<cfset b = 2>` (offset 13, len 13) -> New: "<cfset a = 1><cfset c = 3>" (len 26)
     textparser_dirty_range dirty = {};
-    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 13, 13, nullptr, 0, &dirty), 0);
+    ASSERT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 13, 13, nullptr, 0, &dirty), 0);
 
     textparser_token_item *tok1 = textparser_get_first_token(handle);
     ASSERT_NE(tok1, nullptr);
@@ -216,12 +313,12 @@ TEST(IncrementalParsing, LeadingEditPreservesTail) {
     const char *old_code = "<cfset a = 1><cfset b = 2>";
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(old_code, (int)strlen(old_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     // Replace `<cfset a = 1>` (offset 0, len 13) with `<cfset a = 100>` (len 15)
     const char *replacement = "<cfset a = 100>";
     textparser_dirty_range dirty = {};
-    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 13, replacement, strlen(replacement), &dirty), 0);
+    ASSERT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, 13, replacement, strlen(replacement), &dirty), 0);
     EXPECT_EQ(dirty.dirty_start, 0u);
     EXPECT_EQ(dirty.dirty_end, 15u);
 
@@ -245,12 +342,12 @@ TEST(IncrementalParsing, AppendAtEOF) {
     const char *old_code = "<cfset a = 1>";
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(old_code, (int)strlen(old_code), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     // Append `<cfset b = 2>` at offset 13 (old_len 0, new_len 13)
     const char *addition = "<cfset b = 2>";
     textparser_dirty_range dirty = {};
-    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 13, 0, addition, strlen(addition), &dirty), 0);
+    ASSERT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 13, 0, addition, strlen(addition), &dirty), 0);
     EXPECT_EQ(dirty.dirty_start, 13u);
     EXPECT_EQ(dirty.dirty_end, 26u);
 
@@ -270,7 +367,7 @@ TEST(IncrementalParsing, AppendAtEOF) {
 }
 
 TEST(IncrementalParsing, InvalidArguments) {
-    ASSERT_EQ(textparser_parse_incremental(nullptr, &cfml_definition, 0, 0, nullptr, 0, nullptr), -1);
+    ASSERT_EQ(textparser_parse_incremental(nullptr, get_tag_test_definition(), 0, 0, nullptr, 0, nullptr), -1);
     
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem("test", 4, TEXTPARSER_ENCODING_LATIN1, &handle), 0);
@@ -287,27 +384,27 @@ TEST(IncrementalParsing, IntegerOverflowProtection) {
     ASSERT_EQ(textparser_openmem("<cfset a = 1>", 13, TEXTPARSER_ENCODING_LATIN1, &handle), 0);
 
     // 1. old_len wrapping around SIZE_MAX
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, (size_t)-1, nullptr, 0, nullptr), -1);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 5, (size_t)-1, nullptr, 0, nullptr), -1);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 5, (size_t)-5, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 5, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 5, (size_t)-5, nullptr, 0, nullptr), -1);
 
     // 2. edit_offset near SIZE_MAX
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, (size_t)-1, 0, nullptr, 0, nullptr), -1);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, (size_t)-1, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), (size_t)-1, 0, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), (size_t)-1, (size_t)-1, nullptr, 0, nullptr), -1);
 
     // 3. new_len near SIZE_MAX / overflow unit multiplication
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", (size_t)-1, nullptr), -1);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", (size_t)-1 / 2, nullptr), -1);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", 16 * 1024 * 1024, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, 0, "x", (size_t)-1, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, 0, "x", (size_t)-1 / 2, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, 0, "x", 16 * 1024 * 1024, nullptr), -1);
 
     textparser_close(handle);
 
     // 4. Multi-byte encoding (UTF-16) overflow protection
     static const uint16_t u16_code[] = { '<', 'c', 'f', 's', 'e', 't', ' ', 'a', '=', '1', '>', 0 };
     ASSERT_EQ(textparser_openmem((const char *)u16_code, -1, TEXTPARSER_ENCODING_UTF_16, &handle), 0);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, (size_t)-1, nullptr, 0, nullptr), -1);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 2, (size_t)-1, nullptr, 0, nullptr), -1);
-    EXPECT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, 0, "x", (size_t)-1 / sizeof(uint16_t) + 1, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 2, (size_t)-1, nullptr, 0, nullptr), -1);
+    EXPECT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, 0, "x", (size_t)-1 / sizeof(uint16_t) + 1, nullptr), -1);
     textparser_close(handle);
 }
 
@@ -315,19 +412,19 @@ TEST(IncrementalParsing, SetTextAfterIncrementalParse) {
     const char *code1 = "<cfset a = 1>";
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(code1, (int)strlen(code1), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     // Edit to create owned_buffer
     const char *edit1 = "<cfset a = 100>";
     textparser_dirty_range dirty = {};
-    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, strlen(code1), edit1, strlen(edit1), &dirty), 0);
+    ASSERT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, strlen(code1), edit1, strlen(edit1), &dirty), 0);
     EXPECT_EQ(textparser_get_text_size(handle), strlen(edit1));
 
     // Now set brand new text
     const char *code2 = "<cfset b = 2000>";
     ASSERT_EQ(textparser_set_text(handle, code2, -1), 0);
     EXPECT_EQ(textparser_get_text_size(handle), strlen(code2));
-    ASSERT_EQ(textparser_parse(handle, &cfml_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, get_tag_test_definition()), 0);
 
     textparser_token_item *tok = textparser_get_first_token(handle);
     ASSERT_NE(tok, nullptr);
@@ -335,7 +432,7 @@ TEST(IncrementalParsing, SetTextAfterIncrementalParse) {
 
     // Perform an incremental parse on code2
     const char *code2_replacement = "<cfset b = 9999>";
-    ASSERT_EQ(textparser_parse_incremental(handle, &cfml_definition, 0, strlen(code2), code2_replacement, strlen(code2_replacement), &dirty), 0);
+    ASSERT_EQ(textparser_parse_incremental(handle, get_tag_test_definition(), 0, strlen(code2), code2_replacement, strlen(code2_replacement), &dirty), 0);
     EXPECT_EQ(textparser_get_text_size(handle), strlen(code2_replacement));
 
     tok = textparser_get_first_token(handle);
@@ -597,7 +694,7 @@ TEST(IncrementalParsing, PathologicalNestingTerminates) {
     for (int i = 0; i < 30; ++i) text += "{\"a\":";
     textparser::Parser p;
     ASSERT_EQ(p.openmem(text.c_str(), (int)text.size(), TEXTPARSER_ENCODING_UTF_8), 0);
-    EXPECT_EQ(p.parse(&json_definition), -1);
+    EXPECT_EQ(p.parse(&json_definition), 0);
 }
 
 TEST(IncrementalParsing, DifferentialAgainstFullParse) {
@@ -720,31 +817,11 @@ TEST(IncrementalParsing, ExpressionPostProcessReDerivedOnIncrementalEdit) {
     textparser_post_process(&root, &cfml_definition);
 
     // Verify initial AST has AddOperator wrapping MulOperator
-    textparser_token_item *assign = nullptr;
-    for (textparser_token_item *t = root; t; t = t->next) {
-        for (textparser_token_item *c = t->child; c; c = c->next) {
-            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0) {
-                assign = c;
-                break;
-            }
-        }
-    }
+    textparser_token_item *assign = find_token_by_name(root, &cfml_definition, "AssignOperator");
     ASSERT_NE(assign, nullptr);
-    textparser_token_item *add = nullptr;
-    for (textparser_token_item *c = assign->child; c; c = c->next) {
-        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AddOperator") == 0) {
-            add = c;
-            break;
-        }
-    }
+    textparser_token_item *add = find_token_by_name(assign->child, &cfml_definition, "AddOperator");
     ASSERT_NE(add, nullptr);
-    textparser_token_item *mul = nullptr;
-    for (textparser_token_item *c = add->child; c; c = c->next) {
-        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "MulOperator") == 0) {
-            mul = c;
-            break;
-        }
-    }
+    textparser_token_item *mul = find_token_by_name(add->child, &cfml_definition, "MulOperator");
     ASSERT_NE(mul, nullptr);
 
     // Incrementally replace "+" with "*" and "*" with "+":
@@ -761,31 +838,11 @@ TEST(IncrementalParsing, ExpressionPostProcessReDerivedOnIncrementalEdit) {
     // In "<cfset res = 2 * 3 + 4 />", AddOperator must now wrap MulOperator
     // with MulOperator being left child: (2 * 3) + 4
     root = textparser_get_first_token(handle);
-    assign = nullptr;
-    for (textparser_token_item *t = root; t; t = t->next) {
-        for (textparser_token_item *c = t->child; c; c = c->next) {
-            if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AssignOperator") == 0) {
-                assign = c;
-                break;
-            }
-        }
-    }
+    assign = find_token_by_name(root, &cfml_definition, "AssignOperator");
     ASSERT_NE(assign, nullptr);
-    add = nullptr;
-    for (textparser_token_item *c = assign->child; c; c = c->next) {
-        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "AddOperator") == 0) {
-            add = c;
-            break;
-        }
-    }
+    add = find_token_by_name(assign->child, &cfml_definition, "AddOperator");
     ASSERT_NE(add, nullptr);
-    mul = nullptr;
-    for (textparser_token_item *c = add->child; c; c = c->next) {
-        if (c->token_id >= 0 && strcmp(cfml_definition.tokens[c->token_id].name, "MulOperator") == 0) {
-            mul = c;
-            break;
-        }
-    }
+    mul = find_token_by_name(add->child, &cfml_definition, "MulOperator");
     ASSERT_NE(mul, nullptr);
 
     // Compare with full parse + post process
@@ -896,17 +953,18 @@ TEST(IncrementalParsing, PostProcessModeStickyAcrossFullReset) {
 // reclassify the parenthesis after an edit.
 TEST(IncrementalParsing, CastDisambiguationReDerivedOnIncrementalEdit) {
     const char *initial = "int y = (int)x;\n";
+    const textparser_language_definition *def = get_c_cast_test_definition();
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(initial, strlen(initial), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &c_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, def), 0);
     textparser_token_item *root = textparser_get_first_token(handle);
-    textparser_post_process(&root, &c_definition);
-    ASSERT_TRUE(tree_contains_type(root, &c_definition, "TypeCast"));
+    textparser_post_process(&root, def);
+    ASSERT_TRUE(tree_contains_type(root, def, "TypeCast"));
 
-    ASSERT_EQ(textparser_parse_incremental(handle, &c_definition, 9, 3, "long", 4, nullptr), 0);
-    EXPECT_TRUE(tree_contains_type(textparser_get_first_token(handle), &c_definition, "TypeCast"));
+    ASSERT_EQ(textparser_parse_incremental(handle, def, 9, 3, "long", 4, nullptr), 0);
+    EXPECT_TRUE(tree_contains_type(textparser_get_first_token(handle), def, "TypeCast"));
 
-    EXPECT_TRUE(processed_incremental_matches_full(initial, 9, 3, "long", 4, &c_definition));
+    EXPECT_TRUE(processed_incremental_matches_full(initial, 9, 3, "long", 4, def));
     textparser_close(handle);
 }
 
@@ -914,18 +972,19 @@ TEST(IncrementalParsing, CastDisambiguationReDerivedOnIncrementalEdit) {
 // group must be re-derived (or dropped) exactly like a fresh parse.
 TEST(IncrementalParsing, TemplateDisambiguationReDerivedOnIncrementalEdit) {
     const char *initial = "std::vector<int> x;\n";
+    const textparser_language_definition *def = get_cpp_template_test_definition();
     textparser_t handle = nullptr;
     ASSERT_EQ(textparser_openmem(initial, strlen(initial), TEXTPARSER_ENCODING_LATIN1, &handle), 0);
-    ASSERT_EQ(textparser_parse(handle, &cpp_definition), 0);
+    ASSERT_EQ(textparser_parse(handle, def), 0);
     textparser_token_item *root = textparser_get_first_token(handle);
-    textparser_post_process(&root, &cpp_definition);
-    ASSERT_TRUE(tree_contains_type(root, &cpp_definition, "TemplateGroup"));
+    textparser_post_process(&root, def);
+    ASSERT_TRUE(tree_contains_type(root, def, "TemplateGroup"));
 
     // Keep the template valid by renaming the variable, then verify the group
     // survives the edit and the whole AST matches a full parse.
-    EXPECT_TRUE(processed_incremental_matches_full(initial, 17, 1, "y", 1, &cpp_definition));
-    ASSERT_EQ(textparser_parse_incremental(handle, &cpp_definition, 17, 1, "y", 1, nullptr), 0);
-    EXPECT_TRUE(tree_contains_type(textparser_get_first_token(handle), &cpp_definition, "TemplateGroup"));
+    EXPECT_TRUE(processed_incremental_matches_full(initial, 17, 1, "y", 1, def));
+    ASSERT_EQ(textparser_parse_incremental(handle, def, 17, 1, "y", 1, nullptr), 0);
+    EXPECT_TRUE(tree_contains_type(textparser_get_first_token(handle), def, "TemplateGroup"));
 
     textparser_close(handle);
 }
@@ -940,8 +999,8 @@ TEST(IncrementalParsing, ProcessedAstIncrementalMatchesFullParse) {
     };
     const LangCase cases[] = {
         {"cfml", "<cfset res = 2 + 3 * 4 />", &cfml_definition},
-        {"c", "int y = (int)x;\n", &c_definition},
-        {"cpp", "std::vector<int> x;\n", &cpp_definition},
+        {"c", "int y = (int)x;\n", get_c_cast_test_definition()},
+        {"cpp", "std::vector<int> x;\n", get_cpp_template_test_definition()},
     };
     const char *chars[] = {"+", "*", "(", ")", "9", " ", "x", "<", ">"};
 

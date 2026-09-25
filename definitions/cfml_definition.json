@@ -12,7 +12,9 @@
   "supportedBom": [
     "utf-8",
     "utf-16-le",
-    "utf-16-be"
+    "utf-16-be",
+    "utf-32-le",
+    "utf-32-be"
   ],
   "otherTextInside": true,
   "mergeSignIntoNumber": {
@@ -28,10 +30,9 @@
       "Boolean",
       "SingleString",
       "DoubleString",
-      "LParen",
-      "LBracket",
-      "LBrace",
-      "SharpExpression_Start"
+      "RParen",
+      "RBracket",
+      "RBrace"
     ]
   },
   "operator_precedence": [

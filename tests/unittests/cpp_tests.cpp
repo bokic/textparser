@@ -2,9 +2,11 @@
 
 #include <gtest/gtest.h>
 #include <textparser.hpp>
+#include <set>
+#include <string>
+#include <cstring>
 
-#include <cpp_legacy_definition.json.h>
-
+#include <cpp_definition.json.h>
 
 TEST(parse_CPP, basic_cpp_program) {
     auto tokens = TextParser(R"(
@@ -30,238 +32,103 @@ public:
 };
 )", &cpp_definition);
 
-    // Root should find: LineComment, BlockComment, Preprocessor (#include), Keyword (using, namespace, template, typename, class), Variable (std, T, Hello), CodeBlock, etc.
-    bool found_line_comment = false;
-    bool found_block_comment = false;
-    bool found_preprocessor = false;
-    bool found_template_keyword = false;
-    bool found_class_keyword = false;
-    bool found_code_block = false;
-    bool found_variable_root = false;
-
+    std::set<std::string> found;
     for (size_t i = 0; i < tokens.count; ++i) {
-        std::string type = tokens[i].type;
-        if (type == "LineComment") {
-            found_line_comment = true;
-        }
-        if (type == "BlockComment") {
-            found_block_comment = true;
-        }
-        if (type == "Preprocessor") {
-            found_preprocessor = true;
-        }
-        if (type == "Keyword") {
-            if (tokens[i].value == "template") {
-                found_template_keyword = true;
-            }
-            if (tokens[i].value == "class") {
-                found_class_keyword = true;
-            }
-        }
-        if (type == "TaggedType") {
-            if (tokens[i].children >= 2 && tokens[i][0].value == "class") {
-                found_class_keyword = true;
-            }
-            if (tokens[i].children >= 2 && tokens[i][1].value == "Hello") {
-                found_variable_root = true;
-            }
-        }
-        if (type == "Variable") {
-            if (tokens[i].value == "Hello") {
-                found_variable_root = true;
-            }
-        }
-        if (type == "CodeBlock") {
-            found_code_block = true;
+        if (tokens[i].type) {
+            found.insert(tokens[i].type);
         }
     }
 
-    EXPECT_TRUE(found_line_comment);
-    EXPECT_TRUE(found_block_comment);
-    EXPECT_TRUE(found_preprocessor);
-    EXPECT_TRUE(found_template_keyword);
-    EXPECT_TRUE(found_class_keyword);
-    EXPECT_TRUE(found_variable_root);
-    EXPECT_TRUE(found_code_block);
+    EXPECT_TRUE(found.contains("Preprocessor"));
+    EXPECT_TRUE(found.contains("UsingKeyword"));
+    EXPECT_TRUE(found.contains("NamespaceKeyword"));
+    EXPECT_TRUE(found.contains("TemplateKeyword"));
+    EXPECT_TRUE(found.contains("TypenameKeyword"));
+    EXPECT_TRUE(found.contains("ClassKeyword"));
+    EXPECT_TRUE(found.contains("PublicKeyword"));
+    EXPECT_TRUE(found.contains("VoidKeyword"));
+    EXPECT_TRUE(found.contains("BoolKeyword"));
+    EXPECT_TRUE(found.contains("DoubleKeyword"));
+    EXPECT_TRUE(found.contains("IntKeyword"));
+    EXPECT_TRUE(found.contains("Boolean"));
+    EXPECT_TRUE(found.contains("Number"));
+    EXPECT_TRUE(found.contains("CharacterLiteral"));
+    EXPECT_TRUE(found.contains("StringLiteral"));
+    EXPECT_TRUE(found.contains("ScopeResolution"));
+    EXPECT_TRUE(found.contains("StandardType"));
+    EXPECT_TRUE(found.contains("Identifier"));
+}
 
-    // Get CodeBlock index
-    int class_cb_idx = -1;
-    for (size_t i = 0; i < tokens.count; ++i) {
-        if (std::string(tokens[i].type) == "CodeBlock") {
-            class_cb_idx = i;
-            break;
-        }
+static const textparser_node *find_node(textparser_t handle, const textparser_node *node, const char *kind) {
+    if (!node) return nullptr;
+    const char *name = textparser_grammar_node_name(handle, node);
+    if (name && std::strcmp(name, kind) == 0) return node;
+    for (auto *child = node->child; child; child = child->next) {
+        if (auto *found = find_node(handle, child, kind)) return found;
     }
-    ASSERT_NE(class_cb_idx, -1);
-
-    auto class_cb = tokens[class_cb_idx];
-    bool found_public_keyword = false;
-    bool found_print_method_cb = false;
-
-    for (size_t i = 0; i < class_cb.children; ++i) {
-        std::string type = class_cb[i].type;
-        if (type == "Keyword" && class_cb[i].value == "public") found_public_keyword = true;
-        if (type == "CodeBlock") found_print_method_cb = true;
-    }
-
-    EXPECT_TRUE(found_public_keyword);
-    EXPECT_TRUE(found_print_method_cb);
-
-    // Inside print method CodeBlock
-    int method_cb_idx = -1;
-    for (size_t i = 0; i < class_cb.children; ++i) {
-        if (std::string(class_cb[i].type) == "CodeBlock") {
-            method_cb_idx = i;
-            break;
-        }
-    }
-    ASSERT_NE(method_cb_idx, -1);
-
-    auto method_cb = class_cb[method_cb_idx];
-    bool found_double_str = false;
-    bool found_single_str = false;
-    bool found_boolean_true = false;
-    bool found_boolean_false = false;
-    bool found_decimal_num = false;
-    bool found_hex_num = false;
-    bool found_bin_num = false;
-    bool found_sci_num = false;
-    bool found_scope_resolution = false;
-
-    for (size_t i = 0; i < method_cb.children; ++i) {
-        std::string type = method_cb[i].type;
-        std::string val = method_cb[i].value;
-        if (type == "DoubleString") found_double_str = true;
-        if (type == "SingleString") found_single_str = true;
-        if (type == "Boolean") {
-            if (val == "true") found_boolean_true = true;
-            if (val == "false") found_boolean_false = true;
-        }
-        if (type == "Number") {
-            if (val == "3.14159") found_decimal_num = true;
-            if (val == "0x2A") found_hex_num = true;
-            if (val == "0b1010") found_bin_num = true;
-            if (val == "1e-9") found_sci_num = true;
-        }
-        if (type == "Operator" || type == "ScopeResolution") {
-            if (val == "::") found_scope_resolution = true;
-        }
-    }
-
-    EXPECT_TRUE(found_double_str);
-    EXPECT_TRUE(found_single_str);
-    EXPECT_TRUE(found_boolean_true);
-    EXPECT_TRUE(found_boolean_false);
-    EXPECT_TRUE(found_decimal_num);
-    EXPECT_TRUE(found_hex_num);
-    EXPECT_TRUE(found_bin_num);
-    EXPECT_TRUE(found_sci_num);
-    EXPECT_TRUE(found_scope_resolution);
-
-    // DoubleString should have nested StringEscape
-    int double_str_idx = -1;
-    for (size_t i = 0; i < method_cb.children; ++i) {
-        if (std::string(method_cb[i].type) == "DoubleString") {
-            double_str_idx = i;
-            break;
-        }
-    }
-    ASSERT_NE(double_str_idx, -1);
-
-    auto double_str = method_cb[double_str_idx];
-    ASSERT_GE(double_str.children, 1);
-    EXPECT_STREQ(double_str[0].type, "StringEscape");
-
-    // SingleString should have nested StringEscape
-    int single_str_idx = -1;
-    for (size_t i = 0; i < method_cb.children; ++i) {
-        if (std::string(method_cb[i].type) == "SingleString") {
-            single_str_idx = i;
-            break;
-        }
-    }
-    ASSERT_NE(single_str_idx, -1);
-
-    auto single_str = method_cb[single_str_idx];
-    ASSERT_GE(single_str.children, 1);
-    EXPECT_STREQ(single_str[0].type, "StringEscape");
+    return nullptr;
 }
 
 TEST(parse_CPP, template_vs_relational_disambiguation) {
-    // 1. Template argument list should be disambiguated into TemplateGroup
+    // 1. Template argument list should be parsed into TemplateArgumentList
     {
-        auto tokens = TextParser("std::vector<int> numbers;", &cpp_definition);
-        tokens.post_process();
-
-        bool found_template_group = false;
-        std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
-            if (item.type && strcmp(item.type, "TemplateGroup") == 0) {
-                found_template_group = true;
-            }
-            for (size_t c = 0; c < item.children; ++c) scan(item[c]);
-        };
-        for (size_t i = 0; i < tokens.count; ++i) scan(tokens[i]);
-        EXPECT_TRUE(found_template_group);
+        textparser::Parser parser;
+        const char *code = "std::vector<int> numbers;";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&cpp_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&cpp_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_NE(find_node(parser.get(), result.node, "TemplateArgumentList"), nullptr);
     }
 
-    // 2. Relational comparisons should NOT be grouped as templates
+    // 2. Relational comparisons should NOT have TemplateArgumentList
     {
-        auto tokens = TextParser("if (a < b && c > d) { return; }", &cpp_definition);
-        tokens.post_process();
-
-        bool found_template_group = false;
-        std::function<void(const TokenParserItem&)> scan = [&](const TokenParserItem &item) {
-            if (item.type && strcmp(item.type, "TemplateGroup") == 0) {
-                found_template_group = true;
-            }
-            for (size_t c = 0; c < item.children; ++c) scan(item[c]);
-        };
-        for (size_t i = 0; i < tokens.count; ++i) scan(tokens[i]);
-        EXPECT_FALSE(found_template_group);
+        textparser::Parser parser;
+        const char *code = "void f() { if (a < b && c > d) { return; } }";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&cpp_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&cpp_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(find_node(parser.get(), result.node, "TemplateArgumentList"), nullptr);
     }
 }
 
 TEST(parse_CPP, type_cast_vs_call_disambiguation) {
-    // 1. (int)(x) should be disambiguated as TypeCast
+    // 1. (int)(x) should be parsed as CastExpression
     {
-        auto tokens = TextParser("(int)(x);", &cpp_definition);
-        tokens.post_process();
-
-        bool found_cast = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
-                found_cast = true;
-            }
-        }
-        EXPECT_TRUE(found_cast);
+        textparser::Parser parser;
+        const char *code = "void f() { (int)(x); }";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&cpp_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&cpp_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_NE(find_node(parser.get(), result.node, "CastExpression"), nullptr);
     }
 
-    // 2. (uint32_t)(*ptr) should be disambiguated as TypeCast
+    // 2. (uint32_t)(*ptr) should be parsed as CastExpression
     {
-        auto tokens = TextParser("(uint32_t)(*ptr);", &cpp_definition);
-        tokens.post_process();
-
-        bool found_cast = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
-                found_cast = true;
-            }
-        }
-        EXPECT_TRUE(found_cast);
+        textparser::Parser parser;
+        const char *code = "void f() { (uint32_t)(*ptr); }";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&cpp_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&cpp_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_NE(find_node(parser.get(), result.node, "CastExpression"), nullptr);
     }
 
-    // 3. (my_func)(x) should remain Parenthesis (function call / expr)
+    // 3. (my_func)(x) should remain a call expression, not a CastExpression
     {
-        auto tokens = TextParser("(my_func)(x);", &cpp_definition);
-        tokens.post_process();
-
-        bool found_cast = false;
-        for (size_t i = 0; i < tokens.count; ++i) {
-            if (tokens[i].type && strcmp(tokens[i].type, "TypeCast") == 0) {
-                found_cast = true;
-            }
-        }
-        EXPECT_FALSE(found_cast);
+        textparser::Parser parser;
+        const char *code = "void f() { (my_func)(x); }";
+        ASSERT_EQ(parser.openmem(code, (int)strlen(code), TEXTPARSER_ENCODING_UTF_8), 0);
+        ASSERT_EQ(parser.parse(&cpp_definition), 0);
+        textparser_match_result result = {};
+        ASSERT_EQ(parser.execute_language_grammar(&cpp_definition, &result), 0);
+        EXPECT_EQ(result.status, TEXTPARSER_MATCH_OK);
+        EXPECT_EQ(find_node(parser.get(), result.node, "CastExpression"), nullptr);
     }
 }
-

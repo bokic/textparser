@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <bash_legacy_definition.json.h>
+#include <bash_definition.json.h>
 
 static void scan_tokens(const TokenParserItem &item, std::set<std::string> &found) {
     if (item.type) {
@@ -42,10 +42,10 @@ function run_build() {
     EXPECT_TRUE(found.contains("Keyword"));
     EXPECT_TRUE(found.contains("Boolean"));
     EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("CodeBlock_Start"));
+    EXPECT_TRUE(found.contains("AssignOperator"));
+    EXPECT_TRUE(found.contains("SingleString_Start"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
     EXPECT_TRUE(found.contains("StringEscape"));
     EXPECT_TRUE(found.contains("Number"));
 }
@@ -74,7 +74,8 @@ echo $! $$ $# $@ $* $? $- $_ $0 $1
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("ParameterExpansion"));
+    EXPECT_TRUE(found.contains("ParameterExpansion_Start"));
+    EXPECT_TRUE(found.contains("ParameterExpansion_End"));
     EXPECT_TRUE(found.contains("Variable"));
     EXPECT_TRUE(found.contains("Operator"));
     EXPECT_TRUE(found.contains("Keyword"));
@@ -96,9 +97,10 @@ echo "kernel: `uname -r` and date: $(date)"
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("CommandSubstitution"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("CommandSubstitution_Start"));
+    EXPECT_TRUE(found.contains("BacktickSubstitution_Start"));
+    EXPECT_TRUE(found.contains("AnsiCString_Start"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
     EXPECT_TRUE(found.contains("StringEscape"));
 }
 
@@ -114,16 +116,20 @@ file_path="prefix_${id}_suffix.txt"
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
+    EXPECT_TRUE(found.contains("ParameterExpansion_Start"));
     EXPECT_TRUE(found.contains("Variable"));
-    // Verify DoubleString does NOT contain Parenthesis or CodeBlock
+    // Verify DoubleStringContent does NOT trigger standalone Parenthesis_Start or CodeBlock_Start
+    bool inside_str = false;
     for (size_t i = 0; i < tokens.count; ++i) {
-        if (tokens[i].type && std::string(tokens[i].type) == "DoubleString") {
-            for (size_t j = 0; j < tokens[i].children; ++j) {
-                EXPECT_STRNE(tokens[i][j].type, "Parenthesis");
-                EXPECT_STRNE(tokens[i][j].type, "CodeBlock");
-                EXPECT_STRNE(tokens[i][j].type, "ArrayIndex");
-            }
+        if (!tokens[i].type) continue;
+        std::string t = tokens[i].type;
+        if (t == "DoubleString_Start") inside_str = true;
+        else if (t == "DoubleString_End") inside_str = false;
+        else if (inside_str && tokens[i].value.find("File (backup)") != std::string::npos) {
+            EXPECT_NE(t, "Parenthesis_Start");
+            EXPECT_NE(t, "CodeBlock_Start");
+            EXPECT_NE(t, "ArrayIndex_Start");
         }
     }
 }
@@ -148,7 +154,7 @@ str+="more text"
 
     EXPECT_TRUE(found.contains("Variable"));
     EXPECT_TRUE(found.contains("Number"));
-    EXPECT_TRUE(found.contains("Operator"));
+    EXPECT_TRUE(found.contains("AssignOperator"));
 }
 
 TEST(parse_Bash, arrays_heredocs_and_process_substitution) {
@@ -175,8 +181,9 @@ exec 1>&3 2>&4
 
     EXPECT_TRUE(found.contains("Keyword"));
     EXPECT_TRUE(found.contains("Variable"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("HereStart"));
+    EXPECT_TRUE(found.contains("ProcessSubstitution_Start"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
 }
 
 TEST(parse_Bash, complex_production_script) {
@@ -274,28 +281,31 @@ echo "STOP" >&"${BG_WORKER[1]}"
     EXPECT_TRUE(found.contains("Keyword"));
     EXPECT_TRUE(found.contains("Variable"));
     EXPECT_TRUE(found.contains("Identifier"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("SingleString"));
-    EXPECT_TRUE(found.contains("DoubleString"));
-    EXPECT_TRUE(found.contains("CodeBlock"));
-    EXPECT_TRUE(found.contains("Parenthesis"));
+    EXPECT_TRUE(found.contains("AssignOperator"));
+    EXPECT_TRUE(found.contains("AnsiCString_Start"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
+    EXPECT_TRUE(found.contains("CodeBlock_Start"));
+    EXPECT_TRUE(found.contains("Parenthesis_Start"));
 }
 
 TEST(parse_Bash, prune_redundant_unprocessed_leaf) {
     auto plain_str = TextParser(R"bash("Ninja")bash", &bash_definition);
     ASSERT_GT(plain_str.count, 0);
-    EXPECT_STREQ(plain_str[0].type, "DoubleString");
-    EXPECT_EQ(plain_str[0].children, 0);
-    ASSERT_NE(plain_str[0].raw_token()->child, nullptr);
-    EXPECT_EQ(plain_str[0].raw_token()->child->token_id, TEXTPARSER_TOKEN_ID_START_DELIMITER);
+    EXPECT_STREQ(plain_str[0].type, "DoubleString_Start");
+    EXPECT_STREQ(plain_str[1].type, "DoubleStringContent");
+    EXPECT_EQ(plain_str[1].value, "Ninja");
+    EXPECT_STREQ(plain_str[2].type, "DoubleString_End");
 
     auto interp_str = TextParser(R"bash("Hello $USER!")bash", &bash_definition);
     ASSERT_GT(interp_str.count, 0);
-    EXPECT_STREQ(interp_str[0].type, "DoubleString");
-    EXPECT_EQ(interp_str[0].children, 1);
-    ASSERT_NE(interp_str[0].raw_token()->child, nullptr);
-    EXPECT_STREQ(interp_str[0][0].type, "Variable");
-    EXPECT_EQ(interp_str[0][0].value, "$USER");
+    EXPECT_STREQ(interp_str[0].type, "DoubleString_Start");
+    EXPECT_STREQ(interp_str[1].type, "DoubleStringContent");
+    EXPECT_EQ(interp_str[1].value, "Hello ");
+    EXPECT_STREQ(interp_str[2].type, "Variable");
+    EXPECT_EQ(interp_str[2].value, "$USER");
+    EXPECT_STREQ(interp_str[3].type, "DoubleStringContent");
+    EXPECT_EQ(interp_str[3].value, "!");
+    EXPECT_STREQ(interp_str[4].type, "DoubleString_End");
 }
 
 TEST(parse_Bash, path_and_arithmetic_expression) {
@@ -316,16 +326,17 @@ val=$(( 10 / 2 + 5 * 3 ))
     }
 
     EXPECT_TRUE(found.contains("Path"));
-    EXPECT_TRUE(found.contains("ArithmeticExpression"));
+    EXPECT_TRUE(found.contains("ArithmeticExpression_Start"));
     EXPECT_TRUE(found.contains("ArithmeticOperator"));
 
-    // Find the ArrayIndex `[ -f build/compile_commands.json ]`
+    // Find the Path `build/compile_commands.json` inside ArrayIndex brackets
     bool found_path_in_test = false;
     for (size_t i = 0; i < tokens.count; ++i) {
-        if (tokens[i].type && std::string(tokens[i].type) == "ArrayIndex") {
-            for (size_t j = 0; j < tokens[i].children; ++j) {
-                if (tokens[i][j].type && std::string(tokens[i][j].type) == "Path") {
-                    EXPECT_EQ(tokens[i][j].value, "build/compile_commands.json");
+        if (tokens[i].type && std::string(tokens[i].type) == "ArrayIndex_Start") {
+            for (size_t j = i + 1; j < tokens.count; ++j) {
+                if (tokens[j].type && std::string(tokens[j].type) == "ArrayIndex_End") break;
+                if (tokens[j].type && std::string(tokens[j].type) == "Path") {
+                    EXPECT_EQ(tokens[j].value, "build/compile_commands.json");
                     found_path_in_test = true;
                 }
             }
@@ -348,10 +359,10 @@ legacy=`hostname -s`
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("CommandSubstitution"));
-    EXPECT_TRUE(found.contains("ProcessSubstitution"));
-    EXPECT_TRUE(found.contains("BacktickSubstitution"));
-    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("CommandSubstitution_Start"));
+    EXPECT_TRUE(found.contains("ProcessSubstitution_Start"));
+    EXPECT_TRUE(found.contains("BacktickSubstitution_Start"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
     EXPECT_TRUE(found.contains("Variable"));
 }
 
@@ -368,10 +379,10 @@ fi
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("TestExpression"));
+    EXPECT_TRUE(found.contains("TestExpression_Start"));
     EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("DoubleString"));
+    EXPECT_TRUE(found.contains("TestSymbol"));
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
     EXPECT_TRUE(found.contains("Variable"));
 }
 
@@ -390,7 +401,7 @@ num_oct=0755
         scan_tokens(tokens[i], found);
     }
 
-    EXPECT_TRUE(found.contains("SingleString"));
+    EXPECT_TRUE(found.contains("AnsiCString_Start"));
     EXPECT_TRUE(found.contains("StringEscape"));
     EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
@@ -419,8 +430,41 @@ EOF
     }
 
     EXPECT_TRUE(found.contains("Keyword"));
-    EXPECT_TRUE(found.contains("Operator"));
-    EXPECT_TRUE(found.contains("ProcessSubstitution"));
+    EXPECT_TRUE(found.contains("Redirection"));
+    EXPECT_TRUE(found.contains("ProcessSubstitution_Start"));
+    EXPECT_TRUE(found.contains("Variable"));
+}
+
+TEST(parse_Bash, corner_cases_and_edge_conditions) {
+    auto tokens = TextParser(R"bash(
+empty_str=""
+empty_single=''
+nested_param="${VAR:-$(echo "$DEFAULT")}"
+nested_arith=$(( $(echo 10) + 5 ))
+pipe_redir=cmd 2>&1 | tee /tmp/log
+slice="${array[@]:1:2}"
+escaped_quote="foo\"bar\\baz"
+)bash", &bash_definition);
+
+    ASSERT_GT(tokens.count, 0);
+    std::set<std::string> found;
+    for (size_t i = 0; i < tokens.count; ++i) {
+        scan_tokens(tokens[i], found);
+    }
+
+    EXPECT_TRUE(found.contains("DoubleString_Start"));
+    EXPECT_TRUE(found.contains("DoubleString_End"));
+    EXPECT_TRUE(found.contains("SingleString_Start"));
+    EXPECT_TRUE(found.contains("SingleString_End"));
+    EXPECT_TRUE(found.contains("ParameterExpansion_Start"));
+    EXPECT_TRUE(found.contains("ParameterExpansion_End"));
+    EXPECT_TRUE(found.contains("CommandSubstitution_Start"));
+    EXPECT_TRUE(found.contains("CommandSubstitution_End"));
+    EXPECT_TRUE(found.contains("ArithmeticExpression_Start"));
+    EXPECT_TRUE(found.contains("ArithmeticExpression_End"));
+    EXPECT_TRUE(found.contains("StringEscape"));
+    EXPECT_TRUE(found.contains("Pipe"));
+    EXPECT_TRUE(found.contains("Number"));
     EXPECT_TRUE(found.contains("Variable"));
 }
 

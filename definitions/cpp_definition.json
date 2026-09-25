@@ -2402,7 +2402,7 @@
           }
         ]
       },
-      "TypeSpecifier": {
+      "KnownTypeSpecifier": {
         "category": "type",
         "choice": [
           {
@@ -2461,6 +2461,14 @@
           },
           {
             "ref": "ElaboratedTypeSpecifier"
+          }
+        ]
+      },
+      "TypeSpecifier": {
+        "category": "type",
+        "choice": [
+          {
+            "ref": "KnownTypeSpecifier"
           },
           {
             "ref": "QualifiedIdentifier"
@@ -4184,7 +4192,87 @@
             "token": "RParen"
           },
           {
-            "ref": "InitializerList"
+            "token": "LBrace"
+          },
+          {
+            "optional": {
+              "ref": "InitializerList"
+            }
+          },
+          {
+            "optional": {
+              "token": "Comma"
+            }
+          },
+          {
+            "token": "RBrace"
+          }
+        ]
+      },
+      "CastTypeName": {
+        "category": "type",
+        "choice": [
+          {
+            "sequence": [
+              {
+                "ref": "DeclarationSpecifiers"
+              },
+              {
+                "ref": "AbstractDeclarator"
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "repeat": {
+                  "choice": [
+                    {
+                      "ref": "StorageClassSpecifier"
+                    },
+                    {
+                      "ref": "TypeQualifier"
+                    },
+                    {
+                      "ref": "FunctionSpecifier"
+                    },
+                    {
+                      "ref": "AlignmentSpecifier"
+                    }
+                  ]
+                }
+              },
+              {
+                "ref": "KnownTypeSpecifier"
+              },
+              {
+                "optional": {
+                  "ref": "AbstractDeclarator"
+                }
+              }
+            ]
+          },
+          {
+            "sequence": [
+              {
+                "choice": [
+                  {
+                    "ref": "TypeQualifier"
+                  },
+                  {
+                    "ref": "StorageClassSpecifier"
+                  }
+                ]
+              },
+              {
+                "ref": "DeclarationSpecifiers"
+              },
+              {
+                "optional": {
+                  "ref": "AbstractDeclarator"
+                }
+              }
+            ]
           }
         ]
       },
@@ -4195,7 +4283,7 @@
             "token": "LParen"
           },
           {
-            "ref": "TypeName"
+            "ref": "CastTypeName"
           },
           {
             "token": "RParen"
