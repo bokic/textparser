@@ -1674,8 +1674,7 @@ Template
         OutputStartTag_Start
         TagEnd
         Repeat
-            ExpressionStatement
-                Variable
+            Variable
             SharpExpression
                 SharpExpression_Start
                 Variable
@@ -1753,7 +1752,7 @@ Template
 </cfcomponent>
 ```
 
-- textparser status: `NO`
+- textparser status: `OK`
 - tree-sitter root error: `False`
 
 **textparser CST**
@@ -1772,6 +1771,12 @@ Template
                     AssignOperator
                     DoubleString
         TagEnd
+    ReturnTag
+        ReturnStartTag_Start
+        Number
+        TagSelfClose
+    EndTag
+    EndTag
 ```
 
 **tree-sitter CST**
@@ -2019,13 +2024,45 @@ Template
 <cfquery name="q" datasource="ds">SELECT * FROM t WHERE id = <cfqueryparam value="#id#" /></cfquery>
 ```
 
-- textparser status: `ERROR`
+- textparser status: `OK`
 - tree-sitter root error: `False`
 
 **textparser CST**
 
 ```
-(no cst)
+Template
+    QueryTagPair
+        QueryStartTag_Start
+        Repeat
+            TagAttribute
+                Variable
+                Sequence
+                    AssignOperator
+                    DoubleString
+            TagAttribute
+                Variable
+                Sequence
+                    AssignOperator
+                    DoubleString
+        TagEnd
+        Repeat
+            Variable
+            MulOperator
+            Variable
+            Variable
+            Variable
+            Variable
+            AssignOperator
+            SelfClosingTag
+                StartTag_Start
+                Repeat
+                    TagAttribute
+                        Variable
+                        Sequence
+                            AssignOperator
+                            DoubleString
+                TagSelfClose
+        QueryEndTag
 ```
 
 **tree-sitter CST**
@@ -2318,14 +2355,12 @@ Template
                     AssignOperator
                     DoubleString
         TagEnd
-    ExpressionStatement
-        Variable
+    Variable
     EndTag
     StartTag
         StartTag_Start
         TagEnd
-    ExpressionStatement
-        Variable
+    Variable
     EndTag
     EndTag
 ```
@@ -2419,8 +2454,7 @@ Template
                     DoubleString
         TagEnd
         Repeat
-            ExpressionStatement
-                Variable
+            Variable
             SharpExpression
                 SharpExpression_Start
                 Variable
@@ -2689,8 +2723,7 @@ Template
     StartTag
         StartTag_Start
         TagEnd
-    ExpressionStatement
-        Variable
+    Variable
     EndTag
     SetTag
         SetStartTag_Start
@@ -2767,8 +2800,7 @@ Template
                     AssignOperator
                     DoubleString
         TagEnd
-    ExpressionStatement
-        Variable
+    Variable
     EndTag
 ```
 
@@ -3807,43 +3839,56 @@ component extends="Base" {
 </cfscript>
 ```
 
-- textparser status: `NO`
+- textparser status: `OK`
 - tree-sitter root error: `False`
 
 **textparser CST**
 
 ```
 Template
-    Statement
+    ScriptTagPair
         ScriptStartTag_Start
         TagEnd
-        ComponentKeyword
-        Variable
-        AssignOperator
-        DoubleString
-        LBrace
-        PropertyKeyword
-        Variable
-        AssignOperator
-        DoubleString
-        Variable
-        AssignOperator
-        DoubleString
-    Semicolon
-    FunctionDeclaration
-        FunctionKeyword
-        Variable
-        LParen
-        RParen
-        BlockStatement
-            LBrace
-            Repeat
-                ReturnStatement
-                    ReturnKeyword
-                    ThisKeyword
-                    Semicolon
-            RBrace
-    RBrace
+        Repeat
+            ComponentDeclaration
+                ComponentKeyword
+                Repeat
+                    TagAttribute
+                        Variable
+                        Sequence
+                            AssignOperator
+                            DoubleString
+                LBrace
+                Repeat
+                    PropertyDeclaration
+                        PropertyKeyword
+                        Repeat
+                            TagAttribute
+                                Variable
+                                Sequence
+                                    AssignOperator
+                                    DoubleString
+                            TagAttribute
+                                Variable
+                                Sequence
+                                    AssignOperator
+                                    DoubleString
+                        Semicolon
+                    FunctionDeclaration
+                        FunctionKeyword
+                        Variable
+                        LParen
+                        RParen
+                        BlockStatement
+                            LBrace
+                            Repeat
+                                ReturnStatement
+                                    ReturnKeyword
+                                    ThisKeyword
+                                    Semicolon
+                            RBrace
+                RBrace
+        ScriptEndTag
 ```
 
 **tree-sitter CST**
@@ -3869,25 +3914,32 @@ interface Marker {
 </cfscript>
 ```
 
-- textparser status: `NO`
+- textparser status: `OK`
 - tree-sitter root error: `False`
 
 **textparser CST**
 
 ```
 Template
-    Statement
+    ScriptTagPair
         ScriptStartTag_Start
         TagEnd
-        InterfaceKeyword
-        Variable
-        LBrace
-        FunctionKeyword
-        Variable
-        LParen
-        RParen
-    Semicolon
-    RBrace
+        Repeat
+            InterfaceDeclaration
+                InterfaceKeyword
+                Repeat
+                    TagAttribute
+                        Variable
+                LBrace
+                Repeat
+                    InterfaceMethodDeclaration
+                        FunctionKeyword
+                        Variable
+                        LParen
+                        RParen
+                        Semicolon
+                RBrace
+        ScriptEndTag
 ```
 
 **tree-sitter CST**
@@ -4035,43 +4087,53 @@ component {
 }
 ```
 
-- textparser status: `NO`
+- textparser status: `OK`
 - tree-sitter root error: `False`
 
 **textparser CST**
 
 ```
 Template
-    Statement
+    ScriptTagPair
         ScriptStartTag_Start
         TagEnd
-        ComponentKeyword
-        LBrace
-        PropertyKeyword
-        Variable
-        AssignOperator
-        DoubleString
-        Variable
-        AssignOperator
-        DoubleString
-    Semicolon
-    FunctionDeclaration
-        FunctionKeyword
-        Variable
-        LParen
-        RParen
-        BlockStatement
-            LBrace
-            Repeat
-                ReturnStatement
-                    ReturnKeyword
-                    PostfixExpressionSuffix
-                        ThisKeyword
-                        ObjectMember
+        Repeat
+            ComponentDeclaration
+                ComponentKeyword
+                LBrace
+                Repeat
+                    PropertyDeclaration
+                        PropertyKeyword
+                        Repeat
+                            TagAttribute
+                                Variable
+                                Sequence
+                                    AssignOperator
+                                    DoubleString
+                            TagAttribute
+                                Variable
+                                Sequence
+                                    AssignOperator
+                                    DoubleString
+                        Semicolon
+                    FunctionDeclaration
+                        FunctionKeyword
                         Variable
-                    Semicolon
-            RBrace
-    RBrace
+                        LParen
+                        RParen
+                        BlockStatement
+                            LBrace
+                            Repeat
+                                ReturnStatement
+                                    ReturnKeyword
+                                    PostfixExpressionSuffix
+                                        ThisKeyword
+                                        ObjectMember
+                                        Variable
+                                    Semicolon
+                            RBrace
+                RBrace
+        ScriptEndTag
 ```
 
 **tree-sitter CST**

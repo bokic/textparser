@@ -512,4 +512,67 @@ TEST_F(CFMLGrammarFixture, recovers_at_statement_boundaries_in_script) {
     // Verified that recovery successfully resumed and parsed second statement
 }
 
+// -------------------------------------------------------------------------
+// 6. CF_BUGS: Tag-Form Component/Function/Return, QueryParam in Query, Script Component/Interface
+// -------------------------------------------------------------------------
+
+TEST_F(CFMLGrammarFixture, parses_cfquery_with_nested_cfqueryparam_and_sql_operators) {
+    const char *code =
+        "<cfquery name=\"q\" datasource=\"ds\">\n"
+        "    SELECT id, name, age\n"
+        "    FROM users\n"
+        "    WHERE id = <cfqueryparam value=\"#id#\" cfsqltype=\"cf_sql_integer\" />\n"
+        "      AND age >= <cfqueryparam value=\"18\" cfsqltype=\"cf_sql_integer\" />\n"
+        "      AND status IN (<cfqueryparam value=\"active\" list=\"true\" />)\n"
+        "    ORDER BY id DESC\n"
+        "</cfquery>\n";
+    EXPECT_NE(parse_source(code), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_tag_component_and_function_with_return) {
+    const char *code =
+        "<cfcomponent extends=\"Base\" output=\"false\">\n"
+        "    <cfproperty name=\"id\" type=\"numeric\" />\n"
+        "    <cffunction name=\"foo\" access=\"public\" returntype=\"numeric\">\n"
+        "        <cfargument name=\"x\" type=\"numeric\" required=\"true\" />\n"
+        "        <cfset var y = arguments.x * 2 />\n"
+        "        <cfreturn y + 1 />\n"
+        "    </cffunction>\n"
+        "    <cffunction name=\"emptyReturn\" access=\"remote\">\n"
+        "        <cfreturn />\n"
+        "    </cffunction>\n"
+        "    <cffunction name=\"noCloseReturn\" access=\"package\">\n"
+        "        <cfreturn \"result\">\n"
+        "    </cffunction>\n"
+        "</cfcomponent>\n";
+    EXPECT_NE(parse_source(code), nullptr);
+}
+
+TEST_F(CFMLGrammarFixture, parses_script_component_and_interface_declarations) {
+    const char *script_component =
+        "<cfscript>\n"
+        "component extends=\"Base\" implements=\"IMarker\" accessors=true {\n"
+        "    // member comment\n"
+        "    property name=\"p\" type=\"string\";\n"
+        "    property numeric count default=0;\n"
+        "    function init() {\n"
+        "        return this;\n"
+        "    }\n"
+        "    public numeric function calc(numeric a, numeric b) {\n"
+        "        return a + b;\n"
+        "    }\n"
+        "}\n"
+        "</cfscript>\n";
+    EXPECT_NE(parse_source(script_component), nullptr);
+
+    const char *script_interface =
+        "<cfscript>\n"
+        "interface Marker {\n"
+        "    function doIt();\n"
+        "    public string function format(any val);\n"
+        "}\n"
+        "</cfscript>\n";
+    EXPECT_NE(parse_source(script_interface), nullptr);
+}
+
 } // namespace
