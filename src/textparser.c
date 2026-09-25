@@ -4841,11 +4841,9 @@ EXPORT_TEXTPARSER int textparser_parse_incremental(textparser_t handle,
 
     textparser_token_item *left = keep_left;
     textparser_token_item *first_spliced = nullptr;
-    textparser_token_item *last_spliced = nullptr;
     for (size_t i = prefix; i + suffix < new_run.count; i++) {
         textparser_token_item *item = new_run.items[i];
         if (first_spliced == nullptr) first_spliced = item;
-        last_spliced = item;
         item->parent = parent_container;
         item->prev = left;
         if (left != nullptr) {

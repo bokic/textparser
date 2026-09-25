@@ -76,8 +76,9 @@ struct C3GrammarFixture : testing::TestWithParam<bool> {
             }
         }
         EXPECT_EQ(result.status, expected) << source;
-        if (expected == TEXTPARSER_MATCH_OK && !allow_diagnostics)
+        if (expected == TEXTPARSER_MATCH_OK && !allow_diagnostics) {
             EXPECT_EQ(textparser_get_diagnostic_count(parser.get()), 0u) << source;
+        }
         return result.node;
     }
 
