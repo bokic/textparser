@@ -208,10 +208,14 @@ static void tag_list_add(cfml_tag_list *list, const textparser_node *node, const
         node, copy, find_tag_info(name, length), is_start};
 }
 
+static bool node_kind_ends_with(const textparser_node *node, const char *suffix);
+
 static void collect_tags(textparser_t handle, const textparser_node *node, cfml_tag_list *list) {
     for (const textparser_node *item = node; item; item = item->next) {
-        bool is_start = kind(item, "StartTag");
-        if (is_start || kind(item, "EndTag")) {
+        bool is_start = node_kind_ends_with(item, "StartTag") ||
+            node_kind_ends_with(item, "StartTag_Start");
+        bool is_end = node_kind_ends_with(item, "EndTag");
+        if (is_start || is_end) {
             size_t length = 0;
             char *name = tag_name_text(handle, item, &length);
             if (name && length) tag_list_add(list, item, name, length, is_start);
@@ -225,37 +229,105 @@ static bool tag_names_equal(const cfml_tag_entry *a, const cfml_tag_entry *b) {
     return strcasecmp(a->name, b->name) == 0;
 }
 
+static bool node_kind_ends_with(const textparser_node *node, const char *suffix) {
+    if (!node || !node->cst_kind) return false;
+    size_t name_length = strlen(node->cst_kind);
+    size_t suffix_length = strlen(suffix);
+    return name_length >= suffix_length &&
+        strcmp(node->cst_kind + name_length - suffix_length, suffix) == 0;
+}
+
+static int compare_tag_positions(const void *left, const void *right) {
+    const cfml_tag_entry *a = left;
+    const cfml_tag_entry *b = right;
+    if (a->node->source_start < b->node->source_start) return -1;
+    if (a->node->source_start > b->node->source_start) return 1;
+    return 0;
+}
+
 static void check_tag_pairing(textparser_t handle, cfml_tag_list *list) {
+    if (list->count > 1) {
+        qsort(list->items, list->count, sizeof(*list->items), compare_tag_positions);
+        size_t unique_count = 0;
+        for (size_t i = 0; i < list->count; ++i) {
+            if (unique_count > 0 &&
+                list->items[unique_count - 1].node->source_start == list->items[i].node->source_start &&
+                list->items[unique_count - 1].is_start == list->items[i].is_start &&
+                tag_names_equal(&list->items[unique_count - 1], &list->items[i])) {
+                free(list->items[i].name);
+                continue;
+            }
+            if (unique_count != i) list->items[unique_count] = list->items[i];
+            ++unique_count;
+        }
+        list->count = unique_count;
+    }
+    size_t *open_tags = malloc(list->count * sizeof(*open_tags));
+    if (list->count > 0 && !open_tags) return;
+    size_t open_count = 0;
+    char message[512];
+
     for (size_t i = 0; i < list->count; ++i) {
         cfml_tag_entry *entry = &list->items[i];
-        char message[512];
         if (entry->is_start) {
-            if (entry->info == nullptr || entry->info->end_tag_type != CFML_END_TAG_REQUIRED)
-                continue;
-            bool found = false;
-            for (size_t j = i + 1; j < list->count && !found; ++j)
-                if (!list->items[j].is_start && tag_names_equal(entry, &list->items[j])) found = true;
-            if (!found) {
-                snprintf(message, sizeof(message),
-                    "CFML tag [%s] requires a closing tag </%s>", entry->name, entry->name);
-                report(handle, entry->node, "CF2005", message);
-            }
+            if (entry->info != nullptr &&
+                entry->info->end_tag_type != CFML_END_TAG_FORBIDDEN)
+                open_tags[open_count++] = i;
         } else {
             if (entry->info != nullptr && entry->info->end_tag_type == CFML_END_TAG_FORBIDDEN) {
                 snprintf(message, sizeof(message), "Ending tag </%s> is forbidden", entry->name);
                 report(handle, entry->node, "CF2006", message);
                 continue;
             }
-            bool found = false;
-            for (size_t j = i; j-- > 0 && !found;)
-                if (list->items[j].is_start && tag_names_equal(entry, &list->items[j])) found = true;
-            if (!found) {
+
+            if (entry->info == nullptr) {
+                bool found = false;
+                for (size_t j = i; j-- > 0 && !found;)
+                    if (list->items[j].is_start && tag_names_equal(entry, &list->items[j])) found = true;
+                if (!found) {
+                    snprintf(message, sizeof(message),
+                        "Ending tag </%s> has no matching start tag", entry->name);
+                    report(handle, entry->node, "CF2007", message);
+                }
+                continue;
+            }
+
+            size_t match = open_count;
+            while (match > 0) {
+                --match;
+                if (tag_names_equal(entry, &list->items[open_tags[match]])) break;
+            }
+            if (open_count == 0 || !tag_names_equal(entry, &list->items[open_tags[match]])) {
                 snprintf(message, sizeof(message),
                     "Ending tag </%s> has no matching start tag", entry->name);
                 report(handle, entry->node, "CF2007", message);
+                continue;
+            }
+
+            if (match + 1 != open_count) {
+                const cfml_tag_entry *expected = &list->items[open_tags[open_count - 1]];
+                snprintf(message, sizeof(message),
+                    "Ending tag </%s> is out of order; expected </%s> first",
+                    entry->name, expected->name);
+                report(handle, entry->node, "CF2007", message);
+                memmove(&open_tags[match], &open_tags[match + 1],
+                    (open_count - match - 1) * sizeof(*open_tags));
+                --open_count;
+            } else {
+                --open_count;
             }
         }
     }
+
+    for (size_t i = 0; i < open_count; ++i) {
+        cfml_tag_entry *entry = &list->items[open_tags[i]];
+        if (entry->info->end_tag_type == CFML_END_TAG_REQUIRED) {
+            snprintf(message, sizeof(message),
+                "CFML tag [%s] requires a closing tag </%s>", entry->name, entry->name);
+            report(handle, entry->node, "CF2005", message);
+        }
+    }
+    free(open_tags);
 }
 
 static void tag_list_free(cfml_tag_list *list) {

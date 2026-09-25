@@ -492,6 +492,10 @@ TEST_F(CFMLGrammarFixture, validates_known_and_unknown_tags) {
 TEST_F(CFMLGrammarFixture, validates_tag_pairing) {
     EXPECT_NE(parse_source("<cfcomponent></cfcomponent>"), nullptr);
     EXPECT_NE(parse_source("<cfcomponent />"), nullptr);
+    EXPECT_NE(parse_source("<cfcomponent><cfoutput></cfoutput></cfcomponent>"), nullptr);
+    EXPECT_NE(parse_source("<cfcomponent><div></div></cfcomponent>"), nullptr);
+    rejects("<cfcomponent><cfoutput></cfcomponent></cfoutput>", "CF2007");
+    parse_source("<cfcomponent><cfoutput></cfcomponent>", TEXTPARSER_MATCH_NO);
     EXPECT_NE(parse_source("<cfoutput></CFOUTPUT><CFCOMPONENT></cfcomponent>"), nullptr);
     rejects("<cfcomponent>", "CF2005");
     rejects("<CFCOMPONENT>", "CF2005");
