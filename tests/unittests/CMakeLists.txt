@@ -152,6 +152,7 @@ target_link_libraries( unittests
   json_val
   md
   r
+  asm
   GTest::gtest_main
 )
 

@@ -353,4 +353,44 @@ set_target_properties(r_test PROPERTIES
     OUTPUT_NAME "r_validation_test"
 )
 
+add_library(asm SHARED
+    asm.c
+)
+
+target_include_directories(asm PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(asm PRIVATE
+    libtextparser
+)
+
+set_target_properties(asm PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_asm"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(asm_test
+    test_asm.c
+    asm.c
+)
+
+target_include_directories(asm_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(asm_test PRIVATE
+    libtextparser
+    asm
+)
+
+set_target_properties(asm_test PROPERTIES
+    OUTPUT_NAME "asm_validation_test"
+)
+
+
 

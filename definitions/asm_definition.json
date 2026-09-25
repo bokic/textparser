@@ -530,6 +530,9 @@
   },
   "grammar": {
     "start": "SourceFile",
+    "events": {
+      "onSourceComplete": "asm.legality"
+    },
     "productions": {
       "SourceFile": {
         "category": "source_file",
