@@ -7,8 +7,12 @@ extern "C"
 {
 #endif
 
-#if defined(_MSC_VER)
- #define EXPORT_CSS __declspec(dllexport)
+#if defined(_WIN32) || defined(__CYGWIN__)
+ #ifdef BUILDING_TEXTPARSER_CSS_VAL
+  #define EXPORT_CSS __declspec(dllexport)
+ #else
+  #define EXPORT_CSS __declspec(dllimport)
+ #endif
 #else
  #define EXPORT_CSS __attribute__((visibility("default")))
 #endif

@@ -5,6 +5,8 @@ add_library(cfml SHARED
     cfml_grammar.c
 )
 
+target_compile_definitions(cfml PRIVATE BUILDING_TEXTPARSER_CFML_VAL)
+
 target_include_directories(cfml PRIVATE
     ../../include
     ../../definitions
@@ -26,6 +28,8 @@ add_executable(cfml_test
     cfml.c
 )
 
+target_compile_definitions(cfml_test PRIVATE BUILDING_TEXTPARSER_CFML_VAL)
+
 target_include_directories(cfml_test PRIVATE
     ../../include
     ../../definitions
@@ -44,6 +48,8 @@ add_library(php SHARED
     php.c
     php_grammar.c
 )
+
+target_compile_definitions(php PRIVATE BUILDING_TEXTPARSER_PHP_VAL)
 
 target_include_directories(php PRIVATE
     ../../include
@@ -66,6 +72,8 @@ add_executable(php_test
     php.c
 )
 
+target_compile_definitions(php_test PRIVATE BUILDING_TEXTPARSER_PHP_VAL)
+
 target_include_directories(php_test PRIVATE
     ../../include
     ../../definitions
@@ -83,6 +91,8 @@ set_target_properties(php_test PROPERTIES
 add_library(html SHARED
     html.c
 )
+
+target_compile_definitions(html PRIVATE BUILDING_TEXTPARSER_HTML_VAL)
 
 target_include_directories(html PRIVATE
     ../../include
@@ -105,6 +115,8 @@ add_executable(html_test
     html.c
 )
 
+target_compile_definitions(html_test PRIVATE BUILDING_TEXTPARSER_HTML_VAL)
+
 target_include_directories(html_test PRIVATE
     ../../include
     ../../definitions
@@ -122,6 +134,8 @@ set_target_properties(html_test PROPERTIES
 add_library(css SHARED
     css.c
 )
+
+target_compile_definitions(css PRIVATE BUILDING_TEXTPARSER_CSS_VAL)
 
 target_include_directories(css PRIVATE
     ../../include
@@ -144,6 +158,8 @@ add_executable(css_test
     css.c
 )
 
+target_compile_definitions(css_test PRIVATE BUILDING_TEXTPARSER_CSS_VAL)
+
 target_include_directories(css_test PRIVATE
     ../../include
     ../../definitions
@@ -161,6 +177,8 @@ set_target_properties(css_test PROPERTIES
 add_library(typescript SHARED
     typescript.c
 )
+
+target_compile_definitions(typescript PRIVATE BUILDING_TEXTPARSER_TYPESCRIPT_VAL)
 
 target_include_directories(typescript PRIVATE
     ../../include
@@ -183,6 +201,8 @@ add_executable(typescript_test
     typescript.c
 )
 
+target_compile_definitions(typescript_test PRIVATE BUILDING_TEXTPARSER_TYPESCRIPT_VAL)
+
 target_include_directories(typescript_test PRIVATE
     ../../include
     ../../definitions
@@ -200,6 +220,8 @@ set_target_properties(typescript_test PROPERTIES
 add_library(sql SHARED
     sql.c
 )
+
+target_compile_definitions(sql PRIVATE BUILDING_TEXTPARSER_SQL_VAL)
 
 target_include_directories(sql PRIVATE
     ../../include
@@ -222,6 +244,8 @@ add_executable(sql_test
     sql.c
 )
 
+target_compile_definitions(sql_test PRIVATE BUILDING_TEXTPARSER_SQL_VAL)
+
 target_include_directories(sql_test PRIVATE
     ../../include
     ../../definitions
@@ -239,6 +263,8 @@ set_target_properties(sql_test PROPERTIES
 add_library(json_val SHARED
     json.c
 )
+
+target_compile_definitions(json_val PRIVATE BUILDING_TEXTPARSER_JSON_VAL)
 
 target_include_directories(json_val PRIVATE
     ../../include
@@ -261,6 +287,8 @@ add_executable(json_test
     json.c
 )
 
+target_compile_definitions(json_test PRIVATE BUILDING_TEXTPARSER_JSON_VAL)
+
 target_include_directories(json_test PRIVATE
     ../../include
     ../../definitions
@@ -278,6 +306,8 @@ set_target_properties(json_test PROPERTIES
 add_library(md SHARED
     md.c
 )
+
+target_compile_definitions(md PRIVATE BUILDING_TEXTPARSER_MD_VAL)
 
 target_include_directories(md PRIVATE
     ../../include
@@ -300,6 +330,8 @@ add_executable(md_test
     md.c
 )
 
+target_compile_definitions(md_test PRIVATE BUILDING_TEXTPARSER_MD_VAL)
+
 target_include_directories(md_test PRIVATE
     ../../include
     ../../definitions
@@ -317,6 +349,8 @@ set_target_properties(md_test PROPERTIES
 add_library(r SHARED
     r.c
 )
+
+target_compile_definitions(r PRIVATE BUILDING_TEXTPARSER_R_VAL)
 
 target_include_directories(r PRIVATE
     ../../include
@@ -339,6 +373,8 @@ add_executable(r_test
     r.c
 )
 
+target_compile_definitions(r_test PRIVATE BUILDING_TEXTPARSER_R_VAL)
+
 target_include_directories(r_test PRIVATE
     ../../include
     ../../definitions
@@ -356,6 +392,8 @@ set_target_properties(r_test PROPERTIES
 add_library(asm SHARED
     asm.c
 )
+
+target_compile_definitions(asm PRIVATE BUILDING_TEXTPARSER_ASM_VAL)
 
 target_include_directories(asm PRIVATE
     ../../include
@@ -378,6 +416,8 @@ add_executable(asm_test
     asm.c
 )
 
+target_compile_definitions(asm_test PRIVATE BUILDING_TEXTPARSER_ASM_VAL)
+
 target_include_directories(asm_test PRIVATE
     ../../include
     ../../definitions
@@ -391,6 +431,4 @@ target_link_libraries(asm_test PRIVATE
 set_target_properties(asm_test PROPERTIES
     OUTPUT_NAME "asm_validation_test"
 )
-
-
 
