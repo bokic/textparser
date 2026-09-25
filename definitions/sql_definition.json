@@ -78,7 +78,7 @@
         "textColor": "0xb5cea8"
       },
       "Variable": {
-        "regex": "@[a-zA-Z0-9_]+|:[a-zA-Z0-9_]+|\\$[0-9]+",
+        "regex": "\\?|@[a-zA-Z0-9_]+|:[a-zA-Z0-9_]+|\\$[0-9]+",
         "priority": 24,
         "textColor": "0x9cdcfe"
       },
@@ -2863,6 +2863,9 @@
           }
         ]
       }
+    },
+    "events": {
+      "onSourceComplete": "sql.legality"
     }
   }
 }

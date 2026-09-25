@@ -148,6 +148,7 @@ target_link_libraries( unittests
   html
   css
   typescript
+  sql
   GTest::gtest_main
 )
 

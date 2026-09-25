@@ -196,3 +196,43 @@ target_link_libraries(typescript_test PRIVATE
 set_target_properties(typescript_test PROPERTIES
     OUTPUT_NAME "typescript_validation_test"
 )
+
+add_library(sql SHARED
+    sql.c
+)
+
+target_include_directories(sql PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(sql PRIVATE
+    libtextparser
+)
+
+set_target_properties(sql PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_sql"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(sql_test
+    test_sql.c
+    sql.c
+)
+
+target_include_directories(sql_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(sql_test PRIVATE
+    libtextparser
+    sql
+)
+
+set_target_properties(sql_test PROPERTIES
+    OUTPUT_NAME "sql_validation_test"
+)
+

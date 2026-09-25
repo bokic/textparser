@@ -484,8 +484,9 @@ from the core parser into pluggable validators and language validation modules:
   lexer automatically invokes `textparser_validate_token()` during candidate rule evaluation.
 - **Language Validation Modules:** Semantic validation logic is implemented in language-specific libraries
   under `src/validation/` (such as `libtextparser_typescript.so`, `libtextparser_php.so`, `libtextparser_cfml.so`,
-  `libtextparser_html.so`, `libtextparser_css.so`), exposing registration functions (e.g. `textparser_typescript_register_validators(handle)`)
-  and diagnostic extractors (e.g. `textparser_validate_typescript(handle)`).
+  `libtextparser_html.so`, `libtextparser_css.so`, `libtextparser_sql.so`), exposing registration functions (e.g. `textparser_typescript_register_validators(handle)`,
+  `textparser_sql_register_validators(handle)`) and diagnostic extractors (e.g. `textparser_validate_typescript(handle)`,
+  `textparser_validate_sql(handle)`).
 - **Event Lifecycle Dispatch:** Post-parse legality checks are triggered dynamically via grammar definition events
   (e.g. `"events": { "onSourceComplete": "typescript.legality" }`).
 
