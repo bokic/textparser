@@ -592,6 +592,9 @@
     ],
     "grammar": {
         "start": "SourceFile",
+        "events": {
+            "onSourceComplete": "r.legality"
+        },
         "productions": {
             "SourceFile": {
                 "category": "source_file",

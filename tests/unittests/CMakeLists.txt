@@ -151,6 +151,7 @@ target_link_libraries( unittests
   sql
   json_val
   md
+  r
   GTest::gtest_main
 )
 

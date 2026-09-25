@@ -484,11 +484,11 @@ from the core parser into pluggable validators and language validation modules:
   lexer automatically invokes `textparser_validate_token()` during candidate rule evaluation.
 - **Language Validation Modules:** Semantic validation logic is implemented in language-specific libraries
   under `src/validation/` (such as `libtextparser_typescript.so`, `libtextparser_php.so`, `libtextparser_cfml.so`,
-  `libtextparser_html.so`, `libtextparser_css.so`, `libtextparser_sql.so`, `libtextparser_json_val.so`, `libtextparser_md.so`), exposing registration functions (e.g. `textparser_typescript_register_validators(handle)`,
-  `textparser_sql_register_validators(handle)`, `textparser_json_register_validators(handle)`, `textparser_md_register_validators(handle)`) and diagnostic extractors (e.g. `textparser_validate_typescript(handle)`,
-  `textparser_validate_sql(handle)`, `textparser_validate_json(handle)`, `textparser_validate_md(handle)`).
+  `libtextparser_html.so`, `libtextparser_css.so`, `libtextparser_sql.so`, `libtextparser_json_val.so`, `libtextparser_md.so`, `libtextparser_r.so`), exposing registration functions (e.g. `textparser_typescript_register_validators(handle)`,
+  `textparser_sql_register_validators(handle)`, `textparser_json_register_validators(handle)`, `textparser_md_register_validators(handle)`, `textparser_r_register_validators(handle)`) and diagnostic extractors (e.g. `textparser_validate_typescript(handle)`,
+  `textparser_validate_sql(handle)`, `textparser_validate_json(handle)`, `textparser_validate_md(handle)`, `textparser_validate_r(handle)`).
 - **Event Lifecycle Dispatch:** Post-parse legality checks are triggered dynamically via grammar definition events
-  (e.g. `"events": { "onSourceComplete": "typescript.legality" }`, `"events": { "onSourceComplete": "json.legality" }`, or `"events": { "onSourceComplete": "md.legality" }`).
+  (e.g. `"events": { "onSourceComplete": "typescript.legality" }`, `"events": { "onSourceComplete": "json.legality" }`, `"events": { "onSourceComplete": "md.legality" }`, or `"events": { "onSourceComplete": "r.legality" }`).
 
 ---
 

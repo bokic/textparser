@@ -314,4 +314,43 @@ set_target_properties(md_test PROPERTIES
     OUTPUT_NAME "md_validation_test"
 )
 
+add_library(r SHARED
+    r.c
+)
+
+target_include_directories(r PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(r PRIVATE
+    libtextparser
+)
+
+set_target_properties(r PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_r"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(r_test
+    test_r.c
+    r.c
+)
+
+target_include_directories(r_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(r_test PRIVATE
+    libtextparser
+    r
+)
+
+set_target_properties(r_test PROPERTIES
+    OUTPUT_NAME "r_validation_test"
+)
+
 
