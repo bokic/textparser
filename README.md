@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Arch Linux AUR](https://img.shields.io/badge/Arch_Linux-AUR-1793D1?logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/textparser)
 
-A lightning-fast, multi-language **Abstract Syntax Tree (AST) generator** and syntax highlighter. Architected with a high-performance **C core engine** powered by **PCRE2** and **JSON-C**, `textparser` provides native, zero-overhead bindings and ports for **Rust**, **Python**, and **Java**.
+A lightning-fast, multi-language **Concrete & Abstract Syntax Tree (CST/AST) generator** and syntax highlighter. Architected with a high-performance **C core engine** powered by **PCRE2** and **JSON-C**, `textparser` provides standalone native ports for **Rust**, **Python**, and **Java**.
 
 It serves as a robust foundation for building linters, static analysis tools, compilers, and terminal utilities like the built-in `ccat` clone.
 
@@ -17,17 +17,51 @@ It serves as a robust foundation for building linters, static analysis tools, co
 
 - **🌐 Massive Language Support:** Rich declarative and regex-based grammars for modern and classic languages.
 - **⚡ High Performance:** Core tokenization, CST/AST construction, and Pratt expression parsing written in highly optimized C.
-- **♻️ Incremental, AST-Aware Re-parsing:** Sub-millisecond re-parsing that only re-lexes and splices modified regions, preserving node identity, AST structure, and memoized state across keystrokes.
-- **🧬 Multi-Language Ecosystem:** Native language ports and bindings (Rust, Python, Java) with memory safety and zero-overhead C integration.
+- **♻️ Incremental, CST/AST-Aware Re-parsing:** Sub-millisecond re-parsing that only re-lexes and splices modified regions, preserving node identity, tree structure, and memoized state across keystrokes.
+- **🧬 Multi-Language Ecosystem:** Standalone native ports (Rust, Python, Java) with memory safety and full behavioral parity.
 - **🎨 Built-in `ccat` Utility:** High-performance, syntax-highlighted terminal alternative to the standard `cat` command.
+
+---
+
+## 🧰 Tools
+
+`textparser` provides two command-line utilities:
+
+### `textparser`
+The primary CLI tool for parsing source files, inspecting token streams, and generating syntax trees (CST/AST).
+
+* **View colored syntax tree:**
+  ```bash
+  textparser main.c
+  ```
+* **Generate structured JSON representation:**
+  ```bash
+  textparser main.c --json
+  ```
+* **Export token stream with line/column positions:**
+  ```bash
+  textparser main.c --tokens
+  ```
+* **Test against a custom language definition:**
+  ```bash
+  textparser main.c --definition custom_def.json
+  ```
+
+### `ccat`
+A lightning-fast, colorized replacement for the standard `cat` command that renders syntax-highlighted source code directly in the terminal.
+
+* **View syntax-highlighted source code:**
+  ```bash
+  ccat main.rs
+  ```
 
 ---
 
 ## 📚 Supported Languages
 
-* **System & General:** C, C++, C#, Java, Go, Rust, Swift, Zig, C3, Jai, V, Ada, Assembly (x86/ARM), Pascal, Visual Basic, Fortran
-* **Web & Data:** HTML, CSS, JavaScript, TypeScript, JSON, XML, SQL, Markdown
-* **Scripting:** Python, PHP, Bash/Shell, Perl, MATLAB
+* **System & General:** C, C++, C#, Java, Go, Rust, Swift, Zig, C3, Jai, Ada, Assembly (x86/ARM), Pascal, Visual Basic, Fortran
+* **Web & Data:** HTML, CSS, JavaScript, TypeScript, CFML (ColdFusion), JSON, SQL, Markdown
+* **Scripting & Analytics:** Python, PHP, Bash/Shell, Perl, MATLAB, R, Scratch
 
 ---
 
@@ -86,22 +120,6 @@ build_zip.bat [x64|arm64]
 
 Architecture-specific binaries and ZIP archives are written separately, for
 example to `bin\arm64` and `windows\textparser-<version>-arm64.zip`.
-
----
-
-## 💡 Quick Usage Examples
-
-### 💻 CLI Usage (AST Generation)
-Generate a clean, structured JSON representation of a source file's AST:
-```bash
-textparser main.c --json
-```
-
-### 🎨 Colorized Cat (`ccat`)
-View your code with automatic, high-performance syntax highlighting in the terminal:
-```bash
-ccat main.rs
-```
 
 ---
 
