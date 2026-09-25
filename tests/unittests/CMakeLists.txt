@@ -55,7 +55,7 @@ add_executable( unittests
   cpp_tests.cpp
   csharp_tests.cpp
   javascript_tests.cpp
-  javascript_v2_grammar_tests.cpp
+  javascript_grammar_tests.cpp
   css_tests.cpp
   html_tests.cpp
   bash_tests.cpp
@@ -63,27 +63,27 @@ add_executable( unittests
   pascal_tests.cpp
   typescript_tests.cpp
   fortran_tests.cpp
-  fortran_v2_grammar_tests.cpp
+  fortran_grammar_tests.cpp
   perl_tests.cpp
-  perl_v2_grammar_tests.cpp
+  perl_grammar_tests.cpp
   go_tests.cpp
   asm_tests.cpp
   swift_tests.cpp
   ada_tests.cpp
-  ada_v2_grammar_tests.cpp
+  ada_grammar_tests.cpp
   matlab_tests.cpp
-  matlab_v2_grammar_tests.cpp
+  matlab_grammar_tests.cpp
   md_tests.cpp
-  md_v2_grammar_tests.cpp
+  md_grammar_tests.cpp
   vb_tests.cpp
   r_tests.cpp
-  r_v2_grammar_tests.cpp
+  r_grammar_tests.cpp
   scratch_tests.cpp
-  scratch_v2_grammar_tests.cpp
+  scratch_grammar_tests.cpp
   python_tests.cpp
   jai_tests.cpp
   c3_tests.cpp
-  c3_v2_grammar_tests.cpp
+  c3_grammar_tests.cpp
   zig_tests.cpp
   rust_tests.cpp
   subtraction_tests.cpp
@@ -98,24 +98,23 @@ add_executable( unittests
   lexer_stream_tests.cpp
   grammar_executor_tests.cpp
   json_grammar_tests.cpp
-  json_v2_grammar_tests.cpp
-  bash_v2_grammar_tests.cpp
-  c_v2_grammar_tests.cpp
-  cpp_v2_grammar_tests.cpp
-  csharp_v2_grammar_tests.cpp
-  java_v2_grammar_tests.cpp
-  rust_v2_grammar_tests.cpp
-  python_v2_grammar_tests.cpp
-  html_v2_grammar_tests.cpp
-  css_v2_grammar_tests.cpp
-  go_v2_grammar_tests.cpp
-  sql_v2_grammar_tests.cpp
-  swift_v2_grammar_tests.cpp
-  zig_v2_grammar_tests.cpp
-  jai_v2_grammar_tests.cpp
-  asm_v2_grammar_tests.cpp
-  pascal_v2_grammar_tests.cpp
-  vb_v2_grammar_tests.cpp
+  bash_grammar_tests.cpp
+  c_grammar_tests.cpp
+  cpp_grammar_tests.cpp
+  csharp_grammar_tests.cpp
+  java_grammar_tests.cpp
+  rust_grammar_tests.cpp
+  python_grammar_tests.cpp
+  html_grammar_tests.cpp
+  css_grammar_tests.cpp
+  go_grammar_tests.cpp
+  sql_grammar_tests.cpp
+  swift_grammar_tests.cpp
+  zig_grammar_tests.cpp
+  jai_grammar_tests.cpp
+  asm_grammar_tests.cpp
+  pascal_grammar_tests.cpp
+  vb_grammar_tests.cpp
   speculation_tests.cpp
   pratt_precedence_tests.cpp
   diagnostic_recovery_tests.cpp

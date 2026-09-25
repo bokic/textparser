@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / 'tests/unittests/perl_v2_grammar_tests.cpp'
+SOURCE = ROOT / 'tests/unittests/perl_grammar_tests.cpp'
 DEST = ROOT / 'tmp/perl-reference'
 
 

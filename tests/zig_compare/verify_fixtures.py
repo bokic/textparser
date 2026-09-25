@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TESTS = ROOT / 'tests/unittests/zig_v2_grammar_tests.cpp'
+TESTS = ROOT / 'tests/unittests/zig_grammar_tests.cpp'
 STRING = r'"(?:[^"\\]|\\.)*"'
 
 
