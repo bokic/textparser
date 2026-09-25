@@ -275,4 +275,43 @@ set_target_properties(json_test PROPERTIES
     OUTPUT_NAME "json_validation_test"
 )
 
+add_library(md SHARED
+    md.c
+)
+
+target_include_directories(md PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(md PRIVATE
+    libtextparser
+)
+
+set_target_properties(md PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_md"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(md_test
+    test_md.c
+    md.c
+)
+
+target_include_directories(md_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(md_test PRIVATE
+    libtextparser
+    md
+)
+
+set_target_properties(md_test PROPERTIES
+    OUTPUT_NAME "md_validation_test"
+)
+
 

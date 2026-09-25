@@ -150,6 +150,7 @@ target_link_libraries( unittests
   typescript
   sql
   json_val
+  md
   GTest::gtest_main
 )
 

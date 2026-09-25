@@ -248,6 +248,9 @@
     },
     "grammar": {
         "start": "SourceFile",
+        "events": {
+            "onSourceComplete": "md.legality"
+        },
         "productions": {
             "SourceFile": {
                 "category": "source_file",
