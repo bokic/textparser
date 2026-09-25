@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790338318794,
+  "lastUpdate": 1790346472725,
   "repoUrl": "https://github.com/bokic/textparser",
   "entries": {
     "textparser SQLite C/H Parse Benchmark": [
@@ -12552,6 +12552,174 @@ window.BENCHMARK_DATA = {
             "value": 0.0026429519231246403,
             "unit": "ms/iter",
             "extra": "iterations: 3\ncpu: 0.00265022985040302 ms\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bbarbulovski@gmail.com",
+            "name": "Boris Barbulovski",
+            "username": "bokic"
+          },
+          "committer": {
+            "email": "bbarbulovski@gmail.com",
+            "name": "Boris Barbulovski",
+            "username": "bokic"
+          },
+          "distinct": true,
+          "id": "4695ff1025f8e9da512b2fd78403b2d4a917c529",
+          "message": "Fix compiler warnings.",
+          "timestamp": "2026-09-25T12:38:38+02:00",
+          "tree_id": "a86099dad3efaeb7b3fe7042833fd49f2d429cc6",
+          "url": "https://github.com/bokic/textparser/commit/4695ff1025f8e9da512b2fd78403b2d4a917c529"
+        },
+        "date": 1790346472240,
+        "tool": "googlecpp",
+        "benches": [
+          {
+            "name": "BM_TextParser_ParseC/min_warmup_time:1.000/iterations:3_mean",
+            "value": 464242.3642425554,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 464185.1067212222 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseC/min_warmup_time:1.000/iterations:3_median",
+            "value": 466127.0822509999,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 466070.8388763334 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseC/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 35842.813669265284,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 35838.5842314014 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseC/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.07720711514069897,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.07720752715344041 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseC_JSON/min_warmup_time:1.000/iterations:3_mean",
+            "value": 426633.3070162222,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 426581.1832267777 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseC_JSON/min_warmup_time:1.000/iterations:3_median",
+            "value": 411617.73959666636,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 411572.01629433315 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseC_JSON/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 26980.918431617447,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 26972.496066871183 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseC_JSON/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.0632414722149003,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.06322945579278434 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseC/min_warmup_time:1.000/iterations:3_mean",
+            "value": 1726.8177788888959,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1726.5907876665854 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseC/min_warmup_time:1.000/iterations:3_median",
+            "value": 1726.103869332898,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1725.8773369997773 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseC/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 5.139016870954202,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 5.117735878796934 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseC/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.0029760041469232804,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.002964069955286474 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH/min_warmup_time:1.000/iterations:3_mean",
+            "value": 1777.84198744444,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1777.6069643333458 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH/min_warmup_time:1.000/iterations:3_median",
+            "value": 1778.7323219999962,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1778.4803813331866 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 6.953062923393488,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 6.949756269029096 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.003910956638721403,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.003909613547016821 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH_JSON/min_warmup_time:1.000/iterations:3_mean",
+            "value": 1777.1454102219448,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1776.8999805553497 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH_JSON/min_warmup_time:1.000/iterations:3_median",
+            "value": 1778.1132186664763,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 1777.841647999897 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH_JSON/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 4.415203753588194,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 4.405529447812428 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TextParser_ParseH_JSON/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.0024844358419926853,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.0024793345129282573 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseH/min_warmup_time:1.000/iterations:3_mean",
+            "value": 49.35092377794111,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 49.34761055553988 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseH/min_warmup_time:1.000/iterations:3_median",
+            "value": 49.31210566671022,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 49.31318933328536 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseH/min_warmup_time:1.000/iterations:3_stddev",
+            "value": 0.11497785204886585,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.11556789473466772 ms\nthreads: 1"
+          },
+          {
+            "name": "BM_TreeSitter_ParseH/min_warmup_time:1.000/iterations:3_cv",
+            "value": 0.0023298014149890885,
+            "unit": "ms/iter",
+            "extra": "iterations: 3\ncpu: 0.002341914703339041 ms\nthreads: 1"
           }
         ]
       }
