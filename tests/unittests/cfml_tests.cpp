@@ -837,7 +837,8 @@ TEST(parse_CFML, validation_closing_tags) {
     // 5. Self-closing start tag
     {
         textparser_t handle = nullptr;
-        int res = textparser_openmem("<cfcomponent />", 15, TEXTPARSER_ENCODING_LATIN1, &handle);
+        const char *code = "<cfcomponent name=\"x\" />";
+        int res = textparser_openmem(code, strlen(code), TEXTPARSER_ENCODING_LATIN1, &handle);
         ASSERT_EQ(res, 0);
         res = textparser_parse(handle, &cfml_definition);
         ASSERT_EQ(res, 0);

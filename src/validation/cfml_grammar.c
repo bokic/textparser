@@ -178,6 +178,20 @@ static char *tag_name_text(textparser_t handle, const textparser_node *node, siz
     return text;
 }
 
+static bool is_self_closing_tag(textparser_t handle, const textparser_node *node) {
+    for (const textparser_node *next = node ? node->next : nullptr; next; next = next->next) {
+        if (kind(next, "TagSelfClose")) return true;
+        if (kind(next, "TagEnd")) break;
+    }
+    size_t length = 0;
+    char *text = node_text(handle, node, &length);
+    if (!text) return false;
+    while (length > 0 && isspace((unsigned char)text[length - 1])) --length;
+    bool self_closing = length >= 2 && text[length - 2] == '/' && text[length - 1] == '>';
+    textparser_free_token_text(text);
+    return self_closing;
+}
+
 typedef struct {
     const textparser_node *node;
     char *name;
@@ -215,6 +229,7 @@ static void collect_tags(textparser_t handle, const textparser_node *node, cfml_
         bool is_start = node_kind_ends_with(item, "StartTag") ||
             node_kind_ends_with(item, "StartTag_Start");
         bool is_end = node_kind_ends_with(item, "EndTag");
+        if (is_start && is_self_closing_tag(handle, item)) is_start = false;
         if (is_start || is_end) {
             size_t length = 0;
             char *name = tag_name_text(handle, item, &length);
