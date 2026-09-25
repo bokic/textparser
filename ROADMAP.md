@@ -19,7 +19,7 @@
   bodies), and `return`/`await`/`yield` legality inside flattened `function`
   expression bodies are resolved; no open textparser defects remain.
 
-## 1.3 (Incremental parser: arena compaction) — FUTURE WORK
+## 1.3 Incremental parser arena compaction
 
 Status: not implemented. The arena refactor is already in place
 (`textparser_arena` with a live `arena` and a per-call `scratch` arena in

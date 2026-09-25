@@ -110,14 +110,29 @@ reusing orphaned IDs would risk stale-ID collisions. `id` is distinct from
 * `TEXTPARSER_NODE_GRAMMAR_POSTFIX` (`1 << 4`): Intermediate expression tree markers.
 
 CST category metadata is stored as `textparser_cst_category` on both production
-records and emitted container nodes. The JSON loader validates `category`
-against the public families. Container creation copies the production category;
+records and emitted container nodes. Schema-v2 productions and inline constructs
+accept an optional `category`: `unknown`, `token`, `source_file`, `declaration`,
+`statement`, `expression`, `type`, `jsx`, `pattern`, or `other`:
+
+```json
+{"sequence": [{"token": "Identifier"}], "category": "declaration"}
+```
+
+The C API `textparser_node_get_category(node)` reads that metadata without
+requiring a parser handle. Container creation copies the production category;
 when a named choice renames an anonymous sequence, it also replaces its category.
-Transparent productions preserve the returned child's identity and category.
-`textparser_node_get_category(node)` reads that metadata and uses only node
-structure for the token/expression/other fallback, with UNKNOWN for a null node.
+Transparent references and choices that return an existing child retain that child's
+category; token productions retain the token fallback. Omitted or `unknown` metadata
+uses generic structural defaults: leaves are `TOKEN`, non-synthetic nodes with
+children are `EXPRESSION`, and other containers or missing tokens are `OTHER`.
+A null node returns `UNKNOWN`. No category is inferred from the language name or
+CST kind spelling.
+
+Productions and inline constructs can also specify `astKind` (e.g. `"astKind": "VariableDeclaration"`)
+to override the emitted CST node kind independently of the production rule name. When omitted,
+emitted CST kinds use the production rule name or structural defaults.
 TypeScript family assignments live in `definitions/typescript_definition.json`;
-the category API contains no TypeScript name or suffix classification rules.
+the category API contains no hardcoded language-specific classification rules.
 
 ### 2.3 Lexer Stream Tokens & Trivia
 
@@ -304,17 +319,30 @@ The grammar executor executes declarative EBNF productions recursively or via di
 | `TEXTPARSER_PROD_PRATT` | Invokes the Pratt expression parser with a given minimum binding power. |
 | `TEXTPARSER_PROD_LEXICAL_GOAL`| Sets transient lexical goal while parsing child production. |
 
-Generic `when` conditions compile to an optional `textparser_guard` on the
-production. The loader resolves next-token names to IDs and copies profile
-suffixes from `grammar.sourceFileKinds` into the guard; the executor needs no JSON
-library or TypeScript-specific predicate names. Conditions within a guard are
-conjunctive. Existing `not` and `choice` constructs provide negation and alternatives.
-Guards use the current lexical goal and support both contextual and legacy token
-streams. Token lookahead does not consume input, and lexer errors are propagated.
-The builder and dynamic definition cleanup free guard records and arrays; spelling
-and suffix strings belong to the definition string pool. Native callbacks continue
-to use the existing speculative callback path. See README.md for guard and EOF
-semantics.
+### 4.2.1 Declarative Grammar Guards
+
+Declarative productions and inline constructs can specify `when` conditions for non-consuming lookahead evaluation without registering native C callbacks:
+
+```json
+{"when": {"noLineTerminatorBefore": true}}
+{"when": {"nextTokenIn": ["Dot", "Semicolon"], "allowEOF": true}}
+{"when": {"nextToken": "Identifier", "nextTokenText": "meta"}}
+```
+
+- **Conjunction**: Fields within a single `when` guard combine with logical AND.
+- **Token Matching**: `nextToken` and `nextTokenIn` match token kind IDs. `nextTokenText` checks exact, case-sensitive raw spelling (not decoded identifiers) across UTF-8, UTF-16, and UTF-32 source encodings.
+- **EOF Handling**: Token guards reject EOF by default unless `allowEOF: true` is explicitly enabled. A text condition (`nextTokenText`) always rejects EOF.
+- **Trivia & Newline Guards**: `noLineTerminatorBefore` and `lineTerminatorBefore` inspect leading trivia before the candidate token. EOF is treated as having no preceding newline. Setting `lineTerminatorBefore: false` inverts the condition.
+- **Source File Profiles**: Languages can define profile extensions under `grammar.sourceFileKinds`:
+  ```json
+  "sourceFileKinds": {
+    "jsx": [".tsx", ".jsx"],
+    "javascript": [".js", ".jsx", ".mjs", ".cjs"]
+  }
+  ```
+  `{"when": {"sourceFileKind": "jsx"}}` matches any suffix in that profile, ignoring ASCII case (unnamed buffers match no profile).
+- **Negation & Alternation**: Negate any guard using `{"not": {"when": ...}}`; alternative guards use standard `choice` constructs.
+- **Lifecycle & Execution**: Generic `when` conditions compile to an optional `textparser_guard` on `textparser_production`. The loader resolves token names to IDs and copies profile suffixes into the guard; the executor evaluates them directly without string lookups or JSON parsing. Native callbacks remain supported as standalone `native` predicates.
 
 ---
 
@@ -409,18 +437,27 @@ The engine avoids stopping at the first error or generating cascading diagnostic
 
 ---
 
-`textparser_grammar_report_expected()` uses definition-owned diagnostic metadata:
-`textparser_token.spelling` and `textparser_diagnostic_templates` on language,
-production, and token records. The JSON loader validates scope and template
-syntax and stores strings in the definition pool. The header generator emits
-matching token/language metadata, verified against the C JSON loader.
-Production overrides take precedence over token and language templates. Recovery
-has separate production/language templates. A bounded formatter expands one
-optional `%s` and literal `%%` without using definition strings as printf formats.
-Messages retain the existing 255-byte limit, severity, diagnostic cap, and supplied
-source spans. TypeScript spelling/name/code branches have been removed from this
-reporting function. Failure ranking, synchronization policy, trailing-input errors,
-and semantic diagnostics remain separate from this metadata selection.
+### 7.1 Declarative Diagnostic Messages
+
+Tokens can supply a display `spelling`, and a language definition can specify diagnostic codes and message templates:
+
+```json
+"diagnostics": {
+  "expected": {"code": "E_EXPECTED", "message": "Expected %s."},
+  "tokenExpected": {"code": "E_TOKEN", "message": "'%s' expected."},
+  "recovered": {"code": "E_RECOVERED", "message": "Recovered while parsing %s."}
+}
+```
+
+For example, a lexer token can contain `"spelling": ";"`. Tokens may override
+`diagnostics.expected`; productions and inline constructs may override
+`diagnostics.expected` and `diagnostics.recovered`. Each template requires a
+nonempty `code` and `message`.
+
+- **Precedence**: Expected-error precedence is production override -> token override -> language `tokenExpected` (when a spelling exists) -> language `expected`. Recovery uses the production's `recovered` override or the language default.
+- **Defaults**: With no configured template, default `TEXTPARSER_EXPECTED`/`TEXTPARSER_RECOVERED` apply; a token spelling supplies `'<spelling>' expected.`
+- **Formatting**: Templates accept at most one `%s` and any number of `%%` escapes. `%s` receives the token spelling for expected-token errors, otherwise the expected element name or description. Recovery always uses the element description. A bounded formatter expands literal `%` and text without using definition strings as `printf` formats, adhering to a 255-byte limit.
+- **Language Independence**: Diagnostic reporting (`textparser_grammar_report_expected()`), grammar synchronization recovery, and trailing unconsumed token diagnostics are completely language-independent. There are no language-specific checks hardcoded in `src/textparser.c`; diagnostic templates, spellings, recovery synchronization tokens, and boundary detection are driven entirely by declarative language definitions (`definitions/*.json`).
 
 
 ## 8. Semantic Lifecycle Events & AST Building
@@ -433,6 +470,24 @@ To allow downstream compilers (e.g. `tsc23`) to transform the generic CST into s
 4. **`TEXTPARSER_EVENT_SOURCE_COMPLETE`**: Fired once the root start production completes and reaches EOF.
 
 Lifecycle events are queued during speculative parsing and flushed only after the surrounding branch commits (`textparser_publish_pending_events`).
+
+### 8.1 Decoupled Semantic Validation & Pratt Operand Validators
+
+Pratt expression operand validation and AST early-error legality checks are decoupled
+from the core parser into pluggable validators and language validation modules:
+
+- **Pluggable Operand Validators:** Registered via `textparser_register_operand_validator(handle, name, fn, user_data)`.
+  Pratt productions specify `"validateOperand": "typescript.assignmentTarget"` or `"typescript.updateTarget"`
+  in JSON without embedding language-specific AST inspection in `src/textparser.c`.
+- **Pluggable Token Validators:** Tokens in language definitions can specify `"validator": "validator_name"`
+  (e.g., `"validator": "typescript.identifier"` on `Identifier` and `PrivateIdentifier`). The contextual
+  lexer automatically invokes `textparser_validate_token()` during candidate rule evaluation.
+- **Language Validation Modules:** Semantic validation logic is implemented in language-specific libraries
+  under `src/validation/` (such as `libtextparser_typescript.so`, `libtextparser_php.so`, `libtextparser_cfml.so`,
+  `libtextparser_html.so`, `libtextparser_css.so`), exposing registration functions (e.g. `textparser_typescript_register_validators(handle)`)
+  and diagnostic extractors (e.g. `textparser_validate_typescript(handle)`).
+- **Event Lifecycle Dispatch:** Post-parse legality checks are triggered dynamically via grammar definition events
+  (e.g. `"events": { "onSourceComplete": "typescript.legality" }`).
 
 ---
 
