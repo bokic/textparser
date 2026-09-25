@@ -236,3 +236,43 @@ set_target_properties(sql_test PROPERTIES
     OUTPUT_NAME "sql_validation_test"
 )
 
+add_library(json_val SHARED
+    json.c
+)
+
+target_include_directories(json_val PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(json_val PRIVATE
+    libtextparser
+)
+
+set_target_properties(json_val PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    OUTPUT_NAME "textparser_json_val"
+    VERSION "${TEXTPARSER_VERSION_TAG}"
+    SOVERSION "${TEXTPARSER_VERSION_TAG_SHORT}"
+)
+
+add_executable(json_test
+    test_json.c
+    json.c
+)
+
+target_include_directories(json_test PRIVATE
+    ../../include
+    ../../definitions
+)
+
+target_link_libraries(json_test PRIVATE
+    libtextparser
+    json_val
+)
+
+set_target_properties(json_test PROPERTIES
+    OUTPUT_NAME "json_validation_test"
+)
+
+

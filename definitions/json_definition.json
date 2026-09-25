@@ -80,6 +80,9 @@
   },
   "grammar": {
     "start": "Root",
+    "events": {
+      "onSourceComplete": "json.legality"
+    },
     "productions": {
       "Root": {
         "choice": [

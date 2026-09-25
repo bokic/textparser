@@ -2,8 +2,10 @@
 
 #include <gtest/gtest.h>
 #include <textparser.hpp>
+#include <textparser-json.h>
 
 #include <json_definition.json.h>
+#include <json.h>
 
 static bool json_has_unprocessed(const textparser_token_item *token) {
     for (; token != nullptr; token = token->next) {
@@ -588,6 +590,136 @@ TEST(parse_JSON, corner_cases_and_edge_conditions) {
     EXPECT_TRUE(found.contains("KeyValueSeparator"));
     EXPECT_TRUE(found.contains("ValueSeparator"));
 }
+
+struct JSONValidationFixture : testing::TestWithParam<bool> {
+    textparser_language_definition *json_definition_dynamic = nullptr;
+
+    void SetUp() override {
+        if (GetParam()) {
+            ASSERT_EQ(textparser_json_load_language_definition_from_json_file(
+                          "definitions/json_definition.json", &json_definition_dynamic),
+                      TEXTPARSER_JSON_NO_ERROR);
+            ASSERT_NE(json_definition_dynamic, nullptr);
+            ASSERT_NE(json_definition_dynamic->grammar, nullptr);
+        }
+    }
+
+    void TearDown() override {
+        if (json_definition_dynamic != nullptr) {
+            textparser_free_language_definition(json_definition_dynamic);
+            json_definition_dynamic = nullptr;
+        }
+    }
+
+    const textparser_language_definition *get_definition() const {
+        return GetParam() ? json_definition_dynamic : &json_definition;
+    }
+
+    std::vector<std::string> validate(const char *source) {
+        textparser_t handle = nullptr;
+        EXPECT_EQ(textparser_openmem(source, (int)strlen(source), TEXTPARSER_ENCODING_UTF_8, &handle), 0);
+        EXPECT_EQ(textparser_parse(handle, get_definition()), 0);
+        EXPECT_EQ(textparser_json_register_validators(handle), 0);
+        textparser_match_result match{};
+        EXPECT_EQ(textparser_execute_language_grammar(handle, get_definition(), &match), 0);
+
+        std::vector<std::string> messages;
+        textparser_validation *val = textparser_validate_json(handle);
+        if (val != nullptr) {
+            for (int i = 0; i < val->len; i++) {
+                if (val->items[i]->text) {
+                    messages.push_back(val->items[i]->text);
+                }
+            }
+            textparser_validation_clear(val);
+        }
+        textparser_close(handle);
+        return messages;
+    }
+
+    bool has_error_code(const std::vector<std::string> &errors, const std::string &code) {
+        for (const auto &err : errors) {
+            if (err.find(code) != std::string::npos) return true;
+        }
+        return false;
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(JSONDefinitionSources, JSONValidationFixture, testing::Bool(),
+                         [](const testing::TestParamInfo<bool> &info) {
+                             return info.param ? "JSON" : "Static";
+                         });
+
+TEST_P(JSONValidationFixture, valid_json_produces_no_diagnostics) {
+    auto clean1 = validate("{}");
+    EXPECT_TRUE(clean1.empty());
+
+    auto clean2 = validate("[]");
+    EXPECT_TRUE(clean2.empty());
+
+    auto clean3 = validate(R"({
+        "name": "textparser",
+        "version": 2.0,
+        "is_active": true,
+        "tags": ["parser", "cst", "ast", null],
+        "nested": {
+            "escape": "line1\nline2\t\"quoted\"",
+            "unicode": "hello \u0041 \uD83D\uDE80"
+        }
+    })");
+    EXPECT_TRUE(clean3.empty());
+}
+
+TEST_P(JSONValidationFixture, duplicate_key_in_object_rejected_JSON1001) {
+    auto err1 = validate(R"({"a": 1, "b": 2, "a": 3})");
+    EXPECT_TRUE(has_error_code(err1, "JSON1001"));
+
+    auto err_nested = validate(R"({"outer": {"k": 1, "k": 2}})");
+    EXPECT_TRUE(has_error_code(err_nested, "JSON1001"));
+
+    // Different objects having the same key name is valid
+    auto clean_diff_objs = validate(R"({"obj1": {"id": 1}, "obj2": {"id": 2}})");
+    EXPECT_TRUE(clean_diff_objs.empty());
+}
+
+TEST_P(JSONValidationFixture, invalid_string_escape_rejected_JSON1002) {
+    auto err_x = validate(R"({"a": "bad\x12"})");
+    EXPECT_TRUE(has_error_code(err_x, "JSON1002"));
+
+    auto err_sq = validate(R"({"a": "bad\'quote"})");
+    EXPECT_TRUE(has_error_code(err_sq, "JSON1002"));
+
+    auto err_null = validate(R"({"a": "bad\0char"})");
+    EXPECT_TRUE(has_error_code(err_null, "JSON1002"));
+
+    auto err_u_short = validate(R"({"a": "bad\u12"})");
+    EXPECT_TRUE(has_error_code(err_u_short, "JSON1002"));
+
+    auto err_u_hex = validate(R"({"a": "bad\u12ZZ"})");
+    EXPECT_TRUE(has_error_code(err_u_hex, "JSON1002"));
+
+    auto err_isolated_high = validate("{\"a\": \"bad\\uD800abc\"}");
+    EXPECT_TRUE(has_error_code(err_isolated_high, "JSON1002"));
+
+    auto err_isolated_low = validate("{\"a\": \"bad\\uDC00\"}");
+    EXPECT_TRUE(has_error_code(err_isolated_low, "JSON1002"));
+
+    auto clean_paired = validate("{\"a\": \"emoji \\uD83D\\uDE80\"}");
+    EXPECT_TRUE(clean_paired.empty());
+}
+
+TEST_P(JSONValidationFixture, unescaped_control_character_rejected_JSON1002) {
+    // String containing raw literal ASCII newline (0x0A)
+    const char raw_nl[] = "{\"a\": \"hello\nworld\"}";
+    auto err_nl = validate(raw_nl);
+    EXPECT_TRUE(has_error_code(err_nl, "JSON1002"));
+
+    // String containing raw literal ASCII tab (0x09)
+    const char raw_tab[] = "{\"a\": \"hello\tworld\"}";
+    auto err_tab = validate(raw_tab);
+    EXPECT_TRUE(has_error_code(err_tab, "JSON1002"));
+}
+
 
 
 
