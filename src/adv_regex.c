@@ -29,7 +29,7 @@ typedef enum {
 
 /* Dynamic function pointers per width */
 typedef struct {
-    void *lib_handle;
+    os_dl lib_handle;
     bool  loaded;
     bool  failed;
 

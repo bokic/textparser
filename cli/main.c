@@ -1,5 +1,5 @@
-#include <textparser-json.h>
 #include <textparser.h>
+#include <textparser-json.h>
 #include <ada_definition.json.h>
 #include <asm_definition.json.h>
 #include <bash_definition.json.h>

@@ -140,7 +140,7 @@ void os_file_cleanup(void *fd) {
     }
 }
 
-void *os_dlopen(const char *filename) {
+os_dl os_dlopen(const char *filename) {
     wchar_t *wpath = utf8_to_wchar(filename);
     if (!wpath) return NULL;
     HMODULE mod = LoadLibraryW(wpath);
@@ -148,14 +148,13 @@ void *os_dlopen(const char *filename) {
     return (void *)mod;
 }
 
-void *os_dlsym(void *handle, const char *symbol) {
+void *os_dlsym(os_dl handle, const char *symbol) {
     if (!handle || !symbol) return NULL;
-    return (void *)GetProcAddress((HMODULE)handle, symbol);
+    return (void *)GetProcAddress(handle, symbol);
 }
 
-void os_dlclose(void *handle) {
+void os_dlclose(os_dl handle) {
     if (handle) {
-        FreeLibrary((HMODULE)handle);
+        FreeLibrary(handle);
     }
 }
-

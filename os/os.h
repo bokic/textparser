@@ -9,6 +9,7 @@
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
 typedef HANDLE file_hnd_fd;
+typedef HMODULE os_dl;
 #define FILE_HND_FD_NULL INVALID_HANDLE_VALUE
 #define ERROR_FILE_HND_FD INVALID_HANDLE_VALUE
 #if !defined(_SSIZE_T_DEFINED) && !defined(__ssize_t_defined) && !defined(_SSIZE_T_)
@@ -20,6 +21,7 @@ typedef SSIZE_T ssize_t;
 #include <unistd.h>
 #include <strings.h>
 typedef int file_hnd_fd;
+typedef void* os_dl;
 #define FILE_HND_FD_NULL (-1)
 #define ERROR_FILE_HND_FD (-1)
 #endif
@@ -38,6 +40,6 @@ ssize_t os_write_to_terminal(const void *buffer, size_t len);
 
 void os_file_cleanup(void *fd);
 
-void *os_dlopen(const char *filename);
-void *os_dlsym(void *handle, const char *symbol);
-void os_dlclose(void *handle);
+os_dl os_dlopen(const char *filename);
+os_dl os_dlsym(os_dl handle, const char *symbol);
+void os_dlclose(os_dl handle);
