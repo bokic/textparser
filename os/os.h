@@ -41,5 +41,5 @@ ssize_t os_write_to_terminal(const void *buffer, size_t len);
 void os_file_cleanup(void *fd);
 
 os_dl os_dlopen(const char *filename);
-os_dl os_dlsym(os_dl handle, const char *symbol);
+void* os_dlsym(os_dl handle, const char *symbol);
 void os_dlclose(os_dl handle);
