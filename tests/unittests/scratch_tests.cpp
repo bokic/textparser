@@ -286,9 +286,6 @@ static std::vector<char> to_utf32(const std::string &s) {
     return std::vector<char>(p, p + u32.size() * sizeof(char32_t));
 }
 
-static inline std::vector<char> to_utf16le(const std::string &s) { return to_utf16(s); }
-static inline std::vector<char> to_utf32le(const std::string &s) { return to_utf32(s); }
-
 static textparser_language_definition single_line_lang = make_single_line_string_lang();
 
 static void expect_first_token_len(const char *text, enum textparser_encoding enc, size_t expected_len) {
@@ -999,4 +996,3 @@ TEST(parse_Delimiters, container_start_end_delimiters) {
     textparser_close(handle);
     textparser_free_language_definition(definition);
 }
-
