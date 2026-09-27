@@ -5560,7 +5560,7 @@ static void textparser_disambiguate_templates(textparser_token_item **root, cons
                             curr->prev->next = grp;
                         } else if (curr->parent) {
                             curr->parent->child = grp;
-                        } else if (root) {
+                        } else {
                             *root = grp;
                         }
 
