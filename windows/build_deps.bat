@@ -10,9 +10,9 @@ set "ROOT_DIR=%~dp0.."
 set "CLANG_DIR=C:\Program Files\LLVM\bin"
 set "PATH=C:\Program Files\CMake\bin;%CLANG_DIR%;%PATH%"
 set "JSON_C_VERSION=0.19-20260627"
-set "PCRE2_VERSION=10.48"
+set "PCRE2_VERSION=10.49"
 set "JSON_C_SHA1=257a038fc4d3504d30db173eadb2603e084beb71"
-set "PCRE2_SHA1=f1802e727c52f64d3b76349b81b86b4d5054249b"
+set "PCRE2_SHA1=82eaa321d232a37010003a4bc71d9cfa4734196a"
 
 where cmake.exe >nul 2>&1
 if errorlevel 1 (
