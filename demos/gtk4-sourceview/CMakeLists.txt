@@ -44,9 +44,11 @@ set_target_properties(gtk4-sourceview PROPERTIES
 target_include_directories(gtk4-sourceview PRIVATE
     ../../definitions
     ../../include
+    ../../src/validation
 )
 target_link_libraries(gtk4-sourceview PRIVATE
     PkgConfig::GTK4
     PkgConfig::GTKSOURCEVIEW
     ${TEXTPARSER_LINK}
+    json_val
 )

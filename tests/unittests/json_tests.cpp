@@ -720,6 +720,14 @@ TEST_P(JSONValidationFixture, unescaped_control_character_rejected_JSON1002) {
     EXPECT_TRUE(has_error_code(err_tab, "JSON1002"));
 }
 
+TEST_P(JSONValidationFixture, excessive_nesting_warns_JSON1004) {
+    std::string source(129, '[');
+    source += "null";
+    source.append(129, ']');
+
+    auto diagnostics = validate(source.c_str());
+    EXPECT_TRUE(has_error_code(diagnostics, "JSON1004"));
+}
 
 
 

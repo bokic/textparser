@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <json_definition.json.h>
+#include "json.h"
 
 
 /* Monotonic counter printed after "[textparser]" for every parser call. */
@@ -178,6 +179,24 @@ highlight(Editor *editor)
         size_t position = textparser_parse_error_position(editor->parser);
         show_error(editor, text, position, point_error_length(text, position),
                    message != NULL ? message : "Parsing failed");
+    } else {
+        textparser_match_result match = {0};
+        textparser_clear_diagnostics(editor->parser);
+        int grammar_result = textparser_execute_language_grammar(
+            editor->parser, editor->definition, &match);
+        if (grammar_result == TEXTPARSER_OK) {
+            for (size_t i = 0; i < textparser_get_diagnostic_count(editor->parser); i++) {
+                textparser_diagnostic diagnostic = {0};
+                if (textparser_get_diagnostic(editor->parser, i, &diagnostic) != TEXTPARSER_OK)
+                    continue;
+                char *description = g_strdup_printf("%s: %s",
+                    diagnostic.code ? diagnostic.code : "JSON",
+                    diagnostic.message ? diagnostic.message : "Validation failed");
+                show_error(editor, text, diagnostic.start_pos, diagnostic.length,
+                           description);
+                g_free(description);
+            }
+        }
     }
     gtk_widget_set_visible(GTK_WIDGET(editor->diagnostic), editor->error_count > 0);
     g_free(text);
@@ -365,6 +384,15 @@ activate(GtkApplication *app, gpointer user_data)
     printf("[textparser %u] parse (full, initial) -> result=%d, text_size=%zu\n",
            ++g_textparser_call, editor->parse_result,
            textparser_get_text_size(editor->parser));
+    result = textparser_json_register_validators(editor->parser);
+    if (result != TEXTPARSER_OK) {
+        g_printerr("Cannot register JSON validators: %s\n",
+                   textparser_strerror(result));
+        textparser_close(editor->parser);
+        g_free(editor);
+        g_application_quit(G_APPLICATION(app));
+        return;
+    }
 
     window = gtk_application_window_new(app);
     g_object_set_data_full(G_OBJECT(window), "editor", editor, editor_free);
