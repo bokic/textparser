@@ -6,6 +6,8 @@
 [![Language: Java](https://img.shields.io/badge/Language-Java-ED8B00?logo=openjdk&logoColor=white)](https://www.java.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Arch Linux AUR](https://img.shields.io/badge/Arch_Linux-AUR-1793D1?logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/textparser)
+[![Docker Pulls](https://img.shields.io/docker/pulls/bokic78/textparser)](https://hub.docker.com/r/bokic78/textparser)
+[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/bokic/textparser)
 
 A lightning-fast, multi-language **Concrete & Abstract Syntax Tree (CST/AST) generator** and syntax highlighter. Architected with a high-performance **C core engine** powered by **PCRE2** and **JSON-C**, `textparser` provides standalone native ports for **Rust**, **Python**, and **Java**.
 
